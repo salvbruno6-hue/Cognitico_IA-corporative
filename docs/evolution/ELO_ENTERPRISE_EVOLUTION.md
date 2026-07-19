@@ -1,54 +1,51 @@
-# ELO Enterprise Evolution
+# Evolução da Empresa ELO
 
-## Purpose
+## Propósito
+Este documento registra o caminho evolutivo da Plataforma Cognitiva Empresarial ELO, mostrando como a plataforma passou de uma arquitetura técnica para um ecossistema de inteligência empresarial.
 
-This document records the evolutionary path of the ELO Enterprise Cognitive Platform, showing how the platform moved from a technical architecture to an enterprise intelligence ecosystem.
+## Estágios de Evolução
 
-## Evolution Stages
+### v1.0 — Fundação
+Orientação inicial para empresas.
+Definição estrutural da plataforma.
+Princípios arquitetônicos fundamentais.
 
-### v1.0 — Foundation
-- Initial enterprise orientation.
-- Structural definition of the platform.
-- Core architectural principles.
+### v2.0 — Consolidação do Manual
+Consolidação do manual empresarial.
+Narrativa melhor para o modelo operacional.
+Alinhamento entre arquitetura e governança.
 
-### v2.0 — Handbook Consolidation
-- Enterprise handbook consolidation.
-- Better narrative for the operating model.
-- Alignment between architecture and governance.
+### v3.0 — Projeto de Implementação
+Planejamento de implementação.
+Reforço técnico da estrutura.
+Arquitetura orientada a implantação.
 
-### v3.0 — Implementation Blueprint
-- Implementation planning.
-- Technical structure reinforcement.
-- Deployment-oriented architecture.
+### v4.0 — Pronto para Produção
+Prontidão para produção.
+Preocupações operacionais.
+Estabilidade, segurança, observabilidade e governança.
 
-### v4.0 — Production Ready
-- Production readiness.
-- Operational concerns.
-- Stability, security, observability, and governance.
+### v5.0 — Inteligência Empresarial Autônoma
+Inteligência como capacidade operacional.
+Comportamento autônomo sob supervisão.
+Contexto, memória e maturidade de apoio à decisão.
 
-### v5.0 — Autonomous Enterprise Intelligence
-- Intelligence as an operational capability.
-- Autonomous behavior under supervision.
-- Context, memory, and decision support maturity.
+### v6.0 — Sistema Operacional Empresarial Autodito
+Ciclos de aprendizado.
+Acumulação de conhecimento.
+Melhoria baseada em feedback.
 
-### v6.0 — Self-Learning Enterprise OS
-- Learning loops.
-- Knowledge accumulation.
-- Feedback-based improvement.
+### v7.0 — Supervisionada por AGI Empresarial
+Modelo geral de inteligência em nível empresarial supervisionado.
+Governança e controle sobre capacidades autônomas.
+Orquestração cognitiva em toda a empresa.
 
-### v7.0 — Enterprise AGI Supervised
-- Supervised enterprise-level general intelligence model.
-- Governance and control over autonomous capabilities.
-- Enterprise-wide cognitive orchestration.
+## Princípios da Evolução
+- Manter a compatibilidade retro sempre que possível.
+- Evitar redefinir conceitos estáveis.
+- Ampliar as capacidades por meio de novos documentos e módulos.
+- Manter o núcleo cognitivo estável.
+- Usar ADRs para formalizar mudanças importantes.
 
-## Evolution Principles
-
-- Preserve backward compatibility whenever possible.
-- Avoid redefining stable concepts.
-- Extend capabilities through new documents and modules.
-- Keep the cognitive core stable.
-- Use ADRs to formalize major changes.
-
-## Relationship to the Baseline
-
-This document does not redefine the architecture baseline. It explains the historical and conceptual progression that led to the current ELO architecture.
+## Relação com a Linha de Base
+Este documento não redefine a linha base da arquitetura. Ele explica a progressão histórica e conceitual que levou à arquitetura atual do ELO.
