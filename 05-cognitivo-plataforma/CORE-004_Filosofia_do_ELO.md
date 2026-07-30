@@ -11,6 +11,8 @@ Definir os princípios filosóficos que orientam a construção do ELO como plat
 - evolução incremental e rastreável
 - separação entre conhecimento, domínio, aplicação e infraestrutura
 - integração consciente de capacidades cognitivas
+- modularidade antes de acoplamento
+- documentação como fonte de verdade
 
 ## Papel na Plataforma
 
