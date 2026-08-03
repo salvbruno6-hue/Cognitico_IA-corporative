@@ -1,0 +1,71 @@
+{
+  "response_id": "resp-risk-001",
+  "request_id": "req-risk-001",
+  "session_id": "sess-risk-001",
+  "domain": "inteligencia_demanda",
+  "response": {
+    "type": "risk_analysis",
+    "summary": "Há risco de ruptura em itens de alta criticidade caso a tendência de demanda se mantenha acima do previsto.",
+    "risks": [
+      {
+        "label": "ruptura de estoque",
+        "severity": "high"
+      },
+      {
+        "label": "atraso de compras",
+        "severity": "medium"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "forecast-202607",
+      "source_type": "analysis",
+      "title": "Forecast Julho 2026",
+      "uri": "elo://analysis/forecast/202607"
+    }
+  ],
+  "agents_used": [
+    {
+      "agent_id": "agent-risk-01",
+      "role": "risk_analyst",
+      "provider": "elo",
+      "model": "cognitive-core"
+    }
+  ],
+  "confidence": 0.78,
+  "provenance": {
+    "request_id": "req-risk-001",
+    "provider": "elo-core",
+    "model": "decision-engine",
+    "evidence_refs": ["forecast-202607"],
+    "policy_decision": "approved",
+    "validation_status": "validated",
+    "metadata": {
+      "fixture": true,
+      "scenario": "risk"
+    }
+  },
+  "suggestions": [
+    {
+      "action_id": "act-001",
+      "label": "Revisar níveis mínimos de estoque",
+      "action_type": "review",
+      "payload": {
+        "domain": "suprimentos"
+      },
+      "requires_approval": false
+    },
+    {
+      "action_id": "act-002",
+      "label": "Gerar alerta para PCP",
+      "action_type": "notify",
+      "payload": {
+        "domain": "planejamento_operacional"
+      },
+      "requires_approval": true
+    }
+  ],
+  "processing_time_ms": 145.3,
+  "timestamp": "2026-07-19T12:00:00Z"
+}
