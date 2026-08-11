@@ -172,7 +172,7 @@ A proposed capability could be represented as:
 ```yaml
 id: ELO-COG-CONSULT-001
 name: Cognitive Consulting Mode
- type: normative
+type: normative
 layer: cognitive
 owner: cognitive-core
 status: proposed
