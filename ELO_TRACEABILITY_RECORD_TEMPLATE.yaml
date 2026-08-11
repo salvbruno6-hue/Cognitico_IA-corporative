@@ -1,0 +1,44 @@
+# One record per significant capability or requirement.
+# Keep the record small; point to canonical artifacts instead of duplicating their content.
+
+record_id: ELO-TRACE-XXX
+record_type: capability|requirement|contract|change
+subject_id: ELO-CAP-XXX
+subject_name: <name>
+
+semantic:
+  layer: enterprise|architecture|process|knowledge|cognitive|data|ai|governance|system|roadmap
+  owner: <owner>
+  status: proposed|draft|normative|implemented|tested|verified|deprecated|superseded|blocked
+  authority: constitutional|baseline|adr|policy|contract|implementation|test|reference|proposal
+  maturity_level: 0
+
+traceability:
+  canonical_artifact: <path>
+  requirements: []
+  contracts: []
+  adrs: []
+  implementations: []
+  tests: []
+  evidence: []
+  dependencies: []
+
+verification:
+  acceptance_criteria: []
+  last_verified: null
+  verified_by: null
+  result: unknown
+  limitations: []
+
+risk:
+  severity: none|low|medium|high|critical|blocker
+  security_impact: none|low|medium|high|critical
+  governance_impact: none|low|medium|high|critical
+  reversibility: reversible|partial|difficult|irreversible
+  blocking_gaps: []
+
+next_action:
+  action: <next action>
+  owner: <owner>
+  prerequisite: <dependency or approval>
+  definition_of_done: <measurable completion condition>
