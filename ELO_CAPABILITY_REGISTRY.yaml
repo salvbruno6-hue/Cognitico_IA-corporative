@@ -1,0 +1,264 @@
+# ELO Capability Registry
+#
+# Operational companion to ELO_BASELINE_MATURITY_AND_TRACEABILITY_FRAMEWORK.md.
+# This registry is intentionally conservative: it records the initial inventory
+# without claiming implementation maturity that has not been evidenced.
+#
+# Status vocabulary follows ELO_ARTIFACT_METADATA_STANDARD.md.
+# Maturity: 0 absent, 1 conceptual, 2 documented, 3 contracted,
+# 4 implemented, 5 tested, 6 verified, 7 operationally evidenced.
+
+schema_version: "0.1"
+registry_id: ELO-REG-CAP-001
+status: proposed
+authority: proposal
+last_reviewed: "2026-08-11"
+
+rules:
+  - "Do not promote maturity without evidence."
+  - "Do not create duplicate capabilities under different names without an ADR."
+  - "A capability entry is not proof of implementation."
+  - "If evidence is missing, record the gap instead of inferring success."
+  - "Use canonical_artifact to identify the primary source of meaning."
+
+capabilities:
+  - id: ELO-CAP-ENT-001
+    name: Enterprise Manifest
+    layer: enterprise
+    owner: enterprise-governance
+    status: active
+    maturity_level: 2
+    canonical_artifact: 00-enterprise-manifest/
+    evidence: []
+    gaps:
+      - Establish explicit canonical manifest artifact if multiple historical manifests remain.
+
+  - id: ELO-CAP-ARCH-001
+    name: Architecture Governance
+    layer: architecture
+    owner: architecture-governance
+    status: active
+    maturity_level: 2
+    canonical_artifact: 02-architecture-library/
+    evidence: []
+    gaps:
+      - Complete capability-to-ADR traceability.
+
+  - id: ELO-CAP-COG-001
+    name: Cognitive Core
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 2
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Produce verified capability map and runtime evidence.
+
+  - id: ELO-CAP-COG-002
+    name: Cognitive Interface
+    layer: cognitive
+    owner: cognitive-interface
+    status: active
+    maturity_level: 4
+    canonical_artifact: src/elo/interface/
+    historical_evidence:
+      - commit: f1138b5b5fb3e12d3a643feb9ec1c94416c92577
+        description: establish cognitive interface architecture
+      - commit: 42eece2282f8b08b945454ca36fc02b6977360a9
+        description: add cognitive interface specification
+      - commit: 63c8e42749de7ba88bef2bb7ab4466057332296e
+        description: expose interface public API
+      - commit: 84ca5e65de4e9693e31c7044f95bdbda036b4355
+        description: add cognitive frontend chat component
+      - commit: e90ff9ab0d820397e3d1dfc93fb1bc764414ef6b
+        description: add risk response fixture
+    gaps:
+      - Verify the full ELO-001 acceptance matrix with executable tests.
+      - Record current test execution evidence.
+      - Separate implementation evidence from historical commit evidence.
+
+  - id: ELO-CAP-COG-003
+    name: Context Resolution
+    layer: cognitive
+    owner: cognitive-context
+    status: proposed
+    maturity_level: 1
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Define context boundaries and contracts.
+
+  - id: ELO-CAP-COG-004
+    name: Knowledge
+    layer: knowledge
+    owner: knowledge-engineering
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 04-knowledge-handbook/
+    evidence: []
+    gaps:
+      - Establish source classification and provenance model.
+
+  - id: ELO-CAP-COG-005
+    name: Experience Memory
+    layer: cognitive
+    owner: knowledge-engineering
+    status: proposed
+    maturity_level: 1
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Define Experience Case model.
+      - Define validation and applicability metadata.
+      - Define tenant and provenance controls.
+
+  - id: ELO-CAP-COG-006
+    name: Reasoning
+    layer: cognitive
+    owner: reasoning
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Map reasoning contracts to evidence and decision boundaries.
+
+  - id: ELO-CAP-COG-007
+    name: Evidence
+    layer: cognitive
+    owner: evidence-governance
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Define evidence lifecycle and confidence semantics.
+
+  - id: ELO-CAP-COG-008
+    name: Decision Support
+    layer: cognitive
+    owner: decision-support
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Define scenario and recommendation contracts.
+      - Define human decision boundary.
+
+  - id: ELO-CAP-COG-009
+    name: Agent Lifecycle and Autonomy Controls
+    layer: cognitive
+    owner: agent-governance
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Verify lifecycle gates and autonomy controls against implementation.
+
+  - id: ELO-CAP-COG-010
+    name: Cognitive Consulting Mode
+    layer: cognitive
+    owner: cognitive-core
+    status: proposed
+    maturity_level: 1
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Approve architecture before implementation.
+      - Define Information Gap and Clarification Question contracts.
+      - Define relevance scope and evidence thresholds.
+      - Define interaction with Context, Knowledge, Memory, Reasoning and Decision Support.
+
+  - id: ELO-CAP-ORG-001
+    name: Organizational Health Intelligence
+    layer: cognitive
+    owner: organizational-intelligence
+    status: proposed
+    maturity_level: 1
+    canonical_artifact: 05-cognitive-platform/
+    evidence: []
+    gaps:
+      - Define organizational health model.
+      - Define ethical boundaries.
+      - Define person/team/process/system inference controls.
+      - Define capability-gap assessment model.
+
+  - id: ELO-CAP-DATA-001
+    name: Data Engineering
+    layer: data
+    owner: data-engineering
+    status: active
+    maturity_level: 2
+    canonical_artifact: 07-data-engineering/
+    evidence: []
+    gaps:
+      - Establish end-to-end data quality evidence.
+
+  - id: ELO-CAP-DATA-002
+    name: Provenance
+    layer: governance
+    owner: provenance-governance
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 09-governance/
+    evidence: []
+    gaps:
+      - Verify provenance propagation through cognitive responses and integrations.
+
+  - id: ELO-CAP-GOV-001
+    name: Tenant Isolation
+    layer: governance
+    owner: tenant-governance
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 09-governance/
+    evidence: []
+    gaps:
+      - Produce executable isolation tests and verification evidence.
+
+  - id: ELO-CAP-INT-001
+    name: Integration Contracts and Events
+    layer: data
+    owner: integration-governance
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 02-architecture-library/
+    evidence: []
+    gaps:
+      - Map canonical event contracts to runtime implementations.
+
+  - id: ELO-CAP-OPS-001
+    name: Quality and Testing
+    layer: system
+    owner: quality-engineering
+    status: active
+    maturity_level: 2
+    canonical_artifact: 12-systems/
+    evidence: []
+    gaps:
+      - Establish repository-wide test evidence baseline.
+
+  - id: ELO-CAP-OPS-002
+    name: Observability
+    layer: system
+    owner: observability
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 12-systems/
+    evidence: []
+    gaps:
+      - Define minimum metrics/logs/traces for cognitive execution.
+
+  - id: ELO-CAP-OPS-003
+    name: Production Readiness
+    layer: system
+    owner: production-readiness
+    status: proposed
+    maturity_level: 2
+    canonical_artifact: 12-systems/
+    evidence: []
+    gaps:
+      - Define release gate and operational evidence requirements.
