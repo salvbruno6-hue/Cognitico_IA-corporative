@@ -17,6 +17,7 @@ def utc_now() -> datetime:
 class Session:
     id: str = field(default_factory=lambda: str(uuid4()))
     user_id: str | None = None
+    principal_id: str | None = None
     tenant_id: str | None = None
     domain: str | None = None
     context: dict[str, Any] = field(default_factory=dict)
@@ -35,14 +36,12 @@ class Session:
 
 class SessionStore(Protocol):
     def get(self, session_id: str) -> Session | None: ...
-
     def save(self, session: Session) -> None: ...
-
     def delete(self, session_id: str) -> None: ...
 
 
 class InMemorySessionStore:
-    """Development store. Replace with Redis/PostgreSQL without changing callers."""
+    """Development-only store; replaceable without changing callers."""
 
     def __init__(self) -> None:
         self._sessions: dict[str, Session] = {}
@@ -66,32 +65,23 @@ class SessionManager:
     def __init__(self, store: SessionStore | None = None) -> None:
         self.store = store or InMemorySessionStore()
 
-    def get_or_create(
-        self,
-        session_id: str | None = None,
-        *,
-        user_id: str | None = None,
-        tenant_id: str | None = None,
-        domain: str | None = None,
-        context: dict[str, Any] | None = None,
-    ) -> Session:
+    def get_or_create(self, session_id: str | None = None, *, user_id: str | None = None, principal_id: str | None = None, tenant_id: str | None = None, domain: str | None = None, context: dict[str, Any] | None = None) -> Session:
+        if not tenant_id:
+            raise ValueError("tenant_id is required")
         if session_id:
             existing = self.store.get(session_id)
             if existing is not None:
+                if existing.tenant_id != tenant_id:
+                    raise PermissionError("session does not belong to tenant")
+                if existing.principal_id and principal_id and existing.principal_id != principal_id:
+                    raise PermissionError("session does not belong to principal")
                 if domain is not None:
                     existing.domain = domain
                 if context:
                     existing.update_context(context)
                 self.store.save(existing)
                 return existing
-
-        session = Session(
-            id=session_id or str(uuid4()),
-            user_id=user_id,
-            tenant_id=tenant_id,
-            domain=domain,
-            context=dict(context or {}),
-        )
+        session = Session(id=session_id or str(uuid4()), user_id=user_id, principal_id=principal_id or user_id, tenant_id=tenant_id, domain=domain, context=dict(context or {}))
         self.store.save(session)
         return session
 
