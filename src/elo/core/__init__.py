@@ -2,6 +2,7 @@
 
 from .canonical_identity import CanonicalIdentityRegistry, EloCanonicalIdentity
 from .consulting import ConsultingResponse, ConsultingStatus
+from .conversation_bridge import ChatBridge, ChatBridgeEvent
 from .conversation_intake import ConversationEvent, ConversationIntake, ConversationIntakeResult
 from .evolution_memory import EvolutionMemory, EvolutionRecord
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
@@ -10,6 +11,8 @@ __all__ = [
     "AdmissionRequest",
     "AdmissionResult",
     "CanonicalIdentityRegistry",
+    "ChatBridge",
+    "ChatBridgeEvent",
     "ConsultingResponse",
     "ConsultingStatus",
     "ConversationEvent",
