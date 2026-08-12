@@ -38,6 +38,11 @@ class SuggestedAction(BaseModel):
 
 class Provenance(BaseModel):
     request_id: str
+    correlation_id: str
+    tenant_id: str
+    domain: str | None = None
+    principal_id: str | None = None
+    session_id: str | None = None
     provider: str | None = None
     model: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
@@ -49,18 +54,36 @@ class Provenance(BaseModel):
 
 class CognitiveRequest(BaseModel):
     request_id: str = Field(default_factory=lambda: str(uuid4()))
+    correlation_id: str | None = None
     message: str = Field(min_length=1)
     session_id: str | None = None
     user_id: str | None = None
-    tenant_id: str | None = None
+    principal_id: str | None = None
+    tenant_id: str
     domain: str | None = None
     context: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("tenant_id")
+    @classmethod
+    def validate_tenant_id(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("tenant_id is required")
+        return value
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.correlation_id is None:
+            self.correlation_id = self.request_id
+        if self.principal_id is None:
+            self.principal_id = self.user_id
 
 
 class CognitiveResponse(BaseModel):
     response_id: str = Field(default_factory=lambda: str(uuid4()))
     request_id: str
+    correlation_id: str
     session_id: str
+    tenant_id: str
     domain: str | None = None
     response: dict[str, Any]
     sources: list[SourceReference] = Field(default_factory=list)
@@ -75,3 +98,11 @@ class CognitiveResponse(BaseModel):
     @classmethod
     def normalize_confidence(cls, value: float) -> float:
         return max(0.0, min(1.0, float(value)))
+
+
+class ErrorContract(BaseModel):
+    code: str
+    message: str
+    request_id: str | None = None
+    correlation_id: str | None = None
+    status_code: int
