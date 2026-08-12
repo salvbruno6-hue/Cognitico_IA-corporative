@@ -1,0 +1,183 @@
+id: ELO-LEGACY-PR1-REGISTER-001
+name: ELO PR1 File Decision Register
+type: governance
+layer: architecture
+owner: architecture-governance
+status: proposed
+authority: proposal
+version: 0.1
+related:
+  - ELO_PR1_RECONCILIATION_MATRIX.md
+  - ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md
+  - ELO_ARTIFACT_METADATA_STANDARD.md
+depends_on:
+  - PR-1
+
+purpose: >-
+  Record the authoritative treatment of every changed file from historical PR #1
+  before any extraction, promotion, or retirement decision.
+
+classification_vocabulary:
+  - REUSE
+  - ADAPT
+  - SUPERSEDE
+  - HISTORICAL
+  - REJECT
+
+rules:
+  - Every PR1 file must have exactly one classification at the time of review.
+  - A classification may be changed only with explicit evidence or an ADR when structurally significant.
+  - No historical executable file is promoted solely by naming similarity.
+  - Security, tenancy, persistence, autonomy, and public contract changes require explicit review.
+
+records:
+  - path: 00-enterprise-manifest/ELO_OFFICIAL_ARCHITECTURE_LIBRARY.md
+    classification: ADAPT
+    target: 00-enterprise-manifest/
+    rationale: >-
+      Retain constitutional concepts only where they do not conflict with the
+      current governance and maturity model.
+    adr_required: false
+
+  - path: 02-architecture-library/ELO_DOCUMENTATION_RELATIONSHIP_MAP.md
+    classification: ADAPT
+    target: 02-architecture-library/
+    rationale: >-
+      Reconcile with the current navigation/authority system so there is one
+      canonical relationship map.
+    adr_required: false
+
+  - path: 02-architecture-library/ELO_TECHNICAL_ARCHITECTURE_MASTER.md
+    classification: ADAPT
+    target: 02-architecture-library/
+    rationale: >-
+      Preserve useful technical views but align maturity, contracts, security,
+      and current implementation root with the current baseline.
+    adr_required: false
+
+  - path: 05-cognitive-platform/ELO_AGENT_DEVELOPMENT_FRAMEWORK.md
+    classification: ADAPT
+    target: 05-cognitive-platform/
+    rationale: >-
+      Preserve agent/service boundaries while preventing the historical runtime
+      from becoming a parallel implementation.
+    adr_required: true
+
+  - path: 07-data-engineering/ELO_DATABASE_MASTER_DESIGN.md
+    classification: ADAPT
+    target: 07-data-engineering/
+    rationale: >-
+      Validate entities and data ownership against current contracts before use.
+    adr_required: true
+
+  - path: 10-adr/ADR-0001-official-architecture-library.md
+    classification: REUSE
+    target: 10-adr/
+    rationale: Retain if still consistent; mark supersession explicitly if needed.
+    adr_required: false
+
+  - path: 10-adr/ADR-0002-elo-v6-self-learning-enterprise-os.md
+    classification: HISTORICAL
+    target: 10-adr/
+    rationale: Future direction; not permission to implement autonomous learning.
+    adr_required: false
+
+  - path: 14-roadmap/ELO_DOCUMENTATION_ROADMAP.md
+    classification: ADAPT
+    target: 14-roadmap/
+    rationale: Retain roadmap information while making gate status explicit.
+    adr_required: false
+
+  - path: 14-roadmap/ELO_V6_SELF_LEARNING_ENTERPRISE_OS.md
+    classification: SUPERSEDE
+    target: 14-roadmap/
+    rationale: Future target only; cannot govern current MVP implementation.
+    adr_required: false
+
+  - path: ELO/__init__.py
+    classification: REJECT
+    target: src/elo/
+    rationale: Historical package root would create a competing executable tree.
+    adr_required: true
+
+  - path: ELO/core/elo_engine.py
+    classification: REJECT
+    target: null
+    rationale: Historical core conflicts with current src/elo executable root.
+    adr_required: true
+
+  - path: ELO/core/memory.py
+    classification: HISTORICAL
+    target: src/elo/
+    rationale: Concept may inform Memory, but implementation cannot be promoted without contract review.
+    adr_required: true
+
+  - path: ELO/core/observer.py
+    classification: HISTORICAL
+    target: 05-cognitive-platform/
+    rationale: Observer capability can be modeled as a future service; do not duplicate runtime.
+    adr_required: false
+
+  - path: ELO/core/advisor.py
+    classification: HISTORICAL
+    target: 05-cognitive-platform/
+    rationale: Advisor concept may inform Decision Support/Consulting, not a parallel engine.
+    adr_required: false
+
+  - path: ELO/agents/base.py
+    classification: REJECT
+    target: src/elo/
+    rationale: Historical agent boundary is not yet the approved Agent Runtime.
+    adr_required: true
+
+  - path: ELO/agents/*.py
+    classification: HISTORICAL
+    target: 05-cognitive-platform/
+    rationale: Domain specialist concepts are reference material until Agent Runtime is approved.
+    adr_required: false
+
+  - path: ELO/connectors/*.py
+    classification: HISTORICAL
+    target: 02-architecture-library/
+    rationale: Preserve adapter ideas, not duplicate integration implementation.
+    adr_required: false
+
+  - path: ELO/knowledge/*.py
+    classification: HISTORICAL
+    target: 06-knowledge-engineering/
+    rationale: In-memory lexical RAG is prototype evidence only and is not production Knowledge.
+    adr_required: false
+
+  - path: ELO/analytics/*.py
+    classification: HISTORICAL
+    target: 07-data-engineering/
+    rationale: Analytics patterns are useful reference material; runtime needs contract review.
+    adr_required: false
+
+  - path: ELO/security/permissions.py
+    classification: REJECT
+    target: 09-governance/
+    rationale: Historical authorization uses department-oriented boundaries and is not current security authority.
+    adr_required: true
+
+  - path: ELO/security/audit.py
+    classification: ADAPT
+    target: 09-governance/
+    rationale: Audit concepts may remain, but AuditEvent must stay distinct from Provenance and Evidence.
+    adr_required: false
+
+  - path: tests/test_elo_architecture.py
+    classification: ADAPT
+    target: tests/
+    rationale: Preserve useful behavioral scenarios but rewrite them around current canonical contracts.
+    adr_required: false
+
+  - path: scripts/configure_github_origin.sh
+    classification: HISTORICAL
+    target: scripts/
+    rationale: Operational utility is not part of architectural authority.
+    adr_required: false
+
+completion_rule: >-
+  The register is complete only when every path in the PR1 changed-file list has
+  a corresponding record or an approved grouping record with explicit scope.
