@@ -12,7 +12,7 @@ from pathlib import Path
 import sys
 
 from elo.core import EvolutionMemory, KnowledgeAdmission
-from elo.core.conversation_bridge import ChatBridgeEvent
+from elo.core.conversation_bridge import ChatBridge, ChatBridgeEvent
 from elo.core.conversation_intake import ConversationIntake
 
 INBOX = Path("events/conversations/inbox")
@@ -21,21 +21,23 @@ EVOLUTION = Path("memory/evolution")
 
 def main() -> int:
     EVOLUTION.mkdir(parents=True, exist_ok=True)
-    intake = ConversationIntake(KnowledgeAdmission(), EvolutionMemory())
+    memory = EvolutionMemory()
+    intake = ConversationIntake(KnowledgeAdmission(), memory)
+    bridge = ChatBridge(intake)
     processed = 0
     rejected = 0
 
     for path in sorted(INBOX.glob("*.json")):
         try:
             event = ChatBridgeEvent.from_json(path.read_text(encoding="utf-8"))
-            result = intake.ingest(event)
+            result = bridge.ingest(event)
         except (ValueError, PermissionError, json.JSONDecodeError) as exc:
             rejected += 1
             print(f"REJECT {path}: {exc}")
             continue
 
         if result.evolution_id:
-            record = intake._evolution_memory.get(result.evolution_id)  # canonical storage boundary
+            record = memory.get(result.evolution_id)
             if record is not None:
                 target = EVOLUTION / f"{record.evolution_id.replace(':', '_')}.json"
                 target.write_text(
