@@ -1,9 +1,8 @@
-"""Zero-infrastructure bridge between an authorized chat and ELO intake.
+"""Zero-infrastructure bridge between authorized chat and ELO temporal intake.
 
-The bridge is deliberately transport-neutral. It serializes an authorized
-conversation into a deterministic JSON event that GitHub can persist and a
-repository-side worker can pass to ConversationIntake. It does not access
-private ChatGPT history by itself.
+The bridge is transport-neutral. It serializes an authorized conversation or
+provider response into a deterministic JSON event. The event is first held in
+temporal context; permanent promotion remains a separate governed operation.
 """
 
 from dataclasses import asdict, dataclass
@@ -15,8 +14,6 @@ from .conversation_intake import ConversationEvent, ConversationIntake, Conversa
 
 @dataclass(frozen=True)
 class ChatBridgeEvent:
-    """Portable event exchanged between ChatGPT and the ELO repository."""
-
     conversation_id: str
     tenant_id: str
     domain: str
@@ -29,7 +26,8 @@ class ChatBridgeEvent:
     authorized: bool
     provenance: Mapping[str, str]
     source_type: str = "CHATGPT"
-    schema_version: str = "1.0"
+    schema_version: str = "1.1"
+    event_role: str = "CONVERSATION"
 
     def validate(self) -> None:
         required = {
@@ -50,6 +48,8 @@ class ChatBridgeEvent:
             raise PermissionError("conversation bridge event is not authorized")
         if self.source_type not in {"CHATGPT", "CLAUDE", "GEMINI", "OTHER_PROVIDER"}:
             raise ValueError(f"unsupported source_type: {self.source_type}")
+        if self.event_role not in {"CONVERSATION", "EXTERNAL_PROVIDER_RESPONSE"}:
+            raise ValueError(f"unsupported event_role: {self.event_role}")
         if not self.provenance:
             raise ValueError("provenance is required")
 
@@ -82,7 +82,7 @@ class ChatBridgeEvent:
 
 
 class ChatBridge:
-    """Translate a portable bridge event into the canonical ELO intake."""
+    """Translate portable events into the canonical ELO temporal intake."""
 
     def __init__(self, intake: ConversationIntake) -> None:
         self._intake = intake
