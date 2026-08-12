@@ -6,14 +6,14 @@ This document records what has been reconciled, what remains historical, and wha
 
 ## Reconciliation result
 
-The 59 changed files of historical PR #1 now have explicit file-level classifications in `ELO_PR1_FILE_DECISION_REGISTER.yaml`.
+The 59 changed files of historical PR #1 have explicit file-level classifications in `ELO_PR1_FILE_DECISION_REGISTER.yaml`.
 
 - Classified: 59/59
 - Unclassified: 0
 - Historical executable tree promoted into `src/elo/`: 0
 - Current executable root: `src/elo/`
 
-This is intentional. The historical `ELO/` package is not treated as a second implementation of the ELO.
+The historical `ELO/` package is not treated as a second implementation of the ELO.
 
 ## Documentation treatment
 
@@ -52,4 +52,4 @@ Do not close or delete historical material solely because it is classified as le
 
 ## Next gate
 
-The next step is not another reconciliation PR. It is selective promotion of only those artifacts that demonstrably fill an identified gap in the canonical repository, with promotion performed in the appropriate existing PR/branch and covered by tests or architectural evidence where applicable.
+The next step is selective promotion of only those artifacts that demonstrably fill an identified gap in the canonical repository. Promotion must occur in an existing governed branch/PR and must be covered by tests or architectural evidence where applicable.
