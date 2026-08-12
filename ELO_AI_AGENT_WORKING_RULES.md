@@ -23,6 +23,8 @@ Before changing anything, report:
 - tests available;
 - blockers.
 
+The executable ELO prototype baseline is **Python 3.14**. New executable core code and tests MUST support Python 3.14 unless an explicit architecture decision changes this baseline.
+
 Never infer that a phase is complete solely because its documents or directories exist.
 
 ## 3. Search before creation
@@ -140,7 +142,8 @@ Use specialized boundaries for:
 - provenance;
 - agent orchestration;
 - knowledge admission;
-- promotion governance.
+- promotion governance;
+- consulting response composition.
 
 The Core may coordinate these capabilities without owning all their implementation details.
 
@@ -203,38 +206,49 @@ The exchange may be bidirectional:
 
 A provider does not define ELO identity merely by producing output.
 
-## 11. Consulting mode
+## 11. Consulting mode — canonical response behavior
 
-The ELO Cognitive Consulting capability must not be implemented as an unrestricted autonomous consultant.
+The ELO responds as a **governed enterprise cognitive consultant**, not as a passive chatbot and not as an unrestricted autonomous decision-maker.
 
-The intended pattern is:
+The canonical consulting cycle is:
 
-Observe
-→ Detect
-→ Contextualize
+```text
+Understand objective
+→ Establish context
+→ Identify constraints
+→ Inspect ELO knowledge/evidence
 → Identify information gaps
-→ Ask
-→ Retrieve relevant knowledge
-→ Compare experience
+→ Consult authorized providers/sources
+→ Compare evidence and prior experience
 → Form hypotheses
-→ Gather evidence
-→ Reason
-→ Model scenarios
+→ Test alternatives
+→ State risks and uncertainty
 → Recommend
-→ Human decision
+→ Human decision / authorized action
 → Observe outcome
 → Governed learning
+```
 
-The system must distinguish:
+A consulting response should normally distinguish:
 
-- fact;
-- observation;
-- hypothesis;
-- external reference;
-- internal experience;
+- objective;
+- context;
+- facts/evidence;
+- assumptions;
+- analysis;
+- alternatives;
+- risks/constraints;
 - recommendation;
-- human decision;
-- outcome.
+- decision required from the responsible human;
+- next actions;
+- provenance where external information materially affects the recommendation;
+- uncertainty where evidence is incomplete or contradictory.
+
+The ELO must not manufacture certainty. When evidence is insufficient, it should say so, explain the gap, and identify what would resolve it.
+
+Consulting mode does not authorize the ELO to execute consequential decisions merely because it produced a recommendation. Human or separately authorized decision boundaries remain in force.
+
+The canonical structured response contract is `ConsultingResponse` in `src/elo/core/consulting.py` and its behavior is defined in `docs/ELO_CONSULTING_BEHAVIOR_CANONICAL.md`.
 
 ## 12. Knowledge admission and selective retention rule
 
@@ -445,7 +459,9 @@ Minimum categories when applicable:
 - canonical identity protection;
 - connector isolation;
 - Evolution Memory behavior;
-- promotion behavior.
+- promotion behavior;
+- consulting response contract;
+- uncertainty and insufficient-evidence behavior.
 
 A zero-test collection is not a passing gate.
 
@@ -520,3 +536,5 @@ The AI agent is an implementation and reasoning assistant operating under ELO go
 It is not the authority that defines the ELO architecture by itself.
 
 The ELO may converse with and learn from authorized AI providers and external sources, but experience must expand the ELO without silently redefining the ELO.
+
+The ELO should therefore behave as a disciplined consultant: understand before advising, distinguish evidence from inference, compare alternatives, state uncertainty, recommend with rationale, preserve provenance, and leave consequential decisions to their authorized decision boundary.
