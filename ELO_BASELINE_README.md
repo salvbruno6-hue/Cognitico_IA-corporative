@@ -8,8 +8,9 @@ Esta é a porta de entrada para a base de maturidade e rastreabilidade do ELO.
 2. `ELO_CAPABILITY_REGISTRY.yaml`
 3. `ELO_TRACEABILITY_RECORD_TEMPLATE.yaml`
 4. `ELO_BASELINE_MATURITY_SNAPSHOT_TEMPLATE.md`
-5. `ELO_BASELINE_AUDIT_CHECKLIST.md`
-6. `10-adr/ADR-0010-maturity-and-traceability-framework.md`
+5. `02-architecture-library/ELO_BASELINE_MATURITY_SNAPSHOT_2026-08-12.md`
+6. `ELO_BASELINE_AUDIT_CHECKLIST.md`
+7. `10-adr/ADR-0010-maturity-and-traceability-framework.md`
 
 ## Regra central
 
@@ -21,15 +22,9 @@ conceito ≠ documentação ≠ contrato ≠ implementação ≠ teste ≠ verif
 
 A maturidade somente deve avançar quando existir evidência compatível.
 
-## Primeiro uso
+## Primeiro snapshot
 
-1. Aprovar o framework.
-2. Auditar o registry inicial.
-3. Produzir o primeiro snapshot contra um commit fixo.
-4. Classificar gaps.
-5. Executar somente as próximas ações autorizadas.
-6. Reauditar após mudanças relevantes.
-7. Congelar uma baseline quando os critérios forem atendidos.
+O snapshot de 2026-08-12 registra o estado atual como **PRE-BASELINE / NOT FROZEN**. Ele deve ser atualizado somente quando novas evidências forem produzidas.
 
 ## Para Codex e outros agentes
 
