@@ -5,17 +5,14 @@ layer: architecture
 owner: architecture-governance
 status: proposed
 authority: proposal
-version: 0.1
-related:
-  - ELO_PR1_RECONCILIATION_MATRIX.md
-  - ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md
-  - ELO_ARTIFACT_METADATA_STANDARD.md
-depends_on:
-  - PR-1
+version: 0.2
+source_pr: 1
+source_head: 6496009abe0626307ea10a3138b569774ecc9b65
 
 purpose: >-
-  Record the authoritative treatment of every changed file from historical PR #1
-  before any extraction, promotion, or retirement decision.
+  Record an explicit classification and destination decision for every changed
+  file in historical PR #1. The register prevents accidental promotion of the
+  historical ELO/ runtime into the current src/elo/ implementation root.
 
 classification_vocabulary:
   - REUSE
@@ -25,159 +22,82 @@ classification_vocabulary:
   - REJECT
 
 rules:
-  - Every PR1 file must have exactly one classification at the time of review.
-  - A classification may be changed only with explicit evidence or an ADR when structurally significant.
+  - Every PR1 changed file has exactly one classification below.
+  - Grouping is not used; every path is explicitly enumerated.
   - No historical executable file is promoted solely by naming similarity.
   - Security, tenancy, persistence, autonomy, and public contract changes require explicit review.
+  - Historical material may be retained for provenance without becoming implementation authority.
+  - A later promotion requires contract comparison, tests, and evidence.
 
 records:
-  - path: 00-enterprise-manifest/ELO_OFFICIAL_ARCHITECTURE_LIBRARY.md
-    classification: ADAPT
-    target: 00-enterprise-manifest/
-    rationale: >-
-      Retain constitutional concepts only where they do not conflict with the
-      current governance and maturity model.
-    adr_required: false
+  - {path: 00-enterprise-manifest/ELO_OFFICIAL_ARCHITECTURE_LIBRARY.md, classification: ADAPT, target: 00-enterprise-manifest/, rationale: Preserve constitutional content after reconciliation with current governance.}
+  - {path: 00-enterprise-manifest/README.md, classification: ADAPT, target: 00-enterprise-manifest/, rationale: Retain navigation content after canonical authority review.}
+  - {path: 02-architecture-library/ELO_DOCUMENTATION_RELATIONSHIP_MAP.md, classification: ADAPT, target: 02-architecture-library/, rationale: Reconcile into one canonical relationship map.}
+  - {path: 02-architecture-library/ELO_TECHNICAL_ARCHITECTURE_MASTER.md, classification: ADAPT, target: 02-architecture-library/, rationale: Preserve useful technical architecture only after alignment with current implementation evidence.}
+  - {path: 05-cognitive-platform/ELO_AGENT_DEVELOPMENT_FRAMEWORK.md, classification: ADAPT, target: 05-cognitive-platform/, rationale: Preserve agent boundaries while removing premature runtime claims.}
+  - {path: 07-data-engineering/ELO_DATABASE_MASTER_DESIGN.md, classification: ADAPT, target: 07-data-engineering/, rationale: Reconcile data model with current contracts and actual persistence.}
+  - {path: 10-adr/ADR-0001-official-architecture-library.md, classification: REUSE, target: 10-adr/, rationale: Existing architectural decision remains candidate authority pending consistency review.}
+  - {path: 10-adr/ADR-0002-elo-v6-self-learning-enterprise-os.md, classification: HISTORICAL, target: 10-adr/, rationale: Future direction and historical decision; not implementation authorization.}
+  - {path: 14-roadmap/ELO_DOCUMENTATION_ROADMAP.md, classification: ADAPT, target: 14-roadmap/, rationale: Preserve roadmap information while making current gates explicit.}
+  - {path: 14-roadmap/ELO_V6_SELF_LEARNING_ENTERPRISE_OS.md, classification: SUPERSEDE, target: 14-roadmap/, rationale: Future target cannot govern current MVP execution.}
+  - {path: 14-roadmap/README.md, classification: ADAPT, target: 14-roadmap/, rationale: Preserve roadmap navigation while separating future from current state.}
+  - {path: ELO/__init__.py, classification: REJECT, target: null, rationale: Historical package root would create a competing executable tree.}
+  - {path: ELO/agents/__init__.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Historical agent package marker; preserve only as reference.}
+  - {path: ELO/agents/base.py, classification: REJECT, target: null, rationale: Historical agent runtime is not the approved current Agent Runtime.}
+  - {path: ELO/agents/comercial.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/compras.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/diretoria.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/engenharia.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/financeiro.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/logistica.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/producao.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/qualidade.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/agents/rh.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Specialist-agent scenario reference; no runtime promotion.}
+  - {path: ELO/analytics/__init__.py, classification: HISTORICAL, target: 07-data-engineering/, rationale: Historical analytics package marker.}
+  - {path: ELO/analytics/opportunities.py, classification: HISTORICAL, target: 07-data-engineering/, rationale: Historical opportunity logic; requires current contract review before any reuse.}
+  - {path: ELO/analytics/opportunity_engine.py, classification: HISTORICAL, target: 07-data-engineering/, rationale: Historical analytics runtime; do not promote without contract and tests.}
+  - {path: ELO/analytics/patterns.py, classification: HISTORICAL, target: 07-data-engineering/, rationale: Historical pattern utilities; useful as reference only.}
+  - {path: ELO/connectors/__init__.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical connector package marker.}
+  - {path: ELO/connectors/chat.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter example; current integration contract governs implementation.}
+  - {path: ELO/connectors/chat_connector.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter compatibility shim.}
+  - {path: ELO/connectors/crm.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter example; no current contract evidence.}
+  - {path: ELO/connectors/crm_connector.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter compatibility shim.}
+  - {path: ELO/connectors/database.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter example; persistence boundary remains subject to current contracts.}
+  - {path: ELO/connectors/database_connector.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter compatibility shim.}
+  - {path: ELO/connectors/document.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter example; no direct promotion.}
+  - {path: ELO/connectors/document_connector.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter compatibility shim.}
+  - {path: ELO/connectors/email.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter example; no direct promotion.}
+  - {path: ELO/connectors/email_connector.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter compatibility shim.}
+  - {path: ELO/connectors/erp.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter example; current enterprise integration contracts govern.}
+  - {path: ELO/connectors/erp_connector.py, classification: HISTORICAL, target: 02-architecture-library/, rationale: Historical adapter compatibility shim.}
+  - {path: ELO/core/__init__.py, classification: REJECT, target: null, rationale: Historical core package would preserve a competing runtime root.}
+  - {path: ELO/core/advisor.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Advisor concept may inform Decision Support/Consulting but not become a parallel engine.}
+  - {path: ELO/core/company_map.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Organizational mapping concept requires current context/responsibility contracts.}
+  - {path: ELO/core/elo_engine.py, classification: REJECT, target: null, rationale: Historical core conflicts with current src/elo executable root.}
+  - {path: ELO/core/memory.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Memory behavior may inform future contracts; implementation cannot be promoted without governance.}
+  - {path: ELO/core/observer.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Observer capability is reference material for future cognitive observation.}
+  - {path: ELO/doors/__init__.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Historical access-door package marker.}
+  - {path: ELO/doors/employee_portal.py, classification: HISTORICAL, target: 05-cognitive-platform/, rationale: Historical interface scenario; current interface contracts govern.}
+  - {path: ELO/knowledge/__init__.py, classification: HISTORICAL, target: 06-knowledge-engineering/, rationale: Historical knowledge package marker.}
+  - {path: ELO/knowledge/knowledge_engine.py, classification: HISTORICAL, target: 06-knowledge-engineering/, rationale: Historical knowledge runtime; not production Knowledge implementation.}
+  - {path: ELO/knowledge/rag_engine.py, classification: HISTORICAL, target: 06-knowledge-engineering/, rationale: Simple in-memory RAG is prototype evidence only.}
+  - {path: ELO/knowledge/vector_store.py, classification: HISTORICAL, target: 06-knowledge-engineering/, rationale: Historical lexical/in-memory store must not be represented as production vector infrastructure.}
+  - {path: ELO/security/__init__.py, classification: REJECT, target: null, rationale: Historical security package does not define current authority.}
+  - {path: ELO/security/audit.py, classification: ADAPT, target: 09-governance/, rationale: Audit concepts may be reused while keeping Audit distinct from Provenance and Evidence.}
+  - {path: ELO/security/permissions.py, classification: REJECT, target: 09-governance/, rationale: Historical permission model uses department-oriented boundaries and conflicts with Tenant/Domain/Principal/Policy.}
+  - {path: README.md, classification: ADAPT, target: README.md, rationale: Preserve useful project description while reconciling current architecture and governance links.}
+  - {path: scripts/configure_github_origin.sh, classification: HISTORICAL, target: scripts/, rationale: Operational utility is not architectural authority.}
+  - {path: tests/conftest.py, classification: ADAPT, target: tests/, rationale: Preserve reusable test setup only after current runtime dependency review.}
+  - {path: tests/test_elo_architecture.py, classification: ADAPT, target: tests/, rationale: Preserve behavioral scenarios but rewrite against canonical contracts and current src/elo.}
 
-  - path: 02-architecture-library/ELO_DOCUMENTATION_RELATIONSHIP_MAP.md
-    classification: ADAPT
-    target: 02-architecture-library/
-    rationale: >-
-      Reconcile with the current navigation/authority system so there is one
-      canonical relationship map.
-    adr_required: false
+completion:
+  source_changed_files: 59
+  explicitly_classified_files: 59
+  unclassified_files: 0
+  status: complete_for_reconciliation_gate
+  next_gate: contract_and_behavior_review_for_any_candidate_marked_REUSE_or_ADAPT
 
-  - path: 02-architecture-library/ELO_TECHNICAL_ARCHITECTURE_MASTER.md
-    classification: ADAPT
-    target: 02-architecture-library/
-    rationale: >-
-      Preserve useful technical views but align maturity, contracts, security,
-      and current implementation root with the current baseline.
-    adr_required: false
-
-  - path: 05-cognitive-platform/ELO_AGENT_DEVELOPMENT_FRAMEWORK.md
-    classification: ADAPT
-    target: 05-cognitive-platform/
-    rationale: >-
-      Preserve agent/service boundaries while preventing the historical runtime
-      from becoming a parallel implementation.
-    adr_required: true
-
-  - path: 07-data-engineering/ELO_DATABASE_MASTER_DESIGN.md
-    classification: ADAPT
-    target: 07-data-engineering/
-    rationale: >-
-      Validate entities and data ownership against current contracts before use.
-    adr_required: true
-
-  - path: 10-adr/ADR-0001-official-architecture-library.md
-    classification: REUSE
-    target: 10-adr/
-    rationale: Retain if still consistent; mark supersession explicitly if needed.
-    adr_required: false
-
-  - path: 10-adr/ADR-0002-elo-v6-self-learning-enterprise-os.md
-    classification: HISTORICAL
-    target: 10-adr/
-    rationale: Future direction; not permission to implement autonomous learning.
-    adr_required: false
-
-  - path: 14-roadmap/ELO_DOCUMENTATION_ROADMAP.md
-    classification: ADAPT
-    target: 14-roadmap/
-    rationale: Retain roadmap information while making gate status explicit.
-    adr_required: false
-
-  - path: 14-roadmap/ELO_V6_SELF_LEARNING_ENTERPRISE_OS.md
-    classification: SUPERSEDE
-    target: 14-roadmap/
-    rationale: Future target only; cannot govern current MVP implementation.
-    adr_required: false
-
-  - path: ELO/__init__.py
-    classification: REJECT
-    target: src/elo/
-    rationale: Historical package root would create a competing executable tree.
-    adr_required: true
-
-  - path: ELO/core/elo_engine.py
-    classification: REJECT
-    target: null
-    rationale: Historical core conflicts with current src/elo executable root.
-    adr_required: true
-
-  - path: ELO/core/memory.py
-    classification: HISTORICAL
-    target: src/elo/
-    rationale: Concept may inform Memory, but implementation cannot be promoted without contract review.
-    adr_required: true
-
-  - path: ELO/core/observer.py
-    classification: HISTORICAL
-    target: 05-cognitive-platform/
-    rationale: Observer capability can be modeled as a future service; do not duplicate runtime.
-    adr_required: false
-
-  - path: ELO/core/advisor.py
-    classification: HISTORICAL
-    target: 05-cognitive-platform/
-    rationale: Advisor concept may inform Decision Support/Consulting, not a parallel engine.
-    adr_required: false
-
-  - path: ELO/agents/base.py
-    classification: REJECT
-    target: src/elo/
-    rationale: Historical agent boundary is not yet the approved Agent Runtime.
-    adr_required: true
-
-  - path: ELO/agents/*.py
-    classification: HISTORICAL
-    target: 05-cognitive-platform/
-    rationale: Domain specialist concepts are reference material until Agent Runtime is approved.
-    adr_required: false
-
-  - path: ELO/connectors/*.py
-    classification: HISTORICAL
-    target: 02-architecture-library/
-    rationale: Preserve adapter ideas, not duplicate integration implementation.
-    adr_required: false
-
-  - path: ELO/knowledge/*.py
-    classification: HISTORICAL
-    target: 06-knowledge-engineering/
-    rationale: In-memory lexical RAG is prototype evidence only and is not production Knowledge.
-    adr_required: false
-
-  - path: ELO/analytics/*.py
-    classification: HISTORICAL
-    target: 07-data-engineering/
-    rationale: Analytics patterns are useful reference material; runtime needs contract review.
-    adr_required: false
-
-  - path: ELO/security/permissions.py
-    classification: REJECT
-    target: 09-governance/
-    rationale: Historical authorization uses department-oriented boundaries and is not current security authority.
-    adr_required: true
-
-  - path: ELO/security/audit.py
-    classification: ADAPT
-    target: 09-governance/
-    rationale: Audit concepts may remain, but AuditEvent must stay distinct from Provenance and Evidence.
-    adr_required: false
-
-  - path: tests/test_elo_architecture.py
-    classification: ADAPT
-    target: tests/
-    rationale: Preserve useful behavioral scenarios but rewrite them around current canonical contracts.
-    adr_required: false
-
-  - path: scripts/configure_github_origin.sh
-    classification: HISTORICAL
-    target: scripts/
-    rationale: Operational utility is not part of architectural authority.
-    adr_required: false
-
-completion_rule: >-
-  The register is complete only when every path in the PR1 changed-file list has
-  a corresponding record or an approved grouping record with explicit scope.
+safety_rule: >-
+  Classification does not itself authorize migration. Any REUSE or ADAPT candidate
+  must pass contract comparison, security/provenance review, tests, and verification
+  before becoming current implementation or normative authority.
