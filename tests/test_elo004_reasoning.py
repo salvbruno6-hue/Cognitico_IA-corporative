@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from elo.reasoning import ClaimStatus, EvidenceItem, FindingType
 from elo.reasoning.engine import ReasoningEngine
 from elo.reasoning.policy import ReasoningPolicyError, validate_reasoning_result
@@ -37,10 +39,9 @@ def test_no_evidence_never_becomes_fact():
 
 def test_policy_rejects_unsupported_high_confidence():
     result = ReasoningEngine().reason("unknown", evidence=[])
-    finding = result.findings[0]
-    object.__setattr__(finding, "confidence", 0.9)
+    invalid = replace(result, overall_confidence=0.9, evidence_refs=())
     try:
-        validate_reasoning_result(result)
+        validate_reasoning_result(invalid)
     except ReasoningPolicyError:
         pass
     else:
