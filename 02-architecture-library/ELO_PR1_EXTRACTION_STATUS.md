@@ -2,44 +2,54 @@
 
 ## Scope
 
-This document tracks what has actually been extracted, reconciled, or intentionally left historical from PR #1.
+This document records what has been reconciled, what remains historical, and what is explicitly prohibited from direct promotion from historical PR #1.
 
-## Current result
+## Reconciliation result
 
-No executable code from the historical `ELO/` tree has been promoted into `src/elo/` by this reconciliation step.
+The 59 changed files of historical PR #1 now have explicit file-level classifications in `ELO_PR1_FILE_DECISION_REGISTER.yaml`.
 
-This is intentional.
+- Classified: 59/59
+- Unclassified: 0
+- Historical executable tree promoted into `src/elo/`: 0
+- Current executable root: `src/elo/`
 
-The purpose of the current step is to make the decision boundary explicit before any implementation migration.
+This is intentional. The historical `ELO/` package is not treated as a second implementation of the ELO.
 
-## Documentation extraction candidates
+## Documentation treatment
 
-| Artifact | Current treatment | Next action |
+| Artifact | Treatment | Migration rule |
 | --- | --- | --- |
-| Official architecture library | ADAPT | Compare with current governance and canonical docs |
-| Documentation relationship map | ADAPT | Keep one canonical map |
-| Technical architecture master | ADAPT | Align with maturity and current implementation evidence |
-| Agent development framework | ADAPT | Preserve boundaries, remove premature implementation claims |
-| Database master design | ADAPT | Validate against current contracts |
-| ADRs | REUSE/ADAPT | Check status and supersession |
-| v6 roadmap | ROADMAP | Keep future-only |
+| Official architecture library | ADAPT | Preserve useful constitutional material after authority review. |
+| Documentation relationship map | ADAPT | Maintain one canonical relationship map. |
+| Technical architecture master | ADAPT | Align with current maturity, contracts and implementation evidence. |
+| Agent development framework | ADAPT | Preserve boundaries; remove premature runtime claims. |
+| Database master design | ADAPT | Validate against current data contracts before adoption. |
+| ADRs | REUSE / HISTORICAL | Retain valid decisions; explicitly mark superseded decisions. |
+| v6 roadmap | SUPERSEDE / ROADMAP | Keep future direction separate from implementation authority. |
 
-## Executable extraction candidates
+## Executable treatment
 
-| Historical area | Current action |
-| --- | --- |
-| `ELO/core` | Do not promote; mine behaviors only |
-| `ELO/agents` | Do not promote; preserve scenarios/domain taxonomy |
-| `ELO/connectors` | Do not promote; compare with future integration contracts |
-| `ELO/knowledge` | Do not promote; treat lexical/in-memory implementation as test/reference only |
-| `ELO/security` | Do not promote; historical security model requires replacement with Tenant/Domain/Principal/Policy |
-| `ELO/analytics` | Do not promote without explicit contract and test review |
-| `tests/test_elo_architecture.py` | Candidate for test migration after contract mapping |
+| Historical area | Treatment | Rule |
+| --- | --- | --- |
+| `ELO/core` | REJECT/HISTORICAL | Mine behaviors and concepts only; do not create a competing core. |
+| `ELO/agents` | HISTORICAL | Preserve specialist scenarios; implement agents only through approved runtime gates. |
+| `ELO/connectors` | HISTORICAL | Preserve adapter ideas; current integration contracts govern implementation. |
+| `ELO/knowledge` | HISTORICAL | In-memory/lexical retrieval is prototype evidence, not production Knowledge. |
+| `ELO/security` | REJECT/ADAPT | Historical permission model cannot become current security authority. |
+| `ELO/analytics` | HISTORICAL | Reuse only after current contract and test review. |
+| `ELO/doors` | HISTORICAL | Preserve interface scenarios; current interface contracts govern. |
+| `tests/test_elo_architecture.py` | ADAPT | Candidate behavioral scenarios must be rewritten against canonical contracts. |
 
 ## Current gate
 
-The reconciliation is **not complete** until every changed file in PR #1 has a documented classification and destination decision.
+**COMPLETE FOR FILE-LEVEL RECONCILIATION.**
+
+All 59 PR #1 files have an explicit decision. This does not authorize migration. Any `REUSE` or `ADAPT` item must pass contract comparison, security/provenance review, tests, and verification before becoming current implementation or normative authority.
 
 ## Safety rule
 
-Do not close PR #1 or remove historical material solely because it is classified as legacy. Close/retire only after evidence shows its useful content is preserved and no active dependency remains.
+Do not close or delete historical material solely because it is classified as legacy. Retirement requires evidence that useful content is preserved and no active dependency remains.
+
+## Next gate
+
+The next step is not another reconciliation PR. It is selective promotion of only those artifacts that demonstrably fill an identified gap in the canonical repository, with promotion performed in the appropriate existing PR/branch and covered by tests or architectural evidence where applicable.
