@@ -6,6 +6,8 @@ This protocol governs work performed by ChatGPT, Codex, IDE agents, repository a
 
 The objective is continuity: different AI systems must be able to enter the repository and understand what is authoritative, what is proposed, what is implemented, what is tested, and what remains blocked.
 
+These rules operate together with the canonical ELO Soul and Evolution Memory architecture. When a conflict exists between lower-level implementation behavior and canonical artifacts, preserve the canonical intent unless an explicit governance decision changes it.
+
 ## 2. First action: establish state
 
 Before changing anything, report:
@@ -34,7 +36,8 @@ For every requested concept, search for:
 5. existing test;
 6. existing ADR;
 7. existing roadmap entry;
-8. related implementation.
+8. related implementation;
+9. canonical Soul/Evolution Memory rule.
 
 Then classify the work as:
 
@@ -54,17 +57,18 @@ Use this reading order when resolving architectural meaning:
 1. `AGENTS.md`;
 2. repository navigation rules;
 3. enterprise/constitutional manifest;
-4. architecture baseline;
-5. relevant ADRs;
-6. governance/policy;
-7. canonical contracts;
-8. implementation;
-9. tests;
-10. roadmap/proposals.
+4. canonical Soul and Evolution Memory architecture;
+5. architecture baseline;
+6. relevant ADRs;
+7. governance/policy;
+8. canonical contracts;
+9. implementation;
+10. tests;
+11. roadmap/proposals.
 
 Lower-level code must not silently redefine higher-level architecture.
 
-## 5. Planning rule
+## 5. Planning and purpose-preserving reconciliation
 
 Before a substantial change, write a short execution plan:
 
@@ -75,24 +79,39 @@ Before a substantial change, write a short execution plan:
 - risks;
 - non-goals.
 
-If the plan reveals an architectural conflict, stop and request an ADR rather than improvising.
+If the plan reveals a conflict, do not stop immediately. First perform a purpose-preserving reconciliation:
 
-## 6. Implementation rule
+1. inspect the conflicting artifacts;
+2. identify the higher-authority rule;
+3. search for existing contracts, adapters, ADRs and tests that resolve the conflict;
+4. make the smallest adjustment that preserves the user's stated purpose and canonical boundaries;
+5. validate the adjustment.
 
-Prefer:
+Stop only when reconciliation would require unsupported architectural authority, unsafe behavior, breaking canonical contracts without an approved migration, violation of security or identity boundaries, or claims that cannot be verified.
 
-small boundary-preserving change
+## 6. Autonomous execution and merge rule
+
+When the user explicitly authorizes implementation, reconciliation, validation and merge, the agent may execute the complete repository workflow without requiring a second confirmation for each safe step.
+
+Required sequence:
+
+```text
+inspect
+→ classify
+→ reconcile
+→ implement
 → test
 → review
-→ next change
+→ PR
+→ validate
+→ merge
+```
 
-Avoid:
+If a conflict can be safely reconciled without changing architectural authority, adjust the affected code, documentation, tests or integration points automatically in favor of the intended purpose.
 
-large rewrite
-→ many coupled changes
-→ unclear test coverage.
+If the resulting change is mergeable and no unresolved architectural, security, identity, data-model, governance or verification conflict remains, merge the PR.
 
-Do not rename or relocate broad directory trees during a feature task unless the task explicitly concerns consolidation.
+Report exactly what was changed, what was validated, what was merged, and any residual risk.
 
 ## 7. Contract-first behavior
 
@@ -101,7 +120,7 @@ When a canonical contract exists:
 - reuse it;
 - extend it deliberately;
 - preserve compatibility where required;
-- add migration when breaking change is approved.
+- add migration when a breaking change is approved.
 
 Do not create `RequestV2`, `NewContext`, `BetterMemory`, or similar parallel contracts merely to avoid understanding the existing contract.
 
@@ -119,13 +138,74 @@ Use specialized boundaries for:
 - scenario analysis;
 - decision support;
 - provenance;
-- agent orchestration.
+- agent orchestration;
+- knowledge admission;
+- promotion governance.
 
 The Core may coordinate these capabilities without owning all their implementation details.
 
-## 9. Consulting Mode rule
+No provider, connector, adapter or external agent may create a second Cognitive Core.
 
-The emerging ELO Cognitive Consulting capability must not be implemented as an unrestricted autonomous consultant.
+## 9. ELO Soul and canonical identity rule
+
+The ELO Soul is the protected canonical identity and architecture boundary.
+
+It defines, subject to explicit governance:
+
+- ELO identity and purpose;
+- canonical architectural boundaries;
+- Cognitive Core boundary;
+- canonical contracts;
+- Context, Knowledge, Evidence and Memory semantics;
+- provenance requirements;
+- governance and security principles;
+- provider/model independence;
+- terminology;
+- verified current state.
+
+External model output, conversations, GitHub discussions, proposals or Evolution Memory records cannot silently modify the Soul.
+
+When asked `Who is the ELO?`, use this evidence order:
+
+1. ELO Soul / canonical identity;
+2. current verified implementation state;
+3. canonical contracts;
+4. verified evidence;
+5. current roadmap;
+6. Evolution Memory only for historical alternatives, rationale or evolution.
+
+## 10. AI provider and connector rule
+
+GPT, Claude, Gemini, other model providers, GitHub, documents, enterprise systems, specialist agents and approved external sources are connectors/providers, not additional Cognitive Cores.
+
+The canonical interaction pattern is:
+
+```text
+ELO / Cognitive Core
+        ↓
+Provider / Connector Boundary
+        ↓
+External AI or System
+        ↓
+Response / Observation / Evidence / Proposal
+        ↓
+ELO Admission + Provenance + Policy
+        ↓
+Knowledge / Organizational Memory / Evolution Memory / Decision
+```
+
+The exchange may be bidirectional:
+
+- ELO may ask an external AI provider for analysis, comparison, critique, research or hypothesis generation;
+- the provider may retrieve authorized ELO context;
+- the provider may return observations, evidence references, candidate knowledge or proposals;
+- the ELO remains responsible for admission, classification, provenance and promotion.
+
+A provider does not define ELO identity merely by producing output.
+
+## 11. Consulting mode
+
+The ELO Cognitive Consulting capability must not be implemented as an unrestricted autonomous consultant.
 
 The intended pattern is:
 
@@ -156,7 +236,101 @@ The system must distinguish:
 - human decision;
 - outcome.
 
-## 10. Organizational learning rule
+## 12. Knowledge admission and selective retention rule
+
+External information does not become organizational truth merely because it was retrieved, generated by a model, or discussed in a conversation.
+
+All retained external information must pass an admission process covering, as applicable:
+
+- authorization;
+- relevance;
+- persistence requirement;
+- provenance;
+- source reliability;
+- confidence;
+- evidence;
+- scope;
+- tenant/domain isolation;
+- sensitivity and policy;
+- reuse potential;
+- contradiction with existing knowledge;
+- freshness and expiry;
+- decision impact;
+- promotion suitability.
+
+Possible outcomes include:
+
+```text
+REJECT
+ARCHIVE
+OBSERVATION
+EVIDENCE
+KNOWLEDGE_CANDIDATE
+KNOWLEDGE
+DECISION
+POLICY
+LESSON_LEARNED
+ARCHITECTURAL_PROPOSAL
+```
+
+The full conversation or consultation is not automatically promoted to canonical memory.
+
+## 13. Evolution Memory
+
+Evolution Memory is the governed, consultable historical layer for authorized information that may remain useful without becoming canonical knowledge or architecture.
+
+It may contain:
+
+- hypotheses;
+- rejected alternatives;
+- exploratory analyses;
+- model suggestions;
+- competing interpretations;
+- discarded recommendations;
+- research trails;
+- experimental observations;
+- non-adopted architectural proposals;
+- authorized conversation-derived insights;
+- historical context explaining later decisions.
+
+Evolution Memory is non-canonical by default.
+
+Its existence must never be interpreted as proof that the ELO believes, endorses or implements its contents.
+
+## 14. Organizational Memory and promotion
+
+Organizational Memory contains information deliberately retained because it has ongoing organizational value, including:
+
+- validated knowledge;
+- approved decisions;
+- policies;
+- lessons learned;
+- verified outcomes;
+- durable organizational context;
+- reusable domain knowledge.
+
+Promotion should follow:
+
+```text
+External Source
+      ↓
+Observation / Consultation
+      ↓
+Evolution Memory or Evidence Archive
+      ↓
+Validation / Decision / Governance Gate
+      ↓
+Knowledge / Decision / Policy / Lesson
+      ↓
+Organizational Memory
+      ↓
+[only when explicitly approved]
+Canonical Architecture / ELO Soul
+```
+
+Promotion to the Soul is the highest-impact operation and requires explicit architectural governance.
+
+## 15. Learning and experience rule
 
 A previous solution is not automatically a reusable solution.
 
@@ -172,52 +346,53 @@ The agent must consider:
 
 The intended behavior is:
 
-"This experience is partially analogous under conditions X/Y, but differs in Z."
+`This experience is partially analogous under conditions X/Y, but differs in Z.`
 
 not:
 
-"This worked before, therefore repeat it."
+`This worked before, therefore repeat it.`
 
-## 11. External knowledge rule
+## 16. Contradiction rule
 
-External web/AI/scientific knowledge may inform a hypothesis, but must not silently become organizational truth.
+If providers or sources disagree, preserve the disagreement rather than silently selecting a winner.
 
-Record where applicable:
+Use explicit states such as:
 
-- source;
-- date;
-- author/provider;
-- scope;
-- evidence quality;
-- applicability;
-- limitations;
-- provenance.
+```text
+CLAIM A — source set A
+CLAIM B — source set B
+STATUS — CONTRADICTORY / UNRESOLVED
+```
 
-## 12. Organizational health rule
+Resolution requires evidence, policy or an authorized decision.
 
-The ELO should identify operational signals and capability gaps, not automatically label people.
+## 17. GitHub and issue conversation as an ELO pathway
 
-Use distinctions such as:
+For repository-aware work, GitHub is part of the ELO operational knowledge path.
 
-anomaly ≠ error
-error ≠ negligence
-negligence ≠ incompetence
+Use, as applicable:
 
-Repeated operational problems must first be evaluated against:
+```text
+GitHub Repository
+      ↓
+Issues / PRs / Commits / Tests
+      ↓
+Contextual analysis
+      ↓
+Evidence + provenance
+      ↓
+ELO Admission
+      ↓
+Evolution Memory / Organizational Memory
+      ↓
+Implementation / Decision / Governance
+```
 
-- process quality;
-- system quality;
-- training;
-- tooling;
-- workload;
-- supervision;
-- policy;
-- environmental conditions;
-- capability.
+The ELO may read its own repository state, issues and implementation history to understand its current state and evolution.
 
-Only then should a human-governed capability assessment be considered.
+When an AI provider is integrated with ELO, the provider may use authorized GitHub-derived context, while GitHub-derived information remains subject to the same admission, provenance and retention rules as other external information.
 
-## 13. Sensitive information rule
+## 18. Sensitive information rule
 
 Never use a broad organizational data set merely because it exists.
 
@@ -232,7 +407,7 @@ problem
 
 Apply tenant, domain, principal, policy, and need-to-know boundaries.
 
-## 14. Provenance rule
+## 19. Provenance rule
 
 For important cognitive outputs, preserve the ability to answer:
 
@@ -247,8 +422,9 @@ For important cognitive outputs, preserve the ability to answer:
 - What recommendation was produced?
 - What human decision followed?
 - What outcome occurred?
+- Why was the information retained, archived, rejected or promoted?
 
-## 15. Testing rule
+## 20. Testing rule
 
 Every implementation task must specify tests before declaring completion.
 
@@ -264,11 +440,16 @@ Minimum categories when applicable:
 - malformed external response;
 - provenance;
 - correlation/request IDs;
-- security/privacy behavior.
+- security/privacy behavior;
+- admission classification;
+- canonical identity protection;
+- connector isolation;
+- Evolution Memory behavior;
+- promotion behavior.
 
 A zero-test collection is not a passing gate.
 
-## 16. Review rule
+## 21. Review rule
 
 For a pull request, report:
 
@@ -293,23 +474,15 @@ Known follow-up work.
 ### Architecture decisions
 Any decision that requires explicit approval.
 
-## 17. Git rule
+## 22. Git rule
 
 Use a dedicated branch for substantive work.
 
-Do not merge automatically for:
+When the user has explicitly authorized implementation, reconciliation, validation and merge, follow Section 6. Do not request a separate confirmation for each safe execution step.
 
-- architecture;
-- security;
-- data model;
-- tenant boundary;
-- identity;
-- decision authority;
-- autonomous behavior.
+Architectural authority still comes from canonical artifacts, governance, contracts, evidence and approved decisions. The merge authorization delegates execution, not authority to redefine the ELO arbitrarily.
 
-Documentation-only low-risk changes may still use PR review as the default project convention.
-
-## 18. Handoff rule
+## 23. Handoff rule
 
 At the end of every task, leave enough information for another AI to continue:
 
@@ -325,7 +498,7 @@ At the end of every task, leave enough information for another AI to continue:
 
 Never rely on the previous conversation as the only source of state.
 
-## 19. Stop words
+## 24. Stop words
 
 The following statements require evidence before use:
 
@@ -340,8 +513,10 @@ The following statements require evidence before use:
 
 Replace unsupported claims with measurable status.
 
-## 20. Final principle
+## 25. Final principle
 
 The AI agent is an implementation and reasoning assistant operating under ELO governance.
 
 It is not the authority that defines the ELO architecture by itself.
+
+The ELO may converse with and learn from authorized AI providers and external sources, but experience must expand the ELO without silently redefining the ELO.
