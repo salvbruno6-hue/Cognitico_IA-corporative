@@ -14,8 +14,6 @@ Esta é a porta de entrada para a base de maturidade e rastreabilidade do ELO.
 
 ## Regra central
 
-Não confundir:
-
 ```text
 conceito ≠ documentação ≠ contrato ≠ implementação ≠ teste ≠ verificação ≠ operação
 ```
@@ -28,11 +26,6 @@ O snapshot de 2026-08-12 registra o estado atual como **PRE-BASELINE / NOT FROZE
 
 ## Para Codex e outros agentes
 
-Ler também:
+Ler também `AGENTS.md`, `ELO_REPOSITORY_NAVIGATION_RULES.md`, `ELO_AI_AGENT_WORKING_RULES.md` e `ELO_ARTIFACT_METADATA_STANDARD.md`.
 
-- `AGENTS.md`
-- `ELO_REPOSITORY_NAVIGATION_RULES.md`
-- `ELO_AI_AGENT_WORKING_RULES.md`
-- `ELO_ARTIFACT_METADATA_STANDARD.md`
-
-Este conjunto não concede autorização automática para implementar propostas. Ele fornece contexto e critérios de rastreabilidade.
+Este conjunto fornece contexto e critérios de rastreabilidade; não concede autorização automática para implementar propostas.
