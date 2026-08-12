@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "elo-prototype"
 version = "0.1.0"
 description = "ELO executable cognitive prototype"
-requires-python = ">=3.11"
+requires-python = ">=3.14,<3.15"
 dependencies = ["fastapi>=0.110,<1.0", "pydantic>=2.0,<3.0"]
 
 [project.optional-dependencies]
