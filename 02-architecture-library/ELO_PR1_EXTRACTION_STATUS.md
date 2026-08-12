@@ -50,6 +50,8 @@ All 59 PR #1 files have an explicit decision. This does not authorize migration.
 
 Do not close or delete historical material solely because it is classified as legacy. Retirement requires evidence that useful content is preserved and no active dependency remains.
 
-## Next gate
+## Merge boundary
 
-The next step is selective promotion of only those artifacts that demonstrably fill an identified gap in the canonical repository. Promotion must occur in an existing governed branch/PR and must be covered by tests or architectural evidence where applicable.
+This PR is intentionally limited to historical reconciliation. No selective promotion is required for this PR to be complete. Candidate `REUSE` and `ADAPT` artifacts remain governed backlog items and must only be promoted when a concrete canonical gap, contract, test requirement or architectural decision requires them.
+
+**PR #6 is complete for its declared reconciliation scope.**
