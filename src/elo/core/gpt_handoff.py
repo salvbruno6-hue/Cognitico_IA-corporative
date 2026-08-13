@@ -8,6 +8,7 @@ change and is first treated as temporal/external evidence.
 from dataclasses import dataclass
 from typing import Literal
 
+from .context_resolution import ContextPack
 from .maturity_engine import MaturityAssessment
 
 
@@ -22,6 +23,9 @@ class GPTDecisionHandoff:
     elo_analysis: tuple[str, ...] = ()
     dimensions_to_check: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+    context_entity: str | None = None
+    context_scope: str | None = None
+    context_uncertainties: tuple[str, ...] = ()
     decision_required: bool = False
     correlation_id: str = ""
 
@@ -45,6 +49,35 @@ class GPTDecisionHandoff:
             elo_analysis=elo_analysis,
             dimensions_to_check=dimensions_to_check,
             evidence_ids=evidence_ids,
+            decision_required=decision_required,
+            correlation_id=correlation_id,
+        )
+
+    @classmethod
+    def from_context(
+        cls,
+        *,
+        objective: str,
+        context: ContextPack,
+        maturity: MaturityAssessment,
+        elo_analysis: tuple[str, ...] = (),
+        decision_required: bool = False,
+        correlation_id: str = "",
+    ) -> "GPTDecisionHandoff":
+        if not context.discovery_plan:
+            raise ValueError("context discovery must run before GPT handoff")
+        if maturity.mode == "SPECIALIST_VALIDATION" and not context.requires_specialist():
+            raise ValueError("specialist validation requires scoped evidence")
+        return cls(
+            question=context.query.question,
+            objective=objective,
+            mode=maturity.mode,
+            elo_analysis=elo_analysis,
+            dimensions_to_check=context.query.dimensions,
+            evidence_ids=context.evidence_ids(),
+            context_entity=context.query.entity,
+            context_scope=context.query.scope,
+            context_uncertainties=context.uncertainties,
             decision_required=decision_required,
             correlation_id=correlation_id,
         )
