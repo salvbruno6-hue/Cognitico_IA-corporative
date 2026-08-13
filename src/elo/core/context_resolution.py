@@ -1,9 +1,9 @@
 """Intent-driven context resolution for ELO.
 
-The resolver bridges the canonical source-discovery planner and the context
-pack consumed by ELO/GPT. Retrieval remains adapter-owned; this layer decides
-what context is required, applies scope rules, and records evidence without
-promoting it to canonical knowledge.
+The resolver bridges canonical source discovery and the context pack consumed
+by ELO/GPT. Retrieval remains adapter-owned; this layer decides what context is
+required, applies scope rules, and records evidence without promoting it to
+canonical knowledge.
 """
 
 from dataclasses import dataclass, field
@@ -53,15 +53,24 @@ class ContextPack:
             if source.scope in (None, self.query.scope)
         )
 
+    def scoped_evidence(self) -> tuple[ContextEvidence, ...]:
+        allowed = {source.source_id for source in self.scoped_sources()}
+        if not allowed:
+            return self.evidence
+        return tuple(evidence for evidence in self.evidence if evidence.source_id in allowed)
+
     def sufficient_evidence(self, minimum_confidence: float = 0.6) -> bool:
         return any(
             evidence.confidence >= minimum_confidence
-            for evidence in self.evidence
+            for evidence in self.scoped_evidence()
         )
 
     def requires_specialist(self) -> bool:
-        """GPT may be used as specialist only after context discovery."""
+        """GPT may be used as specialist only after discovery and evidence."""
         return bool(self.discovery_plan and self.sufficient_evidence())
+
+    def evidence_ids(self) -> tuple[str, ...]:
+        return tuple(evidence.source_id for evidence in self.scoped_evidence())
 
 
 class ContextResolutionEngine:
@@ -84,6 +93,27 @@ class ContextResolutionEngine:
             uncertainties=(
                 "retrieval pending: authorized source adapters must execute the discovery plan",
             ),
+        )
+
+    def enrich(
+        self,
+        pack: ContextPack,
+        *,
+        sources: tuple[ContextSource, ...] = (),
+        evidence: tuple[ContextEvidence, ...] = (),
+        uncertainties: tuple[str, ...] = (),
+    ) -> ContextPack:
+        """Attach adapter results while preserving immutable context and scope."""
+        merged_sources = {source.source_id: source for source in pack.sources}
+        merged_sources.update({source.source_id: source for source in sources})
+        merged_evidence = {evidence.source_id: evidence for evidence in pack.evidence}
+        merged_evidence.update({item.source_id: item for item in evidence})
+        return ContextPack(
+            query=pack.query,
+            discovery_plan=pack.discovery_plan,
+            sources=tuple(merged_sources.values()),
+            evidence=tuple(merged_evidence.values()),
+            uncertainties=tuple(dict.fromkeys(pack.uncertainties + uncertainties)),
         )
 
     @staticmethod
