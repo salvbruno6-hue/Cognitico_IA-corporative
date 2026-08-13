@@ -1,0 +1,68 @@
+name: ELO Evolution Gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validation:
+    name: Canonical validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install package and tests
+        run: python -m pip install -e ".[test]"
+      - name: Compile source
+        run: python -m compileall src
+      - name: Run full test suite
+        run: python -m pytest -q
+
+  evolution-handoff:
+    name: ELO decision handoff
+    needs: validation
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish ELO gate state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATION_RESULT: ${{ needs.validation.result }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "$VALIDATION_RESULT" = "success" ]; then
+            STATE="READY_FOR_ELO_REVIEW"
+            MESSAGE="Validação técnica passou. O ELO pode avaliar compatibilidade canônica, conflitos, evidências e necessidade de decisão humana."
+          else
+            STATE="ELO_AWAITING_DECISION"
+            MESSAGE="Validação técnica falhou. O ELO deve analisar as falhas, comparar com contratos canônicos e decidir: corrigir, adaptar, preservar como alternativa ou bloquear."
+          fi
+
+          cat > /tmp/comment.md <<EOF
+          ## ELO Evolution Gate
+
+          **Estado:** \`$STATE\`
+          **PR:** #$PR_NUMBER
+          **Validação técnica:** \`$VALIDATION_RESULT\`
+
+          $MESSAGE
+
+          ### Protocolo
+          1. Comparar alteração com a identidade e arquitetura canônicas.
+          2. Identificar reutilização, duplicidade, conflito e impacto.
+          3. Separar falha técnica de conflito arquitetural.
+          4. Se houver decisão necessária, registrar a questão e as alternativas.
+          5. Não promover automaticamente uma mudança de Soul/Core por causa de uma falha de CI.
+
+          Este comentário é um handoff estruturado para a camada consultiva do ELO/GPT.
+          EOF
+
+          gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file /tmp/comment.md
