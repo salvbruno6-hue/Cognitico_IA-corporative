@@ -1,1111 +1,462 @@
-# MULTITEINER ORGANIZATIONAL CONTEXT
+# MULTITEINER — CONTEXTO ORGANIZACIONAL
 
-## Objetivo
+> Fonte canônica de contexto organizacional da Multiteiner para o ecossistema ELO.
 
-Este documento estrutura o contexto organizacional ponta a ponta da Multiteiner para uso pelo ELO como referência corporativa contextual. Seu objetivo é permitir compreensão sistêmica da empresa, correlação entre setores, processos, recursos, documentos, eventos, decisões e restrições, apoiando planejamento, investigação, análise de cenários e aprendizagem organizacional.
-
-> **Regra de interpretação:** este documento descreve o contexto conhecido e deve ser enriquecido por evidências, documentos, sistemas e experiências validadas. O ELO não deve transformar inferências em fatos.
-
----
+Este documento descreve identidade, fluxo end-to-end, setores, entidades, relações, riscos, conhecimento e governança contextual. Não substitui contratos, políticas ou procedimentos normativos.
 
 ## 1. IDENTIDADE DA EMPRESA
 
 ### 1.1 Modelo de negócio
+A Multiteiner atua no segmento de soluções/construção modular e combina fabricação, venda, locação, montagem/desmontagem e produção/customização conforme demanda.
 
-A Multiteiner atua com módulos habitáveis e estruturas conteinerizadas, com operações que envolvem produção, venda, locação, montagem, desmontagem, expedição, retorno e recuperação de ativos.
+A operação apresenta simultaneamente produção padronizada para estoque e produção customizada, aumentando a complexidade de sincronização entre demanda, engenharia, materiais, capacidade e expedição.
 
 ### 1.2 Venda
+Modalidade de fornecimento em que o produto é vendido ao cliente.
 
-A venda envolve demanda comercial, análise de escopo, projeto, orçamento, planejamento, aquisição de materiais, produção, expedição e entrega.
+Detalhes adicionais: a validar nos documentos comerciais e contratuais oficiais.
 
 ### 1.3 Locação
+Ciclo de referência:
 
-A locação adiciona um ciclo operacional posterior à produção e expedição:
-
-`Expedição → Cliente/Campo → Uso → Desmobilização → Retorno → Recebimento → Inspeção → Reparo/Reprocesso → Estoque → Nova Expedição`
+```text
+Comercial → preparação → expedição → cliente/campo → uso → desmobilização
+→ retorno → recebimento → inspeção → reparo/reprocesso → estoque → nova expedição
+```
 
 ### 1.4 Montagem e desmontagem
+Parte do atendimento externo e do ciclo de locação.
 
-A empresa atua na montagem de módulos e na desmobilização de estruturas retornadas de contratos de locação.
+Detalhes de responsabilidade, recursos e critérios: a validar.
 
 ### 1.5 Produção modular sob demanda
-
-A operação combina modelos padrão e customizações. O planejamento deve considerar padrão, excedente e exceção, além de capacidade, materiais, prazo e risco.
-
----
+A organização opera com produção para estoque e produção/customização para necessidades específicas dos clientes.
 
 ## 2. VISÃO END-TO-END
 
 ```text
 COMERCIAL
-   ↓
-ENGENHARIA / PROJETO
-   ↓
-ORÇAMENTO
-   ↓
-PCP
-   ↓
-COMPRAS
-   ↓
-ALMOXARIFADO
-   ↓
-PRODUÇÃO
-   ↓
-EXPEDIÇÃO
-   ↓
-CLIENTE / LOCAÇÃO
-   ↓
-RETORNO
-   ↓
-RECEBIMENTO
-   ↓
-INSPEÇÃO
-   ↓
-REPARO / REPROCESSO
-   ↓
-ESTOQUE
-   ↓
-NOVA EXPEDIÇÃO
+→ ENGENHARIA
+→ ORÇAMENTO
+→ PCP
+→ COMPRAS
+→ ALMOXARIFADO
+→ PRODUÇÃO
+→ EXPEDIÇÃO
+→ CLIENTE/LOCAÇÃO
+→ RETORNO
+→ RECEBIMENTO
+→ INSPEÇÃO
+→ REPARO/REPROCESSO
+→ ESTOQUE
+→ NOVA EXPEDIÇÃO
 ```
 
-O ELO deve entender este fluxo como um **ciclo**, especialmente nos ativos destinados à locação.
-
----
+Para cada transição o ELO deve buscar: entrada, saída, responsável, informação necessária, sistema de registro, decisão, dependência, recurso, indicador, risco, exceção e evidência disponível.
 
 ## 3. COMERCIAL
 
 ### 3.1 Entrada da AF
-
-A Autorização de Faturamento ou documento equivalente representa uma entrada formal do processo conforme o fluxo interno aplicável.
+A AF é fonte formal de demanda contratada/solicitada, devendo preservar rastreabilidade.
 
 ### 3.2 Venda x locação
-
-A demanda deve ser classificada quanto ao modelo de negócio porque venda e locação possuem ciclos operacionais diferentes.
+Cada demanda deve identificar a modalidade.
 
 ### 3.3 Padrão x personalizado
-
-O escopo deve ser classificado quanto ao uso de modelo padrão ou necessidade de customização.
+Há produtos padronizados e produtos customizados.
 
 ### 3.4 Escopo
-
-O Comercial deve estabelecer o escopo que será transformado em requisitos técnicos e econômicos.
+Registrar cliente, produto, quantidade, configuração, prazo, modalidade, requisitos e necessidades técnicas.
 
 ### 3.5 Prazo
-
-O prazo comercial deve ser confrontado com capacidade, materiais, projeto e demais restrições antes da promessa operacional.
+Prazo é variável crítica para Comercial, PCP, Produção e Expedição.
 
 ### 3.6 Interface com planejamento
-
-O Comercial fornece as entradas necessárias para que Planejamento e Engenharia possam avaliar prazo, capacidade, custo e riscos.
+O Comercial alimenta o planejamento com demanda, alterações e compromissos.
 
 ### 3.7 Riscos comerciais
-
-Incluem mudanças de escopo, urgências, promessas incompatíveis com capacidade, informações incompletas e exceções não identificadas.
-
----
+Alterações de escopo, quantidade, prazo, customização, complementações, nova AF e informação incompleta.
 
 ## 4. ENGENHARIA / PROJETOS
 
 ### 4.1 CAD
-
-O CAD representa o projeto técnico e pode ser estruturado para distinguir itens padrão e excedentes.
+Ferramenta de engenharia/projetos referenciada no contexto.
 
 ### 4.2 Levantamento dimensional / As-Built
-
-Inclui levantamento físico, medição em campo e elaboração de desenho técnico 2D quando aplicável.
+Usado quando a condição real precisa ser comparada ao projeto.
 
 ### 4.3 Padronização
-
-Busca transformar soluções recorrentes em referências reutilizáveis.
+Necessária para reduzir variabilidade, retrabalho e inconsistências.
 
 ### 4.4 Excedentes
-
-Itens fora do padrão devem ser identificados para permitir impacto em custo, prazo, materiais e capacidade.
+Devem ser relacionados ao conhecimento de engenharia e gestão de materiais.
 
 ### 4.5 Lista de materiais
-
-A Engenharia fornece ou apoia a geração da lista mínima de materiais e informações técnicas necessárias ao planejamento e suprimentos.
+BOM/LM é elemento crítico; inconsistências em listas técnicas aparecem entre fatores relevantes de perda.
 
 ### 4.6 Liberação técnica
-
-O projeto precisa atender aos critérios técnicos definidos para seguir ao próximo estágio.
-
----
+Deve funcionar como gate para etapas dependentes.
 
 ## 5. PLANEJAMENTO / PCP
 
 ### 5.1 Missão
-
-Transformar projeto e demanda em execução previsível, coordenando prazo, capacidade, materiais, prioridades, exceções e comunicação entre áreas.
+Integrar demanda, capacidade, materiais, recursos, sequência, prazo, produção e acompanhamento.
 
 ### 5.2 Gate de SO
-
-A produção deve seguir somente após a validação dos requisitos mínimos definidos pela governança do PCP, incluindo contrato/liberação formal, escopo, projeto, materiais e prazo.
+Avaliar escopo, engenharia, materiais, capacidade, prazo, configuração, documentação e aprovação.
 
 ### 5.3 Capacidade
-
-Avaliar capacidade instalada, capacidade disponível, ocupação, gargalos, recursos críticos e restrições de apoio.
+Considerar pessoas, equipamentos, oficinas, pintura, componentes complementares, movimentação e expedição.
 
 ### 5.4 Sequenciamento
-
-Definir a ordem de execução considerando prazo, disponibilidade de materiais, capacidade, dependências, risco e impacto no fluxo.
+Considerar prazo, prioridade, materiais, capacidade, gargalos, configuração e dependências.
 
 ### 5.5 Planejamento semanal
-
-Rotina de consolidação de ordens liberadas, análise de capacidade, materiais, prioridades, desvios e próximos passos.
+Estruturar PLANEJADO × REALIZADO × DESVIO.
 
 ### 5.6 Gargalos
-
-Monitorar recursos que limitam o fluxo global, incluindo gargalos produtivos, logísticos, de materiais, equipamentos ou informações.
+Foram identificados gargalos em pintura, componentes complementares, informação, materiais/BOM e reprogramações. Entre componentes citados: telhas de fibra de vidro, lavatórios, mictórios, cubas, divisórias sanitárias e boxes de chuveiro.
 
 ### 5.7 Indicadores
-
-Exemplos:
-
-- aderência ao planejamento;
-- compras emergenciais;
-- obras/SOs iniciadas com lista completa;
-- lead time;
-- retrabalho;
-- capacidade ocupada;
-- exceções.
+Lead Time, OEE, capacidade, aderência à programação, reprogramações, desvios, gargalos, produtividade e qualidade.
 
 ### 5.8 Exceções
-
-Mudanças de prioridade, urgências, falta de material, alteração de escopo, falha de informação ou qualquer condição que desvie do plano devem ser registradas e avaliadas.
+Atrasos, falta de material, falta de capacidade, mudanças comerciais, alteração de projeto, gargalo, retrabalho, avaria e prazos críticos.
 
 ### 5.9 Interface diretoria
-
-O PCP traduz capacidade, riscos, prioridades e cenários para apoiar decisões da diretoria sem substituir a autoridade gerencial.
-
----
+Fornecer capacidade, riscos, gargalos, prazos, desvios e necessidades de decisão.
 
 ## 6. COMPRAS
 
-### 6.1 Demanda recebida
+1. Demanda recebida
+2. Cotação
+3. Pedido
+4. Lead time
+5. Materiais críticos
+6. Follow-up
 
-Recebe as necessidades estruturadas provenientes do planejamento, almoxarifado, projeto ou fluxo aprovado.
-
-### 6.2 Cotação
-
-Busca fornecedores, condições e disponibilidade.
-
-### 6.3 Pedido
-
-Formaliza a aquisição conforme o processo interno de compras.
-
-### 6.4 Lead time
-
-O prazo de fornecimento deve alimentar o planejamento e a análise de risco.
-
-### 6.5 Materiais críticos
-
-Itens com impacto relevante em prazo, produção ou custo devem ser destacados.
-
-### 6.6 Follow-up
-
-Acompanhamento do pedido até o recebimento e integração com almoxarifado.
-
----
+A cadeia deve manter vínculo entre necessidade, fornecedor, pedido, prazo, recebimento e impacto na produção.
 
 ## 7. ALMOXARIFADO
 
-### 7.1 Recebimento
+1. Recebimento
+2. Conferência
+3. Endereçamento
+4. Estoque
+5. Picking
+6. Requisição para compras
+7. Devoluções
+8. Rastreamento
 
-Recepção física dos materiais.
-
-### 7.2 Conferência
-
-Verificação de quantidade, identificação e condições.
-
-### 7.3 Endereçamento
-
-Definição de local de armazenamento.
-
-### 7.4 Estoque
-
-Controle da disponibilidade física.
-
-### 7.5 Picking
-
-Separação dos materiais necessários para ordens ou obras.
-
-### 7.6 Requisição para compras
-
-Quando o material não estiver disponível, o fluxo deve gerar a necessidade de compras de acordo com o procedimento vigente.
-
-### 7.7 Devoluções
-
-Tratamento de sobras, materiais não utilizados e retornos.
-
-### 7.8 Rastreamento
-
-Controle de movimentações e disponibilidade de materiais.
-
----
+O estoque deve distinguir disponibilidade real, reservas e materiais indisponíveis.
 
 ## 8. PRODUÇÃO
 
-### 8.1 Triagem
-
-Preparação e direcionamento dos componentes para o fluxo de fabricação.
-
-### 8.2 Chassi
-
-Fabricação do chassi e preparação estrutural inicial.
-
-### 8.3 Escovação
-
-Tratamento mecânico de superfície antes das etapas seguintes.
-
-### 8.4 Pintura de tratamento
-
-Aplicação da proteção/tratamento da estrutura.
-
-### 8.5 Acabamento branco
-
-Preparação da estrutura para estoque e sequência posterior.
-
-### 8.6 Estoque de estruturas
-
-Armazenamento intermediário das estruturas produzidas.
-
-### 8.7 Movimentação
-
-Uso de empilhadeiras e/ou outros recursos para transportar estruturas entre áreas, observando rotas, capacidade, segurança e disponibilidade.
-
-### 8.8 Piso
-
-Etapa de montagem estrutural do piso.
-
-### 8.9 Teto
-
-Montagem do teto.
-
-### 8.10 Colunas
-
-Montagem das colunas estruturais.
-
-### 8.11 Trilho
-
-O trilho é uma solução de fluxo físico vinculada à fase posterior de montagem modular. No layout discutido, a utilização principal começa depois da preparação e pré-montagem da estrutura.
-
-### 8.12 Pintura modular
-
-Passagem pela cabine de pintura modular dentro da sequência da linha.
-
-### 8.13 Paredes
-
-Montagem dos fechamentos e componentes de paredes.
-
-### 8.14 Instalações
-
-Instalações elétricas, hidráulicas, dados e demais sistemas previstos no escopo.
-
-### 8.15 Acabamento
-
-Execução dos acabamentos finais.
-
-### 8.16 Testes
-
-Conferência e testes necessários para liberação do módulo.
-
-### 8.17 Liberação
-
-Liberação do produto concluído para expedição.
-
-### Sequência física modular de referência
+Fluxo de referência:
 
 ```text
-CHASSI
-→ ESCOVAÇÃO
-→ PINTURA DE TRATAMENTO
-→ ACABAMENTO BRANCO
-→ ESTOQUE DE ESTRUTURAS
-→ MOVIMENTAÇÃO
-→ PISO + TETO + COLUNAS
-→ TRILHO
-→ PINTURA MODULAR
-→ PAREDES
-→ INSTALAÇÕES
-→ ACABAMENTO
-→ TESTES
-→ EXPEDIÇÃO
+Triagem
+→ Chassi
+→ Escovação
+→ Pintura de tratamento
+→ Acabamento branco
+→ Estoque de estruturas
+→ Movimentação
+→ Piso
+→ Teto
+→ Colunas
+→ Trilho
+→ Pintura modular
+→ Paredes
+→ Instalações
+→ Acabamento
+→ Testes
+→ Liberação
 ```
 
----
+A pintura foi identificada como ponto crítico de capacidade no diagnóstico. Também há dependência de componentes complementares e recursos compartilhados.
 
 ## 9. OFICINAS E APOIO INDUSTRIAL
 
-### 9.1 Corte e dobra
+Corte e dobra; solda; serralheria; reparo; manutenção; pintura; escovação; oficinas especializadas; recursos compartilhados.
 
-Preparação de peças e perfis conforme requisitos técnicos.
-
-### 9.2 Solda
-
-União e fabricação de componentes estruturais.
-
-### 9.3 Serralheria
-
-Produção e recuperação de componentes metálicos.
-
-### 9.4 Reparo
-
-Correção de danos em módulos e componentes.
-
-### 9.5 Manutenção
-
-Manutenção de equipamentos e recursos produtivos.
-
-### 9.6 Pintura
-
-Tratamento e acabamento de componentes e módulos.
-
-### 9.7 Escovação
-
-Preparação de superfícies.
-
-### 9.8 Oficinas especializadas
-
-Recursos específicos utilizados conforme a natureza do serviço.
-
-### 9.9 Recursos compartilhados
-
-Identificar recursos que atendem múltiplas áreas e podem se tornar gargalos.
-
----
+Esses recursos devem ser tratados como capacidades que podem restringir o fluxo.
 
 ## 10. LOGÍSTICA INTERNA
 
-### 10.1 Empilhadeiras
+Empilhadeiras; pórticos; trilhos; rotas; movimentação de cargas; pátio; segurança.
 
-Recursos para movimentação física de materiais e estruturas.
-
-### 10.2 Pórticos
-
-Possíveis recursos de movimentação e elevação, sujeitos a validação de engenharia e segurança.
-
-### 10.3 Trilhos
-
-Infraestrutura de fluxo físico para reduzir deslocamentos não necessários quando tecnicamente viável.
-
-### 10.4 Rotas
-
-Definição e análise de trajetos recorrentes.
-
-### 10.5 Movimentação de cargas
-
-Deve considerar peso, dimensões, frequência, distância, equipamento, segurança e tempo.
-
-### 10.6 Pátio
-
-Área de armazenamento e movimentação, incluindo condições de piso e circulação.
-
-### 10.7 Segurança
-
-Toda solução de movimentação deve ser submetida às validações aplicáveis de segurança e engenharia antes de implementação.
-
----
+A logística interna integra o fluxo de produção e deve ser analisada por capacidade, rota, utilização, tempo e risco.
 
 ## 11. EXPEDIÇÃO
 
-O fluxo padrão de expedição já documentado inclui identificação do equipamento no sistema Najason, checklist, conferência da nota fiscal, avaliação de conformidade, eventual encaminhamento para reparo, liberação no sistema, carregamento e liberação do motorista.
+1. Equipamento etiquetado
+2. Checklist
+3. NF
+4. Conformidade
+5. Oficina de reparo
+6. Sistema Najason
+7. Carregamento
+8. Liberação do motorista
 
-### 11.1 Equipamento etiquetado
-
-O equipamento deve estar identificado no sistema Najason.
-
-### 11.2 Checklist
-
-Conferência operacional e documental.
-
-### 11.3 NF
-
-Conferência da documentação fiscal aplicável.
-
-### 11.4 Conformidade
-
-Decisão: equipamento está dentro dos conformes?
-
-### 11.5 Oficina de reparo
-
-Se houver não conformidade, o equipamento deve ser direcionado ao reparo conforme procedimento.
-
-### 11.6 Sistema Najason
-
-Liberação e rastreabilidade no sistema.
-
-### 11.7 Carregamento
-
-Preparação física para transporte.
-
-### 11.8 Liberação do motorista
-
-Autorização final para saída.
-
----
+O Najason é referenciado no contexto operacional, especialmente na expedição; funções detalhadas a validar.
 
 ## 12. LOCAÇÃO / CAMPO
 
-### 12.1 Transporte
-
-Movimentação do módulo até o cliente.
-
-### 12.2 Montagem
-
-Montagem em campo quando prevista.
-
-### 12.3 Uso
-
-Período operacional do ativo em contrato.
-
-### 12.4 Manutenção
-
-Atendimentos necessários durante a locação.
-
-### 12.5 Ocorrências
-
-Registros de problemas, danos ou eventos relevantes.
-
-### 12.6 Desmobilização
-
-Preparação para encerramento do contrato e retirada.
-
-### 12.7 Retorno
-
-Transporte do ativo de volta para a empresa.
-
----
+Transporte; montagem; uso; manutenção; ocorrências; desmobilização; retorno.
 
 ## 13. RECEBIMENTO / PÓS-LOCAÇÃO
 
-O processo de recebimento documentado considera aviso da logística, verificação fiscal, descarregamento, vistoria, identificação de avarias, checklist, quarentena quando aplicável e encaminhamento para oficina.
+Aviso da logística; NF; descarregamento; vistoria; avarias; quarentena; oficina; liberação ao estoque.
 
-### 13.1 Aviso da logística
+O retorno deve distinguir, quando aplicável:
 
-A logística informa a retirada/retorno do equipamento.
-
-### 13.2 NF
-
-Verificação da documentação fiscal.
-
-### 13.3 Descarregamento
-
-Somente após atender às condições necessárias do processo.
-
-### 13.4 Vistoria
-
-Inspeção do equipamento descarregado.
-
-### 13.5 Avarias
-
-Decisão: equipamento apresenta avaria?
-
-### 13.6 Quarentena
-
-Aplicação de período de quarentena conforme procedimento documentado quando necessário.
-
-### 13.7 Oficina
-
-Encaminhamento para reparo.
-
-### 13.8 Liberação ao estoque
-
-Após liberação, o ativo retorna à disponibilidade do ciclo de locação.
-
----
+```text
+ATIVO OK
+ATIVO EM REPARO
+ATIVO EM QUARENTENA
+```
 
 ## 14. GESTÃO DE AVARIAS
 
-### 14.1 Identificação
+Identificação → material → mão de obra → movimentação → orçamento → recuperação → cobrança → histórico.
 
-Registrar o dano e seu contexto.
-
-### 14.2 Material
-
-Custo de componentes a substituir ou recuperar.
-
-### 14.3 Mão de obra
-
-Esforço técnico necessário ao reparo.
-
-### 14.4 Movimentação
-
-Custo operacional associado ao uso de empilhadeira e/ou recursos de movimentação.
-
-### 14.5 Orçamento
-
-O modelo conceitual discutido é:
-
-```text
-CUSTO DE AVARIA = MATERIAL + MÃO DE OBRA + MOVIMENTAÇÃO
-```
-
-### 14.6 Recuperação
-
-Execução do reparo e retorno à condição operacional.
-
-### 14.7 Cobrança
-
-Tratamento conforme contrato e decisão responsável.
-
-### 14.8 Histórico
-
-Registrar ocorrência, custos, intervenção, resultado e condições para futuras comparações.
-
----
+Para fins de análise, separar os componentes de custo e manter histórico do ativo e da causa identificada.
 
 ## 15. DIRETORIA / GESTÃO
 
-### 15.1 Metas
+Metas; capacidade; margem; investimentos; riscos; crescimento; exceções.
 
-Definição das metas corporativas que orientam a operação.
-
-### 15.2 Capacidade
-
-Decisões sobre capacidade, ociosidade e necessidade de expansão.
-
-### 15.3 Margem
-
-Acompanhamento econômico e impacto das decisões operacionais.
-
-### 15.4 Investimentos
-
-Avaliação de investimentos em equipamentos, layout, tecnologia e capacidade.
-
-### 15.5 Riscos
-
-Decisões sobre riscos financeiros, técnicos, operacionais, logísticos, qualidade e segurança.
-
-### 15.6 Crescimento
-
-Definição de quando e onde ampliar recursos.
-
-### 15.7 Exceções
-
-Decisões sobre situações que fogem às regras ou prioridades estabelecidas.
-
----
+A gestão deve receber conhecimento estruturado, não apenas indicadores.
 
 ## 16. COMUNICAÇÃO ORGANIZACIONAL
 
-### 16.1 Reuniões
+Reuniões; WhatsApp; documentos; responsabilidades; escalonamento.
 
-Reuniões de obra e reuniões de planejamento são mecanismos de alinhamento antecipado.
-
-### 16.2 WhatsApp
-
-Canal operacional usado para velocidade, porém decisões relevantes devem possuir registro apropriado quando necessário.
-
-### 16.3 Documentos
-
-Checklists, listas de materiais, ordens, registros e históricos reduzem dependência de comunicação informal.
-
-### 16.4 Responsabilidades
-
-Cada decisão relevante deve possuir responsável, autoridade e registro proporcional ao risco.
-
-### 16.5 Escalonamento
-
-Exceções e riscos relevantes devem subir ao nível adequado de decisão.
-
----
+A comunicação informal pode ser fonte de sinal, mas decisões e estados críticos devem possuir registro governado quando aplicável.
 
 ## 17. DADOS E SISTEMAS
 
 ### 17.1 Najason
-
-Sistema citado no fluxo de expedição e recebimento para identificação/liberação de equipamentos.
+Sistema referenciado na operação.
 
 ### 17.2 CAD
-
-Base para projeto e representação técnica.
+Ferramenta de engenharia/projetos.
 
 ### 17.3 Planilhas
-
-Ferramentas de estruturação e controle utilizadas pelo Planejamento.
+Utilizadas como instrumentos de controle e informação.
 
 ### 17.4 Banco de dados
-
-Direção de evolução para consolidar custos, tempos, padrões, excedentes, experiências e indicadores.
+Estrutura necessária para consolidação futura; implementação atual deve ser validada.
 
 ### 17.5 IA
-
-Utilização para análise de orçamento, documentos, dados, apoio à decisão e automação de tarefas repetitivas, sempre sob governança.
+Parte da arquitetura futura do ELO, subordinada a provenance, tenant, need-to-know, confidencialidade e human-in-the-loop.
 
 ### 17.6 Integrações
-
-A evolução deverá conectar informação sem eliminar controles de acesso, provenance ou responsabilidade humana.
-
----
+Devem conectar processos e sistemas preservando governança.
 
 ## 18. CONHECIMENTO ORGANIZACIONAL
 
-### 18.1 Padrões
+Padrões; BOM; custos; tempos; gargalos; experiências; lições aprendidas.
 
-Modelos e soluções recorrentes que podem ser reutilizados.
-
-### 18.2 BOM
-
-Estrutura de materiais por modelo/configuração.
-
-### 18.3 Custos
-
-Histórico e composição de custos.
-
-### 18.4 Tempos
-
-Tempos observados e tempos padrão quando validados.
-
-### 18.5 Gargalos
-
-Histórico dos recursos que limitaram o sistema.
-
-### 18.6 Experiências
-
-Casos anteriores com contexto, alternativas, intervenção e resultado.
-
-### 18.7 Lições aprendidas
-
-Conhecimento resultante de eventos e intervenções validados.
-
----
+O conhecimento prático das equipes deve ser formalizado progressivamente em objetos de conhecimento com provenance, contexto, validade e condições de aplicabilidade.
 
 ## 19. MODELOS DE DECISÃO
 
-### 19.1 Estoque disponível?
+1. Estoque disponível?
+2. Projeto padrão?
+3. SO liberada?
+4. Capacidade disponível?
+5. Produto conforme?
+6. Avaria?
+7. Necessidade de reparo?
+8. Exceção?
+9. Escalar para gestão?
 
-- SIM: separar e seguir o fluxo.
-- NÃO: gerar necessidade de compra e aguardar regularização.
-
-### 19.2 Projeto padrão?
-
-- SIM: utilizar base padronizada.
-- NÃO: classificar customização/excedente e analisar impacto.
-
-### 19.3 SO liberada?
-
-- SIM: entrar no planejamento.
-- NÃO: manter pendência ou escalar a exceção conforme governança.
-
-### 19.4 Capacidade disponível?
-
-- SIM: programar.
-- NÃO: replanejar, alterar sequência ou escalar decisão.
-
-### 19.5 Produto conforme?
-
-- SIM: seguir para expedição.
-- NÃO: retrabalhar/reparar.
-
-### 19.6 Avaria?
-
-- SIM: registrar e encaminhar para processo de avaliação/reparo.
-- NÃO: seguir fluxo normal.
-
-### 19.7 Necessidade de reparo?
-
-- SIM: oficina/reparo.
-- NÃO: liberar.
-
-### 19.8 Exceção?
-
-- SIM: classificar risco, impacto e necessidade de decisão.
-- NÃO: seguir padrão.
-
-### 19.9 Escalar para gestão?
-
-Escalar quando houver impacto relevante em prazo, custo, segurança, contrato, capacidade, escopo ou autoridade.
-
----
+Essas perguntas devem evoluir para regras/gates verificáveis quando houver contrato e governança apropriados.
 
 ## 20. MAPA DE ENTIDADES
 
-### Pessoas
-
-- Diretoria
-- Comercial
-- Engenharia
-- PCP
-- Compras
-- Almoxarifado
-- Produção
-- Expedição
-- Logística
-- Oficinas
-- Cliente
-- Gestores
-- Operadores
-
-### Setores
-
-Comercial, Engenharia, PCP, Compras, Almoxarifado, Produção, Oficinas, Logística, Expedição, Campo/Locação e Diretoria.
-
-### Processos
-
-Venda, locação, projeto, orçamento, compras, recebimento, armazenamento, produção, movimentação, expedição, retorno, inspeção e reparo.
-
-### Sistemas
-
-Najason, CAD, planilhas, banco de dados e ferramentas de IA.
-
-### Equipamentos
-
-Empilhadeiras, pórticos, trilhos, máquinas de corte/dobra, equipamentos de solda, pintura e demais recursos.
-
-### Recursos
-
-Materiais, pessoas, horas, capacidade, espaço, equipamentos, dinheiro e informação.
-
-### Documentos
-
-AF, projetos, listas de materiais, checklists, notas fiscais, pedidos de compra, registros de avarias e indicadores.
-
-### Eventos
-
-Entrada de demanda, liberação, compra, recebimento, produção, parada, avaria, retorno, reparo, expedição e decisão.
-
-### Decisões
-
-Prioridade, compra, produção, reparo, exceção, investimento e escalonamento.
-
-### Restrições
-
-Prazo, contrato, capacidade, disponibilidade, segurança, orçamento, layout, recursos e informação.
-
----
+Pessoas; setores; processos; atividades; produtos; módulos; contêineres; equipamentos; materiais; recursos; documentos; AF; SO; ordens de produção; orçamentos; projetos; BOM; estoques; movimentações; expedições; locações; retornos; avarias; reparos; eventos; riscos; restrições; decisões; planos; indicadores; metas; evidências; experiências; aprendizados.
 
 ## 21. MAPA DE RELAÇÕES
 
-O ELO deve conseguir responder, para qualquer processo relevante:
+```text
+CLIENTE → CONTRATO → AF → PROJETO → SO
+SO → BOM/LM → ALMOXARIFADO → COMPRAS
+SO → PCP → CAPACIDADE → SEQUENCIAMENTO → PRODUÇÃO
+PRODUÇÃO → QUALIDADE → EXPEDIÇÃO
+EXPEDIÇÃO → LOCAÇÃO → CAMPO → RETORNO
+RETORNO → INSPEÇÃO → AVARIA → REPARO → ESTOQUE
+```
 
-- quem depende de quem;
-- quem fornece informação para quem;
-- quem decide;
-- quem executa;
-- quem aprova;
-- quem recebe;
-- quem acompanha;
-- quem é impactado;
-- quais sistemas possuem dados;
-- quais documentos são necessários;
-- quais riscos atravessam o fluxo.
+Relações decisórias:
 
----
+```text
+DECISÃO → RESPONSÁVEL
+DECISÃO → EVIDÊNCIA
+DECISÃO → RISCO
+DECISÃO → RESULTADO
+RESULTADO → APRENDIZAGEM
+APRENDIZAGEM → REGRA/PADRÃO
+```
 
 ## 22. MAPA DE RISCOS
 
 ### Financeiro
-
-Margem, custo oculto, compras emergenciais, avarias, investimentos e perdas.
+Custo, margem, investimento, desperdício.
 
 ### Técnico
-
-Projeto incorreto, especificação incompleta, reparos inadequados e limitações estruturais.
+Projeto, BOM, customização, não conformidade.
 
 ### Operacional
-
-Retrabalho, espera, superprodução, sequenciamento, capacidade e informação.
+Gargalos, capacidade, reprogramação, retrabalho.
 
 ### Logístico
-
-Movimentação, rotas, equipamentos, pátio, retorno e expedição.
+Movimentação, transporte, pátio, prazo.
 
 ### Qualidade
-
-Não conformidade, retrabalho, inspeção e testes.
+Avaria, defeito, inspeção, retrabalho.
 
 ### Segurança
-
-Movimentação de cargas, pórticos, trilhos, empilhadeiras, oficinas e campo.
+Movimentação, equipamentos, operação industrial.
 
 ### Prazo
-
-Lead time, atrasos de fornecedores, capacidade, gargalos e mudanças de escopo.
+Material atrasado, gargalo, alteração de escopo, capacidade insuficiente.
 
 ### Informação
-
-Dados incompletos, comunicação informal, ausência de registro, dependência de pessoas-chave.
-
----
+Informação dispersa, comunicação verbal, documento desatualizado, inconsistência e falta de rastreabilidade.
 
 ## 23. KPIs POR SETOR
 
-### Comercial
-
-- conversão;
-- prazo prometido versus prazo possível;
-- alterações de escopo;
-- taxa de exceções.
-
-### Engenharia
-
-- prazo de projeto;
-- retrabalho de projeto;
-- itens fora do padrão;
-- completude da lista de materiais.
-
-### PCP
-
-- aderência ao plano;
-- lead time;
-- exceções;
-- capacidade ocupada;
-- compras emergenciais por falta de planejamento.
-
-### Compras
-
-- lead time de aquisição;
-- pontualidade;
-- itens críticos;
-- urgências.
-
-### Almoxarifado
-
-- acuracidade;
-- faltas;
-- tempo de picking;
-- divergências.
-
-### Produção
-
-- produtividade;
-- retrabalho;
-- tempo de processo;
-- gargalo;
-- capacidade.
-
-### Logística
-
-- movimentações;
-- horas de equipamento;
-- disponibilidade;
-- incidentes;
-- custo de movimentação.
-
-### Expedição
-
-- equipamentos liberados sem retrabalho;
-- tempo de preparação;
-- conformidade documental;
-- devoluções.
-
-### Locação/Retorno
-
-- utilização do ativo;
-- avarias;
-- tempo de retorno;
-- tempo de recuperação.
-
----
+| Setor | KPIs prioritários |
+|---|---|
+| Comercial | demanda, contratos, alterações, prazo |
+| Engenharia | projetos liberados, tempo, retrabalho, BOM |
+| PCP | programação, Lead Time, reprogramações, carga × capacidade |
+| Compras | Lead Time fornecedor, pedidos pendentes, atrasos, materiais críticos |
+| Almoxarifado | acuracidade, rupturas, atendimento, estoque |
+| Produção | produtividade, OEE, Lead Time, WIP, retrabalho |
+| Oficinas | tempo de reparo, fila, capacidade, disponibilidade |
+| Logística | movimentações, utilização, tempo, incidentes |
+| Expedição | entregas no prazo, conformidade, pendências, carregamento |
+| Campo | montagens, ocorrências, manutenção, retorno |
+| Pós-locação | avarias, inspeção, reparo, liberação |
+| Diretoria | receita, margem, capacidade, riscos, crescimento, investimentos |
 
 ## 24. CASOS HISTÓRICOS RELEVANTES
 
-Os casos devem ser armazenados como experiências contextualizadas, não como receitas universais.
+### Gargalo da pintura
+Acúmulo de módulos aguardando cabine, associado à ausência de medição de tempo padrão e sequenciamento inadequado.
 
-Exemplos já discutidos no ecossistema:
+### Componentes complementares
+Telhas de fibra de vidro, lavatórios, mictórios, cubas, divisórias e boxes foram identificados como componentes capazes de limitar o fluxo em determinados momentos.
 
-### Conflito Produção × Almoxarifado
+### Reprogramações
+Informações descentralizadas e baixa visibilidade favoreceram decisões reativas.
 
-Ausência de lista formal gera pedidos no "olho", ruído e risco de compra errada.
+### BOM
+Inconsistências em listas técnicas aparecem entre os fatores relevantes de perda.
 
-### Orçamento urgente e repetitivo
+### Crescimento comercial
+A demanda aumentou mais rapidamente do que alguns mecanismos internos de controle.
 
-A repetição de orçamentos recorrentes indica oportunidade de banco de custos e automação.
-
-### Início de obra sem informação completa
-
-Falta de lista, excedentes e informações provoca compra emergencial e retrabalho.
-
-### Dependência de pessoas-chave
-
-Padrões, custos e lógica concentrados em pessoas elevam risco de continuidade.
-
-### Contratação para resolver problema estrutural
-
-Sem processo, uma nova pessoa pode apenas carregar o mesmo gargalo.
-
-### Falta de metas de médio prazo
-
-Reação à demanda pode esconder riscos de crescimento.
-
-### Reuniões de obra
-
-A reunião inicial aproxima decisão, planejamento, compras, almoxarifado e produção.
-
-### Avarias de locação
-
-A devolução pode gerar custos de material, mão de obra e movimentação, que devem ser registrados e analisados.
-
----
+**Aprendizado transversal:** sincronizar processos, dados, pessoas e capacidade.
 
 ## 25. REGRAS DE GOVERNANÇA DO ELO
 
 ### Provenance
-
-Toda informação relevante deve permitir rastreamento de origem e classificação entre fato, relato, inferência, hipótese, conhecimento técnico, recomendação e resultado validado.
+Informações relevantes devem possuir origem rastreável.
 
 ### Tenant
-
-Dados da Multiteiner devem permanecer isolados do contexto de outros tenants.
+Dados e decisões devem respeitar isolamento organizacional/contextual quando aplicável.
 
 ### Need-to-Know
-
-O ELO deve acessar somente o conjunto de informações necessário à tarefa.
+Informação deve ser acessada segundo necessidade e autorização.
 
 ### Confidencialidade
-
-Dados sensíveis devem obedecer às políticas aplicáveis.
+Dados comerciais, financeiros, pessoais, técnicos e estratégicos devem respeitar classificação e controle de acesso.
 
 ### Human-in-the-loop
-
-Decisões de alto impacto permanecem com responsáveis humanos.
-
-### Integridade cognitiva
-
-O ELO deve diferenciar:
-
-`FATO → EVIDÊNCIA → INFERÊNCIA → HIPÓTESE → RECOMENDAÇÃO → DECISÃO`
-
----
+A IA pode analisar, correlacionar, identificar lacunas, formular hipóteses, simular e recomendar. Decisões críticas permanecem humanas conforme a governança.
 
 ## 26. PLANO DE ESTRUTURAÇÃO
 
 ### O que já existe
-
-- conhecimento operacional distribuído;
-- documentos;
-- fluxos;
-- projetos CAD;
-- planilhas;
-- sistema Najason;
-- experiências de operação;
-- indicadores em formação;
-- uso de IA em atividades específicas.
+Processos operacionais; conhecimento prático; produção padronizada; produção customizada; Comercial; Engenharia; PCP; Compras; Almoxarifado; Produção; Expedição; locação/campo; retorno; reparo; sistemas e planilhas; conhecimento histórico; gargalos conhecidos; diagnóstico operacional.
 
 ### O que está documentado
-
-- fluxos de expedição/recebimento;
-- processos de produção;
-- práticas de PCP;
-- composição de avarias;
-- partes relevantes da arquitetura ELO.
+Contexto; fluxo; Pareto; Ishikawa; gargalos; PCP; Gestão Visual; Lead Time; OEE; cronometragem; gestão de gargalos; resultados esperados.
 
 ### O que falta medir
-
-- tempos padrão por etapa;
-- capacidade real por recurso;
-- frequência de movimentações;
-- custo completo de gargalos;
-- recorrência de exceções;
-- qualidade da informação antes da execução.
+Tempos reais; capacidade por recurso; capacidade da pintura; capacidade dos componentes complementares; tempos de espera; WIP; Lead Time real; aderência da programação; produtividade; retrabalho; avarias; tempo de reparo; utilização de recursos.
 
 ### O que falta integrar
-
-- comercial ↔ engenharia;
-- engenharia ↔ orçamento;
-- orçamento ↔ PCP;
-- PCP ↔ compras;
-- compras ↔ almoxarifado;
-- almoxarifado ↔ produção;
-- produção ↔ expedição;
-- expedição ↔ locação;
-- locação ↔ retorno;
-- retorno ↔ reparo/estoque;
-- experiência ↔ decisão.
+```text
+Comercial
+↕
+Engenharia
+↕
+PCP
+↕
+Compras
+↕
+Almoxarifado
+↕
+Produção
+↕
+Expedição
+↕
+Campo
+↕
+Retorno
+↕
+Reparo
+↕
+Estoque
+```
 
 ### O que pode ser automatizado
-
-- geração de listas;
-- consulta de custos recorrentes;
-- análise de documentos;
-- leitura de editais;
-- identificação de excedentes;
-- indicadores;
-- alertas de risco;
-- consolidação de experiências.
+Consolidação de dados; indicadores; alertas por exceção; programação; cálculo de capacidade; materiais; rastreamento de status; relatórios; histórico de decisões; desvios; consolidação documental.
 
 ### O que exige decisão humana
+Aceitação de riscos; mudanças de prioridade crítica; investimentos; contratação; alteração de capacidade; exceções relevantes; decisões comerciais estratégicas; políticas; mudanças de processo; decisões com impacto financeiro ou organizacional significativo.
 
-- mudanças de escopo relevantes;
-- contratação e demissão;
-- investimentos;
-- exceções críticas;
-- alterações de política;
-- decisões de segurança;
-- liberação de riscos relevantes;
-- adoção de soluções estruturais.
+# MATRIZ DE MATURIDADE CONTEXTUAL
 
----
+| Elemento | Existe | Documentado | Contratado | Implementado | Testado | Bloqueado | Pronto |
+|---|---|---|---|---|---|---|---|
+| Modelo de negócio | Sim | Sim | A validar | A validar | A validar | Não identificado | Não |
+| Fluxo End-to-End | Sim | Sim | A validar | A validar | A validar | Não identificado | Não |
+| Comercial | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| Engenharia | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| PCP | Sim | Sim | Parcial | Parcial | A validar | Não identificado | Não |
+| Compras | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| Almoxarifado | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| Produção | Sim | Sim | Parcial | Parcial | A validar | Não identificado | Não |
+| Expedição | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| Locação/Campo | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| Retorno/Reparo | Sim | Parcial | A validar | A validar | A validar | Não identificado | Não |
+| Conhecimento organizacional | Sim | Parcial | Não | Não | Não | Não identificado | Não |
+| Governança ELO | Sim | Sim | Parcial | Parcial | A validar | Não identificado | Não |
 
-## 27. Como o ELO deve usar este documento
+**Nota:** “A validar” significa que não existe evidência suficiente nos materiais analisados para confirmar o estado. Não significa que o recurso/processo não exista.
 
-Este contexto deve ser usado como **mapa de navegação organizacional**, não como resposta automática.
+# REGRA DE ATUALIZAÇÃO
 
-Quando receber um problema, o ELO deve:
+Quando uma nova informação organizacional for confirmada:
 
-```text
-1. IDENTIFICAR O PROBLEMA
-        ↓
-2. LOCALIZAR SETORES / PROCESSOS / ENTIDADES
-        ↓
-3. DEFINIR RELEVANCE SCOPE
-        ↓
-4. BUSCAR DADOS E DOCUMENTOS RELEVANTES
-        ↓
-5. IDENTIFICAR GAPS
-        ↓
-6. FORMULAR PERGUNTAS
-        ↓
-7. RECUPERAR EXPERIÊNCIAS
-        ↓
-8. CONSULTAR CONHECIMENTO TÉCNICO
-        ↓
-9. FORMAR HIPÓTESES
-        ↓
-10. COMPARAR ALTERNATIVAS
-        ↓
-11. SIMULAR CONSEQUÊNCIAS
-        ↓
-12. RECOMENDAR
-        ↓
-13. ESCALAR PARA DECISÃO HUMANA
-        ↓
-14. REGISTRAR RESULTADO
-        ↓
-15. TRANSFORMAR RESULTADO VALIDADO EM APRENDIZAGEM
-```
+1. registrar a informação;
+2. identificar a origem;
+3. atualizar a seção correspondente;
+4. revisar relações afetadas;
+5. revisar riscos;
+6. revisar decisões dependentes;
+7. atualizar o estado de maturidade;
+8. preservar histórico da alteração.
 
----
+O ELO deve conseguir reconstruir:
 
-## 28. Princípio central
+> o que aconteceu → por que aconteceu → o que foi decidido → quem decidiu → com base em quê → qual resultado ocorreu → o que foi aprendido.
 
-> **O ELO deve conhecer a empresa como um ecossistema, não como um conjunto de departamentos isolados.**
-
-O valor deste documento está nas relações entre as partes:
-
-```text
-PESSOAS
-↕
-SETORES
-↕
-PROCESSOS
-↕
-SISTEMAS
-↕
-RECURSOS
-↕
-EVENTOS
-↕
-DECISÕES
-↕
-RESTRIÇÕES
-↕
-RESULTADOS
-↕
-EXPERIÊNCIAS
-↕
-APRENDIZAGEM
-```
-
-Esse modelo deve permitir ao ELO compreender o funcionamento da Multiteiner de ponta a ponta e utilizar essa compreensão como parâmetro para planejamento, diagnóstico, investigação, recomendação e estruturação futura.
+**Princípio final:** o contexto organizacional deve evoluir junto com o conhecimento da Multiteiner, preservando rastreabilidade entre fatos, processos, decisões, resultados e aprendizados.
