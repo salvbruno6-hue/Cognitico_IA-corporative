@@ -1,0 +1,1 @@
+Baseline repair is validated by the existing repository test suite.
