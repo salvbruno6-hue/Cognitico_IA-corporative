@@ -65,13 +65,24 @@ class SourceDiscoveryEngine:
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        for keyword, (candidate_intent, *sources) in self._keywords.items():
+        matched_keywords: list[tuple[str, tuple[str, ...]]] = []
+
+        for keyword, definition in self._keywords.items():
             if keyword in normalized:
-                intent = candidate_intent
+                matched_keywords.append((keyword, definition))
+                candidate_intent, *sources = definition
                 for index, source in enumerate(sources):
                     ranked[source] = max(ranked.get(source, 0), len(sources) - index)
                     reasons[source] = f"question contains context keyword: {keyword}"
                     capabilities[source] = candidate_intent
+
+        # More specific semantic keywords must win over generic context terms
+        # such as "elo". This keeps intent deterministic when both are present.
+        if matched_keywords:
+            keyword, (intent, *_) = max(
+                matched_keywords,
+                key=lambda item: (len(item[0]), item[0]),
+            )
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
