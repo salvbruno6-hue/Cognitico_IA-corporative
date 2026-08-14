@@ -1,4 +1,4 @@
-from elo.core.context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextSource
+from elo.core.context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextResolutionEngine, ContextSource
 from elo.core.production_flow import ProductionEvent, ProductionFlow, ProductionStage
 
 
@@ -9,8 +9,10 @@ def test_evidence_requires_exact_tenant_and_unit_scope():
         scope="Duque de Caxias",
         tenant_id="multiteiner",
     )
+    discovery_plan = ContextResolutionEngine().resolve(query).discovery_plan
     pack = ContextPack(
         query=query,
+        discovery_plan=discovery_plan,
         sources=(
             ContextSource("good", "project", "authorized", "Duque de Caxias", "multiteiner"),
             ContextSource("wrong-unit", "project", "authorized", "São Paulo", "multiteiner"),
@@ -28,8 +30,10 @@ def test_evidence_requires_exact_tenant_and_unit_scope():
 
 def test_high_confidence_wrong_scope_cannot_enable_specialist():
     query = ContextQuery("estado da Multiteiner Caxias", "Multiteiner", "Duque de Caxias", tenant_id="multiteiner")
+    discovery_plan = ContextResolutionEngine().resolve(query).discovery_plan
     pack = ContextPack(
         query=query,
+        discovery_plan=discovery_plan,
         sources=(ContextSource("wrong", "project", "authorized", "São Paulo", "multiteiner"),),
         evidence=(ContextEvidence("wrong", "evidência errada", 1.0, tenant_id="multiteiner", scope="São Paulo"),),
     )
