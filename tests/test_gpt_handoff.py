@@ -14,10 +14,11 @@ def test_specialist_handoff_uses_resolved_scoped_context():
             "Multiteiner",
             "Duque de Caxias",
             ("operacao", "pcp", "risco"),
+            "multiteiner",
         ),
         discovery_plan=object(),
-        sources=(ContextSource("caxias", "project", "authorized", "Duque de Caxias"),),
-        evidence=(ContextEvidence("caxias", "pedido ativo", 0.9),),
+        sources=(ContextSource("caxias", "project", "authorized", "Duque de Caxias", "multiteiner"),),
+        evidence=(ContextEvidence("caxias", "pedido ativo", 0.9, scope="Duque de Caxias", tenant_id="multiteiner"),),
     )
     handoff = GPTDecisionHandoff.from_context(
         objective="validar riscos sistêmicos", context=context, maturity=mature()
