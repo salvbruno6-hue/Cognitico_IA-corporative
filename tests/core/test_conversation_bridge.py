@@ -27,14 +27,17 @@ def _event(**overrides):
 
 def test_bridge_serializes_and_ingests_authorized_event():
     memory = EvolutionMemory()
-    bridge = ChatBridge(ConversationIntake(KnowledgeAdmission(), memory))
+    intake = ConversationIntake(KnowledgeAdmission(), memory)
+    bridge = ChatBridge(intake)
 
     event = _event()
     restored = ChatBridgeEvent.from_json(event.to_json())
     result = bridge.ingest(restored)
 
-    assert result.evolution_id == "conv:conv-001"
-    assert memory.get("conv:conv-001") is not None
+    assert result.evolution_id is None
+    assert result.temporal_record_id == "temporal:conv-001:request-001"
+    assert len(intake.temporal_context("conv-001")) == 1
+    assert memory.get("conv:conv-001") is None
 
 
 def test_bridge_rejects_unauthorized_event():
@@ -49,5 +52,5 @@ def test_bridge_requires_provenance():
 
 def test_bridge_json_is_deterministic_and_parseable():
     payload = json.loads(_event().to_json())
-    assert payload["schema_version"] == "1.0"
+    assert payload["schema_version"] == "1.1"
     assert payload["source_type"] == "CHATGPT"
