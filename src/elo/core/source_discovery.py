@@ -65,13 +65,37 @@ class SourceDiscoveryEngine:
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
-                intent = candidate_intent
+
+        # Specific semantic phrases take precedence over the generic ELO state
+        # keyword. This keeps discovery aligned with the user's actual intent.
+        if "possível cliente" in normalized or "possivel cliente" in normalized:
+            intent = "external_entity"
+            matched = ("cliente", "empresa")
+            for keyword in matched:
+                if keyword not in normalized:
+                    continue
+                sources = self._keywords[keyword][1:]
+                for index, source in enumerate(sources):
+                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
+                    reasons[source] = f"question matches external-entity phrase: {keyword}"
+                    capabilities[source] = intent
+        else:
+            matches = [
+                (keyword, values)
+                for keyword, values in self._keywords.items()
+                if keyword in normalized
+            ]
+            if matches:
+                # Prefer the most specific matched semantic keyword. Generic
+                # terms such as 'elo' must not overwrite a concrete intent.
+                keyword, (intent, *sources) = max(
+                    matches,
+                    key=lambda item: len(item[0]),
+                )
                 for index, source in enumerate(sources):
                     ranked[source] = max(ranked.get(source, 0), len(sources) - index)
                     reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
+                    capabilities[source] = intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
