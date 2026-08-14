@@ -61,17 +61,32 @@ class SourceDiscoveryEngine:
             raise ValueError("question is required")
 
         normalized = question.casefold()
+
+        # Resolve intent from the most specific semantic cue first. Generic
+        # project/self references such as "ELO" must not override the actual
+        # object of analysis, e.g. an architecture review or an external entity.
         intent = "general_consulting"
+        if "arquitetura" in normalized:
+            intent = "architecture_review"
+        elif "possível cliente" in normalized or "possivel cliente" in normalized:
+            intent = "external_entity"
+        elif "empresa" in normalized:
+            intent = "external_entity"
+        else:
+            for keyword, (candidate_intent, *_sources) in self._keywords.items():
+                if keyword in normalized:
+                    intent = candidate_intent
+                    break
+
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
         for keyword, (candidate_intent, *sources) in self._keywords.items():
             if keyword in normalized:
-                intent = candidate_intent
                 for index, source in enumerate(sources):
                     ranked[source] = max(ranked.get(source, 0), len(sources) - index)
                     reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
+                    capabilities[source] = intent if intent != "general_consulting" else candidate_intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
