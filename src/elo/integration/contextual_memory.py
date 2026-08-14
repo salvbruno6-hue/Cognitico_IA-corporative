@@ -6,6 +6,7 @@ from typing import Any
 
 from elo.context import ContextResolver, CognitiveContext
 from elo.evidence import Evidence, EvidenceRepository
+from elo.interface.contracts import CognitiveRequest
 from elo.knowledge import KnowledgeItem, KnowledgeRepository
 from elo.memory import MemoryRecord, MemoryStore
 
@@ -29,7 +30,10 @@ class ContextualMemoryService:
         self.memory = memory
 
     def ingest_observation(self, payload: dict[str, Any]) -> ContextualIntakeResult:
-        context = self.context_resolver.resolve(payload)
+        request_payload = dict(payload)
+        request_payload.setdefault("message", str(payload.get("observation", "")))
+        request = CognitiveRequest.model_validate(request_payload)
+        context = self.context_resolver.resolve(request)
         provenance = dict(payload.get("provenance") or {})
         provenance.setdefault("request_id", context.request_id)
         provenance.setdefault("correlation_id", context.correlation_id)
