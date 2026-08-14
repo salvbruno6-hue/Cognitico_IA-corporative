@@ -50,6 +50,17 @@ class SourceDiscoveryEngine:
         "elo": ("elo_state", "ELO_MEMORY", "GITHUB", "CHATGPT_PROJECTS"),
     }
 
+    # More specific domain intents must win over the generic ELO state intent
+    # when a question contains multiple context keywords.
+    _intent_specificity = {
+        "architecture_review": 60,
+        "commercial_analysis": 50,
+        "external_entity": 45,
+        "contract_analysis": 40,
+        "project_context": 35,
+        "elo_state": 10,
+    }
+
     def plan(
         self,
         question: str,
@@ -61,23 +72,39 @@ class SourceDiscoveryEngine:
             raise ValueError("question is required")
 
         normalized = question.casefold()
+        matches = [
+            (keyword, values)
+            for keyword, values in self._keywords.items()
+            if keyword in normalized
+        ]
         intent = "general_consulting"
+        if matches:
+            intent = max(
+                (values[0] for _, values in matches),
+                key=self._intent_specificity.get,
+            )
+
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
-                intent = candidate_intent
-                for index, source in enumerate(sources):
-                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                    reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
+        for keyword, (_, *sources) in matches:
+            matched_intent = self._keywords[keyword][0]
+            for index, source in enumerate(sources):
+                score = len(sources) - index
+                ranked[source] = max(ranked.get(source, 0), score)
+                reasons[source] = f"question contains context keyword: {keyword}"
+                capabilities[source] = matched_intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
                 ranked[source] = 5 - index
                 reasons[source] = "default discovery coverage"
                 capabilities[source] = intent
+
+        # Ensure candidate capability follows the selected canonical intent,
+        # not whichever keyword happened to be processed last.
+        for source in capabilities:
+            capabilities[source] = intent
 
         candidates = tuple(
             SourceCandidate(
