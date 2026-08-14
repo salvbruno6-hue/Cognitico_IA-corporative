@@ -1,12 +1,8 @@
-"""Governed scenario diagnostics for ELO.
+"""Governed multi-scenario diagnostics for ELO.
 
-This module does not predict a single future. It evaluates a scenario from
-multiple diagnostic perspectives so ELO can compare consequences before a
-decision: baseline, stress, failure, counterfactual and sensitivity.
-
-The module is deliberately domain-neutral. Domain adapters provide the facts
-and relationships; this layer provides the diagnostic contract and evidence
-requirements.
+The layer compares the same evidence through different scenario lenses without
+promoting assumptions to facts. Domain adapters provide variables and evidence;
+this layer provides repeatable reading, comparison and decision-readiness.
 """
 
 from dataclasses import dataclass, field
@@ -82,6 +78,21 @@ class ScenarioDiagnostic:
         return self.status == DiagnosticStatus.READY and bool(self.observations)
 
 
+@dataclass(frozen=True)
+class ScenarioComparison:
+    diagnostics: tuple[ScenarioDiagnostic, ...]
+    common_metrics: tuple[str, ...] = ()
+    changed_metrics: tuple[str, ...] = ()
+    blocked: bool = False
+    reason: str | None = None
+
+    @property
+    decision_ready(self) -> bool:
+        return bool(self.diagnostics) and not self.blocked and all(
+            diagnostic.decision_ready for diagnostic in self.diagnostics
+        )
+
+
 def evaluate_scenario(scenario: DiagnosticScenario) -> ScenarioDiagnostic:
     status = scenario.validate()
     if status != DiagnosticStatus.READY:
@@ -111,4 +122,31 @@ def evaluate_scenario(scenario: DiagnosticScenario) -> ScenarioDiagnostic:
         status=status,
         risks=tuple(risks),
         unknowns=scenario.assumptions,
+    )
+
+
+def compare_scenarios(scenarios: tuple[DiagnosticScenario, ...]) -> ScenarioComparison:
+    diagnostics = tuple(evaluate_scenario(scenario) for scenario in scenarios)
+    if not diagnostics:
+        return ScenarioComparison((), blocked=True, reason="no scenarios")
+    if any(item.status == DiagnosticStatus.INSUFFICIENT_EVIDENCE for item in diagnostics):
+        return ScenarioComparison(diagnostics, blocked=True, reason="insufficient evidence")
+    if any(item.status == DiagnosticStatus.CONFLICT for item in diagnostics):
+        return ScenarioComparison(diagnostics, blocked=True, reason="scenario contract conflict")
+
+    metric_sets = [
+        {observation.metric for observation in diagnostic.observations}
+        for diagnostic in diagnostics
+    ]
+    common = set.intersection(*metric_sets) if metric_sets else set()
+    changed = {
+        observation.metric
+        for diagnostic in diagnostics
+        for observation in diagnostic.observations
+        if observation.delta not in (None, 0)
+    }
+    return ScenarioComparison(
+        diagnostics=diagnostics,
+        common_metrics=tuple(sorted(common)),
+        changed_metrics=tuple(sorted(changed)),
     )
