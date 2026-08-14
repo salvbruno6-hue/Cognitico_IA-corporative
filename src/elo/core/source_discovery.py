@@ -75,23 +75,42 @@ class SourceDiscoveryEngine:
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
         matched_intents: list[tuple[int, str, str]] = []
+        matched_sources: dict[str, tuple[str, ...]] = {}
 
         for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
-                matched_intents.append(
-                    (self._intent_priority.get(candidate_intent, 0), candidate_intent, keyword)
-                )
-                for index, source in enumerate(sources):
-                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                    reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
+            if keyword not in normalized:
+                continue
+            matched_intents.append(
+                (self._intent_priority.get(candidate_intent, 0), candidate_intent, keyword)
+            )
+            matched_sources[candidate_intent] = tuple(sources)
 
-        # Generic ELO mentions must not override a more specific diagnostic intent.
         if "possível cliente" in normalized or "possivel cliente" in normalized:
-            matched_intents.append((self._intent_priority["external_entity"], "external_entity", "possível cliente"))
+            matched_intents.append(
+                (self._intent_priority["external_entity"], "external_entity", "possível cliente")
+            )
 
         if matched_intents:
             _, intent, _ = max(matched_intents, key=lambda item: (item[0], item[2]))
+
+            # The winning intent controls source order. Other matched intents
+            # remain useful as secondary coverage, but cannot outrank it.
+            primary_sources = matched_sources.get(intent, ())
+            for index, source in enumerate(primary_sources):
+                ranked[source] = 100 - index
+                reasons[source] = f"primary source for intent: {intent}"
+                capabilities[source] = intent
+
+            for _, secondary_intent, keyword in sorted(
+                matched_intents,
+                key=lambda item: (-item[0], item[2]),
+            ):
+                for index, source in enumerate(matched_sources.get(secondary_intent, ())):
+                    if source in ranked:
+                        continue
+                    ranked[source] = 50 - index
+                    reasons[source] = f"secondary coverage from keyword: {keyword}"
+                    capabilities[source] = secondary_intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
@@ -99,8 +118,6 @@ class SourceDiscoveryEngine:
                 reasons[source] = "default discovery coverage"
                 capabilities[source] = intent
 
-        # Align the selected intent with the strongest source capability where a
-        # generic keyword contributed only secondary context.
         if intent != "elo_state":
             for source in ranked:
                 if capabilities[source] == "elo_state":
