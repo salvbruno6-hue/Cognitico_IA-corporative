@@ -1,0 +1,1 @@
+The baseline repair targets only the regressions observed in CI after PR #52. No diagnostic engine behavior is intentionally broadened in this phase.
