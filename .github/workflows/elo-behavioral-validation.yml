@@ -21,4 +21,20 @@ jobs:
       - name: Compile source
         run: python -m compileall src
       - name: Run tests
-        run: python -m pytest -ra
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -ra --tb=short > pytest.log 2>&1
+          status=$?
+          echo "$status" > pytest.exit
+          cat pytest.log
+          exit "$status"
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elo-test-evidence
+          path: |
+            pytest.log
+            pytest.exit
+          if-no-files-found: error
