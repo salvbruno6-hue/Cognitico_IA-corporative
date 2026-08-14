@@ -35,7 +35,7 @@ def test_same_problem_can_be_read_through_multiple_lenses():
     assert scenario.evidence_ids() == ("ev-flow", "ev-cap", "ev-mat")
 
 
-def test_comparison_identifies_shared_evidence_and_conflict():
+def test_comparison_blocks_conflicting_scenario():
     engine = DiagnosticScenarioEngine()
     first = engine.build(
         "capacity",
@@ -48,7 +48,7 @@ def test_comparison_identifies_shared_evidence_and_conflict():
         (obs(DiagnosticLens.MATERIAL, "insumo crítico", ["ev-1", "ev-3"]),),
     )
     result = engine.compare((first, second))
-    assert result["status"] == "COMPARABLE"
+    assert result["status"] == "BLOCKED"
     assert result["shared_evidence"] == ("ev-1",)
     assert result["requires_human_decision"] is True
 
