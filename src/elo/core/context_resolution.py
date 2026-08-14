@@ -57,16 +57,26 @@ class ContextPack:
         )
 
     def scoped_evidence(self) -> tuple[ContextEvidence, ...]:
-        allowed = {source.source_id for source in self.scoped_sources()}
+        source_map = {source.source_id: source for source in self.scoped_sources()}
         candidates = self.evidence
-        if allowed:
-            candidates = tuple(evidence for evidence in candidates if evidence.source_id in allowed)
+        if source_map:
+            candidates = tuple(evidence for evidence in candidates if evidence.source_id in source_map)
 
-        return tuple(
-            evidence for evidence in candidates
-            if (not self.query.tenant_id or evidence.tenant_id == self.query.tenant_id)
-            and (not self.query.scope or evidence.scope == self.query.scope)
-        )
+        scoped: list[ContextEvidence] = []
+        for evidence in candidates:
+            source = source_map.get(evidence.source_id)
+            effective_tenant = evidence.tenant_id or (source.tenant_id if source else None)
+            effective_scope = evidence.scope or (source.scope if source else None)
+            if self.query.tenant_id and effective_tenant != self.query.tenant_id:
+                continue
+            if self.query.scope and effective_scope != self.query.scope:
+                continue
+            if evidence.tenant_id and source and source.tenant_id and evidence.tenant_id != source.tenant_id:
+                continue
+            if evidence.scope and source and source.scope and evidence.scope != source.scope:
+                continue
+            scoped.append(evidence)
+        return tuple(scoped)
 
     def sufficient_evidence(self, minimum_confidence: float = 0.6) -> bool:
         return any(
