@@ -1,5 +1,10 @@
 """Canonical ELO core boundaries."""
 
+from .analysis_solicitations_learning import (
+    SolicitationLearningCandidate,
+    build_learning_candidate,
+    classify_candidate,
+)
 from .canonical_identity import CanonicalIdentityRegistry, EloCanonicalIdentity
 from .consulting import ConsultingResponse, ConsultingStatus
 from .conversation_bridge import ChatBridge, ChatBridgeEvent
@@ -22,4 +27,5 @@ __all__ = [
     "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff",
     "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "ProductionEvent",
     "ProductionFlow", "ProductionStage", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
+    "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
