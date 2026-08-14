@@ -42,6 +42,7 @@ class SourceDiscoveryEngine:
     """Infer where information should be sought without requiring user paths."""
 
     _keywords = {
+        "possível cliente": ("external_entity", "WEB", "CHATGPT_PROJECTS", "ELO_MEMORY"),
         "empresa": ("external_entity", "WEB", "CHATGPT_PROJECTS", "AI_PROVIDER"),
         "cliente": ("commercial_analysis", "ELO_MEMORY", "CHATGPT_PROJECTS", "WEB"),
         "projeto": ("project_context", "CHATGPT_PROJECTS", "GITHUB", "DOCUMENTS"),
