@@ -1,0 +1,7 @@
+Scenario diagnostics test specification
+
+Case A: one scenario is observed through operational, material, and customer lenses. Expected: each lens is retrievable and aggregate confidence is calculated.
+
+Case B: two lenses use the same evidence but recommend different actions. Expected: conflict is detected and escalation is required.
+
+Case C: a scenario has low confidence. Expected: escalation is required.
