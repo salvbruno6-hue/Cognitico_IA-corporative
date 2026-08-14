@@ -26,7 +26,7 @@ def test_context_pack_requires_relevant_evidence():
 
     populated = ContextPack(
         query=query,
-        evidence=(ContextEvidence("caxias", "pedido ativo", 0.9),),
+        evidence=(ContextEvidence("caxias", "pedido ativo", 0.9, scope="Duque de Caxias"),),
     )
     assert populated.sufficient_evidence()
 
@@ -56,6 +56,7 @@ def test_specialist_mode_requires_discovered_evidence():
     enriched = ContextPack(
         query=query,
         discovery_plan=pack.discovery_plan,
-        evidence=(ContextEvidence("caxias", "pedido ativo", 0.9),),
+        sources=(ContextSource("caxias", "project", "authorized", "Duque de Caxias"),),
+        evidence=(ContextEvidence("caxias", "pedido ativo", 0.9, scope="Duque de Caxias"),),
     )
     assert enriched.requires_specialist()
