@@ -1,0 +1,1 @@
+Baseline repair work is being developed in this branch. The observed CI failures after the diagnostic engine merge are pre-existing contract regressions in conversation intake, source discovery, and contextual memory. This branch preserves the diagnostic engine while restoring those contracts before the next merge.
