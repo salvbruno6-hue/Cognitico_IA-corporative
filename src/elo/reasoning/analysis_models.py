@@ -22,6 +22,10 @@ class EvidencePolarity(StrEnum):
     NEUTRAL = "NEUTRAL"
 
 
+def _bounded(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
 @dataclass(frozen=True, slots=True)
 class EvidenceEvaluation:
     evidence_id: str
@@ -32,6 +36,9 @@ class EvidenceEvaluation:
     rationale: str
     provenance: Mapping[str, object] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "relevance", _bounded(self.relevance))
+
 
 @dataclass(frozen=True, slots=True)
 class Hypothesis:
@@ -40,6 +47,9 @@ class Hypothesis:
     confidence: float = 0.0
     evidence_refs: tuple[str, ...] = ()
     assumptions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "confidence", _bounded(self.confidence))
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +60,9 @@ class CritiqueResult:
     missing_information: tuple[str, ...] = ()
     revised_confidence: float = 0.0
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "revised_confidence", _bounded(self.revised_confidence))
+
 
 @dataclass(frozen=True, slots=True)
 class Scenario:
@@ -59,6 +72,9 @@ class Scenario:
     expected_impacts: tuple[str, ...] = ()
     risks: tuple[str, ...] = ()
     confidence: float = 0.0
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "confidence", _bounded(self.confidence))
 
 
 @dataclass(frozen=True, slots=True)
