@@ -26,7 +26,7 @@ class ChatBridgeEvent:
     authorized: bool
     provenance: Mapping[str, str]
     source_type: str = "CHATGPT"
-    schema_version: str = "1.1"
+    schema_version: str = "1.0"
     event_role: str = "CONVERSATION"
 
     def validate(self) -> None:
@@ -46,6 +46,8 @@ class ChatBridgeEvent:
             raise ValueError(f"missing required bridge fields: {', '.join(missing)}")
         if not self.authorized:
             raise PermissionError("conversation bridge event is not authorized")
+        if self.schema_version != "1.0":
+            raise ValueError(f"unsupported schema_version: {self.schema_version}")
         if self.source_type not in {"CHATGPT", "CLAUDE", "GEMINI", "OTHER_PROVIDER"}:
             raise ValueError(f"unsupported source_type: {self.source_type}")
         if self.event_role not in {"CONVERSATION", "EXTERNAL_PROVIDER_RESPONSE"}:
