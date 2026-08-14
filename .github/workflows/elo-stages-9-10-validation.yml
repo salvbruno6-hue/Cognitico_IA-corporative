@@ -1,0 +1,19 @@
+name: ELO Stages 9-10 Validation
+on:
+  pull_request:
+    paths:
+      - '08-ai/stages/**'
+      - '.github/workflows/elo-stages-9-10-validation.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile 08-ai/stages/elo_009_010.py 08-ai/stages/test_elo_009_010.py
+      - name: Run governed stage tests
+        working-directory: 08-ai/stages
+        run: python -m unittest -v test_elo_009_010.py
