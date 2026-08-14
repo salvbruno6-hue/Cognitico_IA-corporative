@@ -50,6 +50,18 @@ class SourceDiscoveryEngine:
         "elo": ("elo_state", "ELO_MEMORY", "GITHUB", "CHATGPT_PROJECTS"),
     }
 
+    # Generic product/system terms must not override a more specific user intent.
+    # Lower values are less specific; the maximum matching score wins.
+    _intent_specificity = {
+        "general_consulting": 0,
+        "elo_state": 10,
+        "project_context": 20,
+        "contract_analysis": 30,
+        "architecture_review": 40,
+        "commercial_analysis": 50,
+        "external_entity": 60,
+    }
+
     def plan(
         self,
         question: str,
@@ -62,16 +74,21 @@ class SourceDiscoveryEngine:
 
         normalized = question.casefold()
         intent = "general_consulting"
+        intent_score = self._intent_specificity[intent]
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
         for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
+            if keyword not in normalized:
+                continue
+            candidate_score = self._intent_specificity.get(candidate_intent, 0)
+            if candidate_score > intent_score:
                 intent = candidate_intent
-                for index, source in enumerate(sources):
-                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                    reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
+                intent_score = candidate_score
+            for index, source in enumerate(sources):
+                ranked[source] = max(ranked.get(source, 0), len(sources) - index)
+                reasons[source] = f"question contains context keyword: {keyword}"
+                capabilities[source] = candidate_intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
