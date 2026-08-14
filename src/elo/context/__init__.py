@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Mapping
 
 from elo.interface.contracts import CognitiveRequest
 
@@ -27,7 +27,15 @@ class CognitiveContext:
 class ContextResolver:
     """Builds a canonical context without replacing the request contract."""
 
-    def resolve(self, request: CognitiveRequest, *, session: Any | None = None) -> CognitiveContext:
+    def resolve(
+        self,
+        request: CognitiveRequest | Mapping[str, Any],
+        *,
+        session: Any | None = None,
+    ) -> CognitiveContext:
+        if isinstance(request, Mapping):
+            request = CognitiveRequest.model_validate(request)
+
         tenant_id = request.tenant_id
         domain = request.domain
         principal_id = request.principal_id
