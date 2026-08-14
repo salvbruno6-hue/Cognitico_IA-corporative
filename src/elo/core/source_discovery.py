@@ -1,22 +1,9 @@
-"""Autonomous source discovery for ELO consulting.
-
-The planner converts a user question and temporal context into a source-neutral
-search plan. It does not hard-code a single repository path or provider. Actual
-retrieval is performed by authorized adapters, and all retrieved material must
-enter Temporal Conversation Memory before promotion.
-"""
+"""Autonomous source discovery for ELO consulting."""
 
 from dataclasses import dataclass, field
 from typing import Literal, Mapping
 
-SourceKind = Literal[
-    "ELO_MEMORY",
-    "GITHUB",
-    "CHATGPT_PROJECTS",
-    "DOCUMENTS",
-    "WEB",
-    "AI_PROVIDER",
-]
+SourceKind = Literal["ELO_MEMORY", "GITHUB", "CHATGPT_PROJECTS", "DOCUMENTS", "WEB", "AI_PROVIDER"]
 
 
 @dataclass(frozen=True)
@@ -39,7 +26,7 @@ class DiscoveryPlan:
 
 
 class SourceDiscoveryEngine:
-    """Infer where information should be sought without requiring user paths."""
+    """Infer source coverage while preserving the most specific intent."""
 
     _keywords = {
         "empresa": ("external_entity", "WEB", "CHATGPT_PROJECTS", "AI_PROVIDER"),
@@ -50,28 +37,27 @@ class SourceDiscoveryEngine:
         "elo": ("elo_state", "ELO_MEMORY", "GITHUB", "CHATGPT_PROJECTS"),
     }
 
-    def plan(
-        self,
-        question: str,
-        *,
-        temporal_context_id: str | None = None,
-        known_entities: tuple[str, ...] = (),
-    ) -> DiscoveryPlan:
+    def plan(self, question: str, *, temporal_context_id: str | None = None, known_entities: tuple[str, ...] = ()) -> DiscoveryPlan:
         if not question.strip():
             raise ValueError("question is required")
 
         normalized = question.casefold()
-        intent = "general_consulting"
+        matches = [(keyword, values) for keyword, values in self._keywords.items() if keyword in normalized]
+        # Generic "elo" is a fallback context marker. A specific intent such as
+        # architecture_review or external_entity must win when both are present.
+        specific_matches = [(keyword, values) for keyword, values in matches if keyword != "elo"]
+        selected = specific_matches[0] if specific_matches else (matches[0] if matches else None)
+        intent = selected[1][0] if selected else "general_consulting"
+
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
-                intent = candidate_intent
-                for index, source in enumerate(sources):
-                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                    reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
+        selected_keywords = specific_matches if specific_matches else matches
+        for keyword, (_, *sources) in selected_keywords:
+            for index, source in enumerate(sources):
+                ranked[source] = max(ranked.get(source, 0), len(sources) - index)
+                reasons[source] = f"question contains context keyword: {keyword}"
+                capabilities[source] = intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
@@ -80,19 +66,7 @@ class SourceDiscoveryEngine:
                 capabilities[source] = intent
 
         candidates = tuple(
-            SourceCandidate(
-                kind=source,  # type: ignore[arg-type]
-                reason=reasons[source],
-                priority=priority,
-                query=question,
-                required_capability=capabilities[source],
-            )
+            SourceCandidate(kind=source, reason=reasons[source], priority=priority, query=question, required_capability=capabilities[source])
             for source, priority in sorted(ranked.items(), key=lambda item: (-item[1], item[0]))
         )
-        return DiscoveryPlan(
-            intent=intent,
-            entities=known_entities,
-            questions=(question,),
-            candidates=candidates,
-            temporal_context_id=temporal_context_id,
-        )
+        return DiscoveryPlan(intent=intent, entities=known_entities, questions=(question,), candidates=candidates, temporal_context_id=temporal_context_id)
