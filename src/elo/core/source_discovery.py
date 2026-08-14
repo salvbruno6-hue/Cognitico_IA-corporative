@@ -61,20 +61,28 @@ class SourceDiscoveryEngine:
             raise ValueError("question is required")
 
         normalized = question.casefold()
-        intent = "general_consulting"
+        matches = [
+            (keyword, definition)
+            for keyword, definition in self._keywords.items()
+            if keyword in normalized
+        ]
+        if matches:
+            keyword, (intent, *sources) = max(matches, key=lambda item: len(item[0]))
+        else:
+            keyword = None
+            intent = "general_consulting"
+            sources = ["ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER"]
+
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
-                intent = candidate_intent
-                for index, source in enumerate(sources):
-                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                    reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
-
-        if not ranked:
-            for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
+        if keyword is not None:
+            for index, source in enumerate(sources):
+                ranked[source] = max(ranked.get(source, 0), len(sources) - index)
+                reasons[source] = f"question contains context keyword: {keyword}"
+                capabilities[source] = intent
+        else:
+            for index, source in enumerate(sources):
                 ranked[source] = 5 - index
                 reasons[source] = "default discovery coverage"
                 capabilities[source] = intent
