@@ -61,23 +61,28 @@ class SourceDiscoveryEngine:
             raise ValueError("question is required")
 
         normalized = question.casefold()
-        intent = "general_consulting"
+        matches = [
+            (keyword, data)
+            for keyword, data in self._keywords.items()
+            if keyword in normalized
+        ]
+        if matches:
+            # Specific intents must win over the generic ELO state keyword.
+            keyword, (intent, *sources) = max(
+                matches,
+                key=lambda item: (item[0] != "elo", len(item[0])),
+            )
+        else:
+            intent = "general_consulting"
+            sources = ("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")
+
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        for keyword, (candidate_intent, *sources) in self._keywords.items():
-            if keyword in normalized:
-                intent = candidate_intent
-                for index, source in enumerate(sources):
-                    ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                    reasons[source] = f"question contains context keyword: {keyword}"
-                    capabilities[source] = candidate_intent
-
-        if not ranked:
-            for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
-                ranked[source] = 5 - index
-                reasons[source] = "default discovery coverage"
-                capabilities[source] = intent
+        for index, source in enumerate(sources):
+            ranked[source] = len(sources) - index
+            reasons[source] = f"question contains context keyword: {keyword}" if matches else "default discovery coverage"
+            capabilities[source] = intent
 
         candidates = tuple(
             SourceCandidate(
