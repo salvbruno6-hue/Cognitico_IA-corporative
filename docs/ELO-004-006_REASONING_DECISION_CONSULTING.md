@@ -13,13 +13,13 @@ Implement stages 4, 5 and 6 as governed capabilities layered on the existing ELO
 - never infer causation from correlation alone.
 
 ### Acceptance
-- [ ] evidence evaluation contract;
-- [ ] hypothesis contract;
-- [ ] critique contract;
-- [ ] confidence remains bounded 0..1;
-- [ ] contradictions preserved;
-- [ ] missing information represented;
-- [ ] tests cover support and contradiction.
+- [x] evidence evaluation contract;
+- [x] hypothesis contract;
+- [x] critique contract;
+- [x] confidence remains bounded 0..1;
+- [x] contradictions preserved;
+- [x] missing information represented;
+- [x] tests cover support and contradiction.
 
 ## Stage 5 — Decision Support + Human Dialogue
 - represent scenarios;
@@ -31,12 +31,12 @@ Implement stages 4, 5 and 6 as governed capabilities layered on the existing ELO
 - prepare questions to close information gaps.
 
 ### Acceptance
-- [ ] scenario contract;
-- [ ] decision support contract;
-- [ ] human owner required for governed decisions;
-- [ ] recommendation != decision;
-- [ ] evidence and risks traceable;
-- [ ] deterministic tests.
+- [x] scenario contract;
+- [x] decision support contract;
+- [x] human owner required for governed decisions;
+- [x] recommendation != decision;
+- [x] evidence and risks traceable;
+- [x] deterministic tests.
 
 ## Stage 6 — Cognitive Consulting + Organizational Health
 - enter consulting mode for multi-domain/ambiguous/high-impact situations;
@@ -47,13 +47,13 @@ Implement stages 4, 5 and 6 as governed capabilities layered on the existing ELO
 - avoid automatic blame or competence labeling.
 
 ### Acceptance
-- [ ] consulting assessment contract;
-- [ ] known/unknown distinction;
-- [ ] information gap contract;
-- [ ] hypothesis support;
-- [ ] recommendations separate from decisions;
-- [ ] risks preserved;
-- [ ] tests cover unknowns and gaps.
+- [x] consulting assessment contract;
+- [x] known/unknown distinction;
+- [x] information gap contract;
+- [x] hypothesis support;
+- [x] recommendations separate from decisions;
+- [x] risks preserved;
+- [x] tests cover unknowns and gaps.
 
 ## Architectural constraints
 - no second Cognitive Core;
@@ -63,4 +63,4 @@ Implement stages 4, 5 and 6 as governed capabilities layered on the existing ELO
 - persistence, RAG, model training and production integrations remain adapters/future stages unless explicitly implemented by a later gate.
 
 ## Verification
-The branch must pass the existing CI compile/test workflow and the full regression suite before merge.
+The branch must pass the existing CI compile/test workflow and the full regression suite before merge. The final acceptance state is based on GitHub Actions evidence, not on documentation alone.
