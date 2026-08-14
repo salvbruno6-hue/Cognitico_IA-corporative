@@ -41,6 +41,12 @@ class DiscoveryPlan:
 class SourceDiscoveryEngine:
     """Infer where information should be sought without requiring user paths."""
 
+    _intent_phrases = (
+        ("como possível cliente", "external_entity", ("WEB", "CHATGPT_PROJECTS", "AI_PROVIDER")),
+        ("possível cliente", "external_entity", ("WEB", "CHATGPT_PROJECTS", "AI_PROVIDER")),
+        ("como cliente", "external_entity", ("WEB", "CHATGPT_PROJECTS", "AI_PROVIDER")),
+    )
+
     _keywords = {
         "empresa": ("external_entity", "WEB", "CHATGPT_PROJECTS", "AI_PROVIDER"),
         "cliente": ("commercial_analysis", "ELO_MEMORY", "CHATGPT_PROJECTS", "WEB"),
@@ -61,31 +67,32 @@ class SourceDiscoveryEngine:
             raise ValueError("question is required")
 
         normalized = question.casefold()
-        matches = [
-            (keyword, definition)
-            for keyword, definition in self._keywords.items()
-            if keyword in normalized
-        ]
-        if matches:
-            keyword, (intent, *sources) = max(matches, key=lambda item: len(item[0]))
+        phrase_match = next(
+            (item for item in self._intent_phrases if item[0] in normalized),
+            None,
+        )
+        if phrase_match:
+            keyword, intent, sources = phrase_match
         else:
-            keyword = None
-            intent = "general_consulting"
-            sources = ["ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER"]
+            matches = [
+                (keyword, definition)
+                for keyword, definition in self._keywords.items()
+                if keyword in normalized
+            ]
+            if matches:
+                keyword, (intent, *sources) = max(matches, key=lambda item: len(item[0]))
+            else:
+                keyword = None
+                intent = "general_consulting"
+                sources = ["ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER"]
 
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
         capabilities: dict[str, str] = {}
-        if keyword is not None:
-            for index, source in enumerate(sources):
-                ranked[source] = max(ranked.get(source, 0), len(sources) - index)
-                reasons[source] = f"question contains context keyword: {keyword}"
-                capabilities[source] = intent
-        else:
-            for index, source in enumerate(sources):
-                ranked[source] = 5 - index
-                reasons[source] = "default discovery coverage"
-                capabilities[source] = intent
+        for index, source in enumerate(sources):
+            ranked[source] = max(ranked.get(source, 0), len(sources) - index)
+            reasons[source] = f"question contains context phrase: {keyword}" if keyword else "default discovery coverage"
+            capabilities[source] = intent
 
         candidates = tuple(
             SourceCandidate(
