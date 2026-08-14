@@ -22,16 +22,16 @@ def test_question_discovers_context_without_user_path():
 
 
 def test_local_scope_excludes_other_unit_evidence():
-    query = ContextQuery("estado da Multiteiner Caxias", "Multiteiner", "Duque de Caxias")
+    query = ContextQuery("estado da Multiteiner Caxias", "Multiteiner", "Duque de Caxias", tenant_id="multiteiner")
     pack = ContextPack(
         query=query,
         sources=(
-            ContextSource("caxias", "project", "authorized", "Duque de Caxias"),
-            ContextSource("other", "project", "authorized", "São Paulo"),
+            ContextSource("caxias", "project", "authorized", "Duque de Caxias", "multiteiner"),
+            ContextSource("other", "project", "authorized", "São Paulo", "multiteiner"),
         ),
         evidence=(
-            ContextEvidence("caxias", "pedido local", 0.9),
-            ContextEvidence("other", "pedido de outra unidade", 0.95),
+            ContextEvidence("caxias", "pedido local", 0.9, tenant_id="multiteiner", scope="Duque de Caxias"),
+            ContextEvidence("other", "pedido de outra unidade", 0.95, tenant_id="multiteiner", scope="São Paulo"),
         ),
     )
     assert [item.source_id for item in pack.scoped_evidence()] == ["caxias"]
