@@ -1,18 +1,34 @@
 import pytest
+
 from elo.reasoning.analysis_models import (
-    ClaimType, CritiqueResult, DecisionSupport, EvidenceEvaluation, EvidencePolarity,
-    Hypothesis, InformationGap, Scenario
+    ClaimType,
+    EvidenceEvaluation,
+    EvidencePolarity,
+    Hypothesis,
+    InformationGap,
+    Scenario,
 )
-from elo.reasoning.stage_services import EvidenceEvaluator, CritiqueService, DecisionSupportService, ConsultingService
+from elo.reasoning.stage_services import (
+    ConsultingService,
+    CritiqueService,
+    DecisionSupportService,
+    EvidenceEvaluator,
+)
 
 
-def test_evidence_evaluation_clamps_relevance_and_polarity():
+def test_evidence_evaluation_clamps_relevance_and_preserves_provenance():
     result = EvidenceEvaluator().evaluate(
         evidence_id="e1", claim_id="c1", quality="VERIFIED", relevance=1.4,
-        supports=True, rationale="supports claim"
+        supports=True, rationale="supports claim", provenance={"source": "erp"}
     )
     assert result.relevance == 1.0
     assert result.polarity is EvidencePolarity.SUPPORTS
+    assert result.provenance["source"] == "erp"
+
+
+def test_hypothesis_confidence_is_bounded():
+    assert Hypothesis("h1", "route contributes", 1.4).confidence == 1.0
+    assert Hypothesis("h2", "route contributes", -0.2).confidence == 0.0
 
 
 def test_critique_reduces_confidence_when_contradicted():
@@ -23,6 +39,25 @@ def test_critique_reduces_confidence_when_contradicted():
     result = CritiqueService().critique("c1", items, ["alternative"], ["missing input"])
     assert result.revised_confidence == pytest.approx(0.6)
     assert result.contradictions == ("contradiction",)
+    assert result.missing_information == ("missing input",)
+
+
+def test_decision_support_requires_human_owner():
+    scenario = Scenario("s1", "Keep current", "Maintain operation", ("stable cost",), ("rework",), 0.7)
+    with pytest.raises(ValueError, match="decision_owner"):
+        DecisionSupportService().build(
+            decision_id="d1", problem="p", scenarios=[scenario], recommended_option="s1",
+            rationale="best evidence", decision_owner=None, evidence_refs=["e1"], risks=["r1"]
+        )
+
+
+def test_decision_support_rejects_unknown_recommendation():
+    scenario = Scenario("s1", "Keep current", "Maintain operation")
+    with pytest.raises(ValueError, match="recommended_option"):
+        DecisionSupportService().build(
+            decision_id="d1", problem="p", scenarios=[scenario], recommended_option="s2",
+            rationale="bad reference", decision_owner="manager-1", evidence_refs=["e1"], risks=["r1"]
+        )
 
 
 def test_decision_support_preserves_human_owner_and_options():
