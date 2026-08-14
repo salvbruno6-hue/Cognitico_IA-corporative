@@ -50,8 +50,7 @@ class SourceDiscoveryEngine:
         "elo": ("elo_state", "ELO_MEMORY", "GITHUB", "CHATGPT_PROJECTS"),
     }
 
-    # Generic product/system terms must not override a more specific user intent.
-    # Lower values are less specific; the maximum matching score wins.
+    # More specific intent dominates generic system context.
     _intent_specificity = {
         "general_consulting": 0,
         "elo_state": 10,
@@ -60,6 +59,17 @@ class SourceDiscoveryEngine:
         "architecture_review": 40,
         "commercial_analysis": 50,
         "external_entity": 60,
+    }
+
+    # When two intents contribute equally ranked sources, preserve the canonical
+    # source priority for the selected intent rather than relying on alphabetic order.
+    _preferred_source = {
+        "architecture_review": "GITHUB",
+        "external_entity": "WEB",
+        "commercial_analysis": "ELO_MEMORY",
+        "contract_analysis": "ELO_MEMORY",
+        "project_context": "CHATGPT_PROJECTS",
+        "elo_state": "ELO_MEMORY",
     }
 
     def plan(
@@ -96,6 +106,7 @@ class SourceDiscoveryEngine:
                 reasons[source] = "default discovery coverage"
                 capabilities[source] = intent
 
+        preferred = self._preferred_source.get(intent)
         candidates = tuple(
             SourceCandidate(
                 kind=source,  # type: ignore[arg-type]
@@ -104,7 +115,10 @@ class SourceDiscoveryEngine:
                 query=question,
                 required_capability=capabilities[source],
             )
-            for source, priority in sorted(ranked.items(), key=lambda item: (-item[1], item[0]))
+            for source, priority in sorted(
+                ranked.items(),
+                key=lambda item: (-item[1], 0 if item[0] == preferred else 1, item[0]),
+            )
         )
         return DiscoveryPlan(
             intent=intent,
