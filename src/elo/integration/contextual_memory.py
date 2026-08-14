@@ -8,6 +8,7 @@ from elo.context import ContextResolver, CognitiveContext
 from elo.evidence import Evidence, EvidenceRepository
 from elo.knowledge import KnowledgeItem, KnowledgeRepository
 from elo.memory import MemoryRecord, MemoryStore
+from elo.interface.contracts import CognitiveRequest
 
 
 @dataclass(slots=True)
@@ -28,8 +29,24 @@ class ContextualMemoryService:
         self.evidence = evidence
         self.memory = memory
 
+    @staticmethod
+    def _to_request(payload: dict[str, Any]) -> CognitiveRequest:
+        """Normalize application payloads at the canonical context boundary."""
+        return CognitiveRequest(
+            request_id=str(payload.get("request_id") or ""),
+            correlation_id=str(payload.get("correlation_id") or "") or None,
+            message=str(payload["observation"]),
+            session_id=str(payload.get("session_id") or "") or None,
+            user_id=str(payload.get("user_id") or "") or None,
+            principal_id=str(payload.get("principal_id") or "") or None,
+            tenant_id=str(payload["tenant_id"]),
+            domain=str(payload.get("domain") or "") or None,
+            context=dict(payload.get("context") or {}),
+        )
+
     def ingest_observation(self, payload: dict[str, Any]) -> ContextualIntakeResult:
-        context = self.context_resolver.resolve(payload)
+        request = self._to_request(payload)
+        context = self.context_resolver.resolve(request)
         provenance = dict(payload.get("provenance") or {})
         provenance.setdefault("request_id", context.request_id)
         provenance.setdefault("correlation_id", context.correlation_id)
