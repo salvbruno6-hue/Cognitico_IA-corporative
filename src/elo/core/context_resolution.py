@@ -2,8 +2,8 @@
 
 The resolver bridges canonical source discovery and the context pack consumed
 by ELO/GPT. Retrieval remains adapter-owned; this layer decides what context is
-required, applies scope rules, and records evidence without promoting it to
-canonical knowledge.
+required, applies tenant/entity/scope rules, and records evidence without
+promoting it to canonical knowledge.
 """
 
 from dataclasses import dataclass, field
@@ -18,6 +18,7 @@ class ContextQuery:
     entity: str | None = None
     scope: str | None = None
     dimensions: tuple[str, ...] = ()
+    tenant_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class ContextSource:
     source_type: str
     authority: str
     scope: str | None = None
+    tenant_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,8 @@ class ContextEvidence:
     confidence: float
     observed_at: str | None = None
     metadata: Mapping[str, str] = field(default_factory=dict)
+    tenant_id: str | None = None
+    scope: str | None = None
 
 
 @dataclass(frozen=True)
@@ -46,18 +50,33 @@ class ContextPack:
     uncertainties: tuple[str, ...] = ()
 
     def scoped_sources(self) -> tuple[ContextSource, ...]:
-        if not self.query.scope:
-            return self.sources
         return tuple(
             source for source in self.sources
-            if source.scope in (None, self.query.scope)
+            if (not self.query.tenant_id or source.tenant_id in (None, self.query.tenant_id))
+            and (not self.query.scope or source.scope in (None, self.query.scope))
         )
 
     def scoped_evidence(self) -> tuple[ContextEvidence, ...]:
-        allowed = {source.source_id for source in self.scoped_sources()}
-        if not allowed:
-            return self.evidence
-        return tuple(evidence for evidence in self.evidence if evidence.source_id in allowed)
+        source_map = {source.source_id: source for source in self.scoped_sources()}
+        candidates = self.evidence
+        if source_map:
+            candidates = tuple(evidence for evidence in candidates if evidence.source_id in source_map)
+
+        scoped: list[ContextEvidence] = []
+        for evidence in candidates:
+            source = source_map.get(evidence.source_id)
+            effective_tenant = evidence.tenant_id or (source.tenant_id if source else None)
+            effective_scope = evidence.scope or (source.scope if source else None)
+            if self.query.tenant_id and effective_tenant != self.query.tenant_id:
+                continue
+            if self.query.scope and effective_scope != self.query.scope:
+                continue
+            if evidence.tenant_id and source and source.tenant_id and evidence.tenant_id != source.tenant_id:
+                continue
+            if evidence.scope and source and source.scope and evidence.scope != source.scope:
+                continue
+            scoped.append(evidence)
+        return tuple(scoped)
 
     def sufficient_evidence(self, minimum_confidence: float = 0.6) -> bool:
         return any(
@@ -66,7 +85,7 @@ class ContextPack:
         )
 
     def requires_specialist(self) -> bool:
-        """GPT may be used as specialist only after discovery and evidence."""
+        """GPT may be used as specialist only after discovery and scoped evidence."""
         return bool(self.discovery_plan and self.sufficient_evidence())
 
     def evidence_ids(self) -> tuple[str, ...]:
@@ -106,7 +125,7 @@ class ContextResolutionEngine:
         """Attach adapter results while preserving immutable context and scope."""
         merged_sources = {source.source_id: source for source in pack.sources}
         merged_sources.update({source.source_id: source for source in sources})
-        merged_evidence = {evidence.source_id: evidence for evidence in pack.evidence}
+        merged_evidence = {item.source_id: item for item in pack.evidence}
         merged_evidence.update({item.source_id: item for item in evidence})
         return ContextPack(
             query=pack.query,
