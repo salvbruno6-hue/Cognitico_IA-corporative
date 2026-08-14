@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 from elo.context import ContextResolver, CognitiveContext
 from elo.evidence import Evidence, EvidenceRepository
+from elo.interface.contracts import CognitiveRequest
 from elo.knowledge import KnowledgeItem, KnowledgeRepository
 from elo.memory import MemoryRecord, MemoryStore
 
@@ -28,8 +29,28 @@ class ContextualMemoryService:
         self.evidence = evidence
         self.memory = memory
 
-    def ingest_observation(self, payload: dict[str, Any]) -> ContextualIntakeResult:
-        context = self.context_resolver.resolve(payload)
+    def ingest_observation(self, payload: Mapping[str, Any]) -> ContextualIntakeResult:
+        """Normalize an external observation payload before canonical resolution.
+
+        The application boundary accepts mappings from adapters and tests, but the
+        ContextResolver receives only the canonical CognitiveRequest contract.
+        """
+        observation = str(payload.get("observation", "")).strip()
+        if not observation:
+            raise ValueError("observation is required")
+
+        request = CognitiveRequest(
+            tenant_id=str(payload["tenant_id"]),
+            domain=payload.get("domain"),
+            principal_id=payload.get("principal_id") or payload.get("agent_id"),
+            user_id=payload.get("user_id"),
+            session_id=payload.get("session_id"),
+            request_id=str(payload["request_id"]),
+            correlation_id=str(payload.get("correlation_id") or payload["request_id"]),
+            message=observation,
+            context=dict(payload.get("context") or {}),
+        )
+        context = self.context_resolver.resolve(request)
         provenance = dict(payload.get("provenance") or {})
         provenance.setdefault("request_id", context.request_id)
         provenance.setdefault("correlation_id", context.correlation_id)
@@ -39,8 +60,8 @@ class ContextualMemoryService:
             domain=context.domain,
             source_type=str(payload.get("source_type", "agent")),
             source_id=str(payload.get("source_id") or payload.get("agent_id") or "unknown"),
-            claim=str(payload["observation"]),
-            content_ref=str(payload.get("content_ref", payload["observation"])),
+            claim=observation,
+            content_ref=str(payload.get("content_ref", observation)),
             quality=str(payload.get("quality", "UNVERIFIED")),
             relevance=float(payload.get("relevance", 0.0)),
             provenance=provenance,
@@ -50,7 +71,7 @@ class ContextualMemoryService:
             tenant_id=context.tenant_id,
             domain=context.domain,
             title=str(payload.get("title", "Agent observation")),
-            content=str(payload["observation"]),
+            content=observation,
             knowledge_type="OBSERVATION",
             source_refs=(evidence.evidence_id,),
             evidence_refs=(evidence.evidence_id,),
