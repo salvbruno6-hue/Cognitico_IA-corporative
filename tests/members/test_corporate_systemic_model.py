@@ -52,6 +52,21 @@ def test_invalid_context_blocks_analysis() -> None:
     assert result.state is AnalysisState.BLOCKED
 
 
+def test_empty_flow_blocks_analysis() -> None:
+    result = build_model().analyze_flow(
+        CorporateFlow("flow-4", (), "source://flow-4", "tenant-a", "principal-1")
+    )
+    assert result.state is AnalysisState.BLOCKED
+
+
+def test_unknown_domain_cannot_be_confirmed() -> None:
+    result = build_model().analyze_flow(
+        CorporateFlow("flow-5", ("COMERCIAL", "DOMINIO_DESCONHECIDO"), "source://flow-5", "tenant-a", "principal-1")
+    )
+    assert result.state is AnalysisState.INCONCLUSIVE
+    assert "missing relation: COMERCIAL->DOMINIO_DESCONHECIDO" in result.conflicts
+
+
 def test_relation_requires_evidence() -> None:
     model = build_model()
     try:
