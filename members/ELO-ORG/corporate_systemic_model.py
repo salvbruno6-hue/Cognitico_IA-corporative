@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import FrozenSet, Tuple
+from typing import FrozenSet, Optional
 
 
 class RelationKind(str, Enum):
@@ -35,13 +35,13 @@ class DomainRelation:
     kind: RelationKind
     evidence_ref: str
     valid_from: str
-    valid_until: str | None = None
+    valid_until: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class CorporateFlow:
     flow_id: str
-    steps: Tuple[str, ...]
+    steps: tuple[str, ...]
     source_ref: str
     tenant_id: str
     principal_id: str
@@ -51,9 +51,9 @@ class CorporateFlow:
 class CrossDomainAnalysis:
     state: AnalysisState
     involved_domains: FrozenSet[str]
-    matched_relations: Tuple[DomainRelation, ...] = ()
-    conflicts: Tuple[str, ...] = ()
-    evidence_refs: Tuple[str, ...] = ()
+    matched_relations: tuple[DomainRelation, ...] = ()
+    conflicts: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
 
 
 @dataclass
