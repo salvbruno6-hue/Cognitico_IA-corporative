@@ -3,6 +3,10 @@ name: ELO Evolution Gate
 on:
   pull_request:
     branches: [main]
+  push:
+    branches:
+      - main
+      - 'feat/**'
   workflow_dispatch:
 
 permissions:
@@ -35,7 +39,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATION_RESULT: ${{ needs.validation.result }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
           REPOSITORY: ${{ github.repository }}
         run: |
           if [ "$VALIDATION_RESULT" = "success" ]; then
@@ -46,7 +50,8 @@ jobs:
             MESSAGE="Validação técnica falhou. O ELO deve analisar as falhas, comparar com contratos canônicos e decidir: corrigir, adaptar, preservar como alternativa ou bloquear."
           fi
 
-          cat > /tmp/comment.md <<EOF
+          if [ -n "$PR_NUMBER" ]; then
+            cat > /tmp/comment.md <<EOF
           ## ELO Evolution Gate
 
           **Estado:** \`$STATE\`
@@ -64,5 +69,5 @@ jobs:
 
           Este comentário é um handoff estruturado para a camada consultiva do ELO/GPT.
           EOF
-
-          gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file /tmp/comment.md
+            gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file /tmp/comment.md
+          fi
