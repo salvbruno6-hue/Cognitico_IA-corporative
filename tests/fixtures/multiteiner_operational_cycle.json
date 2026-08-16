@@ -1,0 +1,43 @@
+{
+  "scenario_id": "MULTITEINER-ELO-017-CYCLE-001",
+  "tenant_id": "multiteiner-synthetic",
+  "synthetic": true,
+  "source_status": "controlled_fixture",
+  "cycles": [
+    {
+      "cycle_id": "C1",
+      "demand": "observed",
+      "planning": "supported",
+      "budget": "supported",
+      "domains": ["comercial", "licitacoes", "orcamento", "planejamento", "producao", "logistica"],
+      "management_view": {"signal": "on_plan", "authority": "observation_only"},
+      "execution": {"authorized": false, "action": "handoff"}
+    },
+    {
+      "cycle_id": "C2",
+      "change": "product_module_change",
+      "impact": ["planning", "budget", "production", "logistics"],
+      "management_view": {"signal": "deviation_detected", "authority": "observation_only"},
+      "evidence": "sufficient_for_analysis",
+      "execution": {"authorized": true, "action": "recalculate_and_handoff"}
+    }
+  ],
+  "adversarial_cases": [
+    {"case": "specialist_conflict", "expected": "conflicting"},
+    {"case": "insufficient_evidence", "expected": "inconclusive"},
+    {"case": "unauthorized_action", "expected": "blocked"},
+    {"case": "authorized_execution", "expected": "monitored"},
+    {"case": "faculty_vs_overlay", "expected": "classified_before_promotion"}
+  ],
+  "required_invariants": [
+    "no_new_core",
+    "no_new_memory",
+    "no_new_orchestrator",
+    "no_new_organizational_seed",
+    "tenant_boundary_preserved",
+    "provenance_preserved",
+    "management_view_is_not_absolute_truth",
+    "execution_requires_authority",
+    "unvalidated_knowledge_is_not_canonical"
+  ]
+}
