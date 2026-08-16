@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 
-FIXTURE = Path(__file__).parents[2] / "fixtures" / "elo_018_cycle_memory.json"
+FIXTURE = Path(__file__).parents[1] / "fixtures" / "elo_018_cycle_memory.json"
 
 
 def test_cycle_memory_is_sequential_and_correlated() -> None:
