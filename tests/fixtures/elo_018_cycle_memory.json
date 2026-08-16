@@ -1,0 +1,70 @@
+{
+  "tenant_id": "multiteiner-synthetic",
+  "synthetic": true,
+  "cycles": [
+    {
+      "cycle_id": "C1",
+      "correlation_id": "MULTITEINER-001",
+      "state_before": {"demand": "D1", "plan": "P1"},
+      "observations": ["demand_received"],
+      "evidence": ["fixture:demand:D1"],
+      "provenance": ["controlled_fixture"],
+      "specialists": ["comercial", "planejamento", "orcamento"],
+      "decision": "supported",
+      "authority": "analysis_only",
+      "action": "handoff",
+      "state_after": {"demand": "D1", "plan": "P1", "budget": "B1"},
+      "outcome": "baseline_established",
+      "learning_status": "candidate"
+    },
+    {
+      "cycle_id": "C2",
+      "correlation_id": "MULTITEINER-001",
+      "parent_cycle_id": "C1",
+      "state_before": {"demand": "D1", "plan": "P1", "budget": "B1"},
+      "observations": ["product_module_changed"],
+      "evidence": ["fixture:change:M1"],
+      "provenance": ["controlled_fixture"],
+      "specialists": ["planejamento", "orcamento", "producao", "logistica"],
+      "decision": "supported_with_impact",
+      "authority": "authorized",
+      "action": "recalculate_and_monitor",
+      "state_after": {"demand": "D1", "plan": "P2", "budget": "B2"},
+      "outcome": "impact_propagated",
+      "learning_status": "candidate"
+    },
+    {
+      "cycle_id": "C3",
+      "correlation_id": "MULTITEINER-001",
+      "parent_cycle_id": "C2",
+      "state_before": {"demand": "D1", "plan": "P2", "budget": "B2"},
+      "observations": ["result_measured"],
+      "evidence": ["fixture:result:R1"],
+      "provenance": ["controlled_fixture"],
+      "specialists": ["orcamento", "producao"],
+      "decision": "causal_comparison",
+      "authority": "analysis_only",
+      "action": "classify_learning",
+      "state_after": {"demand": "D1", "plan": "P2", "budget": "B2"},
+      "outcome": "mechanic_repeated",
+      "learning_status": "faculty_candidate"
+    }
+  ],
+  "learning_cases": [
+    {"case": "repeated_general_mechanic", "expected": "faculty_candidate"},
+    {"case": "tenant_specific_mechanic", "expected": "overlay"},
+    {"case": "missing_evidence", "expected": "gap"},
+    {"case": "incompatible_evidence", "expected": "conflict"}
+  ],
+  "invariants": [
+    "history_immutable",
+    "context_derived",
+    "promotion_requires_validation",
+    "provenance_preserved",
+    "tenant_boundary_preserved",
+    "specialist_removal_preserves_validated_knowledge",
+    "overlay_removal_preserves_faculty",
+    "conflict_is_explicit",
+    "no_parallel_memory_authority"
+  ]
+}
