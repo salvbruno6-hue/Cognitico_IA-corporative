@@ -5,6 +5,28 @@ from .analysis_solicitations_learning import (
     build_learning_candidate,
     classify_candidate,
 )
+from .budgeting import (
+    Assumption,
+    BudgetAuthorization,
+    BudgetAuthorizationError,
+    BudgetDecision,
+    BudgetFollowUp,
+    BudgetInput,
+    BudgetInputClass,
+    BudgetLine,
+    BudgetLineType,
+    BudgetOutcome,
+    BudgetRequest,
+    BudgetScenario,
+    BudgetScenarioKind,
+    BudgetSensitivity,
+    BudgetStatus,
+    BudgetVersion,
+    BudgetingError,
+    CapacityConstraint,
+    CostComponent,
+    GovernedBudgetingService,
+)
 from .canonical_identity import CanonicalIdentityRegistry, EloCanonicalIdentity
 from .consulting import ConsultingResponse, ConsultingStatus
 from .conversation_bridge import ChatBridge, ChatBridgeEvent
@@ -19,13 +41,17 @@ from .production_flow import ProductionEvent, ProductionFlow, ProductionStage
 from .source_discovery import DiscoveryPlan, SourceCandidate, SourceDiscoveryEngine
 
 __all__ = [
-    "AdmissionRequest", "AdmissionResult", "CanonicalIdentityRegistry", "ChatBridge",
-    "ChatBridgeEvent", "ConsultingResponse", "ConsultingStatus", "ContextEvidence",
-    "ContextPack", "ContextQuery", "ContextResolutionEngine", "ContextSource",
-    "ConversationEvent", "ConversationIntake", "ConversationIntakeResult", "DiagnosticLens",
-    "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
-    "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff",
-    "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "ProductionEvent",
-    "ProductionFlow", "ProductionStage", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
+    "AdmissionRequest", "AdmissionResult", "Assumption", "BudgetAuthorization",
+    "BudgetAuthorizationError", "BudgetDecision", "BudgetFollowUp", "BudgetInput",
+    "BudgetInputClass", "BudgetLine", "BudgetLineType", "BudgetOutcome", "BudgetRequest",
+    "BudgetScenario", "BudgetScenarioKind", "BudgetSensitivity", "BudgetStatus", "BudgetVersion",
+    "BudgetingError", "CanonicalIdentityRegistry", "CapacityConstraint", "ChatBridge",
+    "ChatBridgeEvent", "ConsultingResponse", "ConsultingStatus", "ContextEvidence", "ContextPack",
+    "ContextQuery", "ContextResolutionEngine", "ContextSource", "ConversationEvent", "ConversationIntake",
+    "ConversationIntakeResult", "CostComponent", "DiagnosticLens", "DiagnosticObservation",
+    "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan", "EloCanonicalIdentity",
+    "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff", "GovernedBudgetingService",
+    "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "ProductionEvent", "ProductionFlow",
+    "ProductionStage", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
     "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
