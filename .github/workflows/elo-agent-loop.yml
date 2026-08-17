@@ -55,6 +55,7 @@ jobs:
           echo "task_path=$task_path" >> "$GITHUB_OUTPUT"
           echo "task_id=$task_id" >> "$GITHUB_ENV"
           echo "task_path=$task_path" >> "$GITHUB_ENV"
+          echo "TASK_PATH=$task_path" >> "$GITHUB_ENV"
 
       - name: Checkout main
         uses: actions/checkout@v4
