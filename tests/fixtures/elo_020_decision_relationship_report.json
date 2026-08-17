@@ -1,0 +1,18 @@
+{
+  "report_type": "decision_relationship",
+  "tenant_id": "multiteiner-synthetic",
+  "source": "tests/fixtures/elo_018_cycle_memory.json",
+  "rows": [
+    {"cycle": "C1", "previous_cycle": null, "decision": "supported", "authority": "analysis_only", "action": "handoff", "outcome": "baseline_established"},
+    {"cycle": "C2", "previous_cycle": "C1", "decision": "supported_with_impact", "authority": "authorized", "action": "recalculate_and_monitor", "outcome": "impact_propagated"},
+    {"cycle": "C3", "previous_cycle": "C2", "decision": "causal_comparison", "authority": "analysis_only", "action": "classify_learning", "outcome": "mechanic_repeated"}
+  ],
+  "required_relationships": [
+    "decision_to_evidence",
+    "decision_to_specialist",
+    "decision_to_action",
+    "decision_to_outcome",
+    "decision_to_previous_cycle",
+    "decision_to_derived_decision"
+  ]
+}
