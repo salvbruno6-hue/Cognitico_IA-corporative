@@ -1,0 +1,1 @@
+ELO-023 final assertion: the integrated scenario must preserve uncertainty, request missing specialist evidence, preserve the original experience, and never promote company-specific facts to Core without governed validation.
