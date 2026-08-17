@@ -1,0 +1,96 @@
+id: ELO-AUTO-001
+title: Establish governed autonomous ELO execution loop
+status: READY
+risk: HIGH
+owner: ELO
+executor: Codex
+repository: salvbruno6-hue/Cognitico_IA-corporative
+base_branch: main
+
+objective: >-
+  Enable ELO to continue executable objectives through implementation,
+  specialist review, architectural review, correction, validation, gated merge,
+  post-merge verification and terminal reporting without creating parallel
+  cognitive authorities.
+
+scope:
+  include:
+    - governed Chat ↔ Codex contract
+    - agent execution workflow
+    - task specification contract
+    - Forge role and selective promotion boundary
+    - merge and correction gates
+  exclude:
+    - new Cognitive Core
+    - new memory authority
+    - new Orchestrator
+    - provider-specific runtime implementation
+    - destructive database changes
+    - secret creation or rotation
+
+specialists:
+  required:
+    - architecture
+    - security
+    - operations
+    - testing
+  optional:
+    - data
+    - domain
+
+acceptance_criteria:
+  - ELO roles are explicit and non-overlapping.
+  - Codex is defined as executor rather than sovereign decision-maker.
+  - Specialist review and ELO review are separate gates.
+  - Corrective cycles are bounded and repeatable.
+  - Automatic merge requires explicit ELO approval and passing repository gates.
+  - Direct writes to main are forbidden during task execution.
+  - Forge is explicitly treated as a candidate knowledge/source repository rather than canonical runtime authority.
+  - Existing ELO-014+ governance is reused rather than duplicated.
+  - Post-merge verification is part of the terminal state.
+
+validation:
+  - validate YAML task structure
+  - inspect workflow syntax and permissions
+  - inspect changed-file scope
+  - confirm no duplicate Core, memory or Orchestrator is introduced
+  - confirm AGENTS and bridge contract agree on autonomous merge policy
+
+autonomy:
+  mode: agentic
+  continue_until_terminal: true
+  correction_cycles_max: 3
+  allowed_terminal_states:
+    - COMPLETED
+    - BLOCKED
+    - ESCALATED
+    - FAILED
+
+merge_policy:
+  mode: automatic_when_gates_pass
+  require_elo_decision: APPROVE_MERGE
+  require_specialist_pass: true
+  require_ci_pass: true
+  require_acceptance_criteria: true
+  require_no_blocking_findings: true
+  require_scope_compliance: true
+  allow_main_direct_push: false
+  allow_bypass_branch_protection: false
+  human_approval: conditional
+
+evidence:
+  required:
+    - task_id
+    - objective
+    - specialist_findings
+    - corrections
+    - branch
+    - commit_sha
+    - changed_files
+    - validation_results
+    - pull_request
+    - ci_results
+    - elo_decision
+    - merge_result
+    - final_verification
+    - blockers
