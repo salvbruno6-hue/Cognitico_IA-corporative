@@ -1,0 +1,1 @@
+Gate requirement: all configured repository validation workflows must pass before ELO-023 merge.
