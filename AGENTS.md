@@ -21,7 +21,8 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 9. Do not expose internal exceptions, secrets, private data, or unnecessary operational details.
 10. Prefer small, testable changes over broad refactors.
 11. Every executable change must have an evidence path: requirement → contract → implementation → test.
-12. Do not merge architectural changes automatically.
+12. Architectural changes are not merged merely because automation can merge them. They must pass the governed ELO merge gate defined in `01-meta-architecture/cognitive-architecture/ELO_AUTONOMOUS_RESOLUTION_AND_MERGE_PROTOCOL.md`.
+13. When an implementation diverges from an identifiable canonical contract, automation should first reconcile the implementation to the canonical contract rather than modifying the canonical contract silently.
 
 ## 3. Required inspection sequence
 
@@ -161,7 +162,9 @@ issue/task
 → tests
 → pull request
 → architectural review
-→ merge
+→ ELO convergence/reconciliation
+→ governed merge
+→ post-merge verification
 
 Do not mix unrelated work in the same commit.
 
@@ -176,17 +179,25 @@ Suggested commit prefixes:
 - `security:` security/governance correction
 - `adr:` architecture decision
 
-## 13. Stop conditions
+## 13. Autonomous convergence and stop conditions
 
-Stop and request an architectural decision when:
+For a clearly scoped, reversible and testable objective, ELO automation may continue through implementation, validation, canonical reconciliation and corrective cycles without waiting for a human after every intermediate step.
 
-- two canonical contracts conflict;
-- two folders appear to be competing authorities;
+When implementation differs from a clearly identifiable canonical contract, correct the implementation toward the canonical contract when safe. Do not silently change the canonical architecture to make the implementation pass.
+
+Create/update an ADR and apply the resulting decision when a genuine architectural conflict must be resolved and the applicable governance mechanism permits autonomous evolution.
+
+Stop and escalate when:
+
+- two canonical contracts conflict and no governed resolution exists;
 - a change would break a public contract without migration;
 - a new security boundary is required;
 - a new persistent data model is required but not specified;
 - a roadmap capability is required to complete the current phase;
 - a component would need to bypass an established governance boundary;
+- destructive or irreversible action is required;
+- required credentials or external approvals are unavailable;
+- correction-cycle, time, or scope limits are exhausted;
 - evidence is insufficient to make the requested conclusion safely.
 
 ## 14. Definition of done for AI work
@@ -201,5 +212,7 @@ DONE requires:
 - tests/evidence produced when applicable;
 - documentation updated when behavior or contract changed;
 - git status clean except for intentional changes;
+- ELO convergence completed or explicitly escalated;
 - commit/PR information reported;
+- post-merge verification recorded when merged;
 - unresolved risks explicitly listed.
