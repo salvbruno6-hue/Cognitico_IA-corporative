@@ -1,0 +1,20 @@
+{
+  "conversation_id": "so12026-memory-bootstrap-test",
+  "tenant_id": "corporate",
+  "domain": "ANALISE_SOLICITACOES",
+  "principal": "user",
+  "session_id": "so12026-bootstrap",
+  "request_id": "SO-120.26-BOOTSTRAP",
+  "correlation_id": "SO-120.26",
+  "source_id": "chatgpt:SO-120.26:bootstrap-test",
+  "content": "SO 120.26 - FUNBIO/LICITAÇÃO. Considerar somente os 5 primeiros registros criados em conjunto: CETA Boa Vista/RR, CETA Brasília/DF, CETA Lorena/SP, CETA Seropédica/RJ e CETA Macapá/AP. Premissa confirmada: não considerar transporte dos contêineres nos cinco orçamentos.",
+  "authorized": true,
+  "provenance": {
+    "origin": "authorized_chat_context",
+    "purpose": "memory_bootstrap_validation",
+    "note": "Evento de teste controlado para validar a persistência e recuperação por SO canônica."
+  },
+  "source_type": "CHATGPT",
+  "schema_version": "1.1",
+  "event_role": "CONVERSATION"
+}
