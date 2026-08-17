@@ -1,6 +1,6 @@
 # Diretrizes do ELO — Especialista de Orçamento
 
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Status:** Oficial  
 **Especialista:** Orçamento  
 **Origem:** Governança do ELO
@@ -55,7 +55,21 @@ Verificar:
 - drenagem do terreno;
 - interferências subterrâneas.
 
-### 4.2 Elétrica
+### 4.2 Vistoria orientada ao orçamento
+
+Quando houver possibilidade de visita técnica, o especialista não deve transformar automaticamente as condições do local em perguntas ao cliente. A vistoria deve ser utilizada para determinar o que pode ser aproveitado, o que precisa ser adequado e o que afeta a viabilidade da mobilização e da implantação.
+
+Na vistoria, verificar prioritariamente:
+
+- **Base existente:** possibilidade de aproveitamento para receber os novos módulos;
+- **Área disponível:** confirmar se comporta os módulos previstos no objeto;
+- **Interferências:** levantar obstáculos e condições que possam afetar a viabilidade da mobilização;
+- **Telhado existente:** utilizar como referência e verificar comprimento, avanço, quantidade/posição dos apoios e condições registradas por fotografias;
+- **Nova terraplenagem:** somente considerar após avaliação das condições encontradas em campo.
+
+A vistoria deve produzir evidências para a composição do orçamento, preferencialmente com registros fotográficos e observações objetivas. Não assumir previamente que a infraestrutura existente será integralmente aproveitada nem que será necessária uma nova infraestrutura.
+
+### 4.3 Elétrica
 
 Verificar:
 
@@ -69,7 +83,7 @@ Verificar:
 - necessidade de medição dedicada;
 - infraestrutura existente e sua capacidade.
 
-### 4.3 Água
+### 4.4 Água
 
 Verificar:
 
@@ -81,7 +95,7 @@ Verificar:
 - necessidade de reservatório ou bomba;
 - necessidade de infraestrutura enterrada.
 
-### 4.4 Esgoto
+### 4.5 Esgoto
 
 Verificar:
 
@@ -95,7 +109,7 @@ Verificar:
 - necessidade de bombeamento;
 - necessidade de novas caixas e recomposição.
 
-### 4.5 Drenagem pluvial
+### 4.6 Drenagem pluvial
 
 Verificar:
 
@@ -105,7 +119,7 @@ Verificar:
 - necessidade de tubulação, caixas ou dissipação;
 - eventual necessidade de solução própria.
 
-### 4.6 Acesso e logística de implantação
+### 4.7 Acesso e logística de implantação
 
 Verificar:
 
@@ -141,6 +155,8 @@ As perguntas devem priorizar:
 - acesso e logística;
 - disponibilidade de pontos existentes;
 - responsabilidades de cada parte.
+
+Quando houver vistoria técnica disponível e suficiente para obter a informação em campo, priorizar a validação em campo em vez de gerar pergunta documental desnecessária.
 
 ## 7. Sugestões de substituição
 
