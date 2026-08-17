@@ -1,6 +1,6 @@
 # Checklist do Especialista de Orçamento — Governança ELO
 
-**Versão:** 1.0
+**Versão:** 1.1
 **Status:** Oficial
 
 ## Antes da composição
@@ -27,6 +27,19 @@
 - [ ] Verificar se a interligação será subterrânea ou aparente, quando relevante.
 - [ ] Verificar possíveis interferências subterrâneas.
 
+## Vistoria orientada ao orçamento
+
+Quando houver possibilidade de visita técnica:
+
+- [ ] Verificar possibilidade de aproveitamento da base existente.
+- [ ] Conferir se a área disponível comporta os módulos previstos no objeto.
+- [ ] Levantar interferências que possam afetar a viabilidade da mobilização.
+- [ ] Registrar fotograficamente as condições relevantes do local.
+- [ ] Usar o telhado existente como referência e verificar comprimento, avanço e apoios.
+- [ ] Avaliar necessidade de nova terraplenagem somente após a vistoria.
+- [ ] Registrar o que pode ser aproveitado, o que precisa ser adequado e o que precisa ser executado novo.
+- [ ] Não assumir previamente aproveitamento integral ou necessidade integral de nova infraestrutura.
+
 ## Risco comercial
 
 - [ ] Identificar custos dependentes do local.
@@ -41,6 +54,7 @@
 - [ ] Diferenciar fato documental de informação ainda não confirmada.
 - [ ] Registrar premissas adotadas.
 - [ ] Registrar itens que dependem de confirmação.
+- [ ] Priorizar vistoria em campo quando a informação puder ser obtida de forma confiável no local.
 
 ## Alternativas
 
@@ -54,6 +68,6 @@
 
 - [ ] Confirmar que todos os excedentes foram destacados.
 - [ ] Confirmar que todas as cotações especiais estão identificadas.
-- [ ] Confirmar que lacunas críticas viraram perguntas ou premissas.
+- [ ] Confirmar que lacunas críticas viraram perguntas, premissas ou validações de campo.
 - [ ] Confirmar que custos de implantação e desmobilização foram tratados.
 - [ ] Confirmar que nenhum item especial foi silenciosamente assumido como padrão.
