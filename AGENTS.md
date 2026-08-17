@@ -21,7 +21,8 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 9. Do not expose internal exceptions, secrets, private data, or unnecessary operational details.
 10. Prefer small, testable changes over broad refactors.
 11. Every executable change must have an evidence path: requirement → contract → implementation → test.
-12. Do not merge architectural changes automatically.
+12. Do not bypass branch protection, required checks, or repository governance.
+13. Automatic merge is permitted only through the governed ELO agent loop and only when every declared merge gate passes.
 
 ## 3. Required inspection sequence
 
@@ -176,7 +177,40 @@ Suggested commit prefixes:
 - `security:` security/governance correction
 - `adr:` architecture decision
 
-## 13. Stop conditions
+## 13. Autonomous ELO execution loop
+
+When a task objective is explicit, executable, and within policy, ELO should continue through the complete governed workflow rather than stopping at a recommendation:
+
+OBJECTIVE
+→ DECOMPOSE
+→ EXECUTE
+→ VALIDATE
+→ SPECIALIST REVIEW
+→ ELO ARCHITECTURAL REVIEW
+→ CORRECT
+→ REVALIDATE
+→ APPROVE
+→ MERGE
+→ VERIFY
+→ REPORT
+
+The loop may repeat correction/review cycles up to the task's configured limit. A terminal state must be one of COMPLETED, BLOCKED, ESCALATED, or FAILED.
+
+Automatic merge is allowed only when:
+
+- ELO decision is `APPROVE_MERGE`;
+- required specialist reviews pass or are explicitly not applicable;
+- required CI checks pass;
+- acceptance criteria pass;
+- no blocking review finding remains;
+- scope is compliant;
+- forbidden/destructive actions were not introduced;
+- the change is not being pushed directly to `main`;
+- repository protections permit the merge.
+
+High-risk work may be automated only when the task explicitly permits it and repository policy does not require a human approval. The agent must never bypass a repository protection or invent authority.
+
+## 14. Stop conditions
 
 Stop and request an architectural decision when:
 
@@ -187,9 +221,11 @@ Stop and request an architectural decision when:
 - a new persistent data model is required but not specified;
 - a roadmap capability is required to complete the current phase;
 - a component would need to bypass an established governance boundary;
-- evidence is insufficient to make the requested conclusion safely.
+- evidence is insufficient to make the requested conclusion safely;
+- required credentials/capabilities are unavailable;
+- correction cycles are exhausted.
 
-## 14. Definition of done for AI work
+## 15. Definition of done for AI work
 
 A task is not DONE merely because files were generated.
 
@@ -202,4 +238,5 @@ DONE requires:
 - documentation updated when behavior or contract changed;
 - git status clean except for intentional changes;
 - commit/PR information reported;
-- unresolved risks explicitly listed.
+- unresolved risks explicitly listed;
+- final verification completed after merge.
