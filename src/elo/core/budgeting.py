@@ -333,12 +333,7 @@ class GovernedBudgetingService:
         quantity_gap = GovernedBudgetingService._gap_for_input(quantity)
         cost_gap = GovernedBudgetingService._gap_for_input(unit_cost)
         if quantity_gap or cost_gap:
-            return replace(
-                spec,
-                amount=None,
-                status=BudgetStatus.CONDITIONAL,
-                gap=quantity_gap or cost_gap,
-            )
+            return replace(spec, amount=None, status=BudgetStatus.CONDITIONAL, gap=quantity_gap or cost_gap)
         if quantity.unit != "unit" and quantity.unit != "h":
             return replace(spec, amount=None, status=BudgetStatus.BLOCKED, gap="unsupported quantity unit for baseline formula")
         assert quantity.value is not None and unit_cost.value is not None
@@ -376,8 +371,7 @@ class GovernedBudgetingService:
         gaps.extend(
             gap
             for item in inputs
-            if (gap := self._gap_for_input(item)) is not None
-            and gap not in gaps
+            if (gap := self._gap_for_input(item)) is not None and gap not in gaps
         )
         constrained = tuple(item for item in capacity_constraints if item.constrained)
         if constrained:
@@ -397,24 +391,16 @@ class GovernedBudgetingService:
             for gap in gaps
         )
 
-        known_cost = sum(
-            (line.amount or Decimal("0"))
-            for line in calculated_lines
-            if line.line_type == BudgetLineType.COST
-        )
-        known_revenue = sum(
-            (line.amount or Decimal("0"))
-            for line in calculated_lines
-            if line.line_type == BudgetLineType.REVENUE
-        )
-        complete_lines = all(line.status == BudgetStatus.COMPLETE for line in calculated_lines)
+        known_cost = sum((line.amount or Decimal("0")) for line in calculated_lines if line.line_type == BudgetLineType.COST)
+        known_revenue = sum((line.amount or Decimal("0")) for line in calculated_lines if line.line_type == BudgetLineType.REVENUE)
+        complete_lines = bool(calculated_lines) and all(line.status == BudgetStatus.COMPLETE for line in calculated_lines)
         status = BudgetStatus.COMPLETE
         if gaps:
             status = BudgetStatus.CONSTRAINED if constrained else BudgetStatus.CONDITIONAL
         elif not calculated_lines:
             status = BudgetStatus.BLOCKED
-        total_cost = known_cost if complete_lines and not constrained else None
-        total_revenue = known_revenue if complete_lines and not constrained else None
+        total_cost = known_cost if complete_lines and not gaps and not constrained else None
+        total_revenue = known_revenue if complete_lines and not gaps and not constrained else None
         margin = (total_revenue - total_cost) if total_revenue is not None and total_cost is not None else None
         margin_pct = (margin / total_revenue * Decimal("100")) if margin is not None and total_revenue else None
 
@@ -472,34 +458,24 @@ class GovernedBudgetingService:
         )
 
     @staticmethod
-    def compare_scenarios(
-        baseline: BudgetVersion,
-        alternatives: Sequence[BudgetVersion],
-    ) -> tuple[Mapping[str, object], ...]:
+    def compare_scenarios(baseline: BudgetVersion, alternatives: Sequence[BudgetVersion]) -> tuple[Mapping[str, object], ...]:
         results: list[Mapping[str, object]] = []
         for version in alternatives:
             if version.tenant_id != baseline.tenant_id:
                 raise BudgetingError("scenario comparison across tenants rejected")
-            results.append(
-                {
-                    "version_id": version.version_id,
-                    "status": version.status,
-                    "known_cost_delta": version.known_cost_subtotal - baseline.known_cost_subtotal,
-                    "known_revenue_delta": version.known_revenue_subtotal - baseline.known_revenue_subtotal,
-                    "total_cost": version.total_cost,
-                    "total_revenue": version.total_revenue,
-                    "gross_margin": version.gross_margin,
-                }
-            )
+            results.append({
+                "version_id": version.version_id,
+                "status": version.status,
+                "known_cost_delta": version.known_cost_subtotal - baseline.known_cost_subtotal,
+                "known_revenue_delta": version.known_revenue_subtotal - baseline.known_revenue_subtotal,
+                "total_cost": version.total_cost,
+                "total_revenue": version.total_revenue,
+                "gross_margin": version.gross_margin,
+            })
         return tuple(results)
 
     @staticmethod
-    def recommend(
-        version: BudgetVersion,
-        *,
-        recommendation: str,
-        rationale: str,
-    ) -> BudgetDecision:
+    def recommend(version: BudgetVersion, *, recommendation: str, rationale: str) -> BudgetDecision:
         if version.status == BudgetStatus.BLOCKED:
             status = "BLOCKED"
         elif version.status in (BudgetStatus.CONDITIONAL, BudgetStatus.CONSTRAINED):
@@ -517,26 +493,14 @@ class GovernedBudgetingService:
         )
 
     @staticmethod
-    def authorize(
-        authorization: BudgetAuthorization,
-        *,
-        tenant_id: str,
-        principal_id: str,
-        action: BudgetAuthority,
-    ) -> None:
+    def authorize(authorization: BudgetAuthorization, *, tenant_id: str, principal_id: str, action: BudgetAuthority) -> None:
         if authorization.tenant_id != tenant_id or authorization.principal_id != principal_id:
             raise BudgetAuthorizationError("authorization principal/tenant mismatch")
         if action not in authorization.actions:
             raise BudgetAuthorizationError(f"authority {action} was not granted")
 
     @staticmethod
-    def record_outcome(
-        version: BudgetVersion,
-        *,
-        expected: str,
-        observed: str,
-        evidence_ids: tuple[str, ...],
-    ) -> BudgetOutcome:
+    def record_outcome(version: BudgetVersion, *, expected: str, observed: str, evidence_ids: tuple[str, ...]) -> BudgetOutcome:
         feedback = OutcomeFeedback(
             decision_id=version.version_id,
             outcome_id=str(uuid4()),
@@ -559,26 +523,8 @@ class GovernedBudgetingService:
 
 
 __all__ = [
-    "Assumption",
-    "BudgetAuthorization",
-    "BudgetAuthorizationError",
-    "BudgetDecision",
-    "BudgetFollowUp",
-    "BudgetInput",
-    "BudgetInputClass",
-    "BudgetLine",
-    "BudgetLineType",
-    "BudgetOutcome",
-    "BudgetRequest",
-    "BudgetScenario",
-    "BudgetScenarioKind",
-    "BudgetSensitivity",
-    "BudgetStatus",
-    "BudgetVersion",
-    "BudgetingError",
-    "CapacityConstraint",
-    "CostComponent",
-    "GovernedBudgetingService",
-    "FORMULA_ID",
-    "FORMULA_VERSION",
+    "Assumption", "BudgetAuthorization", "BudgetAuthorizationError", "BudgetDecision", "BudgetFollowUp",
+    "BudgetInput", "BudgetInputClass", "BudgetLine", "BudgetLineType", "BudgetOutcome", "BudgetRequest",
+    "BudgetScenario", "BudgetScenarioKind", "BudgetSensitivity", "BudgetStatus", "BudgetVersion", "BudgetingError",
+    "CapacityConstraint", "CostComponent", "GovernedBudgetingService", "FORMULA_ID", "FORMULA_VERSION",
 ]
