@@ -1,0 +1,1 @@
+Last-check marker for ELO-023: use the repository gates as the authoritative validation before merge.
