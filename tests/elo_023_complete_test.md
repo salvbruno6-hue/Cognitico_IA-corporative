@@ -1,0 +1,1 @@
+ELO-023 complete scenario package: MT-001 source facts, acceptance matrix, post-cycle report, follow-up Issue #137, and executable assertions are preserved on the test branch. Merge is allowed only after repository gates pass.
