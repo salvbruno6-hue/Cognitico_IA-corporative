@@ -1,0 +1,1 @@
+Gate check must remain the authoritative merge condition for ELO-023.
