@@ -1,0 +1,14 @@
+[
+  {
+    "solicitation_id": "120.26",
+    "path": "SO_120_26/index.json",
+    "event_count": 1,
+    "localities": [
+      "BOA_VISTA_RR",
+      "BRASILIA_DF",
+      "LORENA_SP",
+      "SEROPEDICA_RJ",
+      "MACAPA_AP"
+    ]
+  }
+]

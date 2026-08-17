@@ -1,0 +1,46 @@
+{
+  "canonical_key": "SO_120_26",
+  "event_count": 1,
+  "localities": [
+    {
+      "event_count": 1,
+      "events": [
+        "chatgpt:SO-120.26:bootstrap-test"
+      ],
+      "id": "BOA_VISTA_RR"
+    },
+    {
+      "event_count": 1,
+      "events": [
+        "chatgpt:SO-120.26:bootstrap-test"
+      ],
+      "id": "BRASILIA_DF"
+    },
+    {
+      "event_count": 1,
+      "events": [
+        "chatgpt:SO-120.26:bootstrap-test"
+      ],
+      "id": "LORENA_SP"
+    },
+    {
+      "event_count": 1,
+      "events": [
+        "chatgpt:SO-120.26:bootstrap-test"
+      ],
+      "id": "SEROPEDICA_RJ"
+    },
+    {
+      "event_count": 1,
+      "events": [
+        "chatgpt:SO-120.26:bootstrap-test"
+      ],
+      "id": "MACAPA_AP"
+    }
+  ],
+  "solicitation_id": "120.26",
+  "source": "authorized_conversation_bridge",
+  "source_events": [
+    "chatgpt:SO-120.26:bootstrap-test"
+  ]
+}
