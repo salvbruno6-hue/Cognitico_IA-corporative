@@ -18,12 +18,13 @@ scope:
     - governed Chat ↔ Codex contract
     - agent execution workflow
     - task specification contract
-    - Forge role and selective promotion boundary
+    - internal Forge constructor plane and promotion boundary
     - merge and correction gates
+    - cognitive execution supervision state and evidence
   exclude:
     - new Cognitive Core
     - new memory authority
-    - new Orchestrator
+    - new Orchestrator or separate execution supervisor
     - provider-specific runtime implementation
     - destructive database changes
     - secret creation or rotation
@@ -39,22 +40,27 @@ specialists:
     - domain
 
 acceptance_criteria:
+  - ELO Cognitivo owns task state, execution supervision, planning, specialist coordination, continuation, correction, replanning, escalation and promotion decisions.
   - ELO roles are explicit and non-overlapping.
   - Codex is defined as executor rather than sovereign decision-maker.
   - Specialist review and ELO review are separate gates.
   - Corrective cycles are bounded and repeatable.
   - Automatic merge requires explicit ELO approval and passing repository gates.
   - Direct writes to main are forbidden during task execution.
-  - Forge is explicitly treated as a candidate knowledge/source repository rather than canonical runtime authority.
+  - Forge is an internal constructor plane inside the canonical Cognitico repository, not a second Core, governance authority, shadow main, or independent cognitive system.
+  - Historical/external Forge artifacts are evidence or candidates only; operational SQL, migrations, runtime configuration, dashboards and implementation artifacts are not promoted automatically.
   - Existing ELO-014+ governance is reused rather than duplicated.
   - Post-merge verification is part of the terminal state.
+  - Every active task has a recoverable state, next action, evidence trail, cycle count and escalation condition.
 
 validation:
   - validate YAML task structure
   - inspect workflow syntax and permissions
   - inspect changed-file scope
-  - confirm no duplicate Core, memory or Orchestrator is introduced
+  - confirm no duplicate Core, memory, Orchestrator or supervisor authority is introduced
   - confirm AGENTS and bridge contract agree on autonomous merge policy
+  - confirm Cognitivo execution supervision is represented without a parallel supervisor component
+  - confirm Forge is represented only as the internal constructor plane
 
 autonomy:
   mode: agentic
@@ -65,6 +71,7 @@ autonomy:
     - BLOCKED
     - ESCALATED
     - FAILED
+    - ROLLED_BACK
 
 merge_policy:
   mode: automatic_when_gates_pass
@@ -82,6 +89,9 @@ evidence:
   required:
     - task_id
     - objective
+    - current_state
+    - next_action
+    - current_cycle
     - specialist_findings
     - corrections
     - branch
@@ -93,4 +103,5 @@ evidence:
     - elo_decision
     - merge_result
     - final_verification
+    - learning
     - blockers
