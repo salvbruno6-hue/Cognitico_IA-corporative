@@ -1,0 +1,1 @@
+ELO-023 requires PR validation, behavioral validation, and evolution gate to pass before merge.
