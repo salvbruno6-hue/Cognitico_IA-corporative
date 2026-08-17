@@ -39,7 +39,7 @@ The seasonal requirement is approximately 300 modules. Current stock is zero. Cu
 
 ### Inferences prohibited
 
-The test MUST NOT infer:
+The test must NOT infer:
 
 - the M01/M05/M14 mix of the 300 modules;
 - exact event dates;
