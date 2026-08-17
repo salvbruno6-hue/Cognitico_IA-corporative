@@ -17,7 +17,7 @@ Important invariants:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Mapping, Sequence
@@ -373,6 +373,12 @@ class GovernedBudgetingService:
 
         calculated_lines = tuple(self._calculate_line(line, inputs_by_id) for line in lines)
         gaps = [line.gap for line in calculated_lines if line.gap]
+        gaps.extend(
+            gap
+            for item in inputs
+            if (gap := self._gap_for_input(item)) is not None
+            and gap not in gaps
+        )
         constrained = tuple(item for item in capacity_constraints if item.constrained)
         if constrained:
             gaps.extend(
@@ -412,7 +418,7 @@ class GovernedBudgetingService:
         margin = (total_revenue - total_cost) if total_revenue is not None and total_cost is not None else None
         margin_pct = (margin / total_revenue * Decimal("100")) if margin is not None and total_revenue else None
 
-        evidence_ids = tuple(dict.fromkeys(item.input_id for item in inputs))
+        evidence_ids = tuple(dict.fromkeys(item.source_id for item in inputs))
         provenance = tuple(dict(item.provenance) for item in inputs)
         previous_versions = self._versions.setdefault(request.request_id, [])
         version = BudgetVersion(
