@@ -23,6 +23,9 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 11. Every executable change must have an evidence path: requirement → contract → implementation → test.
 12. Do not bypass branch protection, required checks, or repository governance.
 13. Automatic merge is permitted only through the governed ELO agent loop and only when every declared merge gate passes.
+14. The Forge constructor plane is an execution/building area inside the canonical repository; it is not a second Core, second governance authority, or shadow main.
+15. Forge branches must build against the canonical `main`, compare results with canonical contracts, and promote changes only through the governed PR path.
+16. Operational SQL, migrations, runtime configuration, generated artifacts, dashboards, and other implementation artifacts are evidence sources during Forge review, not canonical architecture by default.
 
 ## 3. Required inspection sequence
 
@@ -107,8 +110,9 @@ The ELO architecture must preserve conceptual separation between:
 - Agents
 - AI Gateway
 - Integration
+- Forge Constructor Plane
 
-An Agent must not become an ungoverned parallel Reasoning Engine. Reasoning must not bypass policy, evidence, provenance, or the AI Gateway when those boundaries apply.
+The Forge Constructor Plane constructs and validates implementations but does not become an ungoverned parallel Reasoning Engine, Cognitive Core, Memory system, or governance authority.
 
 ## 8. Multi-tenancy and identity
 
@@ -130,6 +134,8 @@ Do not conflate:
 AuditEvent != ProvenanceRecord != Evidence
 
 Knowledge sources must remain distinguishable from hypotheses, recommendations, decisions, and organizational experience.
+
+Forge artifacts must retain their origin and classification when used as evidence. Inspection of an operational artifact does not constitute promotion into the canonical architecture.
 
 ## 10. AI provider boundary
 
@@ -163,6 +169,8 @@ issue/task
 → pull request
 → architectural review
 → merge
+
+For Forge work, use a dedicated `forge/*` branch namespace or an explicitly named constructor branch. Do not use a long-lived Forge branch as a substitute for `main`.
 
 Do not mix unrelated work in the same commit.
 
