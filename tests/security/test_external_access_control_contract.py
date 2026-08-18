@@ -63,3 +63,12 @@ def test_security_standard_explicitly_separates_elo_policy_from_github_permissio
     assert "consultation integrations: read-only repository permission" in standard
     assert "specialist integrations: minimum required repository permission" in standard
     assert "no access to unrelated repositories" in standard
+
+
+def test_execution_transition_requires_explicit_authorization_before_write_path():
+    standard = read("ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md")
+
+    assert "READ_ONLY_CONSULTATION → EXPLICIT_AUTHORIZATION" in standard
+    assert "AUTHORIZED_SPECIALIST / GOVERNED_EXECUTION" in standard
+    assert "ISSUE → BRANCH → TEST → REVIEW → EVOLUTION GATE → MERGE" in standard
+    assert "A prompt alone is not a permission grant." in standard
