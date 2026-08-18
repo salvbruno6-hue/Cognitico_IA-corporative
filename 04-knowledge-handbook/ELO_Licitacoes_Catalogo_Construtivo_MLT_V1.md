@@ -1,25 +1,36 @@
-# ELO — Catálogo Construtivo MLT
+# ELO — Catálogo Construtivo MLT — BASE NORMALIZADA
 
-## Fonte
-Informações fornecidas pelo setor nesta atualização. Devem ser tratadas como **cadastro técnico interno**. Não reconciliar silenciosamente com versões anteriores.
+## 1. Regra de fonte
+Este arquivo representa o **padrão construtivo geral** informado para a família de módulos MLT.
 
-## Dimensões informadas
+Quando existir uma ficha específica de modelo, **a ficha do modelo prevalece sobre este catálogo geral** para dimensões, área, instalações, quantitativos e componentes específicos.
 
-| Tamanho | Comprimento (mm) | Largura (mm) | Altura (mm) | Área (m²) |
+Não duplicar uma informação específica do modelo como se fosse regra geral.
+
+## 2. Dimensões de referência da família
+
+| Tamanho | Comprimento (mm) | Largura (mm) | Altura de referência (mm) | Área externa de referência (m²) |
 |---|---:|---:|---:|---:|
-| 20 pés | 6000 | 2440 | 3010 | 14,6 |
-| 15 pés | 4500 | 2440 | 3010 | 11 |
-| 10 pés | 3000 | 2440 | 3010 | 7,3 |
-| 8,5 pés | 2600 | 2440 | 3010 | 6,3 |
-| 8 pés | 2400 | 2440 | 3010 | 5,8 |
-| 6 pés | 1800 | 2440 | 3010 | 4,4 |
+| 20 pés | 6000 | 2440 | 3010 | 14,64 |
+| 15 pés | 4500 | 2440 | 3010 | 10,98 |
+| 10 pés | 3000 | 2440 | 3010 | 7,32 |
+| 8,5 pés | 2600 | 2440 | 3010 | 6,34 |
+| 8 pés | 2400 | 2440 | 3010 | 5,86 |
+| 6 pés | 1800 | 2440 | 3010 | 4,39 |
 
-> **Governança:** estas dimensões pertencem ao cadastro fornecido nesta fonte. Caso outra ficha ou desenho apresente dimensões diferentes, manter a divergência e encaminhar ao Planejamento para definição da versão aplicável.
+**Importante:** os valores de área desta tabela são **áreas externas/nominais de referência**, calculadas pelo comprimento × largura. Não devem ser chamados de área útil interna.
 
-## Conceito construtivo geral
+### Área útil
+Para os módulos de 20 pés, a regra corporativa registrada no cadastro é:
+
+**Área útil oficial de referência: 13,62 m².**
+
+Quando uma ficha específica de modelo possuir área útil própria validada, usar a área específica do modelo. Não utilizar a área externa de 14,64 m² como área útil.
+
+## 3. Conceito construtivo geral
 
 ### Aplicação
-Módulo habitacional, escritório, alojamento, apoio operacional ou uso geral, desenvolvido para proporcionar rapidez de instalação, conforto térmico, durabilidade e facilidade de manutenção.
+Módulo habitacional, escritório, alojamento, apoio operacional ou uso geral, desenvolvido para rapidez de instalação, conforto térmico, durabilidade e facilidade de manutenção.
 
 ### Estrutura metálica
 Estrutura modular galvanizada composta por perfis UDC enrijecidos conformados a frio, interligados por soldagem e conexões aparafusadas, formando conjunto rígido para transporte, movimentação e utilização em campo.
@@ -31,89 +42,100 @@ Estrutura modular galvanizada composta por perfis UDC enrijecidos conformados a 
 - **Travessas:** perfil UDC enrijecido 3" em aço galvanizado.
 - **Colunas estruturais:** chapa galvanizada 2,70 mm, integrando sistema estrutural e drenagem pluvial.
 - **Travamentos:** perfis metálicos galvanizados tipo Z para travamento estrutural e fixação dos painéis.
-- **União:** estrutura soldada e aparafusada, permitindo elevada rigidez estrutural.
-- **Içamento:** conectores de içamento incorporados à estrutura para movimentação por guindaste ou caminhão munck.
+- **União:** estrutura soldada e aparafusada.
+- **Içamento:** conectores de içamento integrados à estrutura para movimentação por guindaste ou caminhão munck.
 
-### Proteção e acabamento estrutural
-- Aplicação de primer nas regiões soldadas, cantos e arestas.
-- Pintura em PU W-Thane PDA 514 aplicada sobre áreas preparadas.
+## 4. Proteção anticorrosiva e pintura — regra normalizada
 
-## Cobertura e drenagem
+- A estrutura galvanizada **não recebe Shop Primer como acabamento geral sobre superfícies galvanizadas íntegras**.
+- Em regiões de solda, cortes, cantos, arestas ou pontos em que a proteção galvanizada tenha sido removida/danificada, deve ser executado o tratamento/preparação especificado para recuperação da proteção.
+- Após a preparação, aplicar o sistema de acabamento especificado, incluindo **PU W-Thane PDA 514** quando previsto.
+
+Esta regra elimina a interpretação de que toda a estrutura galvanizada deve receber primer geral.
+
+## 5. Cobertura e drenagem
 - Telhado formato bacia.
-- Telhas translúcidas de fibra de vidro ondulada, espessura aproximada de 4 mm.
-- Fixação por parafusos galvanizados com elementos de vedação e acabamento.
+- Telha translúcida de fibra de vidro ondulada, aproximadamente 4 mm, conforme composição/ficha aplicável.
+- Fixação por parafusos galvanizados com elementos de vedação.
 - Drenagem integrada à estrutura.
-- Tubos de queda embutidos nas colunas estruturais, conduzindo águas pluviais até o solo.
+- Tubos de queda embutidos nas colunas estruturais, conduzindo águas pluviais ao solo.
 
-## Paredes e isolamento
-- Painéis termoisolantes PIR Sistema FRIGO: **40 mm**.
+## 6. Paredes e isolamento
+- Painéis termoisolantes PIR Sistema FRIGO: **40 mm** como padrão cadastrado.
 - Sistema de encaixe macho-fêmea vedado.
-- Faces dos painéis: aço galvalume pré-pintado texturizado Branco RAL 9003.
-- Espessura das faces: **0,50 mm**.
-- Núcleo: poliisocianurato (PIR) de alta eficiência térmica.
+- Faces: aço galvalume pré-pintado texturizado Branco RAL 9003.
+- Espessura nominal das faces: **0,50 mm**.
+- Núcleo: poliisocianurato (PIR).
 
-## Forro
+## 7. Forro
 - Painéis termoisolantes PIR Sistema FRIGO: **32 mm**.
 - Acabamento perimetral metálico.
 - Faces em aço galvalume pré-pintado.
-- Espessura das faces: **0,43 mm**.
+- Espessura nominal das faces: **0,43 mm**.
 
-## Isolamento térmico
-Sistema PIR aplicado em paredes e forro, com condutividade térmica aproximada informada de **0,022 W/m·K**.
+## 8. Isolamento térmico
+Condutividade térmica aproximada informada: **0,022 W/m·K**, aplicada como referência para o sistema PIR de paredes e forro.
 
-## Piso
-- Painel Wall **30 mm** apoiado sobre o chassi estrutural.
-- Opcionalmente, piso cimentício **20 mm**, conforme projeto.
-- Revestimento: piso vinílico tipo LVT em réguas, **2 mm**.
-- Classe de uso informada: **Classe T**.
-- Isolamento acústico informado: aproximadamente **9 dB** para absorção de ruídos de impacto.
+## 9. Piso
+- Sistema estrutural cadastrado: **Painel Wall 30 mm**.
+- Alternativa: piso cimentício **20 mm**, quando especificado em projeto/modelo.
+- Acabamento: piso vinílico LVT **2 mm**, quando previsto.
+- Classe de uso e desempenho acústico devem ser consultados na ficha/composição específica quando necessários.
 
-## Portas e janelas
-- Porta de acesso em painel PIR: **800 × 2100 mm**.
-- Janelas de correr em alumínio anodizado com grade metálica externa.
-- Abertura padrão Multiteiner para equipamento de janela: **410 × 690 mm**.
+## 10. Portas e janelas
+- Porta de acesso PIR: referência **800 × 2100 mm** quando aplicável.
+- Janelas de correr em alumínio anodizado com grade metálica externa quando previstas no modelo.
+- Abertura para equipamento de ar-condicionado de janela: **410 × 690 mm** quando prevista no modelo.
 
-## Instalação elétrica
-- Infraestrutura aparente em PVC padrão DutoPop.
-- Alimentação: **127/220 V – 60 Hz – 2F + N + T**.
-- Quadro de distribuição modular em PVC com barramento de neutro, barramento de aterramento e disjuntores termomagnéticos.
-- Luminárias LED distribuídas no forro para iluminação geral.
-- Tomadas em caixas PVC padrão DutoPop para uso geral e equipamentos dedicados.
-- Disjuntores termomagnéticos dimensionados conforme os circuitos instalados.
+## 11. Instalação elétrica — regra geral
+A infraestrutura elétrica geral da família é descrita como aparente em PVC padrão DutoPop.
 
-## Proteção elétrica em áreas molhadas
-Nos módulos sanitários, a fonte informa instalação de **DR e DPS** conforme requisitos da **ABNT NBR 5410** para locais com chuveiros, lavatórios e áreas sujeitas à umidade.
+A referência de alimentação da família é **127/220 V – 60 Hz – 2F + N + T**, quando aplicável ao projeto/modelo.
 
-Esta informação deve ser tratada como regra desta fonte e não substitui validação do projeto elétrico específico quando exigida.
+**Não aplicar esta descrição automaticamente ao MLT.M01:** a ficha específica do MLT.M01 possui configuração elétrica própria e prevalece sobre o padrão geral.
 
-## Instalação hidráulica
-- Tubulação aparente em PVC soldável.
-- Diâmetro normalmente informado: **25 mm**.
-- Solução voltada à manutenção e inspeção.
+Componentes gerais:
+- quadro de distribuição modular em PVC;
+- barramento de neutro;
+- barramento de aterramento;
+- disjuntores termomagnéticos dimensionados conforme circuitos;
+- luminárias LED;
+- tomadas em caixas PVC padrão DutoPop.
 
-## Sistema sanitário
-- Tubulações e conexões em PVC série esgoto.
-- Ramais de **100 mm**.
-- Derivações, tês, luvas e acessórios incorporados ao módulo quando aplicável.
+## 12. Proteção elétrica
+- O cadastro geral associa **DR e DPS aos módulos sanitários/áreas molhadas**, conforme configuração e projeto aplicáveis.
+- O MLT.M01 não deve receber DR/DPS como item padrão apenas por herança do cadastro sanitário.
+- Quando houver exigência normativa ou projeto específico, a instalação deve ser validada tecnicamente.
 
-## Transporte e movimentação
-A estrutura é descrita como projetada para transporte rodoviário, içamento e reposicionamento sem comprometer a integridade estrutural do conjunto.
+## 13. Hidráulica e sanitária
+Quando aplicável ao modelo:
+- tubulação aparente em PVC soldável, referência de 25 mm;
+- sistema sanitário em PVC série esgoto;
+- ramais de referência 100 mm;
+- conexões e acessórios conforme composição/projeto.
 
-## Sistema construtivo
+## 14. Transporte e movimentação
+A estrutura é descrita como destinada a transporte rodoviário, içamento e reposicionamento, utilizando os elementos estruturais de içamento previstos no projeto.
+
+## 15. Sistema construtivo
 Construção modular industrializada com componentes pré-fabricados e montagem padronizada em fábrica.
 
-## Regras de resposta do GPT de Licitações
-Quando questionado sobre este sistema, responder em camadas:
-1. aplicação e conceito;
-2. estrutura;
-3. cobertura/drenagem;
-4. paredes/isolamento;
-5. piso;
-6. esquadrias;
-7. elétrica;
-8. hidráulica/sanitária;
-9. transporte e movimentação.
+## 16. Regra de consulta do ELO
+Ao responder uma pergunta:
+1. identificar o **modelo**;
+2. procurar primeiro a ficha específica do modelo;
+3. usar este arquivo somente para atributos gerais não sobrescritos pelo modelo;
+4. consultar composição quando a pergunta for sobre quantitativo/orçamento;
+5. consultar regras de negócio quando a pergunta for sobre padrão, excedente ou obrigatoriedade;
+6. se houver conflito entre fontes, não escolher silenciosamente: informar que existe divergência e direcionar ao **Setor de Planejamento**.
 
-Não inventar capacidades de carga, peso final, resistência estrutural, espessuras não informadas ou quantitativos não presentes nesta fonte.
-
-Quando a pergunta depender de dimensionamento, revisão de projeto ou característica não encontrada nesta documentação, direcionar ao **Setor de Planejamento**.
+## 17. Não inferir
+Não informar sem fonte específica:
+- peso final;
+- capacidade estrutural ou carga admissível;
+- resistência dos perfis;
+- espessuras não cadastradas;
+- quantidade de tomadas/luminárias de um modelo não documentado;
+- dimensões internas calculadas a partir de dimensões externas;
+- desempenho térmico final do conjunto;
+- conformidade normativa específica além do que estiver documentado.
