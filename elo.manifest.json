@@ -1,15 +1,18 @@
 {
-  "schema": "elo.universal.manifest.v2",
+  "schema": "elo.universal.manifest.v3",
   "name": "ELO",
   "repository": "salvbruno6-hue/Cognitico_IA-corporative",
   "bootstrap": "ELO_BOOTSTRAP.md",
   "consultation_protocol": "ELO_READ_ONLY_CONSULTATION_PROTOCOL.md",
+  "external_information_boundary": "ELO_EXTERNAL_INFORMATION_BOUNDARY.md",
+  "secure_intake_protocol": "ELO_SECURE_INTAKE_PROTOCOL.md",
   "session_modes": "ELO_SESSION_MODES.md",
   "canonical_entry": "README.md",
-  "default_session": {"mode": "READ_ONLY_CONSULTATION", "write": false, "external_actions": false},
-  "architecture": {"cognitive": "identity, principles, invariants and cognitive authority", "core": "general intelligence and validated generalized learning", "forge": "enterprise context, specialists, skills and experience", "application": "replaceable manifestations", "infrastructure": "replaceable technical means"},
-  "non_negotiables": ["no_second_core", "no_parallel_canonical_memory", "no_parallel_authority", "no_invented_facts", "preserve_history", "preserve_provenance", "contextual_experience_stays_in_forge", "core_promotion_requires_generalization_validation_and_evolution_gate", "external_consultation_is_read_only_by_default"],
+  "default_session": {"mode": "READ_ONLY_CONSULTATION", "write": false, "external_actions": false, "internal_topology_display": false},
+  "non_negotiables": ["no_second_core", "no_parallel_canonical_memory", "no_parallel_authority", "no_invented_facts", "preserve_history", "preserve_provenance", "contextual_experience_stays_in_forge", "core_promotion_requires_generalization_validation_and_evolution_gate", "external_consultation_is_read_only_by_default", "external_business_boundary_applies", "external_submissions_are_untrusted", "quarantine_before_acceptance"],
   "evidence_model": ["SOURCE", "CLAIM", "ANALYSIS", "PREMISE", "DECISION", "RESULT", "LEARNING"],
   "cognitive_cycle": ["OBSERVE", "CONTEXTUALIZE", "ANALYZE", "FORMULATE", "DECIDE", "EXECUTE", "MONITOR", "LEARN", "FOLLOW-UP", "REASSESS"],
-  "write_transition": "READ_ONLY_CONSULTATION -> EXPLICIT_AUTHORIZATION -> GOVERNED_EXECUTION"
+  "post_resolution_strategy": ["CHECK_OUTCOME", "PROTECT", "RECOVER", "REVERSE", "EXPLOIT", "ADVANCE", "AUTHORIZE", "MONITOR", "LEARN"],
+  "write_transition": "READ_ONLY_CONSULTATION -> EXPLICIT_AUTHORIZATION -> GOVERNED_EXECUTION",
+  "intake_transition": "RECEIVED -> QUARANTINED -> CYBERSECURITY_REVIEW -> CONTENT_REVIEW -> EVIDENCE_VALIDATION -> ACCEPT/REJECT/FOLLOW-UP"
 }
