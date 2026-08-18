@@ -86,6 +86,18 @@ def _canonical_lens(lens: DiagnosticLens) -> CanonicalLens:
     return mapping[lens]
 
 
+def _legacy_lens(canonical_lens: CanonicalLens) -> DiagnosticLens:
+    mapping = {
+        CanonicalLens.OPERATIONAL: DiagnosticLens.FLOW,
+        CanonicalLens.CAUSAL: DiagnosticLens.SYSTEMIC,
+        CanonicalLens.TEMPORAL: DiagnosticLens.SCHEDULE,
+        CanonicalLens.CAPACITY: DiagnosticLens.CAPACITY,
+        CanonicalLens.RISK: DiagnosticLens.FINANCIAL_IMPACT,
+        CanonicalLens.EVIDENCE: DiagnosticLens.QUALITY,
+    }
+    return mapping[canonical_lens]
+
+
 class DiagnosticScenarioEngine:
     """Backward-compatible facade delegating scenario comparison to the canonical engine."""
 
@@ -136,6 +148,9 @@ class DiagnosticScenarioEngine:
                 )
             )
         result = dict(self._canonical.compare(tuple(canonical_scenarios)))
+        result["covered_lenses"] = tuple(
+            dict.fromkeys(_legacy_lens(lens) for lens in result.get("covered_lenses", ()))
+        )
         if any(scenario.unknowns() for scenario in scenarios):
             result["requires_human_decision"] = True
         return result
