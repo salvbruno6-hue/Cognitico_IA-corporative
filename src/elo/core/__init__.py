@@ -39,6 +39,7 @@ from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
 from .maturity_engine import MATURITY_DIMENSIONS, MaturityAssessment
 from .production_flow import ProductionEvent, ProductionFlow, ProductionStage
+from .scenario_gates import MultiScenarioGate, ScenarioGateResult
 from .source_discovery import DiscoveryPlan, SourceCandidate, SourceDiscoveryEngine
 from .strategy_recovery import StrategicPath, StrategicRecoveryAssessment, assess_resolution_for_forward_strategy
 from .systemic_primitives import (
@@ -65,9 +66,9 @@ __all__ = [
     "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
     "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff",
     "GovernedBudgetingService", "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment",
-    "OutcomeFeedback", "ProductionEvent", "ProductionFlow", "ProductionStage", "Scenario", "ScenarioMode",
-    "SourceCandidate", "SourceDiscoveryEngine", "StrategicPath", "StrategicRecoveryAssessment",
-    "SystemicModel", "SystemicRelation", "TemporalValidity", "UncertaintyAssessment",
-    "assess_resolution_for_forward_strategy", "SolicitationLearningCandidate", "build_learning_candidate",
-    "classify_candidate",
+    "MultiScenarioGate", "OutcomeFeedback", "ProductionEvent", "ProductionFlow", "ProductionStage",
+    "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
+    "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation", "TemporalValidity",
+    "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "SolicitationLearningCandidate",
+    "build_learning_candidate", "classify_candidate",
 ]
