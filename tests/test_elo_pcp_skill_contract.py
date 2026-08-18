@@ -14,7 +14,7 @@ def test_pcp_skill_is_forge_owned_and_external_source_is_not_core_authority():
     assert "Forge PCP Specialist" in text
     assert "external learning source" in text
     assert "MUST NOT be copied into Core" in text
-    assert "only generalized, validated learning" in text
+    assert "validated/generalized learning" in text
 
 
 def test_pcp_skill_contains_governed_planning_search_sequence():
