@@ -34,3 +34,5 @@ def test_secret_metadata_is_rejected_and_non_secret_metadata_is_preserved():
     assert CapabilityRegistry.safe_metadata({"location": "local", "transport": "cli"})["location"] == "local"
     with pytest.raises(ValueError):
         CapabilityRegistry.safe_metadata({"api_key": "never-store-this"})
+    with pytest.raises(ValueError):
+        CapabilityRegistry.safe_metadata({"OPENAI_API_KEY": "never-store-this"})
