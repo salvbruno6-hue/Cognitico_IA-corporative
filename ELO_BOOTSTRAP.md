@@ -6,6 +6,18 @@ This file is the portable entry point for any AI, agent, application, IDE, autom
 
 The repository itself is the source of context. The agent must not depend on a previous ChatGPT conversation, account, memory, hidden prompt, or proprietary connector to understand the ELO.
 
+## Default session mode — READ ONLY
+
+When an external AI discovers this repository, it MUST initialize as:
+
+`ELO SESSION = READY | MODE = READ_ONLY_CONSULTATION | WRITE = DISABLED`
+
+The AI may ask questions, search, inspect, compare, analyze and recommend, but must not modify the repository or ELO state in this mode.
+
+Read `ELO_READ_ONLY_CONSULTATION_PROTOCOL.md` for the complete rule set.
+
+A write-capable session is separate and requires explicit authorization plus the normal governance path. Repository access alone never constitutes authorization to alter the ELO.
+
 ## Canonical identity
 
 - **ELO Cognitivo** = ALMA / CÂNONE: identity, principles, invariants, canonical behavior and cognitive authority.
@@ -54,13 +66,14 @@ An external AI should start here and then inspect, in order:
 
 1. `README.md`
 2. `AGENTS.md`
-3. `ELO_REPOSITORY_NAVIGATION_RULES.md`
-4. `ELO_ARTIFACT_METADATA_STANDARD.md`
-5. `ELO_AI_AGENT_WORKING_RULES.md`
-6. canonical architecture/contracts under `02-architecture-library/`, `05-cognitive-platform/`, `09-governance/`, and `10-adr/`
-7. executable implementation under `src/elo/`
-8. relevant tests
-9. relevant Issues/PRs and workflow evidence
+3. `ELO_READ_ONLY_CONSULTATION_PROTOCOL.md`
+4. `ELO_REPOSITORY_NAVIGATION_RULES.md`
+5. `ELO_ARTIFACT_METADATA_STANDARD.md`
+6. `ELO_AI_AGENT_WORKING_RULES.md`
+7. canonical architecture/contracts under `02-architecture-library/`, `05-cognitive-platform/`, `09-governance/`, and `10-adr/`
+8. executable implementation under `src/elo/`
+9. relevant tests
+10. relevant Issues/PRs and workflow evidence
 
 Do not assume that a file existing in Git means the capability is implemented. Distinguish:
 
@@ -98,16 +111,17 @@ Specialists are Forge capabilities. Their skills may use external learning resou
 
 When connected to this repository:
 
-1. Read the bootstrap and canonical rules before answering architectural questions.
-2. Search the repository before creating a new concept.
-3. Search Issues and PRs before creating a new implementation.
-4. Reuse existing contracts and mechanisms.
-5. Identify the authority owner of every concept.
-6. Separate facts, assumptions, hypotheses, recommendations, decisions and results.
-7. Preserve provenance and history.
-8. Run relevant tests for implementation changes.
-9. Respect Evolution Gate and merge governance.
-10. After a resolution, analyze how to recover, protect, reverse, exploit or advance the enterprise.
+1. Initialize in READ_ONLY_CONSULTATION mode.
+2. Read the bootstrap and canonical rules before answering architectural questions.
+3. Search the repository before proposing a new concept.
+4. Search Issues and PRs before proposing a new implementation.
+5. Reuse existing contracts and mechanisms.
+6. Identify the authority owner of every concept.
+7. Separate facts, assumptions, hypotheses, recommendations, decisions and results.
+8. Preserve provenance and history.
+9. For changes, explain the governed execution path but do not modify anything in consultation mode.
+10. Respect Evolution Gate and merge governance.
+11. After a resolution, analyze how to recover, protect, reverse, exploit or advance the enterprise.
 
 ## Portable access principle
 
