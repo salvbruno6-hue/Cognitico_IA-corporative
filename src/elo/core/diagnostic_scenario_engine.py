@@ -19,6 +19,12 @@ from .diagnostic_scenarios import (
 )
 
 
+class ScenarioMode(StrEnum):
+    BASELINE = "BASELINE"
+    STRESS = "STRESS"
+    SENSITIVITY = "SENSITIVITY"
+
+
 class DiagnosticLens(StrEnum):
     FLOW = "FLOW"
     CAPACITY = "CAPACITY"
@@ -46,6 +52,7 @@ class DiagnosticScenario:
     scenario_id: str
     hypothesis: str
     observations: tuple[DiagnosticObservation, ...] = ()
+    mode: ScenarioMode = ScenarioMode.BASELINE
 
     def lenses(self) -> tuple[DiagnosticLens, ...]:
         return tuple(dict.fromkeys(o.lens for o in self.observations))
@@ -86,18 +93,6 @@ def _canonical_lens(lens: DiagnosticLens) -> CanonicalLens:
     return mapping[lens]
 
 
-def _legacy_lens(canonical_lens: CanonicalLens) -> DiagnosticLens:
-    mapping = {
-        CanonicalLens.OPERATIONAL: DiagnosticLens.FLOW,
-        CanonicalLens.CAUSAL: DiagnosticLens.SYSTEMIC,
-        CanonicalLens.TEMPORAL: DiagnosticLens.SCHEDULE,
-        CanonicalLens.CAPACITY: DiagnosticLens.CAPACITY,
-        CanonicalLens.RISK: DiagnosticLens.FINANCIAL_IMPACT,
-        CanonicalLens.EVIDENCE: DiagnosticLens.QUALITY,
-    }
-    return mapping[canonical_lens]
-
-
 class DiagnosticScenarioEngine:
     """Backward-compatible facade delegating scenario comparison to the canonical engine."""
 
@@ -110,13 +105,14 @@ class DiagnosticScenarioEngine:
         hypothesis: str,
         observations: tuple[DiagnosticObservation, ...],
         assumptions: tuple[str, ...] = (),
-        mode: object | None = None,
+        mode: ScenarioMode | None = None,
     ) -> DiagnosticScenario:
-        del assumptions, mode
+        del assumptions
         return DiagnosticScenario(
             scenario_id=scenario_id,
             hypothesis=hypothesis,
             observations=observations,
+            mode=mode or ScenarioMode.BASELINE,
         )
 
     def compare(
@@ -149,7 +145,11 @@ class DiagnosticScenarioEngine:
             )
         result = dict(self._canonical.compare(tuple(canonical_scenarios)))
         result["covered_lenses"] = tuple(
-            dict.fromkeys(_legacy_lens(lens) for lens in result.get("covered_lenses", ()))
+            dict.fromkeys(
+                lens
+                for scenario in scenarios
+                for lens in scenario.lenses()
+            )
         )
         if any(scenario.unknowns() for scenario in scenarios):
             result["requires_human_decision"] = True
