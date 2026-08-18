@@ -9,17 +9,13 @@ from elo.core.diagnostic_scenarios import (
     DiagnosticScenarioEngine,
     DiagnosticStatus,
 )
-from elo.core.source_resolver import (
-    RetrievedSource,
-    SourceResolutionRequest,
-    SourceResolver,
-)
+from elo.core.source_resolver import RetrievedSource, SourceResolutionRequest, SourceResolver
 
 
 @dataclass
 class Adapter:
-    kind: str = "catalog"
-    capability: str = "read.catalog"
+    kind: str = "GITHUB"
+    capability: str = "architecture_review"
     available_state: bool = True
     results: tuple[RetrievedSource, ...] = ()
 
@@ -32,7 +28,7 @@ class Adapter:
 
 def request(**overrides):
     values = dict(
-        query="capacity",
+        query="architecture",
         tenant_id="tenant-a",
         domain="PCP",
         principal_id="specialist-pcp",
@@ -40,7 +36,7 @@ def request(**overrides):
         request_id="request-1",
         correlation_id="corr-1",
         conversation_id="conversation-1",
-        authorization_scope="read:catalog",
+        authorization_scope="read:architecture",
     )
     values.update(overrides)
     return SourceResolutionRequest(**values)
@@ -50,10 +46,11 @@ def candidate():
     from elo.core.source_discovery import SourceCandidate
 
     return SourceCandidate(
-        kind="catalog",
-        query="capacity",
-        required_capability="read.catalog",
-        rationale="authorized source lookup",
+        kind="GITHUB",
+        reason="authorized source lookup",
+        priority=1,
+        query="architecture",
+        required_capability="architecture_review",
     )
 
 
@@ -90,8 +87,8 @@ def test_source_resolution_rejects_missing_identity_and_authorization_context():
 def test_source_resolution_preserves_tenant_domain_principal_and_provenance():
     source = RetrievedSource(
         source_id="source-1",
-        source_type="catalog",
-        content="capacity evidence",
+        source_type="repository",
+        content="architecture evidence",
         provenance={"provider": "test"},
     )
     resolver = SourceResolver((Adapter(results=(source,)),))
@@ -120,7 +117,7 @@ def test_source_resolution_degrades_without_provider_and_never_invents_evidence(
 
 
 def test_source_resolution_blocks_capability_mismatch():
-    unauthorized = Adapter(capability="write.catalog")
+    unauthorized = Adapter(capability="write.repository")
     resolver = SourceResolver((unauthorized,))
 
     result = resolver.resolve(candidate(), request())
