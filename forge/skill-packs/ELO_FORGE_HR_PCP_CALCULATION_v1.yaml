@@ -1,0 +1,35 @@
+schema: ELO-FORGE-SKILL-PACK.v1
+owner: Forge
+authority: ELO_COGNITIVO
+shared_faculty: Core
+promotion_gate: Evolution_Gate
+skills:
+  - skill_id: FORGE-HR-001
+    domain_family: HR
+    purpose: "people/capacity analysis using authorized labor and staffing evidence"
+    boundaries: "no legal conclusion without authorized source; no employment action execution"
+    evidence_requirements: [FACT, COMMITTED, AVAILABLE, ASSUMPTION, ESTIMATE, GAP, CONFLICT]
+    provenance_required: true
+    authorization_required: true
+    maturity: STRUCTURED
+  - skill_id: FORGE-PCP-001
+    domain_family: PCP
+    purpose: "production planning, capacity, sequencing and schedule analysis"
+    boundaries: "uses Core reasoning; does not execute production changes"
+    evidence_requirements: [FACT, COMMITTED, AVAILABLE, ASSUMPTION, ESTIMATE, GAP, CONFLICT]
+    provenance_required: true
+    authorization_required: true
+    maturity: STRUCTURED
+  - skill_id: FORGE-CALC-001
+    domain_family: DATA_ANALYSIS
+    purpose: "reproducible calculation, simulation and sensitivity analysis"
+    boundaries: "calculation is evidence-backed and cannot redefine canonical identity"
+    evidence_requirements: [FACT, ASSUMPTION, ESTIMATE, HYPOTHESIS, GAP, CONFLICT]
+    provenance_required: true
+    authorization_required: true
+    maturity: STRUCTURED
+rules:
+  direct_forge_to_core_promotion: false
+  company_overlay_is_generalizable_by_default: false
+  historical_experience_is_immutable: true
+  external_source_is_authority: false
