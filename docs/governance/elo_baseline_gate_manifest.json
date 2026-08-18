@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "gate": "ELO-092-Baseline-Evidence",
+  "canonical_owner": "#92",
+  "state_target": "EVIDENCED_BASELINE",
+  "principles": ["documentation_is_not_evidence", "blocked_execution_is_a_governance_outcome", "no_canonical_mutation_without_governed_contract", "no_fabricated_external_evidence"],
+  "required_paths": ["src/elo/core/execution_boundary.py", "tests/core/test_execution_boundary.py", "tests/test_core_behavioral_baseline.py", "docs/governance/ELO_BASELINE_CORPORATE_READINESS.md", "docs/governance/ELO_ISSUE_REGISTRY_CURRENT_STATE.md"],
+  "required_test_contracts": ["tests/core/test_execution_boundary.py::test_execution_is_blocked_without_authorization_or_evidence", "tests/core/test_execution_boundary.py::test_valid_execution_requires_explicit_controls_and_preserves_provenance", "tests/core/test_execution_boundary.py::test_execution_never_falls_back_to_untracked_best_effort", "tests/test_core_behavioral_baseline.py::test_local_scope_excludes_other_unit_evidence", "tests/test_core_behavioral_baseline.py::test_insufficient_context_blocks_specialist"],
+  "required_governance_terms": ["EVIDENCED BASELINE", "no invented evidence", "no irreversible execution without explicit authority", "no merge without tests/evidence"]
+}
