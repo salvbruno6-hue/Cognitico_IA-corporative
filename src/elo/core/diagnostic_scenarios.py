@@ -26,10 +26,14 @@ class DiagnosticMode(StrEnum):
 
 class DiagnosticLens(StrEnum):
     OPERATIONAL = "OPERATIONAL"
-    CAUSAL = "CAUSAL"
-    TEMPORAL = "TEMPORAL"
     CAPACITY = "CAPACITY"
+    MATERIAL = "MATERIAL"
+    FINANCIAL = "FINANCIAL"
+    CUSTOMER = "CUSTOMER"
     RISK = "RISK"
+    TEMPORAL = "TEMPORAL"
+    SYSTEMIC = "SYSTEMIC"
+    CAUSAL = "CAUSAL"
     EVIDENCE = "EVIDENCE"
 
 
@@ -104,9 +108,11 @@ class DiagnosticScenario:
 
     def evidence_quality(self) -> float:
         evidence = self.by_lens(DiagnosticLens.EVIDENCE)
-        if not evidence:
+        if evidence:
+            return sum(item.confidence for item in evidence) / len(evidence)
+        if not self.observations:
             return 0.0
-        return sum(item.confidence for item in evidence) / len(evidence)
+        return sum(item.confidence for item in self.observations) / len(self.observations)
 
     def decision_ready(self, minimum_confidence: float = 0.7) -> bool:
         if self.is_blocked() or self.has_conflict():
