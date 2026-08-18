@@ -77,7 +77,7 @@ def test_context_blocks_cross_tenant_evidence():
     )
     restricted = ContextPack(query=pack.query, sources=pack.sources, evidence=(foreign,))
     assert restricted.scoped_evidence() == ()
-    assert restricted.integrity_gaps() == ()
+    assert "authorized" in " ".join(restricted.integrity_gaps())
 
 
 def test_cross_domain_relation_preserves_provenance_and_rejects_tenant_mismatch():
