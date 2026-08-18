@@ -72,6 +72,18 @@ def test_context_evidence_confidence_is_bounded():
         ContextEvidence("s1", "fact", 1.1)
 
 
+def test_valid_enrichment_clears_transient_retrieval_gap():
+    engine = ContextResolutionEngine()
+    pack = engine.resolve(ContextQuery("avaliar", tenant_id="tenant-a", domain="PROJECTS"))
+    pack = engine.enrich(
+        pack,
+        sources=(ContextSource("s1", "document", "external", tenant_id="tenant-a", domain="PROJECTS"),),
+        evidence=(ContextEvidence("s1", "valid fact", 0.9, tenant_id="tenant-a", domain="PROJECTS"),),
+    )
+    assert pack.integrity_gaps() == ()
+    assert pack.consultation_payload()["requires_human_decision"] is False
+
+
 def test_consultation_payload_separates_evidence_gaps_and_decision_need():
     engine = ContextResolutionEngine()
     pack = engine.resolve(ContextQuery("avaliar", tenant_id="tenant-a", request_id="r1", correlation_id="c1"))
