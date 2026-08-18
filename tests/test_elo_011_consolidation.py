@@ -77,8 +77,7 @@ def test_context_blocks_cross_tenant_evidence():
     )
     restricted = ContextPack(query=pack.query, sources=pack.sources, evidence=(foreign,))
     assert restricted.scoped_evidence() == ()
-    assert "evidence is not authorized" not in restricted.integrity_gaps()
-    assert "no authorized source in requested tenant" not in restricted.integrity_gaps()
+    assert restricted.integrity_gaps() == ()
 
 
 def test_cross_domain_relation_preserves_provenance_and_rejects_tenant_mismatch():
@@ -104,16 +103,17 @@ def test_cross_domain_relation_preserves_provenance_and_rejects_tenant_mismatch(
     assert governance.validate(relation, expected_tenant_id="tenant-b").status == "BLOCKED"
 
 
-def test_core_loop_never_authorizes_execution():
+def test_core_loop_never_authorizes_execution_even_when_evidence_is_sufficient():
     request = CoreLoopRequest(
         context=build_context(),
         scenario=DiagnosticScenario(scenario_id="scenario-011", question="is budget evidence ready?"),
         observations=(observation(),),
     )
     result = CoreLoopEngine().run(request)
-    assert result.handoff_required is True
+    assert result.status == "RECOMMENDATION"
+    assert result.handoff_required is False
     assert result.can_execute is False
-    assert "diagnostic confidence below decision threshold" in result.gaps
+    assert result.evidence_ids == ("budget-source-1",)
 
 
 def test_core_loop_blocks_when_no_diagnostic_evidence_is_supplied():
