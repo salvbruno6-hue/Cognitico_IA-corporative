@@ -33,6 +33,7 @@ from .conversation_bridge import ChatBridge, ChatBridgeEvent
 from .conversation_intake import ConversationEvent, ConversationIntake, ConversationIntakeResult
 from .context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextResolutionEngine, ContextSource
 from .core_loop import CoreLoopEngine, CoreLoopRequest, CoreLoopResult
+from .corporate_systemic import CorporateSystemicView
 from .cross_domain import CorporateDomain, CrossDomainGovernance, CrossDomainRelation, CrossDomainValidation
 from .diagnostic_scenario_engine import DiagnosticLens, DiagnosticObservation, DiagnosticScenario, DiagnosticScenarioEngine, ScenarioMode
 from .evolution_memory import EvolutionMemory, EvolutionRecord
@@ -62,15 +63,14 @@ __all__ = [
     "BudgetingError", "CanonicalIdentityRegistry", "CapacityConstraint", "ChatBridge",
     "ChatBridgeEvent", "ConsultativeReturn", "ConsultingResponse", "ConsultingStatus",
     "ContextEvidence", "ContextPack", "ContextQuery", "ContextResolutionEngine", "ContextSource",
-    "CoreLoopEngine", "CoreLoopRequest", "CoreLoopResult", "CorporateDomain", "CrossDomainGovernance",
-    "CrossDomainRelation", "CrossDomainValidation", "ConversationEvent", "ConversationIntake",
-    "ConversationIntakeResult", "CostComponent", "CausalAssessment", "DecisionRecord", "DiagnosticLens",
-    "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
-    "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff",
-    "GovernedBudgetingService", "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment",
-    "MultiScenarioGate", "OutcomeFeedback", "ProductionEvent", "ProductionFlow", "ProductionStage",
-    "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
-    "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation", "TemporalValidity",
-    "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "SolicitationLearningCandidate",
-    "build_learning_candidate", "classify_candidate",
+    "CoreLoopEngine", "CoreLoopRequest", "CoreLoopResult", "CorporateDomain", "CorporateSystemicView",
+    "CrossDomainGovernance", "CrossDomainRelation", "CrossDomainValidation", "ConversationEvent",
+    "ConversationIntake", "ConversationIntakeResult", "CostComponent", "CausalAssessment", "DecisionRecord",
+    "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
+    "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff", "GovernedBudgetingService",
+    "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback",
+    "ProductionEvent", "ProductionFlow", "ProductionStage", "Scenario", "ScenarioGateResult", "ScenarioMode",
+    "SourceCandidate", "SourceDiscoveryEngine", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel",
+    "SystemicRelation", "TemporalValidity", "UncertaintyAssessment", "assess_resolution_for_forward_strategy",
+    "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
