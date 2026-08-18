@@ -2,9 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the engineering-control interpretation of the ELO baseline after recovery of the post-Diagnostic Scenario Engine integration defects.
-
-It separates four states that must not be conflated:
+This document defines the engineering-control interpretation of the ELO baseline. It separates four states that must not be conflated:
 
 1. **Code is executable** — the repository installs, compiles, and tests run.
 2. **Baseline is behaviorally stable** — the current regression suite is green.
@@ -13,18 +11,17 @@ It separates four states that must not be conflated:
 
 A green unit/regression suite proves only the first two states. It does not automatically prove the latter two.
 
-## 2. Current evidence boundary
+## 2. Current evidence boundary — 2026-08-18
 
-As of the current `main` baseline:
+The current `main` contains the following merged closure waves:
 
-- the behavioral-validation workflow is configured for Python 3.14;
-- package installation and compilation are validated;
-- the repository test suite is executed by CI;
-- the latest recorded successful run reported 77 passing tests;
-- contextual observation normalization is treated as a canonical-contract boundary;
-- Conversation/Evolution Memory, ChatBridge, SourceDiscovery, ContextualMemory, canonical identity, evolution memory, and knowledge admission have executable tests.
+- **PR #214 / merge `38f7a4d6f02bb68a40e5f7900df1e64251bf0e2c`** — authorized source-adapter → Temporal Memory → budgeting evidence integration, including provenance and unavailable-source behavior.
+- **PR #215 / merge `fa5676e1164d1965e62414caacbc8d1e57669a37`** — adversarial closure for execution authority, provider degradation, scenario readiness/conflicts and budgeting retrieval provenance.
+- **ELO-212 closure merge** — governed execution boundary, mandatory execution controls, deterministic blocking, provenance preservation and baseline closure criteria.
 
-The repository test matrix separately defines 44 architectural scenarios. A scenario marked `DEFINED` is not evidence of implementation merely because the scenario is documented.
+The repository therefore has executable evidence for important boundaries including source retrieval, context/provenance preservation, canonical scenario readiness, provider degradation, consultative GPT handoff, Forge promotion boundaries and governed execution controls.
+
+This evidence does **not** by itself establish production readiness or Baseline v1.0. The distinction is intentional and remains a governance invariant.
 
 ## 3. Engineering state model
 
@@ -38,14 +35,14 @@ Required:
 - tenant/domain/provenance/correlation boundaries remain intact;
 - no test is weakened merely to obtain green status.
 
-This is the current working state.
+The current repository is operating in this engineering state.
 
 ### State B — EVIDENCED BASELINE
 
 Required in addition to State A:
 
 - every critical architectural scenario has executable evidence;
-- positive cases and negative cases are represented;
+- positive and negative cases are represented;
 - adversarial cases are represented;
 - tenant isolation is tested across positive and negative paths;
 - provenance survives each relevant boundary;
@@ -56,7 +53,7 @@ Required in addition to State A:
 - deterministic precedence rules are tested;
 - evidence is linked to a commit and reproducible test execution.
 
-This is the target before formal Baseline v1.0 freeze.
+**State B is the target of #92/#156 and has not been declared complete merely from the merged closure waves.**
 
 ### State C — ENTERPRISE PILOT READY
 
@@ -91,29 +88,13 @@ Required in addition to State C:
 
 ## 4. Corporate reality model
 
-The main corporate risk is not a single failing test. It is **false confidence**.
+The main corporate risk is **false confidence**. A system can be green in CI while still being unsafe to promote because the tested path can be narrower than the operational path, authorization can be mocked rather than enforced at the real boundary, external providers can fail differently from local mocks, provenance can be dropped between adapters, or a recommendation can be mistaken for a decision.
 
-A system can be green in CI while still being unsafe to promote because:
-
-- the tested path is narrower than the operational path;
-- authorization is mocked rather than enforced at the real boundary;
-- tenant isolation is assumed rather than adversarially tested;
-- external providers fail differently from local mocks;
-- provenance is dropped between adapters;
-- a timeout creates an ambiguous state;
-- memory promotion becomes implicit;
-- a recommendation is interpreted as a decision;
-- an experimental component is mistaken for a canonical component;
-- rollback restores binaries but not state;
-- operators cannot determine why a decision was produced.
-
-Therefore ELO must treat **evidence integrity** as a first-class engineering property.
+Therefore ELO treats **evidence integrity** as a first-class engineering property.
 
 ## 5. Required test progression
 
 ### Gate 1 — Baseline regression
-
-Current objective:
 
 ```text
 install
@@ -132,9 +113,9 @@ Failure interpretation:
 
 ### Gate 2 — Architectural coverage
 
-Convert the remaining `DEFINED` scenarios in the executable matrix into real tests.
+Remaining `DEFINED` scenarios in the executable matrix must be converted into real tests. The current implementation wave has materially reduced the previously documented gaps; #92/#156 remain the canonical owners of the residual matrix rather than creating new parallel test authorities.
 
-Priority order:
+Priority:
 
 1. Context
 2. Discovery
@@ -144,8 +125,6 @@ Priority order:
 6. Memory
 7. Adversarial
 8. Governance
-
-The priority is intentional: context and provenance errors propagate into every downstream layer.
 
 ### Gate 3 — Boundary and adversarial testing
 
@@ -166,6 +145,8 @@ For each security- or governance-relevant boundary, test at least:
 - low-confidence result;
 - attempted architectural bypass.
 
+Implemented closure evidence already covers several of these cases. The remaining matrix must be assessed explicitly rather than inferred from neighboring tests.
+
 ### Gate 4 — Operational simulation
 
 Introduce production-like tests for:
@@ -182,66 +163,16 @@ Introduce production-like tests for:
 - rollback;
 - observability correlation.
 
-## 6. Corporate projections
+## 6. Current residual blockers
 
-These are engineering projections, not claims about current production capability.
+The previous registry described Source Resolver (#36) and Scenario Engine consolidation (#56) as active blockers. They are now **closed and implemented** and must not be treated as current blockers.
 
-### Projection P0 — current
+The remaining material validation tracks are:
 
-**Condition:** green repository regression suite.
-
-Expected capability:
-
-- safe continuation of baseline engineering;
-- controlled implementation of missing tests;
-- no automatic production promotion.
-
-Primary risk:
-
-- confusing regression stability with architectural completeness.
-
-### Projection P1 — evidenced baseline
-
-**Condition:** all critical matrix scenarios have executable evidence and the complete suite remains green.
-
-Expected capability:
-
-- formal Baseline v1.0 review becomes reasonable;
-- architecture can be frozen as a controlled reference point;
-- future changes can be measured against a known behavioral contract.
-
-Primary risk:
-
-- hidden operational assumptions outside the repository.
-
-### Projection P2 — controlled enterprise pilot
-
-**Condition:** P1 plus operational/security/observability controls.
-
-Expected capability:
-
-- limited tenant/pilot deployment;
-- real adapter/provider integration under controlled conditions;
-- measurable operational behavior;
-- incident and rollback exercises.
-
-Primary risk:
-
-- scale exposes cost, latency, concurrency, provider, and organizational bottlenecks not visible in unit tests.
-
-### Projection P3 — production candidate
-
-**Condition:** P2 plus SLOs, capacity evidence, security review, operational ownership, and repeatable release controls.
-
-Expected capability:
-
-- production-readiness review;
-- controlled expansion of enterprise integrations;
-- governed evolution of the cognitive core.
-
-Primary risk:
-
-- organizational process becomes the limiting factor rather than code.
+- **#92** — reproducible baseline evidence and architectural matrix closure;
+- **#156** — architecture-to-operation validation, including residual adversarial and end-to-end scenarios;
+- **#137** — genuine specialist feedback not available to repository automation;
+- **#125** — governed external architecture benchmark, which is comparative research rather than a prerequisite for the existing Core contracts.
 
 ## 7. What must not happen
 
@@ -285,12 +216,8 @@ Baseline v1.0 may be proposed only when all of the following are true:
 
 ## 9. Definition of done for the current track
 
-The current baseline-integrity track is complete only when:
-
 ```text
-#61 resolved
-    ↓
-#57 baseline regression restored
+implemented closure waves
     ↓
 repository suite green
     ↓
