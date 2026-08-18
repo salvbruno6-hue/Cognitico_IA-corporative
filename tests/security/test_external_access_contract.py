@@ -38,7 +38,11 @@ def test_specialist_feedback_is_scoped_but_core_promotion_is_not():
     )
     assert authorize(specialist).decision is AccessDecision.ALLOW
     assert authorize(
-        specialist.model_copy(update={"action": "promote_to_core"})
+        request(
+            role="pcp-specialist",
+            session_mode=SessionMode.AUTHORIZED_SPECIALIST,
+            action="promote_to_core",
+        )
     ).decision is AccessDecision.DENY
 
 
