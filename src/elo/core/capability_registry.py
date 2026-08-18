@@ -70,8 +70,11 @@ class CapabilityRegistry:
 
     @staticmethod
     def safe_metadata(metadata: Mapping[str, str]) -> Mapping[str, str]:
-        """Allow only non-secret capability metadata; reject obvious secret keys."""
-        forbidden = {"api_key", "apikey", "token", "password", "secret", "authorization"}
-        if any(key.casefold() in forbidden for key in metadata):
+        """Allow only non-secret capability metadata; reject secret-like keys."""
+        forbidden_fragments = ("api_key", "apikey", "token", "password", "secret", "authorization")
+        if any(
+            any(fragment in key.casefold() for fragment in forbidden_fragments)
+            for key in metadata
+        ):
             raise ValueError("secret values must not be stored in capability metadata")
         return dict(metadata)
