@@ -1,5 +1,11 @@
 from pathlib import Path
 
+from elo.core.execution_boundary import (
+    ExecutionRequest,
+    ExecutionStatus,
+    execute_governed,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,17 +63,53 @@ def test_baseline_evidence_record_preserves_reproducibility_contract():
     assert "BASELINE v1.0: NOT DECLARED" in record
 
 
-def test_governed_execution_controls_are_explicitly_canonical():
-    boundary = _read("src/elo/core/execution_boundary.py")
-    required_terms = (
-        "tenant",
-        "principal",
-        "authorization",
-        "correlation",
-        "evidence",
+def test_governed_execution_blocks_before_adapter_call_when_controls_are_missing():
+    called = False
+
+    class Adapter:
+        def execute(self, _request):
+            nonlocal called
+            called = True
+            return {"result": "must-not-run"}
+
+    request = ExecutionRequest(
+        request_id="req-156a",
+        tenant_id="tenant-a",
+        principal_id="principal-a",
+        action_id="action-a",
+        authorization_id=None,
+        evidence_ids=(),
+        correlation_id=None,
     )
-    for term in required_terms:
-        assert term in boundary.lower()
+    outcome = execute_governed(request, Adapter())
+    assert outcome.status == ExecutionStatus.BLOCKED
+    assert outcome.executed is False
+    assert called is False
+    assert "authorization_id" in outcome.reason
+    assert "evidence_ids" in outcome.reason
+
+
+def test_governed_execution_preserves_identity_and_correlation_after_authorization():
+    class Adapter:
+        def execute(self, _request):
+            return {"provider": "fixture", "operation": "validated"}
+
+    request = ExecutionRequest(
+        request_id="req-156a",
+        tenant_id="tenant-a",
+        principal_id="principal-a",
+        action_id="action-a",
+        authorization_id="auth-a",
+        evidence_ids=("evidence-a",),
+        correlation_id="corr-a",
+    )
+    outcome = execute_governed(request, Adapter())
+    assert outcome.status == ExecutionStatus.EXECUTED
+    assert outcome.executed is True
+    assert outcome.provenance["tenant_id"] == "tenant-a"
+    assert outcome.provenance["principal_id"] == "principal-a"
+    assert outcome.provenance["authorization_id"] == "auth-a"
+    assert outcome.provenance["correlation_id"] == "corr-a"
 
 
 def test_existing_adversarial_suite_is_part_of_the_executable_evidence_surface():
