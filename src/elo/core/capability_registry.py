@@ -15,6 +15,18 @@ class CapabilityStatus(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+_FORBIDDEN_METADATA_FRAGMENTS = ("api_key", "apikey", "token", "password", "secret", "authorization")
+
+
+def _safe_metadata(metadata: Mapping[str, str]) -> Mapping[str, str]:
+    if any(
+        any(fragment in key.casefold() for fragment in _FORBIDDEN_METADATA_FRAGMENTS)
+        for key in metadata
+    ):
+        raise ValueError("secret values must not be stored in capability metadata")
+    return dict(metadata)
+
+
 @dataclass(frozen=True)
 class CapabilityProbe:
     kind: str
@@ -22,6 +34,9 @@ class CapabilityProbe:
     version: str | None = None
     health_check: Callable[[], bool] | None = field(default=None, repr=False, compare=False)
     metadata: Mapping[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        _safe_metadata(self.metadata)
 
     def probe(self) -> CapabilityStatus:
         if self.health_check is None:
@@ -57,7 +72,7 @@ class CapabilityRegistry:
                 kind=item.kind,
                 status=item.probe(),
                 version=item.version,
-                metadata=item.metadata,
+                metadata=_safe_metadata(item.metadata),
             )
             for item in self._capabilities.values()
         )
@@ -71,10 +86,4 @@ class CapabilityRegistry:
     @staticmethod
     def safe_metadata(metadata: Mapping[str, str]) -> Mapping[str, str]:
         """Allow only non-secret capability metadata; reject secret-like keys."""
-        forbidden_fragments = ("api_key", "apikey", "token", "password", "secret", "authorization")
-        if any(
-            any(fragment in key.casefold() for fragment in forbidden_fragments)
-            for key in metadata
-        ):
-            raise ValueError("secret values must not be stored in capability metadata")
-        return dict(metadata)
+        return _safe_metadata(metadata)
