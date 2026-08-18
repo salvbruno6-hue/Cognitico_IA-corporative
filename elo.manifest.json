@@ -1,0 +1,43 @@
+{
+  "schema": "elo.universal.manifest.v1",
+  "name": "ELO",
+  "repository": "salvbruno6-hue/Cognitico_IA-corporative",
+  "bootstrap": "ELO_BOOTSTRAP.md",
+  "canonical_entry": "README.md",
+  "implementation_root": "src/elo/",
+  "architecture": {
+    "cognitive": "identity, principles, invariants, canonical behavior, cognitive authority",
+    "core": "general intelligence, validated generalized knowledge, parameters, governance and evolution",
+    "forge": "enterprise context, specialists, skills, experiences, operations, tests and contextual learning",
+    "application": "replaceable manifestations and interfaces",
+    "infrastructure": "replaceable technical means and integrations"
+  },
+  "non_negotiables": [
+    "no_second_core",
+    "no_parallel_canonical_memory",
+    "no_parallel_authority",
+    "no_invented_facts",
+    "preserve_history",
+    "preserve_provenance",
+    "contextual_experience_stays_in_forge",
+    "core_promotion_requires_generalization_validation_and_evolution_gate"
+  ],
+  "evidence_model": ["SOURCE", "CLAIM", "ANALYSIS", "PREMISE", "DECISION", "RESULT", "LEARNING"],
+  "cognitive_cycle": ["OBSERVE", "CONTEXTUALIZE", "ANALYZE", "FORMULATE", "DECIDE", "EXECUTE", "MONITOR", "LEARN", "FOLLOW-UP", "REASSESS"],
+  "post_resolution_strategy": ["CHECK_OUTCOME", "PROTECT", "RECOVER", "REVERSE", "EXPLOIT", "ADVANCE", "AUTHORIZE", "MONITOR", "LEARN"],
+  "status_semantics": ["PROPOSED", "DRAFT", "NORMATIVE", "IMPLEMENTED", "TESTED", "VERIFIED", "EXPERIMENTAL", "DEPRECATED", "SUPERSEDED", "ROADMAP", "BLOCKED"],
+  "required_reading": [
+    "README.md",
+    "AGENTS.md",
+    "ELO_REPOSITORY_NAVIGATION_RULES.md",
+    "ELO_ARTIFACT_METADATA_STANDARD.md",
+    "ELO_AI_AGENT_WORKING_RULES.md"
+  ],
+  "implementation_rule": "documentation != implementation != tested != verified != evolution-gated",
+  "external_access": {
+    "portable": true,
+    "account_memory_required": false,
+    "hidden_prompt_required": false,
+    "git_read_access_required": true
+  }
+}
