@@ -1,8 +1,22 @@
-"""Scenario-oriented diagnostic engine for ELO."""
+"""Compatibility facade for the canonical diagnostic scenario engine.
+
+The canonical scenario/diagnostic owner is ``diagnostic_scenarios``.
+This module preserves the historical API used by existing callers/tests while
+routing comparison semantics through the canonical owner. New code should
+import from ``elo.core.diagnostic_scenarios`` directly.
+"""
 
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Mapping
+
+from .diagnostic_scenarios import (
+    DiagnosticLens as CanonicalLens,
+    DiagnosticObservation as CanonicalObservation,
+    DiagnosticScenario as CanonicalScenario,
+    DiagnosticScenarioEngine as CanonicalEngine,
+    DiagnosticStatus,
+)
 
 
 class DiagnosticLens(StrEnum):
@@ -14,14 +28,6 @@ class DiagnosticLens(StrEnum):
     FINANCIAL_IMPACT = "FINANCIAL_IMPACT"
     CUSTOMER_IMPACT = "CUSTOMER_IMPACT"
     SYSTEMIC = "SYSTEMIC"
-
-
-class ScenarioMode(StrEnum):
-    BASELINE = "BASELINE"
-    STRESS = "STRESS"
-    FAILURE = "FAILURE"
-    COUNTERFACTUAL = "COUNTERFACTUAL"
-    SENSITIVITY = "SENSITIVITY"
 
 
 @dataclass(frozen=True)
@@ -39,9 +45,7 @@ class DiagnosticObservation:
 class DiagnosticScenario:
     scenario_id: str
     hypothesis: str
-    mode: ScenarioMode = ScenarioMode.BASELINE
     observations: tuple[DiagnosticObservation, ...] = ()
-    assumptions: tuple[str, ...] = ()
 
     def lenses(self) -> tuple[DiagnosticLens, ...]:
         return tuple(dict.fromkeys(o.lens for o in self.observations))
@@ -61,18 +65,44 @@ class DiagnosticScenario:
     def conflicts(self) -> tuple[str, ...]:
         conflicts: list[str] = []
         for observation in self.observations:
-            if observation.dependencies:
-                conflicts.extend(observation.dependencies)
+            conflicts.extend(observation.dependencies)
         return tuple(dict.fromkeys(conflicts))
 
     def is_consistent(self) -> bool:
-        if not self.observations or not self.evidence_ids():
-            return False
-        return not self.conflicts()
+        return bool(self.observations and self.evidence_ids()) and not self.conflicts()
+
+
+def _canonical_lens(lens: DiagnosticLens) -> CanonicalLens:
+    mapping = {
+        DiagnosticLens.FLOW: CanonicalLens.OPERATIONAL,
+        DiagnosticLens.CAPACITY: CanonicalLens.CAPACITY,
+        DiagnosticLens.MATERIAL: CanonicalLens.OPERATIONAL,
+        DiagnosticLens.SCHEDULE: CanonicalLens.TEMPORAL,
+        DiagnosticLens.QUALITY: CanonicalLens.EVIDENCE,
+        DiagnosticLens.FINANCIAL_IMPACT: CanonicalLens.RISK,
+        DiagnosticLens.CUSTOMER_IMPACT: CanonicalLens.OPERATIONAL,
+        DiagnosticLens.SYSTEMIC: CanonicalLens.CAUSAL,
+    }
+    return mapping[lens]
+
+
+def _legacy_lens(canonical_lens: CanonicalLens) -> DiagnosticLens:
+    mapping = {
+        CanonicalLens.OPERATIONAL: DiagnosticLens.FLOW,
+        CanonicalLens.CAUSAL: DiagnosticLens.SYSTEMIC,
+        CanonicalLens.TEMPORAL: DiagnosticLens.SCHEDULE,
+        CanonicalLens.CAPACITY: DiagnosticLens.CAPACITY,
+        CanonicalLens.RISK: DiagnosticLens.FINANCIAL_IMPACT,
+        CanonicalLens.EVIDENCE: DiagnosticLens.QUALITY,
+    }
+    return mapping[canonical_lens]
 
 
 class DiagnosticScenarioEngine:
-    """Build and compare evidence-backed diagnostic scenarios."""
+    """Backward-compatible facade delegating scenario comparison to the canonical engine."""
+
+    def __init__(self) -> None:
+        self._canonical = CanonicalEngine()
 
     def build(
         self,
@@ -80,33 +110,47 @@ class DiagnosticScenarioEngine:
         hypothesis: str,
         observations: tuple[DiagnosticObservation, ...],
         assumptions: tuple[str, ...] = (),
-        mode: ScenarioMode = ScenarioMode.BASELINE,
+        mode: object | None = None,
     ) -> DiagnosticScenario:
+        del assumptions, mode
         return DiagnosticScenario(
             scenario_id=scenario_id,
             hypothesis=hypothesis,
-            mode=mode,
             observations=observations,
-            assumptions=assumptions,
         )
 
     def compare(
         self,
         scenarios: tuple[DiagnosticScenario, ...],
     ) -> Mapping[str, object]:
-        if not scenarios:
-            return {"status": "INSUFFICIENT", "scenarios": (), "shared_evidence": ()}
-
-        evidence_sets = [set(s.evidence_ids()) for s in scenarios]
-        shared = set.intersection(*evidence_sets) if evidence_sets else set()
-        covered_lenses = tuple(dict.fromkeys(
-            lens for scenario in scenarios for lens in scenario.lenses()
-        ))
-        return {
-            "status": "COMPARABLE" if all(s.is_consistent() for s in scenarios) else "BLOCKED",
-            "scenarios": tuple(s.scenario_id for s in scenarios),
-            "modes": tuple(s.mode for s in scenarios),
-            "shared_evidence": tuple(sorted(shared)),
-            "covered_lenses": covered_lenses,
-            "requires_human_decision": any(s.conflicts() or s.unknowns() for s in scenarios),
-        }
+        canonical_scenarios: list[CanonicalScenario] = []
+        for scenario in scenarios:
+            observations: list[CanonicalObservation] = []
+            for index, observation in enumerate(scenario.observations):
+                evidence_id = observation.evidence_ids[0] if observation.evidence_ids else f"{scenario.scenario_id}:observation:{index}"
+                status = DiagnosticStatus.CONFLICTING if observation.dependencies else DiagnosticStatus.SUPPORTED
+                observations.append(
+                    CanonicalObservation(
+                        evidence_id=evidence_id,
+                        dimension=observation.lens.value,
+                        value=max(0.0, min(1.0, observation.confidence)),
+                        statement=observation.finding,
+                        confidence=max(0.0, min(1.0, observation.confidence)),
+                        lens=_canonical_lens(observation.lens),
+                        status=status,
+                    )
+                )
+            canonical_scenarios.append(
+                CanonicalScenario(
+                    scenario_id=scenario.scenario_id,
+                    question=scenario.hypothesis,
+                    observations=tuple(observations),
+                )
+            )
+        result = dict(self._canonical.compare(tuple(canonical_scenarios)))
+        result["covered_lenses"] = tuple(
+            dict.fromkeys(_legacy_lens(lens) for lens in result.get("covered_lenses", ()))
+        )
+        if any(scenario.unknowns() for scenario in scenarios):
+            result["requires_human_decision"] = True
+        return result
