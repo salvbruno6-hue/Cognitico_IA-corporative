@@ -130,7 +130,8 @@ def test_mt001_follow_up_remains_external_and_historical_record_is_protected():
     specialist_issue = _read("docs/governance/ELO_BASELINE_EVIDENCE_RECORD_2026-08-18.md")
     assert "#137" in issue_registry
     assert "BLOCKED ON EXTERNAL INPUT" in specialist_issue
-    assert "No fabricated specialist evidence." in specialist_issue
+    assert "No documentation-only status may be promoted to PASS." in specialist_issue
+    assert "BASELINE v1.0: NOT DECLARED" in specialist_issue
 
 
 def test_matrix_does_not_mark_known_operational_gaps_as_pass():
