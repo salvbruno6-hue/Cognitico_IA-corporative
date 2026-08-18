@@ -9,21 +9,9 @@
 
 A PTS Técnica deve orientar o Especialista de Orçamento antes da composição detalhada, transformando a leitura do Termo de Referência, Solicitação de Orçamento, layout, projeto e condições de campo em uma matriz rastreável para orçamento.
 
-A PTS não deve apenas listar exigências. Deve responder:
+A PTS não deve apenas listar exigências. Deve responder, dentro da própria matriz, o que é exigido, onde está evidenciado, qual quantidade está definida, como a Multiteiner pretende atender, qual responsabilidade está atribuída e quais pontos precisam de validação.
 
-- o que o cliente exige;
-- onde a exigência está documentada;
-- qual quantidade está definida;
-- o que aparece no layout/projeto;
-- como a Multiteiner pretende atender;
-- o que já é padrão de fabricação modular;
-- o que precisa ser cotado;
-- o que depende de fornecedor;
-- o que depende de projeto;
-- o que depende de vistoria;
-- o que precisa ser perguntado ao cliente;
-- qual responsabilidade está atribuída;
-- qual custo pode ter sido associado pelo Especialista sem fundamento documental claro.
+A execução de cotações é uma atividade do Especialista de Orçamento. **A lista de itens a cotar não integra a documentação da PTS Técnica.** Quando a PTS for solicitada, o ELO deve orientar o Especialista sobre a necessidade de cotação por meio do processo de orçamento, sem transformar essa lista em seção da PTS.
 
 ## 2. Estrutura obrigatória da PTS Técnica
 
@@ -37,7 +25,7 @@ Explicar que a análise busca identificar requisitos, quantitativos, responsabil
 
 ### 2.3 Escopo técnico
 
-Listar as disciplinas e famílias envolvidas: módulos, fabricação, compartimentação, piso, revestimentos, portas, janelas, instalações, climatização, ventilação, exaustão, mobiliário, cobertura, bases, mobilização, manutenção e desmobilização, quando aplicáveis.
+Listar as disciplinas e famílias envolvidas quando aplicáveis: módulos, fabricação, compartimentação, piso, revestimentos, portas, janelas, instalações, climatização, ventilação, exaustão, mobiliário, cobertura, bases, mobilização, manutenção e desmobilização.
 
 ### 2.4 Matriz técnica
 
@@ -50,29 +38,33 @@ A matriz deve conter, sempre que aplicável:
 | Quantidade indicada no Termo de Referência | Registrar somente o quantitativo documental |
 | Evidência no layout/projeto | Registrar o que o desenho efetivamente mostra |
 | Atendimento sugerido pela Multiteiner | Indicar como a empresa pretende atender |
-| Tratamento para orçamento | Informar se é padrão, cotação, projeto, fornecedor ou vistoria |
-| Associação no orçamento | Registrar onde o Especialista associou o custo, quando aplicável |
-| Validação da associação | Confirmar ou contestar o fundamento da inclusão |
 | Responsabilidade | Identificar responsável conforme documentação |
-| Ponto de validação | Pergunta, vistoria ou conferência necessária |
+| Ponto de validação | Indicar se deve ser resolvido por documento, vistoria ou consulta |
+
+Não criar colunas ou seções na PTS para listar itens de cotação. A cotação pertence à execução do Especialista.
 
 ## 3. Atendimento sugerido pela Multiteiner
 
-A coluna "Atendimento sugerido" é obrigatória quando houver uma solução construtiva definida ou uma alternativa de atendimento.
+A coluna **Atendimento sugerido pela Multiteiner** é obrigatória quando houver solução construtiva definida ou alternativa de atendimento.
 
-Ela deve explicar como o requisito será atendido e não deve ser apresentada como exigência do cliente.
+Ela deve explicar como o requisito será atendido e nunca deve ser apresentada como exigência do cliente.
 
-### Exemplos aprendidos na SO 155.26
+### Padrões de fabricação modular reconhecidos
 
-- **Placa cimentícia:** reconhecer como padrão de fabricação modular quando aplicável; não classificar automaticamente como excedente.
-- **Pia inox até 1.200 mm:** reconhecer como padrão de fabricação modular.
-- **Porta em painel PIR de 40 mm:** reconhecer como padrão de fabricação modular.
-- **Porta dupla em painel PIR de 40 mm:** reconhecer como padrão quando compatível com o layout; na SO 155.26 a porta dupla foi identificada no layout.
-- **Janela basculante:** utilizar padrão de janela da Multiteiner quando compatível com o requisito do documento.
-- **Manta vinílica hospitalar uniforme:** tratar como solução de acabamento a ser cotada quando o requisito exigir o revestimento.
-- **Bancada industrial:** não assumir como item padrão; realizar cotação específica.
-- **Móveis em MDF ou compensado naval:** realizar cotação específica quando a quantidade e dimensões dependerem do layout ou definição do cliente.
-- **Telha canaletão:** pode ser utilizada como solução preliminar de cobertura e deve ser cotada, mas não deve ser tratada como exigência específica do cliente sem fundamento documental.
+O Especialista deve reconhecer os itens que já fazem parte do padrão de fabricação modular e **não devem ser enviados para cotação como se fossem itens especiais** quando estiverem dentro do padrão aplicável.
+
+Exemplos consolidados nesta experiência:
+
+- **Placa cimentícia:** padrão de fabricação modular, quando aplicável ao sistema de piso adotado.
+- **Pia inox até 1.200 mm:** padrão de fabricação modular.
+- **Porta em painel PIR de 40 mm:** padrão de fabricação modular.
+- **Porta dupla em painel PIR de 40 mm:** padrão quando compatível com o layout; na SO 155.26 foi identificada no layout.
+- **Janela basculante:** padrão de fabricação modular da Multiteiner, quando compatível com o requisito.
+- **Janelas e demais esquadrias padrão:** reconhecer o padrão de fabricação quando a especificação estiver dentro das características usuais da Multiteiner.
+
+### Itens que não devem ser confundidos com padrão
+
+Bancada industrial, mobiliário especial, cobertura dimensionada conforme condição de campo e outras soluções fora do padrão devem ser tratadas pelo Especialista no processo de orçamento conforme a necessidade de cotação, projeto ou vistoria. Essa orientação **não deve gerar uma lista de cotações dentro da PTS Técnica**.
 
 ## 4. Regra de rastreabilidade dos custos
 
@@ -92,62 +84,72 @@ Se o Especialista incluir um item de custo que não tenha correspondência clara
 
 ### Regra de contestação
 
-> Se um item de Curva A ou Curva B estiver presente no orçamento e não estiver claramente identificado no Termo de Referência, layout, projeto, necessidade de implantação ou premissa registrada, o ELO deve localizar a associação feita pelo Especialista, verificar o fundamento e contestar ou validar a inclusão antes da consolidação.
+> **Se um item de Curva A ou Curva B estiver presente no orçamento e não estiver claramente identificado no Termo de Referência, layout, projeto, necessidade de implantação ou premissa registrada, o ELO deve localizar a associação feita pelo Especialista, verificar o fundamento e contestar ou validar a inclusão antes da consolidação.**
 
 A ausência de correspondência não significa automaticamente que o custo está errado. Significa que a origem deve ser explicada e validada.
 
-## 5. Cotação preliminar
+## 5. Separação entre PTS e cotação
 
-A PTS deve indicar quais itens o Especialista já pode cotar, mesmo que o quantitativo final dependa de projeto, vistoria ou esclarecimento.
+A PTS Técnica deve registrar **o requisito e o tratamento técnico**, mas não deve apresentar uma relação de itens que o Especialista deverá cotar.
 
-A cotação preliminar não significa aceite da contratante nem fechamento definitivo do quantitativo.
+Quando a PTS for solicitada, o Especialista deve executar, separadamente, as cotações necessárias identificadas durante a análise.
 
-Exemplos da SO 155.26:
+A sequência operacional é:
 
-- telha canaletão;
-- estrutura e apoios da cobertura;
-- manta vinílica hospitalar uniforme;
-- bancada industrial;
-- móveis em MDF;
-- móveis em compensado naval;
-- equipamentos de climatização;
-- ventilação;
-- exaustão;
-- esquadrias especiais, quando não cobertas pelo padrão de fabricação.
+**PTS Técnica → identificação das necessidades → cotação pelo Especialista → orçamento.**
 
-## 6. Perguntas técnicas
+A cotação preliminar pode ser realizada antes do fechamento de uma definição, quando isso for útil ao orçamento, mas seu resultado não deve ser incorporado à PTS Técnica como se fosse requisito documental.
+
+## 6. Perguntas técnicas integradas à vistoria
 
 As perguntas devem ser geradas somente quando a documentação não permite concluir com segurança e a resposta tiver potencial de alterar o orçamento, a responsabilidade ou o atendimento.
 
-Exemplos da SO 155.26:
+Quando a informação puder ser obtida por vistoria, **a pergunta deve ser associada diretamente ao roteiro de vistoria**, em vez de ser enviada imediatamente ao cliente.
 
-### Mobiliário
+A regra operacional é:
 
-Solicitar quantidade, dimensões e configuração dos móveis, incluindo portas, gavetas, prateleiras e compartimentos.
+**Documento → identificar lacuna → verificar se a vistoria pode resolver → incluir no roteiro de vistoria → somente perguntar ao cliente se a vistoria não puder resolver ou se a definição depender exclusivamente da contratante.**
 
-### Bancadas industriais
+### Exemplos da SO 155.26
 
-Solicitar quantidade, comprimento, profundidade e configuração, incluindo portas, gavetas, prateleiras e demais componentes.
+#### Mobiliário
 
-### Esquadrias
+Verificar em vistoria, quando possível, quantidade, dimensões, configuração e espaço disponível para os móveis, incluindo portas, gavetas, prateleiras e compartimentos.
 
-Confirmar quantidade total de portas e janelas, separando portas simples, porta dupla, janelas e janelas basculantes.
+Se a definição não puder ser obtida em campo, encaminhar consulta à contratante.
 
-### Cobertura
+#### Bancadas industriais
 
-Confirmar comprimento, avanço, quantidade e posição dos apoios quando o documento não definir esses dados.
+Verificar em vistoria dimensões disponíveis, posição e configuração. Se a especificação funcional ou quantidade depender de definição do cliente, gerar consulta específica.
 
-### Bases existentes
+#### Esquadrias
 
-Quando houver informação interna de bases de concreto existentes, verificar se podem ser reutilizadas ou se precisam ser refeitas/readequadas.
+Conferir no layout e, em campo quando necessário, a quantidade de portas, porta dupla, janelas e janelas basculantes.
 
-### Responsabilidades divergentes
+#### Cobertura
 
-Quando houver conflito no Termo de Referência sobre infraestrutura externa ou pontos de ligação, identificar os itens conflitantes e perguntar objetivamente qual responsabilidade pertence à contratada e qual permanece com a contratante.
+Verificar em vistoria o modelo existente, comprimento, avanço, vãos, quantidade e posição dos apoios e condições de fixação.
 
-## 7. Vistoria técnica como fonte de orçamento
+#### Bases existentes
 
-Quando houver possibilidade de visita técnica, o Especialista não deve transformar em pergunta ao cliente uma condição que pode ser determinada em campo.
+Verificar em vistoria a existência, quantidade, dimensões, estado, nivelamento e possibilidade de reutilização das bases de concreto informadas internamente.
+
+Pergunta ao cliente somente se, após a vistoria, permanecer indefinida a responsabilidade ou a decisão sobre reaproveitamento.
+
+#### Responsabilidades divergentes
+
+Quando houver conflito no Termo de Referência sobre infraestrutura externa ou pontos de ligação, primeiro identificar se a vistoria e os documentos disponíveis resolvem a interface. Se não resolverem, identificar os itens conflitantes e perguntar objetivamente qual responsabilidade pertence à contratada e qual permanece com a contratante.
+
+## 7. Vistoria técnica como ação complementar da análise
+
+Quando houver possibilidade de visita técnica, a vistoria deve ser tratada como **ação complementar da PTS**, e não como etapa isolada.
+
+O ELO deve cobrar do Especialista que toda lacuna identificada na análise seja classificada como:
+
+- resolvida documentalmente;
+- resolvida por vistoria;
+- dependente de consulta ao cliente;
+- ainda pendente.
 
 A vistoria deve verificar:
 
@@ -165,9 +167,26 @@ A vistoria deve verificar:
 
 Regra:
 
-> Não assumir nova terraplenagem ou nova fundação antes de verificar a condição existente quando a vistoria estiver disponível.
+> **Não assumir nova terraplenagem ou nova fundação antes de verificar a condição existente quando a vistoria estiver disponível.**
 
-## 8. Quantidade do Termo de Referência x quantidade do layout
+## 8. Perguntas devem ser associadas a ações
+
+Nenhuma pergunta deve ficar solta na PTS.
+
+Para cada necessidade de esclarecimento, o Especialista deve indicar uma ação:
+
+| Situação | Ação |
+|---|---|
+| Documento suficiente | Não perguntar; utilizar a informação documentada |
+| Informação disponível em campo | Verificar na vistoria |
+| Informação parcialmente disponível em campo | Verificar na vistoria e perguntar somente o que permanecer indefinido |
+| Definição exclusiva da contratante | Gerar consulta objetiva |
+| Divergência documental | Confrontar documentos e, se necessário, consultar |
+| Responsabilidade conflitante | Verificar documentos/vistoria e consultar somente após identificar exatamente o conflito |
+
+Essa regra evita repetir perguntas que podem ser respondidas pela mesma ação de vistoria.
+
+## 9. Quantidade do Termo de Referência x quantidade do layout
 
 A PTS deve separar explicitamente:
 
@@ -185,7 +204,7 @@ Exemplo da SO 155.26:
 - desenho analisado: aparentemente 22 módulos;
 - tratamento: manter 24 como quantitativo contratual até esclarecimento.
 
-## 9. Manutenção
+## 10. Manutenção
 
 A manutenção deve ser analisada por sistema e por periodicidade, quando definida nos documentos.
 
@@ -198,26 +217,6 @@ A PTS deve separar, quando aplicável:
 - manutenção corretiva quando necessária.
 
 Não inventar periodicidade contratual. Quando o documento não definir a periodicidade, registrar "conforme fabricante/plano de manutenção" ou "quando necessário".
-
-## 10. Padrão de fabricação x cotação específica
-
-O Especialista deve aprender a reconhecer itens já incorporados ao padrão modular e não tratá-los como excedentes sem justificativa.
-
-### Padrões reconhecidos nesta experiência
-
-- placa cimentícia;
-- pia inox até 1.200 mm;
-- porta em painel PIR de 40 mm;
-- porta dupla em painel PIR de 40 mm quando prevista no layout;
-- janela basculante padrão Multiteiner.
-
-### Itens que exigem cotação específica
-
-- bancada industrial;
-- móveis em MDF;
-- móveis em compensado naval;
-- cobertura e estrutura quando dependentes da configuração do local;
-- soluções especiais não integrantes do padrão modular.
 
 ## 11. Separação entre fato, solução e hipótese
 
@@ -241,23 +240,25 @@ A PTS Pós-Orçamento deve utilizar a PTS Técnica como base de rastreabilidade 
 
 Além do atendimento técnico, deve verificar se os custos inseridos possuem fundamento e se as premissas foram respeitadas.
 
+A PTS Pós também deve verificar especialmente itens de Curva A e Curva B que não possuam associação documental clara, para que o ELO possa contestar a inclusão quando o fundamento apresentado pelo Especialista não for suficiente.
+
 ## 13. Regra de maturidade do ELO
 
 O ELO deve usar a experiência da SO 155.26 para aumentar a qualidade da orientação ao Especialista de Orçamento, sem executar a composição detalhada.
 
 O ELO deve:
 
-1. identificar padrões de fabricação conhecidos;
-2. indicar itens que devem ser cotados preliminarmente;
-3. separar itens padrão de itens especiais;
-4. separar exigência documental de solução interna;
-5. conferir quantidade do documento contra layout;
-6. indicar perguntas que realmente alteram orçamento ou responsabilidade;
-7. indicar o que deve ser verificado em vistoria;
+1. identificar padrões de fabricação conhecidos e evitar tratá-los como itens especiais sem fundamento;
+2. deixar a execução das cotações para o Especialista, fora da documentação da PTS Técnica;
+3. separar exigência documental de solução interna;
+4. conferir quantidade do documento contra layout;
+5. transformar perguntas possíveis de serem resolvidas em campo em ações de vistoria;
+6. cobrar do Especialista o fechamento das ações de vistoria;
+7. gerar consulta ao cliente somente quando a vistoria ou os documentos não forem suficientes;
 8. auditar associações de custos relevantes;
-9. contestar custos sem rastreabilidade clara;
+9. contestar custos de Curva A e Curva B sem rastreabilidade clara;
 10. alimentar a PTS Pós-Orçamento com a rastreabilidade criada na PTS Técnica.
 
 ## 14. Princípio central
 
-> **A PTS Técnica não é somente uma leitura do Termo de Referência. É a ponte rastreável entre o que foi solicitado, o que foi identificado, como a Multiteiner pretende atender, o que precisa ser cotado, o que precisa ser validado e o que posteriormente deverá ser comprovado no orçamento.**
+> **A PTS Técnica é a ponte rastreável entre o que foi solicitado, o que foi identificado, como a Multiteiner pretende atender, quais pontos precisam ser validados e o que posteriormente deverá ser comprovado no orçamento. A cotação é uma execução do Especialista, não conteúdo da PTS. A vistoria é uma ação complementar para resolver lacunas antes de transformar a questão em consulta ao cliente.**
