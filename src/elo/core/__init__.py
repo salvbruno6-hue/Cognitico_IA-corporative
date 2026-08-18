@@ -34,7 +34,7 @@ from .conversation_intake import ConversationEvent, ConversationIntake, Conversa
 from .context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextResolutionEngine, ContextSource
 from .diagnostic_scenario_engine import DiagnosticLens, DiagnosticObservation, DiagnosticScenario, DiagnosticScenarioEngine, ScenarioMode
 from .evolution_memory import EvolutionMemory, EvolutionRecord
-from .gpt_handoff import GPTDecisionHandoff
+from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
 from .maturity_engine import MATURITY_DIMENSIONS, MaturityAssessment
 from .production_flow import ProductionEvent, ProductionFlow, ProductionStage
@@ -57,15 +57,15 @@ __all__ = [
     "BudgetInputClass", "BudgetLine", "BudgetLineType", "BudgetOutcome", "BudgetRequest",
     "BudgetScenario", "BudgetScenarioKind", "BudgetSensitivity", "BudgetStatus", "BudgetVersion",
     "BudgetingError", "CanonicalIdentityRegistry", "CapacityConstraint", "ChatBridge",
-    "ChatBridgeEvent", "ConsultingResponse", "ConsultingStatus", "ContextEvidence", "ContextPack",
-    "ContextQuery", "ContextResolutionEngine", "ContextSource", "ConversationEvent", "ConversationIntake",
-    "ConversationIntakeResult", "CostComponent", "CausalAssessment", "DecisionRecord", "DiagnosticLens",
-    "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
-    "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff",
-    "GovernedBudgetingService", "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment",
-    "OutcomeFeedback", "ProductionEvent", "ProductionFlow", "ProductionStage", "Scenario", "ScenarioMode",
-    "SourceCandidate", "SourceDiscoveryEngine", "StrategicPath", "StrategicRecoveryAssessment",
-    "SystemicModel", "SystemicRelation", "TemporalValidity", "UncertaintyAssessment",
-    "assess_resolution_for_forward_strategy", "SolicitationLearningCandidate", "build_learning_candidate",
-    "classify_candidate",
+    "ChatBridgeEvent", "ConsultativeReturn", "ConsultingResponse", "ConsultingStatus",
+    "ContextEvidence", "ContextPack", "ContextQuery", "ContextResolutionEngine", "ContextSource",
+    "ConversationEvent", "ConversationIntake", "ConversationIntakeResult", "CostComponent",
+    "CausalAssessment", "DecisionRecord", "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario",
+    "DiagnosticScenarioEngine", "DiscoveryPlan", "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord",
+    "GPTDecisionHandoff", "GovernedBudgetingService", "KnowledgeAdmission", "MATURITY_DIMENSIONS",
+    "MaturityAssessment", "OutcomeFeedback", "ProductionEvent", "ProductionFlow", "ProductionStage",
+    "Scenario", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine", "StrategicPath",
+    "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation", "TemporalValidity",
+    "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "SolicitationLearningCandidate",
+    "build_learning_candidate", "classify_candidate",
 ]
