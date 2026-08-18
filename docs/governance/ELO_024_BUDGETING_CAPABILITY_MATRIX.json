@@ -1,0 +1,27 @@
+{
+  "initiative": "ELO-024",
+  "purpose": "Map autonomous governed budgeting to existing canonical capabilities before adding code.",
+  "authority": "ELO Core capability; no parallel budgeting authority",
+  "status_rule": "IMPLEMENTED means executable support exists; CONTRACT means defined but not independently executable; GAP means required capability is not yet sufficiently implemented.",
+  "capabilities": [
+    {"name":"demand","owner":"Core budgeting + contextual source inputs","status":"IMPLEMENTED","evidence":"src/elo/core/budgeting.py; tests/test_elo024_budgeting.py","limitation":"Demand is represented as governed inputs; no dedicated forecasting model is claimed."},
+    {"name":"capacity","owner":"Core budgeting CapacityConstraint","status":"IMPLEMENTED","evidence":"src/elo/core/budgeting.py; B05","limitation":"Capacity is constraint validation, not automatic capacity discovery."},
+    {"name":"cost","owner":"Core budgeting BudgetLine/CostComponent","status":"IMPLEMENTED","evidence":"src/elo/core/budgeting.py; B01/B12/B13","limitation":"Baseline formula is quantity × unit cost v1.0."},
+    {"name":"pricing","owner":"Core budgeting revenue inputs","status":"IMPLEMENTED","evidence":"BudgetLineType.REVENUE; B01","limitation":"Price is an input; no autonomous market-pricing engine is claimed."},
+    {"name":"margin","owner":"Core budgeting gross margin","status":"IMPLEMENTED","evidence":"BudgetVersion gross_margin/gross_margin_pct; B01","limitation":"Margin depends on complete revenue and cost evidence."},
+    {"name":"forecast","owner":"Existing scenario/time-validity capabilities","status":"CONTRACT","evidence":"BudgetScenario + temporal validity contracts","limitation":"Dedicated demand/cost forecasting model remains a GAP."},
+    {"name":"resource_planning","owner":"Core budgeting inputs + CapacityConstraint + Forge specialists","status":"IMPLEMENTED","evidence":"BudgetInput classifications and capacity constraints; B04/B05","limitation":"Automatic resource allocation/execution remains governed and is not implied."},
+    {"name":"risk","owner":"Scenario/reasoning governance","status":"CONTRACT","evidence":"BudgetScenarioKind and existing systemic/decision contracts","limitation":"Dedicated quantitative risk engine remains a GAP."},
+    {"name":"quotation","owner":"Budget recommendation + governed execution boundary","status":"CONTRACT","evidence":"BudgetDecision; execution boundary","limitation":"No independent quotation authority is created; quotation workflow still requires integration evidence."},
+    {"name":"specialist_feedback","owner":"Forge Specialist Registry + feedback/learning governance","status":"IMPLEMENTED","evidence":"specialist boundary, feedback registry and ELO-023","limitation":"MT-001 still requires real specialist evidence."},
+    {"name":"budget_vs_actual","owner":"OutcomeFeedback + governed learning","status":"CONTRACT","evidence":"BudgetOutcome and OutcomeFeedback contracts","limitation":"Production-like actuals integration remains an external/runtime evidence gate."},
+    {"name":"post_budget_learning","owner":"Governed Learning + Evolution Gate","status":"IMPLEMENTED","evidence":"existing learning governance; no direct Core mutation","limitation":"Promotion requires generalization, validation and Evolution Gate."}
+  ],
+  "non_negotiable": [
+    "Missing values remain GAP and trigger follow-up.",
+    "Provenance and tenant isolation are mandatory.",
+    "Contextual experience remains Forge unless generalized and promoted through governance.",
+    "Recommendation is not approval and approval is not execution.",
+    "No second Core, memory authority, scenario engine or autonomous executor is created for ELO-024."
+  ]
+}
