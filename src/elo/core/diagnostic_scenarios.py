@@ -1,9 +1,13 @@
-"""Governed multi-scenario diagnostics for the ELO Core Loop.
+"""Canonical governed multi-scenario diagnostics for the ELO Core.
 
-This module preserves the existing deterministic diagnostic modes while adding
-an explicit multi-lens decision gate. The same evidence can be read through
-operational, causal, temporal, capacity, risk and evidence-quality lenses
-without silently changing facts or exposing private chain-of-thought.
+This module is the canonical owner for scenario/diagnostic reasoning.
+Compatibility modules may preserve historical import/API surfaces, but they
+must delegate comparison and diagnostic semantics here rather than implement
+a parallel scenario authority.
+
+The engine preserves deterministic diagnostic modes and an explicit multi-lens
+scenario gate. Evidence is immutable input to analysis; scenarios never execute
+actions or mutate canonical state.
 """
 
 from dataclasses import dataclass, field
@@ -122,7 +126,7 @@ class DiagnosticScenario:
 
 
 class DiagnosticScenarioEngine:
-    """Run bounded diagnostic modes and governed multi-lens scenarios."""
+    """Canonical owner for bounded diagnostic and scenario reasoning."""
 
     LENSES = tuple(DiagnosticLens)
 
@@ -165,6 +169,33 @@ class DiagnosticScenarioEngine:
             entity=entity,
             scope=scope,
         )
+
+    def compare(self, scenarios: tuple[DiagnosticScenario, ...]) -> Mapping[str, object]:
+        """Compare scenarios without mutating state or creating another authority."""
+        if not scenarios:
+            return {"status": "INSUFFICIENT", "scenarios": (), "shared_evidence": ()}
+
+        evidence_sets = [
+            {observation.evidence_id for observation in scenario.observations}
+            for scenario in scenarios
+        ]
+        shared = set.intersection(*evidence_sets) if evidence_sets else set()
+        covered_lenses = tuple(dict.fromkeys(
+            lens
+            for scenario in scenarios
+            for lens in (observation.lens for observation in scenario.observations)
+            if lens is not None
+        ))
+        blocked = any(scenario.is_blocked() for scenario in scenarios)
+        conflicting = any(scenario.has_conflict() for scenario in scenarios)
+        incomplete = any(not scenario.observations or not evidence_set for scenario, evidence_set in zip(scenarios, evidence_sets))
+        return {
+            "status": "INSUFFICIENT" if incomplete else ("BLOCKED" if blocked or conflicting else "COMPARABLE"),
+            "scenarios": tuple(scenario.scenario_id for scenario in scenarios),
+            "shared_evidence": tuple(sorted(shared)),
+            "covered_lenses": covered_lenses,
+            "requires_human_decision": blocked or conflicting or incomplete,
+        }
 
     @classmethod
     def required_lenses(cls) -> tuple[DiagnosticLens, ...]:
