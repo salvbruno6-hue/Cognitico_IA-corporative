@@ -2,7 +2,6 @@ from decimal import Decimal
 
 import pytest
 
-from elo.adapters.source_adapters import GitHubSourceAdapter
 from elo.agents.governance import AgentAuthorizationError, AgentContract, AgentObservation, AgentRegistry, AgentTask, AutonomyLevel
 from elo.agents.orchestrator import AgentOrchestrator, ToolContract, ToolRegistry
 from elo.core.budgeting import BudgetInputClass
@@ -15,23 +14,8 @@ from elo.core.scenario_gates import MultiScenarioGate
 
 
 def test_budgeting_retrieval_bridge_preserves_source_and_request_provenance():
-    retrieved = RetrievedSource(
-        source_id="source-203",
-        source_type="GITHUB",
-        content="unit cost 25",
-        provenance={"uri": "github://budget/203", "tenant_id": "tenant-a"},
-    )
-    budget_input = retrieved_to_budget_input(
-        retrieved=retrieved,
-        tenant_id="tenant-a",
-        domain="budgeting",
-        name="unit_cost",
-        classification=BudgetInputClass.FACT,
-        value=Decimal("25"),
-        unit="BRL",
-        request_id="request-203",
-        correlation_id="correlation-203",
-    )
+    retrieved = RetrievedSource(source_id="source-203", source_type="GITHUB", content="unit cost 25", provenance={"uri": "github://budget/203", "tenant_id": "tenant-a"})
+    budget_input = retrieved_to_budget_input(retrieved=retrieved, tenant_id="tenant-a", domain="budgeting", name="unit_cost", classification=BudgetInputClass.FACT, value=Decimal("25"), unit="BRL", request_id="request-203", correlation_id="correlation-203")
     assert budget_input.source_id == "source-203"
     assert budget_input.provenance["uri"] == "github://budget/203"
     assert budget_input.provenance["request_id"] == "request-203"
@@ -66,9 +50,7 @@ def test_hybrid_provider_failure_degrades_without_claiming_local_capability():
 
 def test_scenario_gate_remains_single_readiness_authority_and_blocks_incomplete_sets():
     observation = DiagnosticObservation("e-210", "capacity", 1.0, "capacity evidence", 0.9)
-    scenarios = (
-        DiagnosticScenario("baseline", "compare", (observation,), metadata={"scenario_type": "BASELINE", "metrics": "cost", "metric:cost": "100"}),
-    )
+    scenarios = (DiagnosticScenario("baseline", "compare", observations=(observation,), metadata={"scenario_type": "BASELINE", "metrics": "cost", "metric:cost": "100"}),)
     result = MultiScenarioGate().evaluate(scenarios)
     assert result.status == "BLOCKED"
     assert result.ready_for_reasoning is False
@@ -77,7 +59,7 @@ def test_scenario_gate_remains_single_readiness_authority_and_blocks_incomplete_
 
 def test_conflicting_evidence_cannot_be_promoted_to_scenario_readiness():
     observation = DiagnosticObservation("e-211", "capacity", 1.0, "conflict", 0.9, status=DiagnosticStatus.CONFLICTING)
-    scenario = DiagnosticScenario("failure", "compare", (observation,), metadata={"scenario_type": "FAILURE", "metrics": "cost", "metric:cost": "100"})
+    scenario = DiagnosticScenario("failure", "compare", observations=(observation,), metadata={"scenario_type": "FAILURE", "metrics": "cost", "metric:cost": "100"})
     result = MultiScenarioGate().evaluate((scenario,))
     assert result.status == "BLOCKED"
     assert any("conflicting evidence" in gap for gap in result.gaps)
