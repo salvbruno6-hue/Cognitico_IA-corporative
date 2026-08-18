@@ -26,7 +26,14 @@ def test_consultation_cannot_gain_write_or_external_action_authority():
 
 
 def test_consultation_cannot_modify_core_or_access_unrelated_repository():
-    for action in ("modify_core", "modify_canonical_memory", "change_permissions", "access_unrelated_repository", "access_owner_site", "access_secrets"):
+    for action in (
+        "modify_core",
+        "modify_canonical_memory",
+        "change_permissions",
+        "access_unrelated_repository",
+        "access_owner_site",
+        "access_secrets",
+    ):
         assert authorize(request(action=action)).decision is AccessDecision.DENY
 
 
@@ -49,24 +56,16 @@ def test_specialist_can_contribute_domain_feedback_without_core_promotion():
     ).decision is AccessDecision.DENY
 
 
-def test_specialist_execution_requires_explicit_external_authority():
-    denied = authorize(
-        request(
-            session_mode=SessionMode.AUTHORIZED_SPECIALIST,
-            action="execute_production_action",
+def test_specialist_production_execution_stays_with_governed_execution_boundary():
+    for external_permission in (False, True):
+        result = authorize(
+            request(
+                session_mode=SessionMode.AUTHORIZED_SPECIALIST,
+                action="execute_production_action",
+                external_action_permission=external_permission,
+            )
         )
-    )
-    assert denied.decision is AccessDecision.DENY
-    assert denied.reason == "execution_requires_explicit_external_authority"
-
-    allowed = authorize(
-        request(
-            session_mode=SessionMode.AUTHORIZED_SPECIALIST,
-            action="execute_production_action",
-            external_action_permission=True,
-        )
-    )
-    assert allowed.decision is AccessDecision.DENY or allowed.decision is AccessDecision.ALLOW
+        assert result.decision is AccessDecision.DENY
 
 
 def test_missing_identity_or_scope_fails_closed():
