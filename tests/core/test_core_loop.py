@@ -39,7 +39,7 @@ def test_core_loop_covers_multiple_lenses_without_execution_authority():
     scenario = DiagnosticScenario("s1", "avaliar capacidade", observations=observations)
     result = CoreLoopEngine().run(CoreLoopRequest(context(), scenario, observations))
     assert result.status == "RECOMMENDATION"
-    assert set(result.covered_lenses) == {lens.value for lens in DiagnosticLens if lens != DiagnosticLens.EVIDENCE}
+    assert set(result.covered_lenses) == {observation.lens.value for observation in observations}
     assert result.can_execute is False
 
 
