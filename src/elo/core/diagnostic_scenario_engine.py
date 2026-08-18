@@ -19,6 +19,12 @@ from .diagnostic_scenarios import (
 )
 
 
+class ScenarioMode(StrEnum):
+    BASELINE = "BASELINE"
+    STRESS = "STRESS"
+    SENSITIVITY = "SENSITIVITY"
+
+
 class DiagnosticLens(StrEnum):
     FLOW = "FLOW"
     CAPACITY = "CAPACITY"
@@ -46,6 +52,7 @@ class DiagnosticScenario:
     scenario_id: str
     hypothesis: str
     observations: tuple[DiagnosticObservation, ...] = ()
+    mode: ScenarioMode = ScenarioMode.BASELINE
 
     def lenses(self) -> tuple[DiagnosticLens, ...]:
         return tuple(dict.fromkeys(o.lens for o in self.observations))
@@ -110,13 +117,14 @@ class DiagnosticScenarioEngine:
         hypothesis: str,
         observations: tuple[DiagnosticObservation, ...],
         assumptions: tuple[str, ...] = (),
-        mode: object | None = None,
+        mode: ScenarioMode | None = None,
     ) -> DiagnosticScenario:
-        del assumptions, mode
+        del assumptions
         return DiagnosticScenario(
             scenario_id=scenario_id,
             hypothesis=hypothesis,
             observations=observations,
+            mode=mode or ScenarioMode.BASELINE,
         )
 
     def compare(
