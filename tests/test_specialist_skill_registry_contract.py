@@ -1,33 +1,35 @@
 from pathlib import Path
 
-import yaml
-
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "forge" / "SPECIALIST_SKILL_REGISTRY.yaml"
 DOCUMENT = ROOT / "forge" / "SPECIALIST_SKILL_REGISTRY.md"
 
 
-def test_registry_contract_exists_and_declares_canonical_boundaries():
-    data = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
+def registry_text() -> str:
+    return REGISTRY.read_text(encoding="utf-8")
 
-    assert data["owner"] == "Forge"
-    assert data["authority"] == "ELO_COGNITIVO"
-    assert data["shared_faculty"] == "Core"
-    assert data["promotion_gate"] == "Evolution_Gate"
-    assert data["rules"]["specialist_is_parallel_core"] is False
-    assert data["rules"]["specialist_is_canonical_authority"] is False
-    assert data["rules"]["direct_forge_to_core_promotion"] is False
-    assert data["rules"]["provenance_required"] is True
-    assert data["rules"]["authorization_required"] is True
-    assert data["rules"]["executable_tests_required"] is True
+
+def test_registry_contract_exists_and_declares_canonical_boundaries():
+    text = registry_text()
+
+    assert "schema: ELO-FORGE-SPECIALIST-SKILL-REGISTRY.v1" in text
+    assert "owner: Forge" in text
+    assert "authority: ELO_COGNITIVO" in text
+    assert "shared_faculty: Core" in text
+    assert "promotion_gate: Evolution_Gate" in text
+    assert "specialist_is_parallel_core: false" in text
+    assert "specialist_is_canonical_authority: false" in text
+    assert "direct_forge_to_core_promotion: false" in text
+    assert "provenance_required: true" in text
+    assert "authorization_required: true" in text
+    assert "executable_tests_required: true" in text
 
 
 def test_registry_covers_initial_domain_families_without_creating_domain_cores():
-    data = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
-    ids = {item["id"] for item in data["domain_families"]}
+    text = registry_text()
 
-    assert {
+    for domain_id in (
         "HR",
         "BUDGETING",
         "PCP",
@@ -40,19 +42,36 @@ def test_registry_covers_initial_domain_families_without_creating_domain_cores()
         "RISK",
         "PROCESS_ANALYSIS",
         "DATA_ANALYSIS",
-    } <= ids
-    assert all("core" not in item["name"].lower() for item in data["domain_families"])
+    ):
+        assert f"id: {domain_id}" in text
+
+    assert "name: HR / People / Labor" in text
+    assert "name: PCP / Production Planning and Control" in text
+    assert "name: Data Analysis / Calculation / Simulation" in text
 
 
 def test_registry_skill_contract_requires_governance_and_evidence_fields():
-    data = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
-    required = set(data["skill_contract"]["required_fields"])
+    text = registry_text()
 
-    assert {"skill_id", "domain_family", "scope", "boundaries"} <= required
-    assert {"authorized_inputs", "authorized_sources", "evidence_requirements"} <= required
-    assert {"provenance_requirements", "uncertainty_rules", "escalation_rules"} <= required
-    assert {"test_references", "maturity", "version", "history"} <= required
-    assert {"learning_candidates", "promotion_candidates"} <= required
+    for field in (
+        "skill_id",
+        "domain_family",
+        "scope",
+        "boundaries",
+        "authorized_inputs",
+        "authorized_sources",
+        "evidence_requirements",
+        "provenance_requirements",
+        "uncertainty_rules",
+        "escalation_rules",
+        "test_references",
+        "maturity",
+        "version",
+        "history",
+        "learning_candidates",
+        "promotion_candidates",
+    ):
+        assert f"    - {field}" in text
 
 
 def test_document_preserves_the_forge_to_core_promotion_boundary():
