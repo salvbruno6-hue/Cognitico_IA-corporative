@@ -28,9 +28,10 @@ def test_cognitive_core_forge_application_infrastructure_boundaries_remain_disti
 def test_provenance_gap_and_evidence_lifecycle_is_governed():
     contract = _text(COGNITIVE_CONTRACT)
     mt001 = _text(MT001)
+    pcp = _text(PCP)
     assert "Evidence MUST retain provenance and type" in contract
     assert "Evidence, inference, hypothesis, recommendation and decision MUST NOT be stored as interchangeable facts" in contract
-    assert "FACT | COMMITTED | AVAILABLE | ASSUMPTION | ESTIMATE | HYPOTHESIS | GAP | CONFLICT" in mt001
+    assert "FACT | COMMITTED | AVAILABLE | ASSUMPTION | ESTIMATE | HYPOTHESIS | GAP | CONFLICT" in pcp
     assert "WAITING_FEEDBACK" in mt001
     assert "GAP" in mt001
     assert "New feedback creates a new evidence/result state" in mt001
