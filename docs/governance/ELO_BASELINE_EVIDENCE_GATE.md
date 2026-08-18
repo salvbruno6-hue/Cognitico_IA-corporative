@@ -28,7 +28,7 @@ The gate verifies four properties:
 
 A passing gate means `BASELINE_EVIDENCE_GATE = PASS`.
 
-It does **not** mean:
+It does not mean:
 
 - production ready;
 - enterprise pilot ready;
