@@ -18,6 +18,15 @@ SourceKind = Literal[
     "AI_PROVIDER",
 ]
 
+_SOURCE_CAPABILITIES: Mapping[str, str] = {
+    "ELO_MEMORY": "source.elo_memory.read",
+    "GITHUB": "source.github.read",
+    "CHATGPT_PROJECTS": "source.chatgpt_projects.read",
+    "DOCUMENTS": "source.documents.read",
+    "WEB": "source.web.read",
+    "AI_PROVIDER": "source.ai_provider.read",
+}
+
 
 @dataclass(frozen=True)
 class SourceCandidate:
@@ -51,7 +60,6 @@ class SourceDiscoveryEngine:
         "elo": ("elo_state", "ELO_MEMORY", "GITHUB", "CHATGPT_PROJECTS"),
     }
 
-    # More specific intent dominates generic system context.
     _intent_specificity = {
         "general_consulting": 0,
         "elo_state": 10,
@@ -62,8 +70,6 @@ class SourceDiscoveryEngine:
         "external_entity": 60,
     }
 
-    # When two intents contribute equally ranked sources, preserve the canonical
-    # source priority for the selected intent rather than relying on alphabetic order.
     _preferred_source = {
         "architecture_review": "GITHUB",
         "external_entity": "WEB",
@@ -88,7 +94,6 @@ class SourceDiscoveryEngine:
         intent_score = self._intent_specificity[intent]
         ranked: dict[str, int] = {}
         reasons: dict[str, str] = {}
-        capabilities: dict[str, str] = {}
         for keyword, (candidate_intent, *sources) in self._keywords.items():
             if keyword not in normalized:
                 continue
@@ -99,13 +104,11 @@ class SourceDiscoveryEngine:
             for index, source in enumerate(sources):
                 ranked[source] = max(ranked.get(source, 0), len(sources) - index)
                 reasons[source] = f"question contains context keyword: {keyword}"
-                capabilities[source] = candidate_intent
 
         if not ranked:
             for index, source in enumerate(("ELO_MEMORY", "CHATGPT_PROJECTS", "GITHUB", "WEB", "AI_PROVIDER")):
                 ranked[source] = 5 - index
                 reasons[source] = "default discovery coverage"
-                capabilities[source] = intent
 
         preferred = self._preferred_source.get(intent)
         candidates = tuple(
@@ -114,7 +117,7 @@ class SourceDiscoveryEngine:
                 reason=reasons[source],
                 priority=priority,
                 query=question,
-                required_capability=capabilities[source],
+                required_capability=_SOURCE_CAPABILITIES[source],
             )
             for source, priority in sorted(
                 ranked.items(),
