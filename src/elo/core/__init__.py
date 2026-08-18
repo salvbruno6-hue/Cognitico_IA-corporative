@@ -33,6 +33,7 @@ from .conversation_bridge import ChatBridge, ChatBridgeEvent
 from .conversation_intake import ConversationEvent, ConversationIntake, ConversationIntakeResult
 from .context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextResolutionEngine, ContextSource
 from .core_loop import CoreLoopEngine, CoreLoopRequest, CoreLoopResult
+from .cross_domain import CorporateDomain, CrossDomainGovernance, CrossDomainRelation, CrossDomainValidation
 from .diagnostic_scenario_engine import DiagnosticLens, DiagnosticObservation, DiagnosticScenario, DiagnosticScenarioEngine, ScenarioMode
 from .evolution_memory import EvolutionMemory, EvolutionRecord
 from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
@@ -61,7 +62,8 @@ __all__ = [
     "BudgetingError", "CanonicalIdentityRegistry", "CapacityConstraint", "ChatBridge",
     "ChatBridgeEvent", "ConsultativeReturn", "ConsultingResponse", "ConsultingStatus",
     "ContextEvidence", "ContextPack", "ContextQuery", "ContextResolutionEngine", "ContextSource",
-    "CoreLoopEngine", "CoreLoopRequest", "CoreLoopResult", "ConversationEvent", "ConversationIntake",
+    "CoreLoopEngine", "CoreLoopRequest", "CoreLoopResult", "CorporateDomain", "CrossDomainGovernance",
+    "CrossDomainRelation", "CrossDomainValidation", "ConversationEvent", "ConversationIntake",
     "ConversationIntakeResult", "CostComponent", "CausalAssessment", "DecisionRecord", "DiagnosticLens",
     "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
     "EloCanonicalIdentity", "EvolutionMemory", "EvolutionRecord", "GPTDecisionHandoff",
