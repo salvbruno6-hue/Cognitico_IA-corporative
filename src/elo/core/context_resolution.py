@@ -110,10 +110,7 @@ class ContextPack:
         return tuple(scoped)
 
     def sufficient_evidence(self, minimum_confidence: float = 0.6) -> bool:
-        return any(
-            evidence.confidence >= minimum_confidence
-            for evidence in self.scoped_evidence()
-        )
+        return any(evidence.confidence >= minimum_confidence for evidence in self.scoped_evidence())
 
     def requires_specialist(self) -> bool:
         """GPT may be used as specialist only after discovery and scoped evidence."""
@@ -136,6 +133,7 @@ class ContextPack:
 
     def consultation_payload(self) -> Mapping[str, object]:
         """Produce a bounded handoff payload; it contains no private reasoning trace."""
+        gaps = self.integrity_gaps()
         return {
             "question": self.query.question,
             "entity": self.query.entity,
@@ -148,8 +146,8 @@ class ContextPack:
             "evidence_ids": self.evidence_ids(),
             "evidence": tuple(self.scoped_evidence()),
             "uncertainties": self.uncertainties,
-            "gaps": self.integrity_gaps(),
-            "requires_human_decision": bool(self.integrity_gaps()),
+            "gaps": gaps,
+            "requires_human_decision": bool(gaps),
         }
 
 
@@ -190,13 +188,14 @@ class ContextResolutionEngine:
         merged_sources.update({source.source_id: source for source in sources})
         merged_evidence = {item.source_id: item for item in pack.evidence}
         merged_evidence.update({item.source_id: item for item in evidence})
+        inherited_gaps = tuple(gap for gap in pack.gaps if gap != "retrieval pending")
         return ContextPack(
             query=pack.query,
             discovery_plan=pack.discovery_plan,
             sources=tuple(merged_sources.values()),
             evidence=tuple(merged_evidence.values()),
             uncertainties=tuple(dict.fromkeys(pack.uncertainties + uncertainties)),
-            gaps=tuple(dict.fromkeys(pack.gaps + gaps)),
+            gaps=tuple(dict.fromkeys(inherited_gaps + gaps)),
         )
 
     @staticmethod
