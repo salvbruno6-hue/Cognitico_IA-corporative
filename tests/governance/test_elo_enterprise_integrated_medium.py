@@ -5,6 +5,7 @@ MT-001-style planning/budgeting flows. It must not invent enterprise facts.
 """
 
 from pathlib import Path
+import json
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -19,14 +20,18 @@ def test_enterprise_flow_keeps_cognitive_layers_separate():
 
 
 def test_mt001_unknowns_remain_gaps():
-    text = "".join(
-        p.read_text(errors="ignore")
-        for p in (ROOT / "docs").rglob("*.md")
-        if "MT-001" in p.read_text(errors="ignore")
+    contract = (ROOT / "tests/elo_023_mt001_cycle_contract.md").read_text()
+    fixture = json.loads(
+        (ROOT / "tests/fixtures/multiteiner_operational_cycle.json").read_text()
     )
-    assert "M14" in text
-    assert "GAP" in text
-    assert "CLT" in text
+    assert "Missing M14 time is invented" in contract
+    assert "Missing seasonal mix is invented" in contract
+    assert "Missing evidence generates specialist follow-ups" in contract
+    assert any(
+        case["case"] == "insufficient_evidence" and case["expected"] == "inconclusive"
+        for case in fixture["adversarial_cases"]
+    )
+    assert "unvalidated_knowledge_is_not_canonical" in fixture["required_invariants"]
 
 
 def test_pcp_skill_is_forge_owned_and_uses_external_source_as_learning_input():
@@ -53,7 +58,7 @@ def test_no_parallel_authority_is_introduced():
         p.read_text(errors="ignore")
         for p in (ROOT / "docs/governance").glob("*.md")
     )
-    assert "second Core" in text or "second Core" in text
+    assert "second Core" in text
     assert "parallel" in text.lower()
 
 
