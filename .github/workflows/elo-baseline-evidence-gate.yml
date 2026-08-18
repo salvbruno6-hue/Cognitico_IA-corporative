@@ -1,0 +1,62 @@
+name: ELO Baseline Evidence Gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  baseline-evidence:
+    name: Reproducible baseline evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install package and tests
+        run: python -m pip install -e ".[test]"
+      - name: Compile source
+        run: python -m compileall src
+      - name: Run baseline evidence gate
+        run: python -m pytest -q tests/test_baseline_evidence_gate.py
+      - name: Run canonical boundary tests
+        run: python -m pytest -q tests/core/test_execution_boundary.py tests/test_core_behavioral_baseline.py
+      - name: Publish gate summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          REPOSITORY: ${{ github.repository }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE="BASELINE_EVIDENCE_GATE_PASS"
+            MESSAGE="Executable baseline evidence gate and canonical boundary tests passed. This is evidence for Baseline review, not a production-readiness declaration."
+          else
+            STATE="BASELINE_EVIDENCE_GATE_BLOCKED"
+            MESSAGE="Baseline evidence gate failed. Promotion remains blocked until the evidence or implementation is repaired."
+          fi
+
+          if [ -n "$PR_NUMBER" ]; then
+            cat > /tmp/baseline-gate.md <<EOF
+          ## ELO Baseline Evidence Gate
+
+          **Estado:** \`$STATE\`
+          **Validação:** \`$JOB_STATUS\`
+
+          $MESSAGE
+
+          ### Scope
+          - canonical ownership remains with ELO #92;
+          - required executable evidence is present;
+          - governed execution boundaries remain covered;
+          - contextual evidence remains scoped;
+          - this gate does not declare Baseline v1.0 or production readiness.
+          EOF
+            gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file /tmp/baseline-gate.md
+          fi
