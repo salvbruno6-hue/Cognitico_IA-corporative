@@ -25,8 +25,14 @@ def test_core_is_faculty_and_not_domain_specialist_authority():
 
 def test_forge_domain_skill_families_are_representable():
     text = _all_docs_text().lower()
-    for domain in ["pcp", "budget", "rh", "calculation"]:
-        assert domain in text, f"Missing domain representation: {domain}"
+    required = [
+        "pcp | forge pcp specialist",
+        "budgeting | forge budgeting specialist",
+        "hr | forge hr specialist",
+        "calculation | forge calculation specialist",
+    ]
+    for marker in required:
+        assert marker in text, f"Missing governed domain-family representation: {marker}"
 
 
 def test_enterprise_planning_requires_search_context_and_gaps():
