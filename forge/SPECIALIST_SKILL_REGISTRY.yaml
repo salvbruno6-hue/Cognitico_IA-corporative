@@ -1,0 +1,72 @@
+schema: ELO-FORGE-SPECIALIST-SKILL-REGISTRY.v1
+owner: Forge
+authority: ELO_COGNITIVO
+shared_faculty: Core
+promotion_gate: Evolution_Gate
+rules:
+  specialist_is_parallel_core: false
+  specialist_is_canonical_authority: false
+  external_source_is_authority: false
+  direct_forge_to_core_promotion: false
+  company_context_is_generalizable_by_default: false
+  provenance_required: true
+  authorization_required: true
+  executable_tests_required: true
+  historical_experience_immutable: true
+maturity_levels:
+  - DEFINED
+  - STRUCTURED
+  - TESTED
+  - EMPIRICALLY_VALIDATED
+  - GOVERNED
+  - CANDIDATE_FOR_CORE_PROMOTION
+domain_families:
+  - id: HR
+    name: HR / People / Labor
+  - id: BUDGETING
+    name: Budgeting / Cost / Pricing / Quotation
+  - id: PCP
+    name: PCP / Production Planning and Control
+  - id: PROCUREMENT
+    name: Procurement / Supply
+  - id: LOGISTICS
+    name: Logistics / Inventory
+  - id: COMMERCIAL
+    name: Commercial / Demand / Sales
+  - id: FINANCE
+    name: Finance / Cash / Financial Analysis
+  - id: ENGINEERING
+    name: Engineering / Capacity / Technical Calculation
+  - id: QUALITY
+    name: Quality / Compliance
+  - id: RISK
+    name: Risk
+  - id: PROCESS_ANALYSIS
+    name: Corporate Process Analysis
+  - id: DATA_ANALYSIS
+    name: Data Analysis / Calculation / Simulation
+skill_contract:
+  required_fields:
+    - skill_id
+    - domain_family
+    - purpose
+    - scope
+    - boundaries
+    - prerequisites
+    - authorized_inputs
+    - authorized_sources
+    - procedures
+    - calculation_methods
+    - evidence_requirements
+    - provenance_requirements
+    - uncertainty_rules
+    - escalation_rules
+    - outputs
+    - decision_boundaries
+    - test_references
+    - maturity
+    - version
+    - history
+    - contextual_parameters
+    - learning_candidates
+    - promotion_candidates
