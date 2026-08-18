@@ -29,7 +29,12 @@ Quando acionado em **Análise de Solicitações**, o ELO deve:
 9. identificar serviços, materiais e necessidades de mão de obra relevantes;
 10. identificar riscos, interfaces e responsabilidades;
 11. gerar o **Checklist ELO**;
-12. gerar o **Direcionamento ao Especialista de Orçamento**.
+12. gerar o **Direcionamento ao Especialista de Orçamento**;
+13. quando aplicável, estruturar a **PTS Técnica** conforme a diretriz de maturidade da PTS Técnica;
+14. separar itens padrão de fabricação, itens para cotação, itens dependentes de projeto, fornecedor ou vistoria;
+15. identificar divergências entre Termo de Referência, layout e projeto;
+16. indicar perguntas que possam alterar preço, responsabilidade, quantitativo ou solução;
+17. registrar a origem documental ou técnica de cada premissa relevante.
 
 O resultado de `ELO ANALISAR` é uma orientação estruturada para o orçamento. O ELO não executa a composição detalhada nem a precificação.
 
@@ -62,7 +67,9 @@ O Especialista deve:
 - conferir o orçamento produzido;
 - conferir a fusão dos PTs TEC e dos pós-orçamento;
 - contestar quando encontrar inconsistência;
-- solicitar ajuste quando necessário.
+- solicitar ajuste quando necessário;
+- auditar associações de custos relevantes sem rastreabilidade clara;
+- verificar se custos relevantes possuem fundamento no Termo de Referência, layout, projeto, necessidade de implantação ou premissa registrada.
 
 ### Especialista de Orçamento
 
@@ -80,7 +87,8 @@ O Especialista deve:
 - fazer a fusão dos PTs TEC;
 - fazer a fusão dos pós-orçamento;
 - consolidar a entrega;
-- corrigir o orçamento quando o ELO contestar.
+- corrigir o orçamento quando o ELO contestar;
+- registrar a origem dos custos relevantes quando solicitado pelo ELO.
 
 ## 4. Fluxo oficial
 
@@ -96,6 +104,9 @@ ELO ANALISA
         +-- Riscos
         +-- Pendências
         +-- Taxonomias a avaliar
+        +-- PTS Técnica, quando aplicável
+        +-- Itens padrão / cotação / projeto / fornecedor / vistoria
+        +-- Rastreabilidade das premissas
         |
         v
 ANÁLISE CONCLUÍDA
@@ -127,6 +138,9 @@ ESPECIALISTA DE ORÇAMENTO
         v
 ELO CONFERE
         |
+        +-- Conferência técnica
+        +-- Conferência de rastreabilidade
+        +-- Auditoria de associações relevantes
         +-- OK
         |
         +-- CONTESTAÇÃO
@@ -155,3 +169,11 @@ Regra permanente:
 O ELO não deve assumir a execução detalhada do orçamento, cálculo de custos, montagem da planilha, fusão dos PTs TEC ou fusão dos pós-orçamento.
 
 O Especialista não deve alterar as diretrizes oficiais do ELO. Melhorias permanentes devem ser propostas como nova diretriz, conforme a governança existente.
+
+## 7. Referência de maturidade da PTS Técnica
+
+A diretriz específica está em:
+
+`08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PTS_TECNICA_MATURIDADE.md`
+
+Ela deve ser utilizada quando a SO exigir análise técnica estruturada antes do orçamento.
