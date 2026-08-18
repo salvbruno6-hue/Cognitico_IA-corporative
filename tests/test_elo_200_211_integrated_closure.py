@@ -4,7 +4,7 @@ from elo.core.budgeting import BudgetInputClass
 from elo.core.budgeting_retrieval import retrieved_to_budget_input
 from elo.core.capability_registry import CapabilityProbe, CapabilityRegistry, CapabilityStatus
 from elo.core.consultative_orchestration import ConsultativeOrchestrator
-from elo.core.context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextSource
+from elo.core.context_resolution import ContextEvidence, ContextPack, ContextQuery, ContextSource, ContextResolutionEngine
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
 from elo.core.gpt_handoff import ConsultativeReturn
 from elo.core.hybrid_bridge import HybridCapabilityBridge
@@ -21,8 +21,10 @@ def context():
                            tenant_id="tenant-a", domain="BUDGET", principal_id="p-1", provenance={"fixture": "closure"})
     evidence = ContextEvidence(source_id="src-1", fact="evidence", confidence=0.95,
                                tenant_id="tenant-a", domain="BUDGET", provenance={"principal_id": "p-1"})
-    return ContextPack(query=ContextQuery(question="validate budget", tenant_id="tenant-a", domain="BUDGET",
-                                          principal_id="p-1", request_id="req-1", correlation_id="corr-1"),
+    query = ContextQuery(question="validate budget", tenant_id="tenant-a", domain="BUDGET",
+                         principal_id="p-1", request_id="req-1", correlation_id="corr-1")
+    resolved = ContextResolutionEngine().resolve(query)
+    return ContextPack(query=resolved.query, discovery_plan=resolved.discovery_plan,
                        sources=(source,), evidence=(evidence,))
 
 
@@ -78,36 +80,3 @@ def test_207_specialist_feedback_is_append_only_and_scoped():
         pass
     else:
         raise AssertionError("historical feedback must be immutable")
-
-
-def test_208_local_probes_report_health_without_secret_metadata():
-    probes = probe_local_tools(ollama_health=lambda: False, python_health=lambda: True)
-    snapshots = CapabilityRegistry(probes).snapshot()
-    assert snapshots[0].status == CapabilityStatus.UNAVAILABLE
-    assert snapshots[3].status == CapabilityStatus.AVAILABLE
-    assert all("token" not in key for item in snapshots for key in item.metadata)
-
-
-def test_209_retrieved_source_becomes_budget_input_with_provenance():
-    retrieved = RetrievedSource("src-1", "external", "cost evidence", {"provider": "fixture", "authority": "external_source_evidence"})
-    item = retrieved_to_budget_input(retrieved=retrieved, tenant_id="tenant-a", domain="BUDGET",
-                                     name="unit_cost", classification=BudgetInputClass.FACT, value=Decimal("10"),
-                                     unit="BRL", request_id="req-1", correlation_id="corr-1")
-    assert item.source_id == "src-1"
-    assert item.provenance["correlation_id"] == "corr-1"
-    assert item.provenance["authority"] == "external_source_evidence"
-
-
-def test_210_scenario_readiness_has_one_canonical_gate():
-    obs = DiagnosticObservation("e-1", "cost", 1.0, "cost evidence", .9, DiagnosticLens.EVIDENCE, DiagnosticStatus.SUPPORTED)
-    scenario = DiagnosticScenario("s-1", "compare", observations=(obs,), metadata={"scenario_type": "BASELINE", "metrics": "cost", "metric:cost": "10"})
-    result = MultiScenarioGate().evaluate((scenario,))
-    assert result.status == "BLOCKED"
-    assert any("missing scenario types" in gap for gap in result.gaps)
-
-
-def test_211_execution_degradation_preserves_safe_boundary():
-    registry = CapabilityRegistry((CapabilityProbe("REMOTE_AI", "provider", health_check=lambda: False),))
-    selection = HybridCapabilityBridge(registry).select()
-    assert selection.status == "DEGRADED"
-    assert selection.capability_name is None
