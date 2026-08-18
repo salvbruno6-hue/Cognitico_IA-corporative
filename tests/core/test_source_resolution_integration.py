@@ -6,7 +6,7 @@ from elo.core.source_discovery import SourceDiscoveryEngine
 from elo.core.source_resolver import RetrievedSource, SourceResolutionRequest, SourceResolver
 
 
-def _request(scope: str = "source.github.read") -> SourceResolutionRequest:
+def _request(scope: str = "source:github:read") -> SourceResolutionRequest:
     return SourceResolutionRequest(
         query="quantidade de unidades para orçamento",
         tenant_id="tenant-a",
