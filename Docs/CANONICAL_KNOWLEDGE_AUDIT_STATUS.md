@@ -4,17 +4,17 @@
 2026-08-19
 
 ## Estado
-`IN_PROGRESS — STRUCTURAL GATE`
+`IN_PROGRESS — PARALLEL STRUCTURAL RECONCILIATION`
 
 ## HEAD auditado
 
 PR #267 — `refactor/canonical-knowledge-audit`
 
 ```text
-9debb5f4b3a731dc75b61a5e5224b780de452fa1
+2835c8bcec9198b767ca983b4996e62cb295a56f
 ```
 
-O PR permanece aberto. O HEAD atual continua sem evidência de execução CI comprovada nas consultas disponíveis; portanto o gate de merge permanece bloqueado.
+O PR permanece aberto e o merge continua bloqueado até existir evidência verificável no HEAD atual.
 
 ## Princípio desta fase — evolução estrutural do ELO
 
@@ -27,6 +27,24 @@ conceitos → artefatos → referências → contratos → implementação → t
 ```
 
 As famílias são regiões conectadas desse sistema. A avaliação deve considerar função, relações, entradas, saídas e consumidores, e não somente nome ou diretório.
+
+## Modelo operacional desta rodada
+
+A análise passa a usar núcleos virtuais simulados para processar múltiplos arquivos em paralelo:
+
+```text
+Núcleo A — estrutura/famílias
+Núcleo B — equivalência/duplicidade PT/EN
+Núcleo C — referências/consumidores
+Núcleo D — relações/proveniência
+Núcleo E — testes/CI/gates
+             ↓
+      RECONCILIAÇÃO CENTRAL ELO
+             ↓
+      decisão única / commit lógico
+```
+
+Os núcleos são paralelos na análise, não na autoridade. Eles produzem evidências e candidatos; a decisão canônica permanece única.
 
 ## Concluído
 
@@ -50,15 +68,9 @@ As famílias são regiões conectadas desse sistema. A avaliação deve consider
 - registry documental existente reconciliado com a regra de não inventar identidade antes da auditoria;
 - crosswalk de reconciliação dos registros canônicos materializado;
 - evidência estrutural da família 05 materializada;
-- cinco masters já registrados com identidade estável (`01`, `07`, `11`, `12`, `14`) reconhecidos como artefatos já canonicalizados, sem autorização automática de remoção.
-
-## Evidência contextual da família 00
-
-Foi confirmado que `ELO_REPOSITORY_NAVIGATION_RULES.md` trata `00-empresa-manifesto/` e `00-enterprise-manifest/` como variantes estruturais até decisão explícita e que localização física, isoladamente, não prova autoridade.
-
-Foi confirmado que `ELO_CAPABILITY_REGISTRY.yaml` declara `ELO-CAP-ENT-001` / `Enterprise Manifest` e aponta `00-enterprise-manifest/` como `canonical_artifact`, mas mantém `evidence: []` e registra como gap o estabelecimento explícito do artefato canônico quando existem manifestos históricos.
-
-Foi confirmado que `docs/migration/migration_inventory.md` mantém Enterprise Manifest como `Em consolidação` e que `docs/migration/migration_plan.md` exige inventário, auditoria, consolidação, baseline e publicação controlada.
+- cinco masters já registrados com identidade estável (`01`, `07`, `11`, `12`, `14`) reconhecidos como artefatos já canonicalizados, sem autorização automática de remoção;
+- modelo de execução em núcleos virtuais e consolidação por lote formalizado;
+- protocolo de validação e impacto atualizado para suportar análise paralela sem criar autoridade concorrente.
 
 ## Reconciliação estrutural já comprovada
 
@@ -126,22 +138,37 @@ O `CANONICAL_KNOWLEDGE_MIGRATION_REGISTRY.json` permanece como o registro docume
 
 A matriz `CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md` continua sendo a autoridade de classificação EQ/CP/CF/EX/HI/NR. Os testes de governança existentes validam as invariantes sem alterar `src/elo/`.
 
-## Em execução
+## Quadro geral de execução
 
-- inventário físico completo das famílias PT/EN;
-- comparação semântica arquivo-a-arquivo;
-- atribuição de identidade somente após evidência de conteúdo;
-- levantamento de referências e consumidores;
-- classificação EQ/CP/CF/EX/HI/NR;
-- materialização do mapa de referências;
-- validação dos gates T01–T10;
-- reconciliação estrutural das famílias 13 e 15 após descoberta efetiva de paths.
+| Núcleo | Escopo | Estado |
+|---|---|---|
+| A | estrutura/famílias | 🔄 EM EXECUÇÃO |
+| B | equivalência/duplicidade PT/EN | 🔄 EM EXECUÇÃO |
+| C | referências/consumidores | 🔄 EM EXECUÇÃO |
+| D | relações/proveniência | 🔄 EM EXECUÇÃO |
+| E | testes/CI/gates | 🔄 EM EXECUÇÃO |
+
+| Área | Estado |
+|---|---|
+| Identidade | ✅ CONCLUÍDA |
+| Governança | ✅ CONCLUÍDA |
+| Proteção de runtime | ✅ CONCLUÍDA |
+| Masters 01/07/11/12/14 | ✅ IDENTIDADE REGISTRADA |
+| Família 05 | 🔄 RECONCILIAÇÃO |
+| Família 13 | 🔄 DESCOBERTA |
+| Família 15 | 🔄 DESCOBERTA |
+| Consumidores | ⏳ PENDENTE DE FECHAMENTO |
+| T01–T10 | ⏳ PENDENTE DE EVIDÊNCIA |
+| CI no HEAD | ⏳ PENDENTE DE EVIDÊNCIA |
+| Depreciação | 🔒 BLOQUEADA |
+| Remoção histórica | 🔒 BLOQUEADA |
+| Merge | 🔒 BLOQUEADO |
 
 ## Evidência de CI
 
 O CI do SHA anterior `9b1e2fd967c0a3df3854f1c338f0cf667e3ff258` passou no ELO Evolution Gate #728.
 
-As alterações documentais posteriores levaram o PR ao HEAD `9debb5f4b3a731dc75b61a5e5224b780de452fa1`. A consulta disponível para workflows associados ao SHA atual não retornou execução comprovada.
+O HEAD foi atualizado durante esta rodada para `2835c8bcec9198b767ca983b4996e62cb295a56f`. A existência de execução antiga não satisfaz o gate do HEAD atual.
 
 Até existir execução comprovada para esse SHA:
 
@@ -173,4 +200,4 @@ Não criar um segundo Core, segundo SourceResolver ou segunda autoridade runtime
 
 ## Próxima ação primária
 
-Continuar a inspeção contextual e funcional das famílias, priorizando as conexões estruturais entre `01`, `05`, `07`, `11`, `12`, `13`, `14` e `15`. A comparação deve preservar o conhecimento existente e melhorar a fluidez da estrutura do ELO, sem alterar seu conceito.
+Continuar a inspeção contextual e funcional das famílias em lotes paralelos, priorizando as conexões estruturais entre `01`, `05`, `07`, `11`, `12`, `13`, `14` e `15`. A comparação deve preservar o conhecimento existente e melhorar a fluidez da estrutura do ELO, sem alterar seu conceito.
