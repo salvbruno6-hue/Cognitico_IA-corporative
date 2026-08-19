@@ -1,11 +1,12 @@
 """Canonical ELO identity, trust and capability boundary.
 
-Authentication is external. This module binds an authenticated principal to an
-explicit ELO identity, role, repository scope and capability set. It never grants
-GitHub permissions and never replaces repository/app security controls.
+Authentication is external. This module binds an authenticated provider subject
+from a trusted provider assertion to an explicit ELO identity, role, enterprise
+context, repository scope and capability set. It never grants GitHub permissions.
 """
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Mapping
 
 
 class TrustDecision(StrEnum):
@@ -47,6 +48,16 @@ class TrustResult:
     reason: str
 
 
+@dataclass(frozen=True)
+class TrustedIdentityRegistry:
+    """Immutable snapshot supplied by an authoritative infrastructure layer."""
+
+    provider_subjects: Mapping[str, str]
+
+    def is_registered(self, provider: str, provider_subject: str, principal_id: str) -> bool:
+        return self.provider_subjects.get(f"{provider}:{provider_subject}") == principal_id
+
+
 _CRITICAL_ACTIONS = frozenset({
     "modify_cognitive_identity",
     "modify_core",
@@ -58,7 +69,7 @@ _CRITICAL_ACTIONS = frozenset({
 })
 
 
-def evaluate_trust(request: TrustRequest) -> TrustResult:
+def evaluate_trust(request: TrustRequest, registry: TrustedIdentityRegistry) -> TrustResult:
     """Fail-closed trust evaluation for ELO-sensitive operations."""
     identity = request.identity
     if not identity.active:
@@ -74,6 +85,8 @@ def evaluate_trust(request: TrustRequest) -> TrustResult:
     )
     if not all(required):
         return TrustResult(TrustDecision.DENY, "missing_identity_or_scope")
+    if not registry.is_registered(identity.provider, identity.provider_subject, identity.principal_id):
+        return TrustResult(TrustDecision.DENY, "provider_identity_not_registered")
     if request.repository not in identity.repository_scope:
         return TrustResult(TrustDecision.DENY, "repository_out_of_scope")
     if request.capability not in identity.capabilities:
