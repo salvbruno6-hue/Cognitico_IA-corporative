@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "status": "MIGRATION_PENDING",
+  "purpose": "Control the PT/EN consolidation without making physical paths the identity of knowledge.",
+  "families": [
+    {
+      "family_id": "ELO.REPOSITORY.00",
+      "concept": "enterprise manifesto",
+      "portuguese_root": "00-empresa-manifesto/",
+      "english_root": "00-enterprise-manifest/",
+      "classification": "AUDIT_REQUIRED",
+      "canonical_owner": "00-enterprise-manifest/",
+      "legacy_owner": "00-empresa-manifesto/"
+    },
+    {
+      "family_id": "ELO.ARCHITECTURE.01",
+      "concept": "meta architecture",
+      "portuguese_root": "01-meta-arquitetura/",
+      "english_root": "01-meta-architecture/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "01-meta-architecture/",
+      "legacy_owner": "01-meta-arquitetura/"
+    },
+    {
+      "family_id": "ELO.COGNITIVE.05",
+      "concept": "cognitive platform",
+      "portuguese_root": "05-cognitivo-plataforma/",
+      "english_root": "05-cognitive-platform/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "05-cognitive-platform/",
+      "legacy_owner": "05-cognitivo-plataforma/"
+    },
+    {
+      "family_id": "ELO.DATA.07",
+      "concept": "data engineering",
+      "portuguese_root": "07-engenharia-de dados/",
+      "english_root": "07-data-engineering/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "07-data-engineering/",
+      "legacy_owner": "07-engenharia-de dados/"
+    },
+    {
+      "family_id": "ELO.MODELS.11",
+      "concept": "models library",
+      "portuguese_root": "11-modelos/",
+      "english_root": "11-models-library/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "11-models-library/",
+      "legacy_owner": "11-modelos/"
+    },
+    {
+      "family_id": "ELO.SYSTEMS.12",
+      "concept": "system engineering",
+      "portuguese_root": "12-sistemas/",
+      "english_root": "12-system-engineering/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "12-system-engineering/",
+      "legacy_owner": "12-sistemas/"
+    },
+    {
+      "family_id": "ELO.REFERENCE.13",
+      "concept": "reference architecture",
+      "portuguese_root": "13-referências/",
+      "english_root": "13-reference-architecture/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "13-reference-architecture/",
+      "legacy_owner": "13-referências/"
+    },
+    {
+      "family_id": "ELO.ROADMAP.14",
+      "concept": "roadmap",
+      "portuguese_root": "14-roteiros/",
+      "english_root": "14-roadmap/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "14-roadmap/",
+      "legacy_owner": "14-roteiros/"
+    },
+    {
+      "family_id": "ELO.ASSETS.15",
+      "concept": "assets",
+      "portuguese_root": "15-ativos/",
+      "english_root": "15-assets/",
+      "classification": "CONTENT_REVIEW_REQUIRED",
+      "canonical_owner": "15-assets/",
+      "legacy_owner": "15-ativos/"
+    }
+  ],
+  "rules": [
+    "Do not delete a Portuguese root before file-level classification.",
+    "Do not copy content merely to create bilingual symmetry.",
+    "Do not assign artifact identity from physical path alone.",
+    "Do not mark a family consolidated until references and tests pass.",
+    "Preserve historical provenance for migrated artifacts."
+  ]
+}
