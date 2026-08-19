@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "authority": "ELO_CANONICAL_KNOWLEDGE_INDEX",
+  "records": [
+    {
+      "artifact_id": "ELO.EXAMPLE.CONCEPT",
+      "concept_id": "ELO.EXAMPLE.CONCEPT",
+      "canonical_path": "<canonical-path>",
+      "legacy_paths": [],
+      "status": "CANDIDATE",
+      "version": "1.0.0",
+      "content_hash": null,
+      "authority": "<semantic-owner>",
+      "domain": "<domain>",
+      "language": "<pt-BR|en-US|other>",
+      "provenance": {
+        "origin": "<source>",
+        "migration": null,
+        "decision": null
+      }
+    }
+  ]
+}
