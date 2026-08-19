@@ -6,6 +6,16 @@
 ## Estado
 `IN_PROGRESS — STRUCTURAL GATE`
 
+## HEAD auditado
+
+PR #267 — `refactor/canonical-knowledge-audit`
+
+```text
+8143d8a74a95d3d61ae0374ceee2f8edec2628ad
+```
+
+O PR permanece aberto e `mergeable=false`. A ausência de evidência de CI para o HEAD atual mantém o gate de merge bloqueado.
+
 ## Concluído
 
 - ponto primário de modificação definido;
@@ -18,7 +28,33 @@
 - terminologia de `workflow run` versus evento `workflow_run` corrigida;
 - branch de auditoria criada;
 - testes de invariantes de governança adicionados;
-- `src/elo/` preservado sem alteração nesta fase.
+- `src/elo/` preservado sem alteração nesta fase;
+- mapa de referências da família 00 materializado;
+- evidência contextual da família 00 materializada;
+- regras de navegação, capability registry, inventário e plano de migração cruzados;
+- distinção entre descoberta, evidência contextual e impacto operacional formalizada.
+
+## Evidência contextual da família 00
+
+Foi confirmado que `ELO_REPOSITORY_NAVIGATION_RULES.md` trata `00-empresa-manifesto/` e `00-enterprise-manifest/` como variantes estruturais até decisão explícita e que localização física, isoladamente, não prova autoridade.
+
+Foi confirmado que `ELO_CAPABILITY_REGISTRY.yaml` declara `ELO-CAP-ENT-001` / `Enterprise Manifest` e aponta `00-enterprise-manifest/` como `canonical_artifact`, mas mantém `evidence: []` e registra como gap o estabelecimento explícito do artefato canônico quando existem manifestos históricos.
+
+Foi confirmado que `docs/migration/migration_inventory.md` mantém Enterprise Manifest como `Em consolidação` e que `docs/migration/migration_plan.md` exige inventário, auditoria, consolidação, baseline e publicação controlada.
+
+Foi inspecionado `docs/handbook/ELO_ENTERPRISE_HANDBOOK_v2.0_ENTERPRISE.md` como referência arquitetural/governança. A inspeção de `src/elo/integrations/enterprise/README.md` não comprovou, por si só, consumo físico da família 00.
+
+## Regra de evidência
+
+As buscas são tratadas como mecanismo de descoberta, não como prova de ausência ou de dependência.
+
+```text
+DISCOVERY  → candidato
+CONTEXT    → relação contextual confirmada
+IMPACT     → consumidor/dependência operacional confirmada
+```
+
+Um resultado de busca isolado não promove um artefato a consumidor. Ausência de resultado de busca não prova ausência do arquivo.
 
 ## Em execução
 
@@ -30,11 +66,19 @@
 - materialização do mapa de referências;
 - validação dos gates T01–T10.
 
-## Evidência atual
+## Evidência de CI
 
 O CI do SHA anterior `9b1e2fd967c0a3df3854f1c338f0cf667e3ff258` passou no ELO Evolution Gate #728.
 
-As alterações documentais posteriores a esse run exigem nova execução do CI para o novo HEAD antes de qualquer decisão de merge.
+As alterações documentais posteriores a esse run levaram o PR ao HEAD `8143d8a74a95d3d61ae0374ceee2f8edec2628ad`. Até existir execução comprovada para esse SHA, o estado permanece:
+
+```text
+CI = NO_EVIDENCE
+GATE = BLOCKED
+MERGE = BLOCKED
+```
+
+`NO_EVIDENCE` não é interpretado como `PASS` nem como `FAIL`.
 
 ## Bloqueios deliberados
 
@@ -56,4 +100,4 @@ Não criar um segundo Core, segundo SourceResolver ou segunda autoridade runtime
 
 ## Próxima ação primária
 
-Auditar as famílias estruturais `00`, `01`, `05`, `07`, `11`, `12`, `13`, `14` e `15` arquivo-a-arquivo, preencher o registro sem inferência nominal e materializar o mapa de referências antes de qualquer depreciação ou remoção.
+Concluir a inspeção contextual dos artefatos estruturais já existentes no PR e dos candidatos das famílias `00`, `01`, `05`, `07`, `11`, `12`, `13`, `14` e `15`; reconciliar decisões anteriores antes de criar novos registros; depois validar T01–T10 e o CI do HEAD atual.
