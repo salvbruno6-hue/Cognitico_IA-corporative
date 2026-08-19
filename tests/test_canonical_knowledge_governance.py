@@ -4,6 +4,7 @@ These tests intentionally validate the migration rules without touching the
 ELO runtime. They protect the architecture while the physical tree is audited.
 """
 
+import json
 from pathlib import Path
 
 
@@ -11,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SPEC = REPO_ROOT / "Docs" / "CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md"
 IMPACT = REPO_ROOT / "Docs" / "CANONICAL_KNOWLEDGE_REFERENCE_IMPACT.md"
 ADDRESS = REPO_ROOT / "Docs" / "CANONICAL_KNOWLEDGE_ADDRESS_SPEC.md"
-REGISTRY = REPO_ROOT / "Docs" / "CANONICAL_KNOWLEDGE_REGISTRY.md"
+REGISTRY = REPO_ROOT / "Docs" / "CANONICAL_KNOWLEDGE_MIGRATION_REGISTRY.json"
 
 
 def test_canonical_knowledge_governance_specs_exist() -> None:
@@ -62,18 +63,29 @@ def test_identity_survives_path_change() -> None:
     assert "canonical_path pode mudar" in content
 
 
+def test_existing_registry_is_the_single_documentary_registry() -> None:
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    assert registry["schema_version"] == "1.1"
+    assert registry["runtime_authority"] == "existing SourceResolver"
+    assert registry["runtime_change_allowed"] is False
+    assert registry["physical_removal_allowed"] is False
+    assert len(registry["families"]) == 9
+
+
 def test_registry_does_not_invent_identity_before_audit() -> None:
-    content = REGISTRY.read_text(encoding="utf-8")
-    assert "status = AUDIT_REQUIRED" in content
-    assert "classification = PENDING" in content
-    assert "review_required = true" in content
-    assert "Nenhum valor `PENDING` deve ser substituído por suposição." in content
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    for family in registry["families"]:
+        assert family["identity_status"] == "PENDING"
+        assert family["reference_status"] == "PENDING"
+        assert family["provenance_status"] == "PENDING"
+        assert family["review_required"] is True
 
 
 def test_registry_preserves_runtime_authority_boundary() -> None:
-    content = REGISTRY.read_text(encoding="utf-8")
-    assert "não substitui nem duplica a autoridade runtime do `SourceResolver`" in content
-    assert "não alterar `src/elo/`" in content
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    assert registry["runtime_authority"] == "existing SourceResolver"
+    assert registry["runtime_change_allowed"] is False
+    assert "Keep the existing SourceResolver as runtime authority." in registry["rules"]
 
 
 def test_runtime_is_outside_this_migration_gate() -> None:
