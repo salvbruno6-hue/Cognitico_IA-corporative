@@ -65,6 +65,26 @@ Somente quando todos os gates estiverem verdes e não houver conteúdo exclusivo
 - migração que altera significado sem decisão;
 - exclusão de conhecimento complementar.
 
+## Modelo de núcleos virtuais
+
+A análise pode ocorrer em paralelo por domínios, mas a autoridade da decisão permanece única:
+
+```text
+Núcleo A — estrutura/famílias
+Núcleo B — equivalência e duplicidade
+Núcleo C — referências/consumidores
+Núcleo D — relações e proveniência
+Núcleo E — testes/CI/gates
+             ↓
+      reconciliação central ELO
+```
+
+Núcleos paralelos produzem evidências e candidatos; não criam autoridades concorrentes. Uma decisão de `EQ`, `CP`, `CF`, `EX`, `HI` ou `NR` somente é consolidada após reconciliação.
+
+## Regra de lote
+
+Quando múltiplos artefatos forem independentes, a análise deve agrupá-los na mesma rodada. Alterações comprovadamente coerentes devem ser materializadas em lote, preferencialmente em um único commit lógico, reduzindo microcommits e mantendo rastreabilidade.
+
 ## Critério de sucesso
 
 Uma alteração de endereço deve ser transparente para qualquer consumidor que utilize a identidade canônica, preservando conteúdo, proveniência, versionamento e rastreabilidade.
