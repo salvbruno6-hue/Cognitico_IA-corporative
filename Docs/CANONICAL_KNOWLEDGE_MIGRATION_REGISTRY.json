@@ -1,7 +1,43 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "status": "MIGRATION_PENDING",
   "purpose": "Control the PT/EN consolidation without making physical paths the identity of knowledge.",
+  "role": "canonical_documentary_registry_for_audit",
+  "runtime_authority": "existing SourceResolver",
+  "runtime_change_allowed": false,
+  "physical_removal_allowed": false,
+  "identity_contract": {
+    "artifact_id": "stable identity assigned only after content-level audit",
+    "concept_id": "stable semantic identity when applicable",
+    "canonical_path": "authorized current physical location; not the identity",
+    "legacy_paths": "historical locations preserved as aliases when required",
+    "content_hash": "hash of the evaluated content",
+    "provenance": "historical origin, revision and traceability",
+    "references": "known consumers and links requiring validation",
+    "classification": [
+      "EQ",
+      "CP",
+      "CF",
+      "EX",
+      "HI",
+      "NR",
+      "PENDING"
+    ],
+    "review_required": "true until the relevant audit evidence exists"
+  },
+  "states": [
+    "DISCOVERED",
+    "AUDIT_REQUIRED",
+    "CLASSIFIED",
+    "IDENTITY_ASSIGNED",
+    "REFERENCE_MAPPED",
+    "MIGRATION_APPROVED",
+    "MIGRATED",
+    "DEPRECATED",
+    "REMOVAL_ELIGIBLE",
+    "REMOVED",
+    "BLOCKED"
+  ],
   "families": [
     {
       "family_id": "ELO.REPOSITORY.00",
@@ -10,7 +46,11 @@
       "english_root": "00-enterprise-manifest/",
       "classification": "AUDIT_REQUIRED",
       "canonical_owner": "00-enterprise-manifest/",
-      "legacy_owner": "00-empresa-manifesto/"
+      "legacy_owner": "00-empresa-manifesto/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.ARCHITECTURE.01",
@@ -19,7 +59,11 @@
       "english_root": "01-meta-architecture/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "01-meta-architecture/",
-      "legacy_owner": "01-meta-arquitetura/"
+      "legacy_owner": "01-meta-arquitetura/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.COGNITIVE.05",
@@ -28,7 +72,11 @@
       "english_root": "05-cognitive-platform/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "05-cognitive-platform/",
-      "legacy_owner": "05-cognitivo-plataforma/"
+      "legacy_owner": "05-cognitivo-plataforma/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.DATA.07",
@@ -37,7 +85,11 @@
       "english_root": "07-data-engineering/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "07-data-engineering/",
-      "legacy_owner": "07-engenharia-de dados/"
+      "legacy_owner": "07-engenharia-de dados/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.MODELS.11",
@@ -46,7 +98,11 @@
       "english_root": "11-models-library/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "11-models-library/",
-      "legacy_owner": "11-modelos/"
+      "legacy_owner": "11-modelos/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.SYSTEMS.12",
@@ -55,7 +111,11 @@
       "english_root": "12-system-engineering/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "12-system-engineering/",
-      "legacy_owner": "12-sistemas/"
+      "legacy_owner": "12-sistemas/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.REFERENCE.13",
@@ -64,7 +124,11 @@
       "english_root": "13-reference-architecture/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "13-reference-architecture/",
-      "legacy_owner": "13-referências/"
+      "legacy_owner": "13-referências/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.ROADMAP.14",
@@ -73,7 +137,11 @@
       "english_root": "14-roadmap/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "14-roadmap/",
-      "legacy_owner": "14-roteiros/"
+      "legacy_owner": "14-roteiros/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     },
     {
       "family_id": "ELO.ASSETS.15",
@@ -82,14 +150,22 @@
       "english_root": "15-assets/",
       "classification": "CONTENT_REVIEW_REQUIRED",
       "canonical_owner": "15-assets/",
-      "legacy_owner": "15-ativos/"
+      "legacy_owner": "15-ativos/",
+      "identity_status": "PENDING",
+      "reference_status": "PENDING",
+      "provenance_status": "PENDING",
+      "review_required": true
     }
   ],
   "rules": [
     "Do not delete a Portuguese root before file-level classification.",
     "Do not copy content merely to create bilingual symmetry.",
     "Do not assign artifact identity from physical path alone.",
+    "Do not assign artifact_id or concept_id before sufficient content-level evidence exists.",
     "Do not mark a family consolidated until references and tests pass.",
-    "Preserve historical provenance for migrated artifacts."
+    "Preserve historical provenance for migrated artifacts.",
+    "Treat CONTENT_REVIEW_REQUIRED and AUDIT_REQUIRED as non-consolidated states.",
+    "Keep the existing SourceResolver as runtime authority.",
+    "Do not treat this registry as proof that physical migration has occurred."
   ]
 }
