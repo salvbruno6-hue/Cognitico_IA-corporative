@@ -22,7 +22,7 @@ from .evolution_memory import EvolutionMemory, EvolutionRecord
 from .forecasting import ForecastObservation, ForecastResult, ForecastStatus, GovernedForecastFaculty
 from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
 from .hybrid_bridge import HybridCapabilityBridge, ProviderSelection
-from .identity_trust import EloIdentity, EloRole, TrustDecision, TrustRequest, TrustResult, evaluate_trust
+from .identity_trust import EloIdentity, EloRole, TrustDecision, TrustRequest, TrustResult, TrustedIdentityRegistry, evaluate_trust
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
 from .local_capabilities import probe_local_tools
 from .maturity_engine import MATURITY_DIMENSIONS, MaturityAssessment
@@ -53,6 +53,6 @@ __all__ = [
     "ProductionStage", "ProviderSelection", "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate",
     "SourceDiscoveryEngine", "SpecialistFeedback", "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment",
     "SystemicModel", "SystemicRelation", "TemporalValidity", "TrustDecision", "TrustRequest", "TrustResult",
-    "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "evaluate_trust", "SolicitationLearningCandidate",
-    "build_learning_candidate", "classify_candidate",
+    "TrustedIdentityRegistry", "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "evaluate_trust",
+    "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
