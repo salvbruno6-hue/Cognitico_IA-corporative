@@ -27,6 +27,10 @@ def test_classification_model_is_explicit() -> None:
 
 def test_migration_order_protects_references() -> None:
     content = SPEC.read_text(encoding="utf-8")
+    sequence_start = content.index("## 10. Sequência de execução")
+    sequence_end = content.index("## 11. Estado da fase", sequence_start)
+    sequence = content[sequence_start:sequence_end]
+
     expected = [
         "Inventário",
         "Hash/conteúdo",
@@ -38,7 +42,7 @@ def test_migration_order_protects_references() -> None:
         "Testes",
         "Depreciação",
     ]
-    positions = [content.index(item) for item in expected]
+    positions = [sequence.index(item) for item in expected]
     assert positions == sorted(positions)
 
 
