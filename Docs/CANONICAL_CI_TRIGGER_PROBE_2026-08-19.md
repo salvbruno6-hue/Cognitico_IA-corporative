@@ -38,3 +38,34 @@ e não pode ser interpretada como teste aprovado ou reprovado.
 4. Executar/validar os testes canônicos T01–T10 quando materializados.
 5. Corrigir falhas e repetir a validação até obter evidência verde.
 6. Somente então avaliar prontidão para merge.
+
+## Controle desta rodada — PR #267
+
+O HEAD observado antes desta alteração era:
+
+```text
+a6da38625cd2028e5fb17fcb0a6c69c1dde4ec74
+```
+
+Esta alteração é deliberadamente limitada a documentação para provocar uma nova execução do fluxo `pull_request`, sem tocar no runtime ou no conteúdo canônico.
+
+Após o commit, o novo SHA deverá ser consultado e o `ELO Evolution Gate` deverá ser localizado especificamente por esse SHA. A simples existência de uma execução antiga não satisfaz este gate.
+
+```text
+NOVO SHA
+   ↓
+workflow run associado
+   ↓
+jobs
+   ↓
+testes
+   ↓
+evidência
+```
+
+Até essa verificação:
+
+```text
+CI_HEAD = NO_EVIDENCE
+MERGE = BLOCKED
+```
