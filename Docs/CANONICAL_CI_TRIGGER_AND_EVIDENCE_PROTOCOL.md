@@ -3,8 +3,19 @@
 ## Objetivo
 Garantir que a consolidação canônica somente avance quando existir evidência verificável de execução do CI para o commit efetivamente avaliado pelo PR.
 
+## Distinção terminológica obrigatória
+
+Neste documento:
+
+- **workflow run** = uma execução efetiva de um workflow do GitHub Actions;
+- **`workflow_run` event** = evento específico do GitHub Actions que pode disparar outro workflow após a execução de um workflow;
+- **status de CI** = resultado verificável associado ao commit/PR/workflow;
+- **NO_EVIDENCE** = ausência de evidência suficiente para classificar o CI.
+
+A existência de um **workflow run** não implica que tenha ocorrido um **`workflow_run` event** como gatilho de outro workflow.
+
 ## Situação observada
-O commit `466213bf1de542d06f9620938a23a42f24fc39b1` não possui workflow run nem status registrado no GitHub Actions. Isso é tratado como `NO_EVIDENCE`, não como `PASS` ou `FAIL`.
+O commit `466213bf1de542d06f9620938a23a42f24fc39b1` não possuía workflow run nem status registrado no GitHub Actions. Isso foi tratado como `NO_EVIDENCE`, não como `PASS` ou `FAIL`.
 
 ## Regra
 
@@ -29,10 +40,12 @@ Usar o `ELO Evolution Gate` existente. Não criar um segundo workflow concorrent
 8. Registro de falhas, quando houver.
 9. Nova execução após correção, quando houver falha.
 
+A evidência deve identificar o **workflow run**. O termo **`workflow_run` event** somente deve ser utilizado quando esse evento específico tiver sido configurado e efetivamente demonstrado.
+
 ## Estados possíveis
 
-- `PASS`: execução registrada e todos os gates necessários passaram.
-- `FAIL`: execução registrada e um ou mais gates falharam.
+- `PASS`: workflow run registrado e todos os gates necessários passaram.
+- `FAIL`: workflow run registrado e um ou mais gates falharam.
 - `CANCELLED`: execução não produz evidência de aprovação.
 - `NO_EVIDENCE`: nenhum run/status disponível.
 - `BLOCKED`: não é permitido fazer merge/depreciação/remoção.
