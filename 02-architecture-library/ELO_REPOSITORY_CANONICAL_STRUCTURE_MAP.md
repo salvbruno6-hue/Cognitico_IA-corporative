@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the current semantic role of each top-level directory so humans and AI agents can navigate the ELO repository without interpreting similar Portuguese/English directories as independent authorities.
+Define the semantic owner of each top-level directory and the controlled consolidation of historical Portuguese/English variants.
 
 ## Authority model
 
@@ -14,57 +14,63 @@ The physical directory is not itself authority. Authority is determined by:
 4. implementation evidence;
 5. tests and verification.
 
-## Current structure
+## Canonical ownership
 
-| Path family | Semantic owner | Intended content | Current treatment |
+| Path family | Semantic owner | Intended content | Treatment |
 | --- | --- | --- | --- |
-| `00-enterprise-manifest/` | Enterprise Constitution | permanent principles and constitutional artifacts | canonical candidate |
-| `00-empresa-manifesto/` | Historical/Portuguese enterprise foundation | legacy foundation material | preserve; do not create new duplicates |
-| `01-meta-architecture/` | Meta Architecture | architectural relationships and patterns | canonical candidate |
-| `01-meta-arquitetura/` | Historical/Portuguese meta architecture | legacy material | preserve; consolidate by ADR later |
-| `02-architecture-library/` | Architecture Library | canonical architecture details, maps, standards | active canonical architecture library |
-| `03-process-library/` | Process | process definitions | active |
-| `04-knowledge-handbook/` | Knowledge | knowledge handbook and operating guidance | active |
-| `05-cognitive-platform/` | Cognitive Platform | cognitive boundaries and normative design | active canonical cognitive design |
-| `05-cognitivo-plataforma/` | Historical/Portuguese cognitive platform | legacy material | preserve; no new duplicates |
-| `06-knowledge-engineering/` | Knowledge Engineering | acquisition, normalization, retrieval, evidence | active |
-| `07-data-engineering/` | Data Engineering | data contracts, schemas, lineage, quality | active |
-| `07-engenharia-de dados/` | Historical/Portuguese data engineering | legacy material | preserve; no new duplicates |
-| `08-ai/` | AI | provider and model governance | active |
-| `09-governance/` | Governance | security, policy, privacy, provenance, audit | active |
-| `10-adr/` | ADR | architectural decisions | active canonical decisions |
-| `11-models-library/` or `11-modelos/` | Models | reusable models | reconcile naming later |
-| `12-system-engineering/` or `12-sistemas/` | System Engineering | runtime and deployment | reconcile naming later |
-| `13-reference-architecture/` or `13-referências/` | Reference Architecture | reusable reference structures | reconcile naming later |
-| `14-roadmap/` or `14-roteiros/` | Roadmap | future work and evolution | roadmap only |
-| `15-assets/` or `15-ativos/` | Assets | reusable assets | reconcile naming later |
-| `Docs/` | Documentation | evolution/supporting docs | supporting only unless explicitly made canonical |
-| `src/elo/` | Executable ELO | current implementation core | canonical executable root for current evolution |
+| `00-enterprise-manifest/` | Enterprise Constitution | permanent principles and constitutional artifacts | canonical |
+| `00-empresa-manifesto/` | Enterprise Constitution | historical Portuguese foundation | migration source; no new artifacts |
+| `01-meta-architecture/` | Meta Architecture | architectural relationships and patterns | canonical |
+| `01-meta-arquitetura/` | Meta Architecture | historical Portuguese meta architecture | migration source; content review required |
+| `02-architecture-library/` | Architecture Library | canonical architecture details, maps, standards | canonical |
+| `03-process-library/` | Process | process definitions | canonical |
+| `04-knowledge-handbook/` | Knowledge | knowledge handbook and operating guidance | canonical |
+| `05-cognitive-platform/` | Cognitive Platform | cognitive boundaries and normative design | canonical |
+| `05-cognitivo-plataforma/` | Cognitive Platform | historical Portuguese cognitive material | migration source; content review required |
+| `06-knowledge-engineering/` | Knowledge Engineering | acquisition, normalization, retrieval, evidence | canonical |
+| `07-data-engineering/` | Data Engineering | data contracts, schemas, lineage, quality | canonical |
+| `07-engenharia-de dados/` | Data Engineering | historical Portuguese data engineering | migration source; content review required |
+| `08-ai/` | AI | provider and model governance | canonical |
+| `09-governance/` | Governance | security, policy, privacy, provenance, audit | canonical |
+| `10-adr/` | ADR | architectural decisions | canonical |
+| `11-models-library/` | Models | reusable models | canonical |
+| `11-modelos/` | Models | historical Portuguese model library | migration source; review before removal |
+| `12-system-engineering/` | System Engineering | runtime and deployment | canonical |
+| `12-sistemas/` | System Engineering | historical Portuguese system engineering | migration source; review before removal |
+| `13-reference-architecture/` | Reference Architecture | reusable reference structures | canonical |
+| `13-referências/` | Reference Architecture | historical Portuguese references | migration source; review before removal |
+| `14-roadmap/` | Roadmap | future work and evolution | canonical |
+| `14-roteiros/` | Roadmap | historical Portuguese roadmap | migration source; review before removal |
+| `15-assets/` | Assets | reusable assets | canonical |
+| `15-ativos/` | Assets | historical Portuguese assets | migration source; review before removal |
+| `Docs/` | Documentation | evolution/supporting docs | supporting only unless explicitly canonical |
+| `src/elo/` | Executable ELO | current implementation core | canonical executable root |
 | `tests/` | Verification | automated tests and behavioral evidence | canonical test root |
 
-## Naming rule
+## Consolidation policy
 
-Do not create a new top-level folder when an existing semantic owner already exists.
+ADR `ADR-2026-08-19-BILINGUAL-TREE-CONSOLIDATION.md` approves controlled consolidation. The target state is one canonical owner per concept. Existing Portuguese content must first be classified as equivalent, complementary, conflicting, exclusive, or historical before migration/removal.
 
-Before renaming/consolidating Portuguese/English variants:
+No deletion is authorized solely because a directory is Portuguese. Content must be preserved or migrated before the historical path is removed.
 
-- inventory files;
-- identify references;
-- check links/imports;
-- assess history/provenance;
-- define target authority;
-- create ADR when structural impact is material;
-- migrate with compatibility where required.
+## Migration rule
+
+For each pair:
+
+1. inventory files;
+2. compare semantic purpose and content;
+3. migrate equivalent/complementary content into the canonical owner;
+4. resolve conflicts explicitly;
+5. update references/indexes;
+6. run CI and relevant gates;
+7. mark the historical path DEPRECATED/SUPERSEDED or remove it only when empty and safe.
 
 ## Executable rule
 
-`src/elo/` is the current executable nucleus referenced by the active README and governance model. The historical `ELO/` tree from PR #1 is not automatically canonical.
+`src/elo/` is the current executable nucleus. Historical trees do not create a second runtime Core.
 
-## Future consolidation
+## Target state
 
-A future ADR should decide whether Portuguese/English duplicate directory families are:
+`one concept → one canonical owner → preserved provenance → no parallel authority`.
 
-- consolidated;
-- redirected through canonical README/index files;
-- formally deprecated;
-- or retained as historical archives.
+Portuguese and English are documentation languages, not independent architectural authorities.
