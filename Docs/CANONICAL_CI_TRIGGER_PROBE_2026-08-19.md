@@ -1,23 +1,40 @@
 # ELO — CI Trigger Probe
 
-## Purpose
-Minimal, non-runtime change used solely to generate a fresh `pull_request` event for PR #267 after repository Actions settings were reviewed.
+## Finalidade
+Mudança mínima e não-runtime utilizada para gerar uma nova execução do `pull_request` para o PR #267 depois da revisão das configurações do GitHub Actions.
 
-## Safety constraints
-- Documentation only.
-- No Core/runtime changes.
-- No resolver changes.
-- No knowledge content changes.
-- No historical tree deletion.
-- No semantic migration.
+## Distinção terminológica
 
-## Expected evidence
-The new commit must produce a GitHub Actions `workflow_run` for the PR head SHA. Absence of a run remains `NO_EVIDENCE/BLOCKED` and must not be interpreted as a test result.
+Este documento espera um **workflow run** do `ELO Evolution Gate` associado ao SHA do PR.
 
-## Next gates
-1. Confirm workflow run exists.
-2. Inspect jobs and steps.
-3. Inspect compileall/pytest results.
-4. Execute canonical consolidation tests T01–T10.
-5. Correct failures and repeat until green.
-6. Only then evaluate merge readiness.
+Ele não exige nem pressupõe um evento GitHub Actions chamado **`workflow_run`**. Esse evento é um mecanismo de gatilho distinto e somente deve ser mencionado se existir um workflow configurado explicitamente para utilizá-lo.
+
+## Restrições de segurança
+
+- somente documentação;
+- nenhuma alteração de Core/runtime;
+- nenhuma alteração do resolver;
+- nenhum conteúdo de conhecimento alterado;
+- nenhuma exclusão da árvore histórica;
+- nenhuma migração semântica.
+
+## Evidência esperada
+
+O novo commit deve produzir um **workflow run** do `ELO Evolution Gate` associado ao SHA do PR.
+
+Ausência de workflow run permanece:
+
+```text
+NO_EVIDENCE = BLOCKED
+```
+
+e não pode ser interpretada como teste aprovado ou reprovado.
+
+## Próximos gates
+
+1. Confirmar o workflow run associado ao SHA.
+2. Inspecionar jobs e etapas.
+3. Inspecionar `compileall` e `pytest`.
+4. Executar/validar os testes canônicos T01–T10 quando materializados.
+5. Corrigir falhas e repetir a validação até obter evidência verde.
+6. Somente então avaliar prontidão para merge.
