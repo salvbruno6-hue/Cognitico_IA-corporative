@@ -14,7 +14,7 @@ O `README.md` de `00-enterprise-manifest/` descreve a fonte estratégica e enume
 
 ## Conclusão atual
 
-A existência de nomes correspondentes não permite classificar a família inteira como `EQ`. A estrutura observada indica, no mínimo, **assimetria de conteúdo**: o diretório inglês canônico proposto funciona atualmente como uma estrutura resumida/índice, enquanto o diretório português contém artefatos de conteúdo que ainda precisam ser comparados individualmente.
+A existência de nomes correspondentes não permite classificar a família inteira como `EQ`. A estrutura observada indica, no mínimo, assimetria de conteúdo: o diretório inglês canônico proposto funciona atualmente como uma estrutura resumida/índice, enquanto o diretório português contém artefatos de conteúdo que precisam ser comparados individualmente.
 
 ### Classificação da família
 `CONTENT_REVIEW_REQUIRED`
@@ -22,40 +22,42 @@ A existência de nomes correspondentes não permite classificar a família intei
 ### Hipóteses permitidas para auditoria de arquivos
 
 - `CP` pode ser aplicável quando o conteúdo inglês e português tiverem contribuições complementares.
-- `EX` deve ser aplicado aos artefatos portugueses sem correspondente semântico comprovado.
+- `EX` deve ser aplicado aos artefatos sem correspondente semântico comprovado.
 - `EQ` somente após comparação do conteúdo.
-- `HI` quando a origem portuguesa precisar ser preservada como histórico/proveniência.
+- `HI` quando a origem precisar ser preservada como histórico/proveniência.
 - `CF` se versões divergentes expressarem regras incompatíveis.
+- `NR` somente quando houver evidência de que o conteúdo não deve permanecer no modelo canônico.
 
-## Primeiras evidências em nível de arquivo
+## Auditoria em nível de arquivo
 
-### `00-empresa-manifesto/01_Missao.md`
+| Arquivo | Conteúdo observado | Estado | Decisão atual |
+|---|---|---|---|
+| `01_Missao.md` | Missão empresarial; integração, conhecimento, execução; rastreabilidade aos demais documentos | `PENDING` | Comparar semanticamente com `MISSAO.md`, `ENTERPRISE_MANIFESTO.md` e demais fontes |
+| `MISSAO.md` | Missão; propósito institucional; valor para o negócio; planejamento/operação; ecossistema cognitivo | `PENDING` | Não tratar como duplicata de `01_Missao.md` apenas pelo nome |
+| `ENTERPRISE_MANIFESTO.md` | Documento agregador; missão e escopo envolvendo visão, objetivos, capacidades, cadeia de valor, modelo operacional, stakeholders e regras | `PENDING` | Comparar função e escopo com o `README.md` inglês e os documentos componentes |
+| `02_Objetivos.md` | Objetivos estratégicos; decisão/operação; rastreabilidade; redução de redundância; evolução incremental | `PENDING` | Comparar com objetivos presentes no manifesto agregador e no lado inglês |
+| `03_Capacidades.md` | Capacidades empresariais; análise/decisão; conhecimento; integração de recursos; rastreabilidade; evolução | `PENDING` | Comparar com capacidades citadas no manifesto e possíveis artefatos equivalentes |
+| `04_Cadeia_de_Valor.md` | Transformação de informação em conhecimento útil; decisão; planejamento; operação; governança; integração entre domínios | `PENDING` | Comparar função e granularidade com referências do manifesto |
+| `05_Modelo_Operacional.md` | Estrutura operacional; capacidade, recursos e processos; governança, planejamento e execução | `PENDING` | Comparar com o escopo operacional dos documentos agregadores |
+| `06_Stakeholders.md` | Áreas estratégicas, engenharia, operação, governança, usuários de negócio, patrocinadores e mantenedores | `PENDING` | Comparar conteúdo e responsabilidade com consumidores e fontes estratégicas |
+| `07_Regras_Estrategicas.md` | Relações entre missão, objetivos, capacidades, recursos, cadeia de valor, operação e stakeholders; regras de rastreabilidade | `PENDING` | Comparar como fonte normativa, sem presumir equivalência com qualquer resumo |
 
-Conteúdo identificado: missão empresarial do ELO como plataforma de integração, conhecimento e execução; estabelece consistência com arquitetura, decisões estratégicas/técnicas e rastreabilidade aos demais documentos do manifesto. SHA do blob: `adefd0880fa54a97c4481cf4995b93625165458d`. fileciteturn795file0L2-L4
+## Observações semânticas
 
-**Classificação:** `PENDING`.
+### Missão
+`01_Missao.md` e `MISSAO.md` compartilham o mesmo título, mas não são textualmente equivalentes. `01_Missao.md` enfatiza integração, conhecimento, execução e rastreabilidade; `MISSAO.md` enfatiza propósito institucional, valor ao negócio, planejamento/operação e suporte à decisão. A relação deve ser decidida como `EQ`, `CP`, `HI` ou outra classificação somente após comparação com os demais documentos e referências.
 
-Não há evidência suficiente, nesta etapa, para afirmar `EQ`, `CP`, `CF`, `EX`, `HI` ou `NR`.
+### Documento agregador
+`ENTERPRISE_MANIFESTO.md` possui função diferente de um documento de missão isolado: seu escopo explicitamente agrega sete áreas estratégicas. Portanto, não deve ser fundido automaticamente com qualquer um dos documentos componentes.
 
-### `00-empresa-manifesto/MISSAO.md`
-
-Conteúdo identificado: missão empresarial do ELO como plataforma de integração, conhecimento e suporte à decisão; inclui propósito institucional, valor entregue ao negócio, planejamento/operação e relação com o ecossistema cognitivo. SHA do blob: `4d2f5ff9c75779803b220007fde0c98cb8377e96`. fileciteturn797file0L2-L4
-
-**Classificação:** `PENDING`.
-
-Este arquivo não deve ser automaticamente tratado como duplicata de `01_Missao.md`: embora ambos tenham o título `Missão`, os objetivos e o conteúdo diferem. A comparação semântica precisa determinar se são versões concorrentes, complementares ou um documento mais amplo e outro derivado.
-
-### `00-empresa-manifesto/ENTERPRISE_MANIFESTO.md`
-
-Conteúdo identificado: define fundamentos empresariais do ELO; seu escopo agrega visão empresarial, objetivos estratégicos, capacidades centrais, cadeia de valor, modelo operacional, stakeholders e regras estratégicas; estabelece a camada de intenção estratégica que orienta arquitetura e implementação. SHA do blob: `02ff79c06e4acc84ac1313be0bd68722f53f0ec5`. fileciteturn796file0L2-L4
-
-**Classificação:** `PENDING`.
-
-Há forte relação temática com `00-enterprise-manifest/README.md` e com os demais artefatos da árvore portuguesa, mas isso ainda não prova equivalência. Deve ser tratado como possível documento agregador e comparado contra os componentes antes de qualquer decisão.
+### Cadeia de dependências conceituais
+Os próprios documentos estabelecem relações entre missão, objetivos, capacidades, cadeia de valor, modelo operacional e stakeholders. Isso significa que uma futura consolidação deve preservar essas relações, e não apenas substituir arquivos por nomes canônicos.
 
 ## Identidade
 
-Nenhum `artifact_id` ou `concept_id` definitivo é atribuído nesta etapa. O nome da pasta não é evidência suficiente de identidade.
+Nenhum `artifact_id` ou `concept_id` definitivo é atribuído nesta etapa. O nome da pasta, o nome do arquivo ou a tradução do título não são evidência suficiente de identidade.
+
+Para cada artefato aprovado posteriormente, a identidade deverá ser estabelecida após evidência de conteúdo, hash, proveniência e referências.
 
 ## Referências
 
@@ -65,8 +67,14 @@ Ainda não consideradas completas. Devem ser levantadas antes de qualquer movime
 
 1. Não remover `00-empresa-manifesto/`.
 2. Não declarar equivalência da família 00.
-3. Auditar cada arquivo português contra os artefatos existentes no diretório inglês e contra consumidores/referências.
-4. Registrar conteúdo exclusivo antes de qualquer consolidação.
-5. Preservar proveniência de cada origem.
-6. Não consolidar `01_Missao.md` e `MISSAO.md` apenas pelo nome; a divergência de conteúdo exige decisão semântica explícita.
-7. Não tratar `ENTERPRISE_MANIFESTO.md` como equivalente ao `README.md` inglês sem comparar escopo e função.
+3. Não consolidar arquivos apenas por tradução ou semelhança nominal.
+4. Completar a comparação de conteúdo e função de cada artefato.
+5. Levantar referências e consumidores antes de qualquer alteração de endereço.
+6. Registrar conteúdo exclusivo antes de qualquer consolidação.
+7. Preservar proveniência de cada origem.
+8. Não atribuir `artifact_id` ou `concept_id` definitivo enquanto a evidência estiver `PENDING`.
+9. Não alterar `src/elo/`, `SourceResolver` ou outra autoridade runtime nesta etapa.
+
+## Próxima etapa
+
+Concluir a análise semântica e de referências da família 00. Somente após a família 00 possuir evidência suficiente será replicado o procedimento nas famílias `01`, `05`, `07`, `11`, `12`, `13`, `14` e `15`.
