@@ -19,6 +19,7 @@ from .cross_domain import CorporateDomain, CrossDomainGovernance, CrossDomainRel
 from .diagnostic_scenario_engine import DiagnosticLens, DiagnosticObservation, DiagnosticScenario, DiagnosticScenarioEngine, ScenarioMode
 from .evolution_gate import EvolutionClassification, EvolutionDecision, EvolutionGate, EvolutionProposal
 from .evolution_memory import EvolutionMemory, EvolutionRecord
+from .forecasting import ForecastObservation, ForecastResult, ForecastStatus, GovernedForecastFaculty
 from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
 from .hybrid_bridge import HybridCapabilityBridge, ProviderSelection
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
@@ -45,11 +46,11 @@ __all__ = [
     "CausalAssessment", "ConversationEvent", "ConversationIntake", "ConversationIntakeResult", "CostComponent",
     "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
     "EloCanonicalIdentity", "EvolutionClassification", "EvolutionDecision", "EvolutionGate", "EvolutionMemory",
-    "EvolutionProposal", "EvolutionRecord", "GPTDecisionHandoff", "GovernedBudgetingService", "HybridCapabilityBridge",
-    "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback",
-    "probe_local_tools", "ProductionEvent", "ProductionFlow", "ProductionStage", "ProviderSelection", "Scenario",
-    "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine", "SpecialistFeedback",
-    "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation",
-    "TemporalValidity", "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "SolicitationLearningCandidate",
-    "build_learning_candidate", "classify_candidate",
+    "EvolutionProposal", "EvolutionRecord", "ForecastObservation", "ForecastResult", "ForecastStatus", "GovernedForecastFaculty",
+    "GPTDecisionHandoff", "GovernedBudgetingService", "HybridCapabilityBridge", "KnowledgeAdmission", "MATURITY_DIMENSIONS",
+    "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback", "probe_local_tools", "ProductionEvent", "ProductionFlow",
+    "ProductionStage", "ProviderSelection", "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate",
+    "SourceDiscoveryEngine", "SpecialistFeedback", "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment",
+    "SystemicModel", "SystemicRelation", "TemporalValidity", "UncertaintyAssessment", "assess_resolution_for_forward_strategy",
+    "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
