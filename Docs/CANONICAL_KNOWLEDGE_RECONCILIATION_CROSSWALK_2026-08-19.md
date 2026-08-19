@@ -44,7 +44,8 @@ Cada família documental é uma região conectada desse sistema. Um arquivo não
 - criar uma arquitetura paralela;
 - criar uma segunda autoridade documental ou runtime;
 - remover conhecimento histórico sem preservação e gates;
-- transformar a auditoria estrutural em desenvolvimento de novas capacidades.
+- transformar a auditoria estrutural em desenvolvimento de novas capacidades;
+- preencher artificialmente famílias estruturais vazias apenas para produzir simetria visual.
 
 ## 1. Hierarquia de autoridade encontrada
 
@@ -126,31 +127,31 @@ O `CANONICAL_KNOWLEDGE_ARTIFACT_ID_REGISTRY_2026-08-19.json` já registra cinco 
 
 ### 01 — Architecture Master
 
-`01-meta-architecture/ELO_ARCHITECTURE_MASTER.md` possui `Artifact ID ELO.ARCH.01.MASTER`, `Concept ID ELO.ARCHITECTURE.MASTER`, identifica o caminho histórico e declara autoridade `ARCHITECTURE`. O conteúdo-base corresponde ao arquivo histórico; o canônico adiciona o contrato de canonicalização e rastreabilidade. fileciteturn887file0L2-L5 fileciteturn888file0L2-L5
+`01-meta-architecture/ELO_ARCHITECTURE_MASTER.md` possui `Artifact ID ELO.ARCH.01.MASTER`, `Concept ID ELO.ARCHITECTURE.MASTER`, identifica o caminho histórico e declara autoridade `ARCHITECTURE`. O conteúdo-base corresponde ao arquivo histórico; o canônico adiciona o contrato de canonicalização e rastreabilidade.
 
 **Estado:** `CANONICALIZED / CONSUMER_MAPPING_PENDING`.
 
 ### 07 — Data Engineering Master
 
-O canônico e o histórico possuem o mesmo propósito, tópicos centrais e relação com a plataforma. O canônico adiciona metadados de identidade e o contrato de endereço/alias. fileciteturn892file0L2-L5 fileciteturn896file0L2-L5
+O canônico e o histórico possuem o mesmo propósito, tópicos centrais e relação com a plataforma. O canônico adiciona metadados de identidade e o contrato de endereço/alias.
 
 **Estado:** `CANONICALIZED / CONSUMER_MAPPING_PENDING`.
 
 ### 11 — Models Library Master
 
-O canônico e o histórico possuem o mesmo conteúdo funcional de propósito, tópicos e relação com a plataforma. O canônico acrescenta identidade, autoridade e contrato de canonicalização. fileciteturn893file0L2-L5 fileciteturn897file0L2-L5
+O canônico e o histórico possuem o mesmo conteúdo funcional de propósito, tópicos e relação com a plataforma. O canônico acrescenta identidade, autoridade e contrato de canonicalização.
 
 **Estado:** `CANONICALIZED / CONSUMER_MAPPING_PENDING`.
 
 ### 12 — Systems Engineering Master
 
-O canônico e o histórico possuem o mesmo núcleo funcional: backend, portal, integrações, dashboards, runtime e limites sistêmicos. O canônico acrescenta identidade e contrato de proveniência. fileciteturn894file0L2-L5 fileciteturn898file0L2-L5
+O canônico e o histórico possuem o mesmo núcleo funcional: backend, portal, integrações, dashboards, runtime e limites sistêmicos. O canônico acrescenta identidade e contrato de proveniência.
 
 **Estado:** `CANONICALIZED / CONSUMER_MAPPING_PENDING`.
 
 ### 14 — Roadmap Master
 
-O canônico preserva propósito, fases e uso do histórico, acrescentando identidade e contrato de canonicalização. fileciteturn895file0L2-L5 fileciteturn899file0L2-L5
+O canônico preserva propósito, fases e uso do histórico, acrescentando identidade e contrato de canonicalização.
 
 **Estado:** `CANONICALIZED / CONSUMER_MAPPING_PENDING`.
 
@@ -174,13 +175,41 @@ remoção somente após gate
 
 ## 6. Reconciliação das famílias 01, 05, 07, 11 e 12
 
-O mapa estrutural define `01-meta-architecture`, `05-cognitive-platform`, `07-data-engineering`, `11-models-library` e `12-system-engineering` como proprietários canônicos, enquanto as árvores portuguesas correspondentes são fontes históricas que exigem revisão conforme o caso. fileciteturn890file0L2-L2
+O mapa estrutural define `01-meta-architecture`, `05-cognitive-platform`, `07-data-engineering`, `11-models-library` e `12-system-engineering` como proprietários canônicos, enquanto as árvores portuguesas correspondentes são fontes históricas que exigem revisão conforme o caso.
 
 A família 01 já possui pelo menos um artefato canonicalizado com evidência contextual. As famílias 07, 11 e 12 também possuem artefatos master já registrados como cópias canônicas no registry de identidade. Portanto, elas não devem voltar ao estado genérico de `PENDING` por inteiro.
 
 A unidade correta de auditoria é o **artefato**, não somente a família.
 
-A família 05 merece tratamento diferente: `05-cognitive-platform/` já contém estrutura operacional efetiva, incluindo engine cognitivo, decision engine, memory/reasoning, especialistas e contratos Multiteiner, e não deve ser tratada como simples cópia da árvore portuguesa. O diretório canônico contém arquivos efetivos, e a árvore deve ser reconciliada por função e conexão, não por espelhamento. fileciteturn901file0L2-L2
+A família 05 merece tratamento diferente: `05-cognitive-platform/` já contém estrutura operacional efetiva, incluindo engine cognitivo, decision engine, memory/reasoning, especialistas e contratos Multiteiner, e não deve ser tratada como simples cópia da árvore portuguesa. O diretório canônico contém arquivos efetivos, e a árvore deve ser reconciliada por função e conexão, não por espelhamento.
+
+### 6.1 — Famílias 13 e 15: estruturas vazias não são lacunas a preencher automaticamente
+
+A inspeção do HEAD atual mostra que `13-reference-architecture/` contém somente `.gitkeep` e `15-assets/` contém somente `.gitkeep`.
+
+Isso significa **estrutura presente, conteúdo canônico ainda não materializado nesse endereço**. Não significa, por si só, que o ELO esteja sem conhecimento correspondente em outros locais.
+
+A decisão estrutural desta fase é:
+
+```text
+família vazia
+      ↓
+NÃO preencher por simetria
+      ↓
+NÃO criar conteúdo novo
+      ↓
+procurar conhecimento existente / owner / referências
+      ↓
+se houver conteúdo → reconciliar por conceito
+se não houver conteúdo → manter scaffold
+```
+
+Portanto:
+
+- `13-reference-architecture/` = `SCAFFOLD_ONLY / DISCOVERY_REQUIRED`;
+- `15-assets/` = `SCAFFOLD_ONLY / DISCOVERY_REQUIRED`.
+
+O `.gitkeep` é evidência de estrutura física, não evidência de conteúdo conceitual.
 
 ## 7. Reconciliação com o runtime histórico
 
@@ -242,7 +271,8 @@ O diagrama é uma **hipótese estrutural de conexão para auditoria**, não uma 
 | 12 Systems Engineering Master | CANONICALIZED |
 | 14 Roadmap Master | CANONICALIZED |
 | Família 05 — estrutura operacional | CONFIRMED / CONTENT_RECONCILIATION_REQUIRED |
-| Famílias 13 e 15 — decisão arquivo-a-arquivo | PENDING |
+| Família 13 — scaffold only | DISCOVERY_REQUIRED |
+| Família 15 — scaffold only | DISCOVERY_REQUIRED |
 | Consumidores físicos completos | PENDING |
 | T01–T10 executados no HEAD | PENDING |
 | CI do HEAD atual | NO_EVIDENCE |
@@ -260,7 +290,8 @@ Antes de adicionar novos registros de governança:
 5. usar o mapa de impacto quando o dado for dependência;
 6. usar evidência contextual quando a relação tiver sido comprovada;
 7. avaliar o artefato dentro do fluxo estrutural do ELO;
-8. somente criar novo documento se houver uma função não coberta.
+8. não preencher famílias vazias sem evidência de conteúdo existente;
+9. somente criar novo documento se houver uma função não coberta.
 
 ## 11. Decisão
 
