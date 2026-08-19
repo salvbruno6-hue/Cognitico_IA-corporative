@@ -22,6 +22,7 @@ from .evolution_memory import EvolutionMemory, EvolutionRecord
 from .forecasting import ForecastObservation, ForecastResult, ForecastStatus, GovernedForecastFaculty
 from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
 from .hybrid_bridge import HybridCapabilityBridge, ProviderSelection
+from .identity_trust import EloIdentity, EloRole, TrustDecision, TrustRequest, TrustResult, evaluate_trust
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
 from .local_capabilities import probe_local_tools
 from .maturity_engine import MATURITY_DIMENSIONS, MaturityAssessment
@@ -45,12 +46,13 @@ __all__ = [
     "CorporateDomain", "CorporateSystemicView", "CrossDomainGovernance", "CrossDomainRelation", "CrossDomainValidation",
     "CausalAssessment", "ConversationEvent", "ConversationIntake", "ConversationIntakeResult", "CostComponent",
     "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
-    "EloCanonicalIdentity", "EvolutionClassification", "EvolutionDecision", "EvolutionGate", "EvolutionMemory",
+    "EloCanonicalIdentity", "EloIdentity", "EloRole", "EvolutionClassification", "EvolutionDecision", "EvolutionGate", "EvolutionMemory",
     "EvolutionProposal", "EvolutionRecord", "ForecastObservation", "ForecastResult", "ForecastStatus", "GovernedForecastFaculty",
     "GPTDecisionHandoff", "GovernedBudgetingService", "HybridCapabilityBridge", "KnowledgeAdmission", "MATURITY_DIMENSIONS",
     "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback", "probe_local_tools", "ProductionEvent", "ProductionFlow",
     "ProductionStage", "ProviderSelection", "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate",
     "SourceDiscoveryEngine", "SpecialistFeedback", "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment",
-    "SystemicModel", "SystemicRelation", "TemporalValidity", "UncertaintyAssessment", "assess_resolution_for_forward_strategy",
-    "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
+    "SystemicModel", "SystemicRelation", "TemporalValidity", "TrustDecision", "TrustRequest", "TrustResult",
+    "UncertaintyAssessment", "assess_resolution_for_forward_strategy", "evaluate_trust", "SolicitationLearningCandidate",
+    "build_learning_candidate", "classify_candidate",
 ]
