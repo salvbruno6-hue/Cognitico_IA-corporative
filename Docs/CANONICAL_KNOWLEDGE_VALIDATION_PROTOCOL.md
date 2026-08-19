@@ -34,7 +34,23 @@ O `SourceResolver` existente permanece a fronteira runtime. O índice canônico 
 ## 7. RAG / Memory / Evidence
 Indexação, memória e evidência devem apontar para `artifact_id`/versão/proveniência, não usar `canonical_path` como identidade primária.
 
-## 8. Testes mínimos
+## 8. Execução paralela por núcleos virtuais
+
+A validação pode ser particionada em núcleos virtuais para acelerar a análise de múltiplos arquivos:
+
+```text
+A estrutura/famílias
+B equivalência/duplicidade
+C referências/consumidores
+D relações/proveniência
+E testes/CI/gates
+          ↓
+   reconciliação central
+```
+
+Cada núcleo pode analisar vários arquivos independentes na mesma rodada. Nenhum núcleo pode promover sozinho um artefato a autoridade canônica ou executar remoção.
+
+## 9. Testes mínimos
 
 ```text
 T01: artifact_id único
@@ -49,7 +65,7 @@ T09: índices/documentação atualizados
 T10: CI sem falhas introduzidas pela consolidação
 ```
 
-## 9. Gate
+## 10. Gate
 
 ```text
 T01–T10 PASS
@@ -59,7 +75,7 @@ MERGE CANDIDATE
 
 Qualquer falha bloqueia depreciação e remoção física.
 
-## 10. Ordem de execução
+## 11. Ordem de execução
 
 1. validar os masters já registrados;
 2. registrar evidência por artefato;
@@ -70,6 +86,10 @@ Qualquer falha bloqueia depreciação e remoção física.
 7. repetir até gate verde;
 8. somente então marcar a árvore histórica como `DEPRECATED`.
 
-## 11. Escopo protegido
+## 12. Regra de lote
+
+Quando vários artefatos independentes forem analisados, consolidar as alterações coerentes em lote e preservar um único registro de decisão por rodada. Conflitos entre núcleos devem retornar à reconciliação central antes do commit.
+
+## 13. Escopo protegido
 
 Este protocolo não autoriza alterações em `src/elo/`, Cognitive Core, contratos executáveis ou runtime apenas para resolver nomenclatura documental.
