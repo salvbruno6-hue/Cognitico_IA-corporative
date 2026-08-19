@@ -11,10 +11,10 @@
 PR #267 — `refactor/canonical-knowledge-audit`
 
 ```text
-8143d8a74a95d3d61ae0374ceee2f8edec2628ad
+6d98acee726f3c9cce09241e465e15ce808aa0e1
 ```
 
-O PR permanece aberto e `mergeable=false`. A ausência de evidência de CI para o HEAD atual mantém o gate de merge bloqueado.
+O PR permanece aberto e `mergeable=false`. O HEAD atual não possui, nas consultas de CI disponíveis, uma execução comprovada associada ao SHA. A ausência de evidência mantém o gate de merge bloqueado.
 
 ## Concluído
 
@@ -32,7 +32,10 @@ O PR permanece aberto e `mergeable=false`. A ausência de evidência de CI para 
 - mapa de referências da família 00 materializado;
 - evidência contextual da família 00 materializada;
 - regras de navegação, capability registry, inventário e plano de migração cruzados;
-- distinção entre descoberta, evidência contextual e impacto operacional formalizada.
+- distinção entre descoberta, evidência contextual e impacto operacional formalizada;
+- Enterprise Handbook inspecionado como referência arquitetural/governança;
+- `src/elo/integrations/enterprise/README.md` inspecionado sem comprovação de consumo físico da família 00;
+- registry documental existente reconciliado com a regra de não inventar identidade antes da auditoria.
 
 ## Evidência contextual da família 00
 
@@ -56,6 +59,14 @@ IMPACT     → consumidor/dependência operacional confirmada
 
 Um resultado de busca isolado não promove um artefato a consumidor. Ausência de resultado de busca não prova ausência do arquivo.
 
+## Reconciliação dos registros existentes
+
+O `CANONICAL_KNOWLEDGE_MIGRATION_REGISTRY.json` permanece como o registro documental único da fase. Seu contrato mantém `runtime_authority = existing SourceResolver`, `runtime_change_allowed = false` e `physical_removal_allowed = false`. As nove famílias permanecem com identidade, referências e proveniência pendentes até evidência suficiente.
+
+A matriz `CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md` continua sendo a autoridade de classificação EQ/CP/CF/EX/HI/NR e define que a decisão deve ocorrer depois de inventário, conteúdo/hash, classificação e identidade, seguida de mapa de referências, decisão de migração, atualização de índices/aliases e testes.
+
+Os testes de governança existentes validam essas invariantes sem alterar `src/elo/`.
+
 ## Em execução
 
 - inventário físico completo das famílias PT/EN;
@@ -70,7 +81,9 @@ Um resultado de busca isolado não promove um artefato a consumidor. Ausência d
 
 O CI do SHA anterior `9b1e2fd967c0a3df3854f1c338f0cf667e3ff258` passou no ELO Evolution Gate #728.
 
-As alterações documentais posteriores a esse run levaram o PR ao HEAD `8143d8a74a95d3d61ae0374ceee2f8edec2628ad`. Até existir execução comprovada para esse SHA, o estado permanece:
+As alterações documentais posteriores a esse run levaram o PR ao HEAD `6d98acee726f3c9cce09241e465e15ce808aa0e1`. A consulta disponível para workflows associados ao SHA atual não retornou execução comprovada.
+
+Até existir execução comprovada para esse SHA, o estado permanece:
 
 ```text
 CI = NO_EVIDENCE
