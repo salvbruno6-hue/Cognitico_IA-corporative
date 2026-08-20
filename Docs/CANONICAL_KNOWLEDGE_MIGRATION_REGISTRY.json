@@ -11,16 +11,7 @@
       "classification": "CONSOLIDATED",
       "canonical_owner": "00-enterprise-manifest/",
       "legacy_owner": "00-empresa-manifesto/",
-      "migrated_artifacts": [
-        "01_Missao.md",
-        "02_Objetivos.md",
-        "03_Capacidades.md",
-        "04_Cadeia_de_Valor.md",
-        "05_Modelo_Operacional.md",
-        "06_Stakeholders.md",
-        "07_Regras_Estrategicas.md",
-        "ENTERPRISE_MANIFESTO.md"
-      ],
+      "migrated_artifacts": ["01_Missao.md", "02_Objetivos.md", "03_Capacidades.md", "04_Cadeia_de_Valor.md", "05_Modelo_Operacional.md", "06_Stakeholders.md", "07_Regras_Estrategicas.md", "ENTERPRISE_MANIFESTO.md"],
       "legacy_removal": "PENDING_REFERENCE_VALIDATION"
     },
     {
@@ -28,9 +19,11 @@
       "concept": "meta architecture",
       "portuguese_root": "01-meta-arquitetura/",
       "english_root": "01-meta-architecture/",
-      "classification": "CONTENT_REVIEW_REQUIRED",
+      "classification": "CONTENT_CONSOLIDATED_PENDING_REFERENCE_VALIDATION",
       "canonical_owner": "01-meta-architecture/",
-      "legacy_owner": "01-meta-arquitetura/"
+      "legacy_owner": "01-meta-arquitetura/",
+      "migrated_artifacts": ["01_Inteligencia_de_Demanda.md", "01_Mapa_Dominios.md", "02_Glossario.md", "03_Modelo_Conceitual.md", "04_Entidades.md", "05_Relacionamentos.md", "06_Regras_Negocio.md", "DOMAIN_ARCHITECTURE_FRAMEWORK.md", "ELO_ARCHITECTURE_MASTER.md"],
+      "legacy_removal": "PENDING_REFERENCE_VALIDATION"
     },
     {
       "family_id": "ELO.COGNITIVE.05",
@@ -102,6 +95,7 @@
     "Do not assign artifact identity from physical path alone.",
     "Do not mark a family physically consolidated until references and tests pass.",
     "Preserve historical provenance for migrated artifacts.",
-    "A consolidated family has one canonical owner even while legacy aliases remain temporarily resolvable."
+    "A consolidated family has one canonical owner even while legacy aliases remain temporarily resolvable.",
+    "For duplicate PT/EN families, classify every legacy artifact, merge complementary content into the canonical owner, then validate consumers before physical removal."
   ]
 }
