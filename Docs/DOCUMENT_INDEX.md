@@ -11,7 +11,7 @@
 - `04-knowledge-handbook/`
 - `05-cognitivo-plataforma/`
 - `06-knowledge-engineering/`
-- `07-engenharia-de dados/`
+- `07-engenharia de dados/`
 - `08-ai/`
 - `09-governança/`
 - `10-adr/`
