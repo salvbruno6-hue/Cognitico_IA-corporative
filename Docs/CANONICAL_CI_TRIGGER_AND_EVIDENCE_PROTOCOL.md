@@ -64,6 +64,44 @@ falha
 
 Nunca considerar a falha resolvida apenas por comentário ou aprovação manual.
 
+## Registro histórico da investigação de trigger
+
+A investigação realizada no ciclo de 2026-08-19 foi uma mudança mínima e não-runtime destinada a provocar uma nova execução do fluxo `pull_request` para o PR #267 depois da revisão das configurações do GitHub Actions.
+
+Restrições aplicadas:
+
+- somente documentação e configuração de workflow;
+- nenhuma alteração de Core/runtime;
+- nenhuma alteração do resolver;
+- nenhum conteúdo de conhecimento alterado;
+- nenhuma exclusão da árvore histórica;
+- nenhuma migração semântica.
+
+O HEAD observado antes dessa investigação foi `a6da38625cd2028e5fb17fcb0a6c69c1dde4ec74`.
+
+A evidência esperada para o ciclo era:
+
+```text
+novo SHA
+   ↓
+workflow run associado
+   ↓
+jobs
+   ↓
+compileall / pytest / Evolution Gate
+   ↓
+evidência verificável
+```
+
+Até que o workflow run seja localizado especificamente para o HEAD avaliado:
+
+```text
+CI_HEAD = NO_EVIDENCE
+MERGE = BLOCKED
+```
+
+A simples existência de execução antiga não satisfaz este gate.
+
 ## Regra de merge
 O PR somente pode ser candidato a merge quando:
 
