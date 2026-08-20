@@ -1,0 +1,51 @@
+version: "1.0"
+contract_id: ELO-ORCAMENTO-EXECUTION-001
+purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista."
+mode: supervised
+canonical_sources:
+  - Lista-Mãe
+  - taxonomy/MLT
+  - model_specifications
+  - compositions
+  - labor
+  - relations
+pipeline:
+  - id: intake
+    action: normalize_request
+  - id: master_list
+    action: resolve_master_list_items
+  - id: taxonomy
+    action: classify_mlt_family
+  - id: model_match
+    action: match_canonical_model
+  - id: delta_detection
+    action: detect_excess_items
+  - id: relation_audit
+    action: resolve_interconnections
+  - id: specialist_gate
+    action: request_specialist_validation_when_needed
+  - id: decision
+    action: produce_budget_decision
+  - id: learning
+    action: evaluate_experience_without_auto_promotion
+triggers:
+  budget_request: ["orçar", "orcamento", "montar orçamento", "levantar orçamento"]
+  comparison_request: ["comparar valores", "comparar orçamento", "diferença de preço"]
+  master_list_update: ["nova lista-mãe", "atualizar lista mãe", "novo item MLT"]
+  relation_request: ["interligação", "composição", "dependência", "conexão"]
+rules:
+  canonical_model_price: "Se houver preço fechado vigente na Lista-Mãe, não estimar nem substituir automaticamente."
+  excess_items: "Itens que excedam a composição do modelo devem virar linhas explícitas do orçamento."
+  relations: "Interligações elétricas, nivelamento, apoio, munck e equivalentes devem ser auditáveis e cobrados do especialista quando a decisão depender de contexto."
+  uncertainty: "Questão não compreendida deve ser agrupada como variação para posterior aprendizado; não inventar regra."
+  experience: "Experiência otimista só pode ser promovida após avaliação de valor, evidência, recorrência e identidade canônica."
+  structural_change: "Mudança estrutural exige Evolution Gate e aprovação apropriada."
+  temporal_memory: "Aprendizado de experiência permanece temporal até promoção canônica."
+outputs:
+  - structured_budget
+  - relation_audit
+  - specialist_questions
+  - confidence
+  - provenance
+  - candidate_learning
+  - decision_status
