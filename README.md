@@ -10,7 +10,7 @@ O objetivo é evoluir o ELO de uma base cognitiva governada para uma plataforma 
 
 ## Estado arquitetural consolidado
 
-A evolução deve preservar estas capacidades e fronteiras:
+A evolução deve preservar:
 
 - Cognitive Core e contratos canônicos;
 - Context, Knowledge, Evidence e Memory;
@@ -22,167 +22,124 @@ A evolução deve preservar estas capacidades e fronteiras:
 - integração empresarial sem transformar o ELO em substituto de ERP, MES, CRM ou outros sistemas de registro;
 - separação entre recomendação do ELO e decisão humana autorizada.
 
-O manifesto canônico define como não negociáveis: não criar um segundo Core, não criar memória/autoridade canônica paralela, não inventar fatos, preservar histórico e proveniência, e promover conhecimento contextual para o Core somente após generalização, validação e evolution gate.
+O manifesto canônico estabelece como não negociáveis: não criar um segundo Core, não criar memória/autoridade canônica paralela, não inventar fatos, preservar histórico e proveniência, e promover conhecimento contextual para o Core somente após generalização, validação e evolution gate.
+
+## Loop de Conclusão — diretriz permanente de manutenção arquitetural
+
+O **Loop de Conclusão** é um método permanente do ELO. Ele governa consolidação de pastas, migração de artefatos, resolução de duplicidades, aposentadoria de legado e qualquer manutenção estrutural que possa alterar a autoridade arquitetural.
+
+```text
+DETECTAR
+  ↓
+AUDITAR
+  ↓
+CLASSIFICAR ARQUIVO A ARQUIVO
+  ↓
+DEFINIR OWNER CANÔNICO
+  ↓
+ABSORVER SEMANTICAMENTE
+  ↓
+REORGANIZAR PARA FLUXO E COERÊNCIA
+  ↓
+RECONCILIAR artifact_id / legacy_path / aliases / referências / consumidores
+  ↓
+ATUALIZAR README / ÍNDICES / MAPAS / EVIDÊNCIAS
+  ↓
+TESTAR RESOLUÇÃO E INTEGRIDADE
+  ↓
+EXECUTAR GATES
+  ↓
+GATES APROVADOS → REMOÇÃO FÍSICA DO LEGADO
+  ↓
+VALIDAÇÃO PÓS-REMOÇÃO
+  ↓
+CONFIRMAR ZERO ÓRFÃOS / ZERO PERDA SEMÂNTICA / ZERO REFERÊNCIA LEGADA INDEVIDA
+  ↓
+MERGE
+  ↓
+VALIDAR MAIN
+  ↓
+REVARrer A ÁRVORE
+  ↓
+NOVA PENDÊNCIA? → VOLTAR AO INÍCIO
+  ↓
+NENHUMA PENDÊNCIA → ENCERRAR CICLO
+```
+
+### Regra de saída
+
+O ELO **não declara um ciclo concluído** enquanto existir uma etapa necessária pendente. A remoção física do legado faz parte do próprio loop e somente ocorre depois da absorção semântica e da aprovação dos gates. Após a remoção, os testes e a varredura estrutural são executados novamente.
+
+Critérios mínimos:
+
+1. conteúdo relevante classificado;
+2. conteúdo válido absorvido no owner canônico;
+3. arquivos internos organizados com fluxo e sentido;
+4. referências, consumidores, aliases, `artifact_id` e `legacy_path` reconciliados quando aplicáveis;
+5. README, índices e evidências atualizados;
+6. testes e gates verdes;
+7. legado fisicamente removido somente após os gates;
+8. validação pós-remoção sem órfãos ou regressões;
+9. merge realizado e `main` validado;
+10. nova varredura concluída.
+
+A diretriz normativa está registrada em [`ELO_REPOSITORY_NAVIGATION_RULES.md`](ELO_REPOSITORY_NAVIGATION_RULES.md).
 
 ## Consolidação documental validada
 
-A reconciliação dos masters documentais duplicados foi executada em etapas de identificação, classificação, canonicalização, depreciação, auditoria de consumidores/referências e remoção física segura.
+A reconciliação das variantes documentais foi executada por auditoria de conteúdo, classificação semântica, definição de owner, absorção, reconciliação de referências, validação e remoção física controlada.
 
-Os seguintes masters legados foram **deprecados, substituídos por owners canônicos e removidos fisicamente** no PR #271:
+### Famílias consolidadas
 
-| Artefato legado removido | Owner canônico preservado |
-|---|---|
-| `07-engenharia-de dados/DATA_ENGINEERING_MASTER.md` | `07-data-engineering/DATA_ENGINEERING_MASTER.md` |
-| `11-modelos/MODELS_LIBRARY_MASTER.md` | `11-models-library/MODELS_LIBRARY_MASTER.md` |
-| `12-sistemas/SYSTEMS_ENGINEERING_MASTER.md` | `12-system-engineering/SYSTEMS_ENGINEERING_MASTER.md` |
-| `14-roteiros/ROADMAP_MASTER.md` | `14-roadmap/ROADMAP_MASTER.md` |
+| Família | Owner canônico | Resultado |
+|---|---|---|
+| `00` | `00-enterprise-manifest/` | variante portuguesa absorvida e removida |
+| `05` | `05-cognitive-platform/` | variante portuguesa absorvida e removida |
+| `07` | `07-data-engineering/` | conteúdo técnico absorvido e variante portuguesa removida |
+| `09` | `09-governance/` | governance master absorvido e variante portuguesa removida |
+| `11` | `11-models-library/` | master legado removido |
+| `12` | `12-system-engineering/` | master legado removido |
+| `14` | `14-roadmap/` | master legado removido |
 
-A remoção foi validada no `main` pelo commit `9e7ace20698175f9c4e89947dc44ef3a05b43511`. Os workflows pós-merge **ELO PR1 Validation #476**, **ELO Behavioral Validation #872** e **ELO Evolution Gate #791** concluíram com sucesso.
+Os masters legados de `07`, `11`, `12` e `14` foram deprecados e removidos no ciclo anterior. As famílias `00`, `05`, `07` e `09` passaram pela regra de absorção semântica antes da remoção das variantes.
 
-A remoção foi limitada aos quatro masters redundantes. Documentos especializados, históricos e complementares não foram removidos apenas por semelhança nominal.
+### Família 07 — conteúdo absorvido
 
-## Consolidação da família 00 — Enterprise Manifest
+O conteúdo técnico anteriormente existente em `07-engenharia-de dados/` foi preservado no owner canônico `07-data-engineering/`:
 
-A família `00` foi auditada arquivo a arquivo. A pasta `00-enterprise-manifest/` era estrutural, contendo apenas README e placeholder, enquanto `00-empresa-manifesto/` continha os artefatos substantivos da missão, objetivos, capacidades, cadeia de valor, modelo operacional, stakeholders, regras estratégicas e manifesto empresarial. A conclusão foi **COMPLEMENTAR/CONSOLIDAR**, e não duplicação para descarte.
+- `01_Modelo_Logico.md`
+- `02_Dicionario_Dados.md`
+- `03_SQLite.md`
+- `04_APIs.md`
+- `05_Eventos.md`
 
-Todo o conteúdo útil foi migrado para o owner canônico `00-enterprise-manifest/`, preservando a proveniência de cada artefato. A remoção física de `00-empresa-manifesto/` permanece condicionada à validação final de referências, consumidores, aliases e testes.
+A pasta histórica foi então removida.
 
-| Artefato migrado | Owner canônico |
-|---|---|
-| `01_Missao.md` | `00-enterprise-manifest/01_Missao.md` |
-| `02_Objetivos.md` | `00-enterprise-manifest/02_Objetivos.md` |
-| `03_Capacidades.md` | `00-enterprise-manifest/03_Capacidades.md` |
-| `04_Cadeia_de_Valor.md` | `00-enterprise-manifest/04_Cadeia_de_Valor.md` |
-| `05_Modelo_Operacional.md` | `00-enterprise-manifest/05_Modelo_Operacional.md` |
-| `06_Stakeholders.md` | `00-enterprise-manifest/06_Stakeholders.md` |
-| `07_Regras_Estrategicas.md` | `00-enterprise-manifest/07_Regras_Estrategicas.md` |
-| `ENTERPRISE_MANIFESTO.md` | `00-enterprise-manifest/ENTERPRISE_MANIFESTO.md` |
+### Família 09 — conteúdo absorvido
 
-## Auditoria estrutural atual — duplicidades restantes
+`09-governança/GOVERNANCE_MASTER.md` foi preservado em `09-governance/GOVERNANCE_MASTER.md` e a variante histórica foi removida.
 
-Depois da consolidação da família `00`, permanecem variantes históricas em outras famílias. Elas não representam duas arquiteturas independentes e não devem ser removidas apenas por semelhança nominal.
+A remoção não foi baseada apenas no nome. O conteúdo foi avaliado e incorporado ao owner operacional correspondente.
 
-| Camada | Variante histórica / paralela | Owner operacional | Situação |
-|---|---|---|---|
-| 01 | `01-meta-arquitetura/` | `01-meta-architecture/` | consolidar após revisão de conteúdo |
-| 05 | `05-cognitivo-plataforma/` | `05-cognitive-platform/` | consolidar após revisão de conteúdo |
-| 07 | `07-engenharia-de dados/` | `07-data-engineering/` | master legado removido; conteúdo restante requer classificação |
-| 13 | — | `13-reference-architecture/` | owner presente; não assumir `13-referências/` sem evidência |
-| 15 | — | `15-assets/` | owner presente; não assumir `15-ativos/` sem evidência |
+## Estado estrutural atual
 
-As pastas `11-modelos/`, `12-sistemas/` e `14-roteiros/` devem ser tratadas como referências históricas/especializadas somente quando efetivamente existentes na árvore atual; os masters legados correspondentes já foram removidos.
+A árvore canônica atual utiliza uma única pasta operacional por família numerada:
 
-### Regra para esta dívida estrutural
-
-1. Não criar novas pastas duplicadas.
-2. Não copiar conteúdo entre variantes apenas para obter simetria.
-3. Não remover diretórios históricos sem auditoria de conteúdo, consumidores, referências, aliases e proveniência.
-4. Para novos artefatos canônicos, utilizar o owner operacional definido em `ELO_REPOSITORY_NAVIGATION_RULES.md`.
-5. Consolidar variantes por decisão explícita quando a análise comprovar que não existe conteúdo ou consumidor que justifique sua permanência.
-6. Atualizar o README somente com caminhos comprovados pela árvore do `main`.
-
-## Multiteiner como Tenant Corporativo de Validação
-
-A Multiteiner deve ser tratada como **tenant empresarial de validação**, e não como parte do Cognitive Core.
-
-O contexto empresarial pode incluir, conforme as fontes autorizadas:
-
-- Comercial;
-- Engenharia;
-- Compras;
-- Financeiro;
-- RH;
-- Produção;
-- Montagem;
-- Manutenção;
-- Qualidade;
-- Logística;
-- Segurança;
-- processos, documentos, conversas, eventos, agentes, especialistas e fontes de dados.
-
-A **Lista-Mãe** é uma fonte comercial/técnica de referência para orçamento, consulta e composição de produtos. Ela não é, isoladamente, a autoridade sobre estoque, compras, produção, financeiro ou realidade operacional. O ELO deve cruzá-la com outras fontes autorizadas e preservar a proveniência.
-
-A taxonomia de módulos, relações produto/material, estruturas/BOM e visões como `MLT-M`, `MLT-M01` e `ESTRUTURAS-MODULARES` devem ser tratadas como modelos de consulta e relacionamento sobre uma fonte de dados estruturada, não como tabelas duplicadas para cada consulta.
-
-## Modelo de interação empresarial
-
-```text
-fonte/sistema/conversa/agente
-        ↓
-recebimento e quarentena quando aplicável
-        ↓
-contextualização
-        ↓
-evidência + proveniência
-        ↓
-correlação entre domínios
-        ↓
-fato / hipótese / lacuna / contradição
-        ↓
-consulta a especialista ou nova fonte
-        ↓
-cenários e impactos
-        ↓
-recomendação
-        ↓
-decisão humana autorizada
-        ↓
-resultado observado
-        ↓
-experiência e aprendizado governado
-```
-
-O ciclo cognitivo canônico do manifesto é `OBSERVE → CONTEXTUALIZE → ANALYZE → FORMULATE → DECIDE → EXECUTE → MONITOR → LEARN → FOLLOW-UP → REASSESS`. A passagem de leitura para escrita/executação exige autorização explícita e execução governada.
-
-## Gestão à vista e sistemas corporativos
-
-A arquitetura deve permitir que uma mesma estrutura de dados alimente SQLite, SQL, Excel, dashboards e integrações corporativas, sem transformar o ELO em um ERP.
-
-```text
-ERP / sistemas de registro
-        ↓
-dados e eventos
-        ↓
-ELO Context + Evidence + Reasoning
-        ↓
-análise / cenário / recomendação
-        ↓
-decisão do responsável
-```
-
-O ELO interpreta e correlaciona informações; os sistemas de registro permanecem responsáveis pelos dados transacionais que lhes pertencem.
-
-## Governança de navegação e IA
-
-Antes de criar ou alterar qualquer artefato, consulte:
-
-1. [`AGENTS.md`](AGENTS.md) — regras operacionais para agentes de IA;
-2. [`ELO_REPOSITORY_NAVIGATION_RULES.md`](ELO_REPOSITORY_NAVIGATION_RULES.md) — mapa semântico, autoridade e regras de pastas;
-3. [`ELO_ARTIFACT_METADATA_STANDARD.md`](ELO_ARTIFACT_METADATA_STANDARD.md) — identidade, autoridade e maturidade de artefatos;
-4. [`ELO_AI_AGENT_WORKING_RULES.md`](ELO_AI_AGENT_WORKING_RULES.md) — protocolo detalhado de continuidade entre IAs.
-
-Esses documentos não substituem a arquitetura normativa ou ADRs aprovados. Eles orientam navegação, classificação, execução e revisão.
-
-## Estrutura de alto nível atual
-
-- `00-enterprise-manifest/` — fundamentos empresariais e manifesto operacional; owner canônico da família 00
+- `00-enterprise-manifest/` — fundamentos empresariais e manifesto operacional
 - `01-meta-architecture/` — meta-arquitetura operacional
-- `01-meta-arquitetura/` — variante histórica em português; requer auditoria
 - `02-architecture-library/` — biblioteca de arquitetura
 - `03-process-library/` — biblioteca de processos
 - `04-knowledge-handbook/` — conhecimento e manuais
 - `05-cognitive-platform/` — plataforma cognitiva operacional
-- `05-cognitivo-plataforma/` — variante histórica em português; requer auditoria
 - `06-knowledge-engineering/` — engenharia do conhecimento
 - `07-data-engineering/` — engenharia de dados operacional e owner canônico
-- `07-engenharia-de dados/` — variante histórica em português; masters legados removidos
 - `08-ai/` — arquitetura e governança de IA
 - `09-governance/` — governança corporativa
 - `10-adr/` — decisões arquiteturais
-- `11-models-library/` — biblioteca de modelos e owner canônico do master
-- `12-system-engineering/` — engenharia de sistemas e owner canônico do master
+- `11-models-library/` — biblioteca de modelos
+- `12-system-engineering/` — engenharia de sistemas
 - `13-reference-architecture/` — arquitetura de referência
-- `14-roadmap/` — roadmap e owner canônico do master
+- `14-roadmap/` — roadmap
 - `15-assets/` — ativos reutilizáveis
 - `Docs/` — documentação evolutiva e registros de migração
 - `automation/` — automações
@@ -212,11 +169,13 @@ Antes de adicionar um conceito, pesquisar:
 - teste existente;
 - item de roadmap existente.
 
-Classificar o resultado como `REUSE`, `EXTEND`, `RELOCATE`, `CONSOLIDATE`, `NEW` ou `CONFLICT`. `NEW` somente é permitido depois de rejeitadas as demais classificações.
+Classificar como `REUSE`, `EXTEND`, `RELOCATE`, `CONSOLIDATE`, `NEW` ou `CONFLICT`. `NEW` somente é permitido depois de rejeitadas as demais classificações.
+
+Não criar nova pasta paralela para obter simetria entre português e inglês. Conteúdo histórico deve ser auditado antes de qualquer remoção.
 
 ## Regra de maturidade
 
-Uma capacidade não deve ser descrita como pronta apenas porque existe documentação ou código. A cadeia de maturidade é:
+Uma capacidade não deve ser descrita como pronta apenas porque existe documentação ou código. A cadeia é:
 
 ```text
 requisito
@@ -230,8 +189,57 @@ requisito
 
 Use os estados definidos em `ELO_REPOSITORY_NAVIGATION_RULES.md`: `PROPOSED`, `DRAFT`, `NORMATIVE`, `IMPLEMENTED`, `TESTED`, `VERIFIED`, `EXPERIMENTAL`, `DEPRECATED`, `SUPERSEDED`, `ROADMAP` e `BLOCKED`.
 
-## Próximo marco
+## Multiteiner como Tenant Corporativo de Validação
 
-A família `00` está **CONSOLIDADA NO OWNER CANÔNICO**, com remoção física do legado ainda aguardando o gate final de consumidores, referências, aliases e testes. O próximo ciclo é executar a mesma auditoria arquivo-a-arquivo nas famílias `01`, `05` e `07`, sem remoção automática.
+A Multiteiner deve ser tratada como **tenant empresarial de validação**, e não como parte do Cognitive Core.
 
-Depois desses gates, o ciclo pode avançar para a consolidação do **modelo canônico de dados corporativos da Multiteiner** — produto, módulo, material, estrutura/BOM, fornecedor, preço, estoque, orçamento e processo — e suas interfaces com Context, Evidence, Knowledge, Memory, Agents e Decision Support, evitando novas duplicações.
+O contexto empresarial pode incluir Comercial, Engenharia, Compras, Financeiro, RH, Produção, Montagem, Manutenção, Qualidade, Logística, Segurança, processos, documentos, conversas, eventos, agentes, especialistas e fontes de dados.
+
+A Lista-Mãe é uma fonte comercial/técnica de referência para orçamento, consulta e composição de produtos. Ela não é, isoladamente, a autoridade sobre estoque, compras, produção, financeiro ou realidade operacional. O ELO deve cruzá-la com outras fontes autorizadas e preservar a proveniência.
+
+## Modelo de interação empresarial
+
+```text
+fonte/sistema/conversa/agente
+        ↓
+recebimento e quarentena quando aplicável
+        ↓
+contextualização
+        ↓
+evidência + proveniência
+        ↓
+correlação entre domínios
+        ↓
+fato / hipótese / lacuna / contradição
+        ↓
+consulta a especialista ou nova fonte
+        ↓
+cenários e impactos
+        ↓
+recomendação
+        ↓
+decisão humana autorizada
+        ↓
+resultado observado
+        ↓
+experiência e aprendizado governado
+```
+
+O ciclo cognitivo canônico é `OBSERVE → CONTEXTUALIZE → ANALYZE → FORMULATE → DECIDE → EXECUTE → MONITOR → LEARN → FOLLOW-UP → REASSESS`. A passagem de leitura para escrita/executação exige autorização explícita e execução governada.
+
+## Governança de navegação e IA
+
+Antes de criar ou alterar qualquer artefato, consulte:
+
+1. [`AGENTS.md`](AGENTS.md) — regras operacionais para agentes de IA;
+2. [`ELO_REPOSITORY_NAVIGATION_RULES.md`](ELO_REPOSITORY_NAVIGATION_RULES.md) — mapa semântico, autoridade e Loop de Conclusão;
+3. [`ELO_ARTIFACT_METADATA_STANDARD.md`](ELO_ARTIFACT_METADATA_STANDARD.md) — identidade, autoridade e maturidade de artefatos;
+4. [`ELO_AI_AGENT_WORKING_RULES.md`](ELO_AI_AGENT_WORKING_RULES.md) — protocolo detalhado de continuidade entre IAs.
+
+Esses documentos orientam navegação, classificação, execução e revisão. Não substituem arquitetura normativa ou ADRs aprovados.
+
+## Próximo estado
+
+O ciclo de consolidação das variantes duplicadas atualmente identificadas foi concluído para as famílias auditadas. A partir deste ponto, qualquer nova duplicidade deve ser tratada pelo **Loop de Conclusão**, sem remoção automática e sem criação de novas variantes.
+
+A próxima evolução arquitetural somente deve começar após a confirmação de que a árvore permanece coerente e que novos artefatos possuem owner canônico explícito.
