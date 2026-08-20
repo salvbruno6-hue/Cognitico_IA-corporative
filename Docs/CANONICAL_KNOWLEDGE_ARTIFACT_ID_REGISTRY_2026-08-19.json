@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "status": "MIGRATION_IN_PROGRESS",
   "migration_policy": {
     "identity_is_stable": true,
@@ -7,11 +7,16 @@
     "physical_deletion_requires_gate": true,
     "automatic_semantic_merge": false
   },
+  "audit_policy": {
+    "textual_consumer_scan_is_not_runtime_validation": true,
+    "runtime_alias_validation_required": true,
+    "ci_validation_required_before_deprecation": true
+  },
   "records": [
-    {"artifact_id":"ELO.ARCH.01.MASTER","concept_id":"ELO.ARCHITECTURE.MASTER","source_path":"01-meta-arquitetura/ELO_ARCHITECTURE_MASTER.md","canonical_path":"01-meta-architecture/ELO_ARCHITECTURE_MASTER.md","legacy_paths":["01-meta-arquitetura/ELO_ARCHITECTURE_MASTER.md"],"classification":"EXCLUSIVO_COMPLEMENTAR","migration_status":"CANONICAL_COPY_CREATED","authority":"ARCHITECTURE","language":"pt-BR"},
-    {"artifact_id":"ELO.DATA.07.MASTER","concept_id":"ELO.DATA_ENGINEERING.MASTER","source_path":"07-engenharia-de dados/DATA_ENGINEERING_MASTER.md","canonical_path":"07-data-engineering/DATA_ENGINEERING_MASTER.md","legacy_paths":["07-engenharia-de dados/DATA_ENGINEERING_MASTER.md"],"classification":"EXCLUSIVO","migration_status":"CANONICAL_COPY_CREATED","authority":"DATA_ENGINEERING","language":"pt-BR"},
-    {"artifact_id":"ELO.MODELS.11.MASTER","concept_id":"ELO.MODELS.LIBRARY.MASTER","source_path":"11-modelos/MODELS_LIBRARY_MASTER.md","canonical_path":"11-models-library/MODELS_LIBRARY_MASTER.md","legacy_paths":["11-modelos/MODELS_LIBRARY_MASTER.md"],"classification":"EXCLUSIVO","migration_status":"CANONICAL_COPY_CREATED","authority":"MODELING","language":"pt-BR"},
-    {"artifact_id":"ELO.SYSTEMS.12.MASTER","concept_id":"ELO.SYSTEMS.ENGINEERING.MASTER","source_path":"12-sistemas/SYSTEMS_ENGINEERING_MASTER.md","canonical_path":"12-system-engineering/SYSTEMS_ENGINEERING_MASTER.md","legacy_paths":["12-sistemas/SYSTEMS_ENGINEERING_MASTER.md"],"classification":"EXCLUSIVO","migration_status":"CANONICAL_COPY_CREATED","authority":"SYSTEMS_ENGINEERING","language":"pt-BR"},
-    {"artifact_id":"ELO.ROADMAP.14.MASTER","concept_id":"ELO.ROADMAP.MASTER","source_path":"14-roteiros/ROADMAP_MASTER.md","canonical_path":"14-roadmap/ROADMAP_MASTER.md","legacy_paths":["14-roteiros/ROADMAP_MASTER.md"],"classification":"EXCLUSIVO_COMPLEMENTAR","migration_status":"CANONICAL_COPY_CREATED","authority":"GOVERNANCE","language":"pt-BR"}
+    {"artifact_id":"ELO.ARCH.01.MASTER","concept_id":"ELO.ARCHITECTURE.MASTER","source_path":"01-meta-arquitetura/ELO_ARCHITECTURE_MASTER.md","canonical_path":"01-meta-architecture/ELO_ARCHITECTURE_MASTER.md","legacy_paths":["01-meta-arquitetura/ELO_ARCHITECTURE_MASTER.md"],"classification":"EXCLUSIVO_COMPLEMENTAR","migration_status":"CANONICAL_COPY_CREATED","consumer_audit_status":"TEXTUAL_SCAN_CLEAR","runtime_resolution_status":"PENDING","authority":"ARCHITECTURE","language":"pt-BR"},
+    {"artifact_id":"ELO.DATA.07.MASTER","concept_id":"ELO.DATA_ENGINEERING.MASTER","source_path":"07-engenharia de dados/DATA_ENGINEERING_MASTER.md","canonical_path":"07-data-engineering/DATA_ENGINEERING_MASTER.md","legacy_paths":["07-engenharia de dados/DATA_ENGINEERING_MASTER.md"],"classification":"EXCLUSIVO","migration_status":"CANONICAL_COPY_CREATED","consumer_audit_status":"TEXTUAL_SCAN_CLEAR","runtime_resolution_status":"PENDING","authority":"DATA_ENGINEERING","language":"pt-BR"},
+    {"artifact_id":"ELO.MODELS.11.MASTER","concept_id":"ELO.MODELS.LIBRARY.MASTER","source_path":"11-modelos/MODELS_LIBRARY_MASTER.md","canonical_path":"11-models-library/MODELS_LIBRARY_MASTER.md","legacy_paths":["11-modelos/MODELS_LIBRARY_MASTER.md"],"classification":"EXCLUSIVO","migration_status":"CANONICAL_COPY_CREATED","consumer_audit_status":"TEXTUAL_SCAN_CLEAR","runtime_resolution_status":"PENDING","authority":"MODELING","language":"pt-BR"},
+    {"artifact_id":"ELO.SYSTEMS.12.MASTER","concept_id":"ELO.SYSTEMS.ENGINEERING.MASTER","source_path":"12-sistemas/SYSTEMS_ENGINEERING_MASTER.md","canonical_path":"12-system-engineering/SYSTEMS_ENGINEERING_MASTER.md","legacy_paths":["12-sistemas/SYSTEMS_ENGINEERING_MASTER.md"],"classification":"EXCLUSIVO","migration_status":"CANONICAL_COPY_CREATED","consumer_audit_status":"TEXTUAL_SCAN_CLEAR","runtime_resolution_status":"PENDING","authority":"SYSTEMS_ENGINEERING","language":"pt-BR"},
+    {"artifact_id":"ELO.ROADMAP.14.MASTER","concept_id":"ELO.ROADMAP.MASTER","source_path":"14-roteiros/ROADMAP_MASTER.md","canonical_path":"14-roadmap/ROADMAP_MASTER.md","legacy_paths":["14-roteiros/ROADMAP_MASTER.md"],"classification":"EXCLUSIVO_COMPLEMENTAR","migration_status":"CANONICAL_COPY_CREATED","consumer_audit_status":"TEXTUAL_SCAN_CLEAR","runtime_resolution_status":"PENDING","authority":"GOVERNANCE","language":"pt-BR"}
   ]
 }
