@@ -23,6 +23,12 @@ A mudança física de endereço deve ser tratada como migração de localizaçã
 
 O repositório já possui `src/elo/core/source_resolver.py` e `source_discovery.py`. A consolidação deve integrar o índice canônico a essa fronteira, não criar um segundo resolver. O SourceResolver atual já valida tenant, domínio, principal, sessão, request, correlação, conversa e escopo de autorização antes de resolver fontes.
 
+## Evidência transversal — 2026-08-20
+
+Os cinco `legacy_path` atualmente registrados no `CANONICAL_KNOWLEDGE_ARTIFACT_ID_REGISTRY_2026-08-19.json` foram pesquisados no repositório. As ocorrências localizadas ficaram restritas ao próprio registro, auditorias e documentação de migração; não foi localizado consumidor operacional textual dependente dos cinco caminhos antigos.
+
+Isso é evidência de **ausência de referência textual operacional identificada**, não autorização de remoção física.
+
 ## Sequência segura
 
 1. atribuir identidade;
@@ -59,4 +65,9 @@ Se duas versões afirmarem coisas diferentes sobre o mesmo conceito:
 
 ## Estado desta etapa
 
-Nenhuma referência de runtime foi alterada por esta consolidação. Nenhum diretório histórico foi removido.
+- consumidores textuais dos cinco legacy paths: **nenhum identificado**;
+- referências/aliases: **ainda não validados pelo runtime**;
+- testes de resolução antiga/nova: **pendentes**;
+- CI: **pendente**;
+- depreciação: **bloqueada**;
+- remoção física: **bloqueada**.
