@@ -11,10 +11,10 @@
 PR #267 — `refactor/canonical-knowledge-audit`
 
 ```text
-f41f1eb2c61e305ea3018ecf65e65dfd72583a87
+59b4b7619db169d8556fe525d65546633b246fca
 ```
 
-O PR permanece aberto e o merge continua bloqueado até existir evidência verificável no HEAD atual.
+O HEAD foi atualizado com a reconciliação factual do registry. A verificação direta deste SHA retornou zero workflow runs; CI permanece `NO_EVIDENCE` e o merge continua bloqueado.
 
 ## Princípio desta fase — evolução estrutural do ELO
 
@@ -26,7 +26,7 @@ O repositório é tratado como um sistema nervoso arquitetural:
 conceitos → artefatos → referências → contratos → implementação → testes/evidência
 ```
 
-As famílias são regiões conectadas desse sistema. A avaliação deve considerar função, relações, entradas, saídas e consumidores, e não somente nome ou diretório.
+As famílias são regiões conectadas desse sistema. A avaliação considera função, relações, entradas, saídas e consumidores, e não somente nome ou diretório.
 
 ## Modelo operacional desta rodada
 
@@ -72,11 +72,12 @@ Os núcleos são paralelos na análise, não na autoridade. Eles produzem evidê
 - modelo de execução em núcleos virtuais e consolidação por lote formalizado;
 - protocolo de validação e impacto atualizado para suportar análise paralela sem criar autoridade concorrente;
 - documentação redundante de investigação do CI consolidada no protocolo permanente, preservando o registro histórico da investigação sem manter dois documentos concorrentes;
-- estado desta auditoria atualizado para o HEAD efetivamente atual do PR.
+- registry atualizado para refletir estados já comprovados, sem promover auditorias incompletas a equivalência;
+- HEAD do PR atualizado para o commit da reconciliação do registry.
 
 ## Reconciliação estrutural já comprovada
 
-Os artefatos abaixo possuem identidade estável e endereço canônico registrado no registry de identidade:
+Os artefatos abaixo possuem identidade estável e endereço canônico registrado no registry:
 
 ```text
 01  ELO.ARCH.01.MASTER
@@ -86,7 +87,7 @@ Os artefatos abaixo possuem identidade estável e endereço canônico registrado
 14  ELO.ROADMAP.14.MASTER
 ```
 
-A existência desses masters canonicalizados não significa que os caminhos históricos possam ser removidos. Consumidores, aliases e gates continuam obrigatórios.
+Esses cinco grupos estão em `IDENTITY_ASSIGNED`. Isso não significa equivalência PT/EN comprovada nem autorização para remoção dos caminhos históricos. Consumidores, aliases e gates continuam obrigatórios.
 
 ## Família 05 — reconciliação estrutural
 
@@ -96,21 +97,7 @@ A árvore `05-cognitivo-plataforma/` contém conhecimento substantivo, incluindo
 
 A árvore `05-cognitive-platform/` contém estrutura operacional efetiva, incluindo engine cognitivo, decision engine, memory/reasoning, especialistas, ciclo governado e contratos Multiteiner.
 
-Portanto:
-
-```text
-05-cognitivo-plataforma
-        ↓
-fundamentos / conhecimento / orientação
-        ↓
-reconciliação por função
-        ↓
-05-cognitive-platform
-        ↓
-estrutura operacional / engines / contratos
-```
-
-Estado atual:
+Estado:
 
 ```text
 FAMILY_05 = CONTENT_RECONCILIATION_REQUIRED
@@ -121,6 +108,21 @@ REMOVAL = BLOCKED
 ```
 
 Não realizar merge textual automático dessa família.
+
+## Famílias 13 e 15
+
+`13-reference-architecture/` e `15-assets/` permanecem scaffold-only no estado auditado. A ausência de conteúdo próprio não será convertida em obrigação de preenchimento.
+
+A pesquisa confirmou conteúdo relacionado à arquitetura de referência em outras regiões, incluindo `01-meta-architecture/cognitive-architecture/ELO_COGNITIVE_EVOLUTION_ARCHITECTURE.md`, `docs/evolution/ELO_BLUEPRINT_IMPLEMENTACAO_v3.0.md`, `docs/handbook/ELO_ENTERPRISE_HANDBOOK_v2.0_ENTERPRISE.md` e `02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md`. Esses achados são candidatos de relação; ainda não constituem prova de owner para a família 13.
+
+Estado:
+
+```text
+13 = DISCOVERED / OWNER NOT PROVEN
+15 = DISCOVERED / OWNER NOT PROVEN
+```
+
+Nenhum arquivo será criado apenas para preencher essas famílias.
 
 ## Regra de evidência
 
@@ -155,13 +157,13 @@ A matriz `CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md` continua sendo a autoridade de cl
 | Identidade | ✅ CONCLUÍDA |
 | Governança | ✅ CONCLUÍDA |
 | Proteção de runtime | ✅ CONCLUÍDA |
-| Masters 01/07/11/12/14 | ✅ IDENTIDADE REGISTRADA |
+| Masters 01/07/11/12/14 | 🟢 IDENTIDADE REGISTRADA |
 | Família 05 | 🔄 RECONCILIAÇÃO |
 | Família 13 | 🔄 DESCOBERTA |
 | Família 15 | 🔄 DESCOBERTA |
 | Consumidores | ⏳ PENDENTE DE FECHAMENTO |
 | T01–T10 | ⏳ PENDENTE DE EVIDÊNCIA |
-| CI no HEAD | ⏳ PENDENTE DE EVIDÊNCIA |
+| CI no HEAD | 🔴 NO_EVIDENCE |
 | Depreciação | 🔒 BLOQUEADA |
 | Remoção histórica | 🔒 BLOQUEADA |
 | Merge | 🔒 BLOQUEADO |
@@ -170,9 +172,7 @@ A matriz `CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md` continua sendo a autoridade de cl
 
 O CI do SHA anterior `9b1e2fd967c0a3df3854f1c338f0cf667e3ff258` passou no ELO Evolution Gate #728.
 
-O HEAD atual é `f41f1eb2c61e305ea3018ecf65e65dfd72583a87`. A existência de execução antiga não satisfaz o gate do HEAD atual.
-
-Até existir execução comprovada para esse SHA:
+O HEAD atual é `59b4b7619db169d8556fe525d65546633b246fca`. A verificação direta deste SHA retornou zero workflow runs.
 
 ```text
 CI = NO_EVIDENCE
@@ -202,4 +202,4 @@ Não criar um segundo Core, segundo SourceResolver ou segunda autoridade runtime
 
 ## Próxima ação primária
 
-Continuar a inspeção contextual e funcional das famílias em lotes paralelos, priorizando as conexões estruturais entre `01`, `05`, `07`, `11`, `12`, `13`, `14` e `15`. A comparação deve preservar o conhecimento existente e melhorar a fluidez da estrutura do ELO, sem alterar seu conceito.
+Fechar os grupos com identidade já comprovada (`01`, `07`, `11`, `12`, `14`) por meio do mapa de referências e consumidores; em paralelo, concluir a reconciliação funcional de `05` e a descoberta de ownership de `13`/`15`. Somente grupos que atingirem os gates poderão avançar para consolidação física.
