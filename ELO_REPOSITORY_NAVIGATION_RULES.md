@@ -62,14 +62,14 @@ Rules:
 
 ## 5. Loop de Conclusão — manutenção arquitetural ELO
 
-O **Loop de Conclusão** é uma diretriz permanente de manutenção da arquitetura. Ele deve ser aplicado a qualquer duplicidade estrutural, artefato concorrente, migração canônica ou aposentadoria de legado.
+O **Loop de Conclusão** é uma diretriz permanente de manutenção da arquitetura. Ele deve ser aplicado a qualquer duplicidade estrutural, artefato concorrente, migração canônica, aposentadoria de legado ou evolução que altere relações canônicas.
 
 ```text
 DETECTAR
   ↓
 AUDITAR
   ↓
-CLASSIFICAR ARQUIVO A ARQUIVO
+CLASSIFICAR ARQUIVO / DADO / RELAÇÃO
   ↓
 DEFINIR OWNER CANÔNICO
   ↓
@@ -79,13 +79,15 @@ REORGANIZAR PARA FLUXO E COERÊNCIA
   ↓
 RECONCILIAR IDs / LEGACY PATHS / ALIASES / REFERÊNCIAS / CONSUMIDORES
   ↓
+VALIDAR RELAÇÕES E DEPENDÊNCIAS
+  ↓
 ATUALIZAR README / ÍNDICES / MAPAS / EVIDÊNCIAS
   ↓
 TESTAR RESOLUÇÃO E INTEGRIDADE
   ↓
 EXECUTAR GATES
   ↓
-SE GATES APROVADOS → REMOVER FISICAMENTE O LEGADO
+SE GATES APROVADOS → REMOVER FISICAMENTE O LEGADO, QUANDO APLICÁVEL
   ↓
 VALIDAR NOVAMENTE APÓS A REMOÇÃO
   ↓
@@ -95,7 +97,7 @@ MERGE
   ↓
 VALIDAR MAIN
   ↓
-REVARrer A ÁRVORE
+REVARrer A ÁRVORE E AS RELAÇÕES
   ↓
 SE HOUVER NOVA PENDÊNCIA → RETORNAR AO INÍCIO
   ↓
@@ -111,6 +113,7 @@ Um ciclo só pode ser declarado concluído quando:
 - a organização interna do owner possui fluxo e sentido;
 - referências e consumidores apontam para o caminho canônico;
 - aliases e `artifact_id`/`legacy_path` foram reconciliados quando aplicáveis;
+- relações de dados, dependências e versões foram verificadas quando aplicáveis;
 - README e registros de governança refletem a árvore real;
 - testes e gates aplicáveis estão verdes;
 - a remoção física do legado foi realizada somente após os gates;
@@ -120,7 +123,50 @@ Um ciclo só pode ser declarado concluído quando:
 
 **Não existe conclusão parcial quando a etapa pendente é necessária para segurança estrutural. O ELO permanece no loop até que a condição de saída seja comprovada.**
 
-## 6. Artifact placement decision tree
+## 6. Loop de relações de produto e orçamento
+
+Quando o ELO tratar produtos, modelos MLT, Lista-Mãe ou orçamento, deve aplicar a especialização definida em [`docs/architecture/ELO_BUDGETING_PRODUCT_RELATIONSHIP_LOOP.md`](docs/architecture/ELO_BUDGETING_PRODUCT_RELATIONSHIP_LOOP.md).
+
+A cadeia canônica é:
+
+```text
+LISTA-MÃE
+→ TAXONOMIA / FAMÍLIA
+→ MODELO MLT
+→ VERSÃO
+→ FICHA TÉCNICA
+→ DIMENSÕES
+→ CONFIGURAÇÃO PADRÃO
+→ REQUISITO DO ORÇAMENTO
+→ MATCH SEMÂNTICO
+→ PADRÃO / EXCEDENTE / VARIAÇÃO / LACUNA
+→ MATERIAL / SERVIÇO / MÃO DE OBRA / COMPOSIÇÃO
+→ INTERLIGAÇÕES E DEPENDÊNCIAS
+→ ORÇAMENTO VERSIONADO
+→ AUDITORIA ELO
+→ ESPECIALISTA
+→ RESULTADO
+→ EXPERIÊNCIA
+→ EVOLUÇÃO CANDIDATA
+→ GATES
+→ PROMOÇÃO OU PRESERVAÇÃO TEMPORAL
+```
+
+### Regra de dados
+
+Dados estruturados e relações operacionais devem ser mantidos em SQL. Documentos preservam conhecimento, justificativas, normas e contexto. O Core governa interpretação e transição entre esses domínios.
+
+### Regra de modelo padrão
+
+Um modelo MLT representa sua configuração padrão. Um item adicional detectado durante o orçamento deve ser representado como excedente, variação ou composição, conforme sua natureza, e não alterar silenciosamente o modelo canônico.
+
+Para o MLT.M01, a dimensão vigente é `6000 × 2440 × 3010 mm`, com `14,6 m²` de área dimensional e `13,63 m²` de área útil interna. Esses atributos são distintos.
+
+### Regra de aprendizado
+
+Uma experiência recorrente de orçamento pode gerar uma evolução candidata, mas não altera a regra canônica por observação isolada. Promoção exige avaliação, generalização, validação especialista e os gates aplicáveis.
+
+## 7. Artifact placement decision tree
 
 Before creating an artifact ask:
 
@@ -143,7 +189,7 @@ Before creating an artifact ask:
 17. Is it working/evolving documentation? → `Docs/`
 18. Is it executable Python implementation? → `src/elo/`
 
-## 7. No-duplication rule
+## 8. No-duplication rule
 
 Before adding a concept, search for:
 
@@ -162,7 +208,7 @@ Classify the result as:
 
 Do not choose `NEW` until the other classifications have been rejected.
 
-## 8. Status vocabulary
+## 9. Status vocabulary
 
 - `PROPOSED` — proposed but not approved;
 - `DRAFT` — under development;
@@ -176,7 +222,7 @@ Do not choose `NEW` until the other classifications have been rejected.
 - `ROADMAP` — future capability;
 - `BLOCKED` — dependency prevents progress.
 
-## 9. Core rule
+## 10. Core rule
 
 The repository must evolve toward:
 
