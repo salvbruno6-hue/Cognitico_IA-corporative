@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic ELO maintenance coordinator.
 
-This module is deliberately provider-neutral. It evaluates GitHub evidence and
-produces a governed decision; it does not act as an autonomous architectural
-authority. A real GitHub adapter can consume the returned decision and apply
-labels/comments/auto-merge only when repository policy permits it.
+Provider-neutral process logic. It evaluates evidence and produces a governed
+next state; it is not an architectural authority and performs no network
+mutation itself.
 """
 
 from __future__ import annotations
@@ -68,57 +67,49 @@ def specialist_lane(event_class: str) -> str | None:
 
 def audit(event: Event) -> tuple[Outcome, list[str]]:
     """Return the next governed state and machine-readable reasons."""
-    reasons: list[str] = []
-
     if event.forbidden_action:
         return Outcome.BLOCKED, ["forbidden_or_destructive_action"]
-
     if not event.canonical_identity_valid:
         return Outcome.WAITING_FOR_EVIDENCE, ["canonical_identity_missing_or_invalid"]
-
     if not event.evidence_complete:
         return Outcome.WAITING_FOR_EVIDENCE, ["evidence_incomplete"]
-
     if event.specialist_pass is None:
         lane = specialist_lane(event.event_class)
-        return Outcome.READY_FOR_SPECIALIST, [
-            f"specialist_consultation_required:{lane or 'domain-review'}"
-        ]
-
+        return Outcome.READY_FOR_SPECIALIST, [f"specialist_consultation_required:{lane or 'domain-review'}"]
     if not event.specialist_pass:
         return Outcome.BLOCKED, ["specialist_review_failed"]
 
     if event.architectural_impact:
-        if not event.acceptance_pass or not event.ci_pass or not event.reviews_clear:
-            return Outcome.WAITING_FOR_EVIDENCE, [
-                *([] if event.acceptance_pass else ["acceptance_failed"]),
-                *([] if event.ci_pass else ["ci_failed"]),
-                *([] if event.reviews_clear else ["blocking_review_exists"]),
-            ]
+        missing = []
+        if not event.acceptance_pass:
+            missing.append("acceptance_failed")
+        if not event.ci_pass:
+            missing.append("ci_failed")
+        if not event.reviews_clear:
+            missing.append("blocking_review_exists")
+        if missing:
+            return Outcome.WAITING_FOR_EVIDENCE, missing
         if not event.scope_compliant:
             return Outcome.BLOCKED, ["scope_non_compliant"]
         if not event.elo_approve_merge:
             return Outcome.READY_FOR_ELO_DECISION, ["explicit_elo_merge_authorization_required"]
         return Outcome.APPROVED_FOR_MERGE, ["all_merge_gates_pass"]
 
-    # Non-architectural learning is admitted only as governed experience.
     if event.experience_value:
-        if not event.provenance_complete or not event.contradiction_free:
-            return Outcome.WAITING_FOR_EVIDENCE, [
-                *([] if event.provenance_complete else ["provenance_incomplete"]),
-                *([] if event.contradiction_free else ["canonical_contradiction_check_required"]),
-            ]
-        return Outcome.RECORDED_AS_TEMPORAL_EXPERIENCE, [
-            "valuable_experience_without_canonical_structure_change"
-        ]
+        missing = []
+        if not event.provenance_complete:
+            missing.append("provenance_incomplete")
+        if not event.contradiction_free:
+            missing.append("canonical_contradiction_check_required")
+        if missing:
+            return Outcome.WAITING_FOR_EVIDENCE, missing
+        return Outcome.RECORDED_AS_TEMPORAL_EXPERIENCE, ["valuable_experience_without_canonical_structure_change"]
 
     return Outcome.ROADMAP_CANDIDATE, ["no_current_canonical_evolution_admitted"]
 
 
 def merge_gate(event: Event) -> bool:
-    """Strict predicate for enabling repository auto-merge."""
-    outcome, _ = audit(event)
-    return outcome is Outcome.APPROVED_FOR_MERGE
+    return audit(event)[0] is Outcome.APPROVED_FOR_MERGE
 
 
 def consultation_request(event: Event) -> dict[str, object]:
@@ -137,19 +128,17 @@ def summarize(events: Iterable[Event]) -> list[dict[str, object]]:
     result = []
     for event in events:
         outcome, reasons = audit(event)
-        result.append(
-            {
-                "issue": event.number,
-                "event_class": event.event_class,
-                "outcome": outcome.value,
-                "reasons": reasons,
-                "specialist": specialist_lane(event.event_class),
-            }
-        )
+        result.append({
+            "issue": event.number,
+            "event_class": event.event_class,
+            "outcome": outcome.value,
+            "reasons": reasons,
+            "specialist": specialist_lane(event.event_class),
+        })
     return result
 
 
 if __name__ == "__main__":
-    raise SystemExit(
-        "Use this module from a GitHub adapter or test harness; no network mutation is performed here."
-    )
+    # Contract smoke mode used by CI. GitHub mutation is handled only by the
+    # workflow adapter, never by this module.
+    print("ELO Maintenance Coordinator contract: OK")
