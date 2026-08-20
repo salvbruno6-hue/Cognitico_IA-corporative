@@ -2,11 +2,9 @@
 
 ## 1. Purpose
 
-This document defines how humans and AI agents must interpret the ELO repository structure.
+This document defines how humans and AI agents must interpret and maintain the ELO repository.
 
-The repository currently contains both English and Portuguese directory variants in some layers. This is a known structural condition. Until an explicit consolidation decision is made, agents must not assume that two similarly named directories represent two independent architectures.
-
-The current root README identifies the principal high-level structure and `src/elo/` as the implementation core.
+The repository may contain historical naming variants during controlled consolidation. Similar names do not imply independent architectures. The canonical owner is determined by the authority model, approved decisions, contracts, implementation evidence, and the current repository tree.
 
 ## 2. Authority model
 
@@ -27,228 +25,102 @@ When two artifacts conflict, the lower-authority artifact must not silently over
 
 ## 3. Semantic layers
 
-### 00 — Enterprise Manifest
-
-Purpose:
-- enterprise identity;
-- mission;
-- principles;
-- constitutional boundaries;
-- organizational intent.
-
-Do not place implementation details here.
-
-### 01 — Meta Architecture
-
-Purpose:
-- architectural principles;
-- meta-models;
-- architectural language;
-- system-of-systems framing.
-
-Do not place executable implementation here.
-
-### 02 — Architecture Library
-
-Purpose:
-- canonical architecture;
-- component boundaries;
-- architecture contracts;
-- reference structures;
-- architecture patterns.
-
-This layer is normative when an artifact is explicitly approved as baseline/canonical.
-
-### 03 — Process Library
-
-Purpose:
-- business processes;
-- workflows;
-- process states;
-- responsibilities;
-- operational procedures.
-
-Do not use this layer as a substitute for domain contracts or security policy.
-
-### 04 — Knowledge Handbook
-
-Purpose:
-- curated knowledge;
-- manuals;
-- reference knowledge;
-- organizational explanations;
-- validated knowledge material.
-
-Distinguish source knowledge from lessons learned and recommendations.
-
-### 05 — Cognitive Platform
-
-Purpose:
-- Cognitive Core;
-- Context;
-- Knowledge interaction;
-- Memory interaction;
-- Reasoning;
-- Evidence;
-- Recommendation;
-- Decision support;
-- Agent boundaries;
-- cognitive orchestration.
-
-This layer describes the cognitive platform. Executable implementation belongs in `src/elo/` unless an explicit architecture decision says otherwise.
-
-### 06 — Knowledge Engineering
-
-Purpose:
-- knowledge ingestion;
-- normalization;
-- semantic structures;
-- retrieval preparation;
-- provenance of knowledge;
-- knowledge quality.
-
-Do not silently convert external information into authoritative organizational truth.
-
-### 07 — Data Engineering
-
-Purpose:
-- data contracts;
-- ingestion;
-- transformation;
-- quality;
-- storage;
-- pipelines;
-- data lifecycle.
-
-Data engineering must preserve tenant/domain boundaries when applicable.
-
-### 08 — AI
-
-Purpose:
-- AI provider architecture;
-- model policies;
-- AI Gateway concepts;
-- provider abstraction;
-- evaluation;
-- model governance.
-
-Do not embed provider-specific behavior into unrelated cognitive components.
-
-### 09 — Governance
-
-Purpose:
-- security;
-- identity;
-- tenant isolation;
-- policy;
-- privacy;
-- compliance;
-- audit;
-- provenance;
-- risk controls.
-
-Governance is cross-cutting and has authority over unsafe implementation shortcuts.
-
-### 10 — ADR
-
-Purpose:
-- explicit architecture decisions;
-- alternatives considered;
-- rationale;
-- consequences;
-- decision status.
-
-Use ADRs for durable decisions. Do not create an ADR for every implementation detail.
-
-### 11 — Models
-
-Purpose:
-- domain models;
-- analytical models;
-- reference models;
-- reusable schemas where not owned by a more specific layer.
-
-### 12 — Systems
-
-Purpose:
-- executable systems engineering;
-- runtime structure;
-- testing/quality;
-- observability;
-- deployment/operations;
-- system integration.
-
-### 13 — References
-
-Purpose:
-- external references;
-- reference architectures;
-- standards;
-- benchmarks;
-- supporting material.
-
-External references are not automatically ELO policy.
-
-### 14 — Roadmap
-
-Purpose:
-- future phases;
-- proposals;
-- sequencing;
-- milestones;
-- backlog framing.
-
-Roadmap status does not equal implementation status.
-
-### 15 — Assets
-
-Purpose:
-- reusable templates;
-- prompts;
-- fixtures;
-- examples;
-- controlled assets.
-
-Each asset must identify its intended use and authority.
-
-### Docs
-
-Purpose:
-- evolving project documentation;
-- working notes;
-- migration records;
-- non-canonical supporting documentation.
-
-Do not place normative architecture here when a canonical architecture location exists.
-
-### src/elo
-
-Purpose:
-- canonical executable implementation of the ELO runtime/prototype.
-
-Code must map to an approved architectural capability or an explicitly marked experimental area.
+- `00-enterprise-manifest/` — enterprise identity, mission, principles and constitutional boundaries.
+- `01-meta-architecture/` — architectural principles, meta-models and architectural language.
+- `02-architecture-library/` — canonical architecture, component boundaries, contracts and patterns.
+- `03-process-library/` — business processes, workflows, responsibilities and procedures.
+- `04-knowledge-handbook/` — curated and validated organizational knowledge.
+- `05-cognitive-platform/` — Cognitive Core, Context, Knowledge, Memory, Reasoning, Evidence, Recommendation, Decision Support and cognitive orchestration.
+- `06-knowledge-engineering/` — ingestion, normalization, semantic structures, retrieval preparation and knowledge quality.
+- `07-data-engineering/` — data contracts, ingestion, transformation, quality, storage, APIs, events and data lifecycle.
+- `08-ai/` — AI provider architecture, model policies, provider abstraction, evaluation and governance.
+- `09-governance/` — security, identity, tenant isolation, policy, privacy, compliance, audit and risk controls.
+- `10-adr/` — durable architecture decisions.
+- `11-models-library/` — domain, analytical and reusable models.
+- `12-system-engineering/` — executable systems engineering, runtime, quality and operations.
+- `13-reference-architecture/` — external references, standards, benchmarks and reference architectures.
+- `14-roadmap/` — future phases, proposals, sequencing and milestones.
+- `15-assets/` — reusable controlled assets.
+- `Docs/` — evolving documentation, migration records and non-canonical support material.
+- `src/elo/` — canonical executable implementation.
 
 ## 4. Duplicate directory rule
 
-The repository currently contains parallel naming variants such as Portuguese and English directories.
+A duplicate directory is any parallel path that claims or historically claimed the same semantic layer or owner.
 
-Examples include:
+Rules:
 
-- `00-empresa-manifesto/` and `00-enterprise-manifest/`;
-- `01-meta-arquitetura/` and `01-meta-architecture/`;
-- `05-cognitivo-plataforma/` and `05-cognitive-platform/`;
-- `07-engenharia-de dados/` and `07-data-engineering/`.
+1. Do not create new duplicate folders.
+2. Do not copy content merely to obtain bilingual or structural symmetry.
+3. Preserve historical content until it is audited.
+4. Determine the canonical owner before moving content.
+5. Absorb useful content semantically; do not overwrite or discard information merely because filenames differ.
+6. Reconcile `artifact_id`, `legacy_path`, aliases, references and consumers before removal.
+7. Remove a legacy path only after semantic absorption and validation gates succeed.
+8. After physical removal, rerun resolution/integrity checks and confirm that no orphan references remain.
+9. Update README and navigation records from the actual `main` tree, not from assumptions.
 
-Until a consolidation ADR is approved:
+## 5. Loop de Conclusão — manutenção arquitetural ELO
 
-1. do not create new duplicate folders;
-2. do not copy documents from one variant to another merely for symmetry;
-3. use the English operational path named by the current README for new canonical artifacts unless an existing document explicitly owns the Portuguese path;
-4. preserve existing Portuguese content until reviewed;
-5. record conflicts as structural debt rather than silently deleting content;
-6. propose consolidation through an ADR before moving large document sets.
+O **Loop de Conclusão** é uma diretriz permanente de manutenção da arquitetura. Ele deve ser aplicado a qualquer duplicidade estrutural, artefato concorrente, migração canônica ou aposentadoria de legado.
 
-## 5. Artifact placement decision tree
+```text
+DETECTAR
+  ↓
+AUDITAR
+  ↓
+CLASSIFICAR ARQUIVO A ARQUIVO
+  ↓
+DEFINIR OWNER CANÔNICO
+  ↓
+ABSORVER SEMANTICAMENTE
+  ↓
+REORGANIZAR PARA FLUXO E COERÊNCIA
+  ↓
+RECONCILIAR IDs / LEGACY PATHS / ALIASES / REFERÊNCIAS / CONSUMIDORES
+  ↓
+ATUALIZAR README / ÍNDICES / MAPAS / EVIDÊNCIAS
+  ↓
+TESTAR RESOLUÇÃO E INTEGRIDADE
+  ↓
+EXECUTAR GATES
+  ↓
+SE GATES APROVADOS → REMOVER FISICAMENTE O LEGADO
+  ↓
+VALIDAR NOVAMENTE APÓS A REMOÇÃO
+  ↓
+CONFIRMAR ZERO REFERÊNCIAS ÓRFÃS / ZERO PERDA SEMÂNTICA
+  ↓
+MERGE
+  ↓
+VALIDAR MAIN
+  ↓
+REVARrer A ÁRVORE
+  ↓
+SE HOUVER NOVA PENDÊNCIA → RETORNAR AO INÍCIO
+  ↓
+SE NÃO HOUVER → ENCERRAR O CICLO
+```
+
+### Critérios obrigatórios de conclusão
+
+Um ciclo só pode ser declarado concluído quando:
+
+- todo conteúdo relevante do legado foi classificado;
+- conteúdo válido foi absorvido pelo owner canônico;
+- a organização interna do owner possui fluxo e sentido;
+- referências e consumidores apontam para o caminho canônico;
+- aliases e `artifact_id`/`legacy_path` foram reconciliados quando aplicáveis;
+- README e registros de governança refletem a árvore real;
+- testes e gates aplicáveis estão verdes;
+- a remoção física do legado foi realizada somente após os gates;
+- a validação pós-remoção não encontrou órfãos ou regressões;
+- o merge foi realizado e o `main` foi validado;
+- uma nova varredura confirmou o próximo estado arquitetural.
+
+**Não existe conclusão parcial quando a etapa pendente é necessária para segurança estrutural. O ELO permanece no loop até que a condição de saída seja comprovada.**
+
+## 6. Artifact placement decision tree
 
 Before creating an artifact ask:
 
@@ -263,15 +135,15 @@ Before creating an artifact ask:
 9. Is it AI/provider governance? → `08-ai/`
 10. Is it governance/security/policy? → `09-governance/`
 11. Is it a durable architecture decision? → `10-adr/`
-12. Is it a model? → `11-models` or existing approved model owner
-13. Is it executable system engineering? → `12-systems/` or `src/elo/` as appropriate
-14. Is it an external reference? → `13-references/`
+12. Is it a model? → `11-models-library/`
+13. Is it executable system engineering? → `12-system-engineering/` or `src/elo/` as appropriate
+14. Is it an external reference? → `13-reference-architecture/`
 15. Is it future work? → `14-roadmap/`
 16. Is it a reusable controlled asset? → `15-assets/`
 17. Is it working/evolving documentation? → `Docs/`
 18. Is it executable Python implementation? → `src/elo/`
 
-## 6. No-duplication rule
+## 7. No-duplication rule
 
 Before adding a concept, search for:
 
@@ -284,37 +156,31 @@ Before adding a concept, search for:
 - existing test;
 - existing roadmap item.
 
-Classify the result:
+Classify the result as:
 
-REUSE
-EXTEND
-RELOCATE
-CONSOLIDATE
-NEW
-CONFLICT
+`REUSE` · `EXTEND` · `RELOCATE` · `CONSOLIDATE` · `NEW` · `CONFLICT`
 
-Do not choose NEW until the other classifications have been rejected.
+Do not choose `NEW` until the other classifications have been rejected.
 
-## 7. Status vocabulary
+## 8. Status vocabulary
 
-Use these statuses consistently:
+- `PROPOSED` — proposed but not approved;
+- `DRAFT` — under development;
+- `NORMATIVE` — approved rule/architecture;
+- `IMPLEMENTED` — code exists;
+- `TESTED` — executable evidence exists;
+- `VERIFIED` — independently validated;
+- `EXPERIMENTAL` — intentionally non-canonical;
+- `DEPRECATED` — retained for historical compatibility;
+- `SUPERSEDED` — replaced by a newer approved artifact;
+- `ROADMAP` — future capability;
+- `BLOCKED` — dependency prevents progress.
 
-- PROPOSED — concept proposed but not approved;
-- DRAFT — under development;
-- NORMATIVE — approved rule/architecture;
-- IMPLEMENTED — code exists;
-- TESTED — behavior has executable evidence;
-- VERIFIED — independently reviewed/validated;
-- EXPERIMENTAL — intentionally non-canonical;
-- DEPRECATED — retained for historical compatibility;
-- SUPERSEDED — replaced by a newer approved artifact;
-- ROADMAP — future capability;
-- BLOCKED — dependency prevents progress.
-
-## 8. Core rule
+## 9. Core rule
 
 The repository must evolve toward:
 
+```text
 requirement
 → architecture
 → contract
@@ -322,9 +188,12 @@ requirement
 → test
 → evidence
 → operational status
+```
 
 not:
 
+```text
 idea
 → file
-→ assumed truth.
+→ assumed truth
+```
