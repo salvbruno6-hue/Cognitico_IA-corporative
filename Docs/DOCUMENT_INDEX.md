@@ -2,7 +2,7 @@
 
 Índice mestre da documentação do ELO.
 
-## Estrutura
+## Estrutura canônica atual
 
 - `00-empresa-manifesto/`
 - `01-meta-arquitetura/`
@@ -15,15 +15,17 @@
 - `08-ai/`
 - `09-governança/`
 - `10-adr/`
-- `11-modelos/`
-- `12-sistemas/`
-- `13-referências/`
+- `11-models-library/`
+- `12-systems-library/`
 - `14-roteiros/`
-- `15-ativos/`
 - `platform/`
 - `runtime/`
 - `src/elo/`
 
+## Famílias 13 e 15
+
+As famílias `13-referências/` e `15-ativos/` não existem fisicamente no `main` atual e não possuem artefatos consumidores identificados na árvore corrente. Permanecem tratadas como referências históricas da estrutura documental anterior, não como diretórios canônicos ativos.
+
 ## Baseline
 
-Este índice consolida o repositório como a base documental e operacional do ELO.
+Este índice consolida somente caminhos existentes e ativos na árvore atual do repositório. Referências históricas devem ser preservadas nos registros de auditoria e governança, sem representar caminhos físicos inexistentes como parte da estrutura canônica.
