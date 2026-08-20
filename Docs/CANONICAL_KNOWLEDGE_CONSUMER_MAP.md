@@ -25,38 +25,25 @@ Consumidores devem depender da identidade canônica e não de caminhos históric
 
 ## Evidência executada — 2026-08-20
 
-Foi realizada busca transversal no repositório pelos cinco `legacy_path` registrados no catálogo canônico:
+Foi realizada busca transversal no repositório pelos cinco `legacy_path` registrados no catálogo canônico. Nenhum consumidor operacional textual foi localizado para os cinco caminhos; as ocorrências encontradas ficaram restritas a registros, auditorias e documentação de migração.
 
-| `concept_id` | Legacy path pesquisado | Evidência encontrada | Classificação atual |
-|---|---|---|---|
-| `ELO.ARCHITECTURE.MASTER` | `01-meta-arquitetura/ELO_ARCHITECTURE_MASTER.md` | somente registro/auditoria; nenhum consumidor operacional localizado | sem consumidor operacional identificado |
-| `ELO.DATA_ENGINEERING.MASTER` | `07-engenharia de dados/DATA_ENGINEERING_MASTER.md` | somente registro canônico; nenhum consumidor operacional localizado | sem consumidor operacional identificado |
-| `ELO.MODELS.LIBRARY.MASTER` | `11-modelos/MODELS_LIBRARY_MASTER.md` | somente registro/auditoria; nenhum consumidor operacional localizado | sem consumidor operacional identificado |
-| `ELO.SYSTEMS.ENGINEERING.MASTER` | `12-sistemas/SYSTEMS_ENGINEERING_MASTER.md` | somente registro/auditoria; nenhum consumidor operacional localizado | sem consumidor operacional identificado |
-| `ELO.ROADMAP.MASTER` | `14-roteiros/ROADMAP_MASTER.md` | somente registro canônico/auditoria; nenhum consumidor operacional localizado | sem consumidor operacional identificado |
+| `concept_id` | Legacy path | Resultado |
+|---|---|---|
+| `ELO.ARCHITECTURE.MASTER` | `01-meta-arquitetura/ELO_ARCHITECTURE_MASTER.md` | `TEXTUAL_SCAN_CLEAR` |
+| `ELO.DATA_ENGINEERING.MASTER` | `07-engenharia de dados/DATA_ENGINEERING_MASTER.md` | `TEXTUAL_SCAN_CLEAR` |
+| `ELO.MODELS.LIBRARY.MASTER` | `11-modelos/MODELS_LIBRARY_MASTER.md` | `TEXTUAL_SCAN_CLEAR` |
+| `ELO.SYSTEMS.ENGINEERING.MASTER` | `12-sistemas/SYSTEMS_ENGINEERING_MASTER.md` | `TEXTUAL_SCAN_CLEAR` |
+| `ELO.ROADMAP.MASTER` | `14-roteiros/ROADMAP_MASTER.md` | `TEXTUAL_SCAN_CLEAR` |
 
-### Limite da evidência
+## Limite da evidência
 
-A busca confirma ausência de referências textuais encontradas no índice pesquisável do repositório, mas **não fecha ainda o gate de remoção física**. A resolução por identidade/alias, testes e CI ainda precisam ser comprovados.
+`TEXTUAL_SCAN_CLEAR` não significa `RUNTIME_CLEAR`. O gate de remoção permanece fechado até validação por identidade/alias, testes relevantes e CI.
 
 Nenhum caminho legado deve ser removido por esta evidência isolada.
 
 ## Relação com o runtime
 
 O repositório possui `src/elo/core/source_resolver.py` e `source_discovery.py`. A consolidação deve integrar o índice canônico a essa fronteira, não criar um segundo resolver.
-
-## Condição de segurança
-
-Uma mudança física só é segura quando a resolução por identidade continua retornando o mesmo conceito, versão/proveniência e autoridade esperados.
-
-## Não permitido
-
-- renomear pasta e considerar isso consolidação;
-- apagar PT porque existe EN;
-- criar segundo Core/resolver;
-- mudar semântica sem decisão explícita;
-- atualizar somente documentação sem atualizar consumidores;
-- tratar ausência de ocorrência textual como prova suficiente para remoção.
 
 ## Próximo gate
 
