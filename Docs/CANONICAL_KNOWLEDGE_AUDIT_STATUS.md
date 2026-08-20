@@ -6,15 +6,20 @@
 ## Estado
 `IN_PROGRESS — PARALLEL STRUCTURAL RECONCILIATION`
 
-## HEAD auditado
+## PR e HEAD efetivamente auditados
 
 PR #267 — `refactor/canonical-knowledge-audit`
 
 ```text
-59b4b7619db169d8556fe525d65546633b246fca
+base: b1bd5cc97ff73a33a3e8cb1d1e7153da90c584a7
+head: 4dee94bcf529fa7f8d7aee03e4ad3256ca9b1e85
+commits: 42
+changed_files: 16
 ```
 
-O HEAD foi atualizado com a reconciliação factual do registry. A verificação direta deste SHA retornou zero workflow runs; CI permanece `NO_EVIDENCE` e o merge continua bloqueado.
+O PR permanece aberto e `mergeable=false`. O HEAD atual é o SHA acima; referências anteriores a `59b4b7619db169d8556fe525d65546633b246fca` nesta documentação ficam superadas por este checkpoint.
+
+A verificação de CI deve ser feita especificamente para o HEAD atual. Até existir workflow run/status verificável para `4dee94bcf529fa7f8d7aee03e4ad3256ca9b1e85`, `CI_HEAD = NO_EVIDENCE` e o merge permanece bloqueado.
 
 ## Princípio desta fase — evolução estrutural do ELO
 
@@ -73,7 +78,7 @@ Os núcleos são paralelos na análise, não na autoridade. Eles produzem evidê
 - protocolo de validação e impacto atualizado para suportar análise paralela sem criar autoridade concorrente;
 - documentação redundante de investigação do CI consolidada no protocolo permanente, preservando o registro histórico da investigação sem manter dois documentos concorrentes;
 - registry atualizado para refletir estados já comprovados, sem promover auditorias incompletas a equivalência;
-- HEAD do PR atualizado para o commit da reconciliação do registry.
+- HEAD deste checkpoint reconciliado com o SHA efetivo do PR #267.
 
 ## Reconciliação estrutural já comprovada
 
@@ -163,24 +168,10 @@ A matriz `CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md` continua sendo a autoridade de cl
 | Família 15 | 🔄 DESCOBERTA |
 | Consumidores | ⏳ PENDENTE DE FECHAMENTO |
 | T01–T10 | ⏳ PENDENTE DE EVIDÊNCIA |
-| CI no HEAD | 🔴 NO_EVIDENCE |
+| CI no HEAD `4dee94bcf529fa7f8d7aee03e4ad3256ca9b1e85` | 🔴 NO_EVIDENCE |
 | Depreciação | 🔒 BLOQUEADA |
 | Remoção histórica | 🔒 BLOQUEADA |
 | Merge | 🔒 BLOQUEADO |
-
-## Evidência de CI
-
-O CI do SHA anterior `9b1e2fd967c0a3df3854f1c338f0cf667e3ff258` passou no ELO Evolution Gate #728.
-
-O HEAD atual é `59b4b7619db169d8556fe525d65546633b246fca`. A verificação direta deste SHA retornou zero workflow runs.
-
-```text
-CI = NO_EVIDENCE
-GATE = BLOCKED
-MERGE = BLOCKED
-```
-
-`NO_EVIDENCE` não é interpretado como `PASS` nem como `FAIL`.
 
 ## Bloqueios deliberados
 
