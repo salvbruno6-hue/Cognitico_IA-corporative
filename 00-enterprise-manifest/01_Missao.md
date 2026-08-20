@@ -1,15 +1,12 @@
 # Missão
 
-## Objetivo
+## Papel no modelo lógico
+Primeiro nível da cadeia estratégica. Define **por que o ELO existe** e qual valor institucional deve produzir. Não define metas, capacidades, processos ou implementação.
 
+## Objetivo
 Definir a missão empresarial do ELO como plataforma de integração, conhecimento, suporte à decisão e execução.
 
-## Escopo
-
-Este documento estabelece a finalidade central do ELO no contexto corporativo e orienta a criação de valor, a priorização de capacidades e a evolução da plataforma como base operacional do ecossistema cognitivo.
-
 ## Conteúdo
-
 - propósito institucional;
 - valor entregue ao negócio;
 - suporte à decisão e à operação;
@@ -17,13 +14,16 @@ Este documento estabelece a finalidade central do ELO no contexto corporativo e 
 - relação com o ecossistema cognitivo;
 - integração de conhecimento e processos.
 
-## Regras
+## Relações canônicas
+- recebe contexto do `ENTERPRISE_MANIFEST.md`;
+- orienta `02_Objetivos.md`;
+- fundamenta `03_Capacidades.md`, `04_Cadeia_de_Valor.md` e `05_Modelo_Operacional.md`;
+- é operacionalizada pelas regras de `07_Regras_Estrategicas.md`.
 
-- a missão deve ser consistente com a arquitetura;
-- a missão deve orientar decisões estratégicas e técnicas;
-- a missão deve permanecer rastreável aos demais documentos do manifesto empresarial;
-- a missão deve servir como referência para os artefatos estratégicos e arquiteturais.
+## Regras
+- a missão deve permanecer estável e rastreável;
+- nenhum objetivo estratégico pode contrariar a missão;
+- missão não deve absorver metas, capacidades ou detalhes de implementação.
 
 ## Proveniência
-
-Migrado de `00-empresa-manifesto/01_Missao.md` para o owner canônico `00-enterprise-manifest/`. O conteúdo foi preservado sem perda semântica.
+Migrado de `00-empresa-manifesto/01_Missao.md` e semanticamente ajustado para o owner canônico `00-enterprise-manifest/`.
