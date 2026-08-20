@@ -1,7 +1,7 @@
 # ELO — Status da Auditoria de Consolidação
 
 ## Data
-2026-08-19
+2026-08-20
 
 ## Estado
 `IN_PROGRESS — PARALLEL STRUCTURAL RECONCILIATION`
@@ -11,7 +11,7 @@
 PR #267 — `refactor/canonical-knowledge-audit`
 
 ```text
-2835c8bcec9198b767ca983b4996e62cb295a56f
+f41f1eb2c61e305ea3018ecf65e65dfd72583a87
 ```
 
 O PR permanece aberto e o merge continua bloqueado até existir evidência verificável no HEAD atual.
@@ -30,7 +30,7 @@ As famílias são regiões conectadas desse sistema. A avaliação deve consider
 
 ## Modelo operacional desta rodada
 
-A análise passa a usar núcleos virtuais simulados para processar múltiplos arquivos em paralelo:
+A análise usa núcleos virtuais simulados para processar múltiplos arquivos em paralelo:
 
 ```text
 Núcleo A — estrutura/famílias
@@ -70,7 +70,9 @@ Os núcleos são paralelos na análise, não na autoridade. Eles produzem evidê
 - evidência estrutural da família 05 materializada;
 - cinco masters já registrados com identidade estável (`01`, `07`, `11`, `12`, `14`) reconhecidos como artefatos já canonicalizados, sem autorização automática de remoção;
 - modelo de execução em núcleos virtuais e consolidação por lote formalizado;
-- protocolo de validação e impacto atualizado para suportar análise paralela sem criar autoridade concorrente.
+- protocolo de validação e impacto atualizado para suportar análise paralela sem criar autoridade concorrente;
+- documentação redundante de investigação do CI consolidada no protocolo permanente, preservando o registro histórico da investigação sem manter dois documentos concorrentes;
+- estado desta auditoria atualizado para o HEAD efetivamente atual do PR.
 
 ## Reconciliação estrutural já comprovada
 
@@ -168,7 +170,7 @@ A matriz `CANONICAL_KNOWLEDGE_AUDIT_MATRIX.md` continua sendo a autoridade de cl
 
 O CI do SHA anterior `9b1e2fd967c0a3df3854f1c338f0cf667e3ff258` passou no ELO Evolution Gate #728.
 
-O HEAD foi atualizado durante esta rodada para `2835c8bcec9198b767ca983b4996e62cb295a56f`. A existência de execução antiga não satisfaz o gate do HEAD atual.
+O HEAD atual é `f41f1eb2c61e305ea3018ecf65e65dfd72583a87`. A existência de execução antiga não satisfaz o gate do HEAD atual.
 
 Até existir execução comprovada para esse SHA:
 
