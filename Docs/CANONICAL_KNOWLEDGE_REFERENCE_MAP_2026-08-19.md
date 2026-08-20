@@ -25,9 +25,13 @@ O repositório já possui `src/elo/core/source_resolver.py` e `source_discovery.
 
 ## Evidência transversal — 2026-08-20
 
-Os cinco `legacy_path` atualmente registrados no `CANONICAL_KNOWLEDGE_ARTIFACT_ID_REGISTRY_2026-08-19.json` foram pesquisados no repositório. As ocorrências localizadas ficaram restritas ao próprio registro, auditorias e documentação de migração; não foi localizado consumidor operacional textual dependente dos cinco caminhos antigos.
+Os cinco `legacy_path` atualmente registrados no catálogo canônico foram pesquisados no repositório. Não foi localizado consumidor operacional textual dependente dos cinco caminhos antigos; as ocorrências encontradas ficaram restritas ao registro canônico, auditorias e documentação da migração.
 
-Isso é evidência de **ausência de referência textual operacional identificada**, não autorização de remoção física.
+### Resultado
+
+`TEXTUAL_SCAN_CLEAR` para os cinco legacy paths.
+
+Isso não equivale a `RUNTIME_ALIAS_VALIDATED` e não libera remoção física.
 
 ## Sequência segura
 
@@ -65,9 +69,9 @@ Se duas versões afirmarem coisas diferentes sobre o mesmo conceito:
 
 ## Estado desta etapa
 
-- consumidores textuais dos cinco legacy paths: **nenhum identificado**;
-- referências/aliases: **ainda não validados pelo runtime**;
-- testes de resolução antiga/nova: **pendentes**;
-- CI: **pendente**;
-- depreciação: **bloqueada**;
-- remoção física: **bloqueada**.
+- consumidores textuais: **CLEAR**;
+- referências/aliases no runtime: **PENDENTES**;
+- testes de resolução antiga/nova: **PENDENTES**;
+- CI: **PENDENTE**;
+- depreciação: **BLOQUEADA**;
+- remoção física: **BLOQUEADA**.
