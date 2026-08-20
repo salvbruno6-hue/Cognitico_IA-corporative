@@ -12,6 +12,7 @@ This contract turns an explicit ELO objective into a governed execution loop acr
 - **ELO Core:** canonical execution mechanisms and runtime capabilities.
 - **ELO Forge:** internal constructor plane inside the canonical Cognitico repository. It inspects, builds, experiments, tests, corrects and prepares changes for promotion. It has no independent architectural authority.
 - **Codex:** execution engine operating within the declared task scope and the ELO/Core/Forge contracts. It inspects, edits, tests, corrects and reports evidence.
+- **ELO Maintenance Coordinator:** deterministic GitHub process executor defined in `automation/ELO_MAINTENANCE_COORDINATOR.md`. It audits stalled Issues/PRs, routes specialist consultations, records gate results and may enable repository auto-merge only when explicit ELO authorization and all configured gates are present. It is not a second supervisor.
 - **Human owner:** escalation authority when policy, credentials, contradiction, repository protection or other configured limits require human action.
 
 ## Agentic completion loop
@@ -38,6 +39,12 @@ The ELO Cognitivo is the native supervisor of the task. It must be able to deter
 
 Do not create an `ExecutionSupervisor`, `SupervisorCore`, `CognitiveSupervisor` or equivalent parallel authority.
 
+## Maintenance coordination
+
+The repository workflow `.github/workflows/elo-maintenance-coordinator.yml` is the GitHub-side process adapter. Its deterministic decision contract is implemented in `automation/tasks/elo_maintenance_coordinator.py` and tested in `tests/test_elo_maintenance_coordinator.py`.
+
+The coordinator may audit a stalled approval, but **approval is never inferred from inactivity**. A merge candidate requires explicit `elo/approve-merge` authorization in addition to acceptance, specialist, CI, review, scope and protection gates.
+
 ## Specialist protocol
 
 For architecture, security, data, automation, deployment or production-impacting work, use applicable specialist lanes:
@@ -48,6 +55,8 @@ For architecture, security, data, automation, deployment or production-impacting
 4. Operations — deployment, reliability, rollback and observability.
 5. Testing — acceptance coverage, regression and evidence quality.
 6. Domain — business/process correctness when applicable.
+7. Finance/Costing — budget, costing and commercial evolution when applicable.
+8. Cognitive/Knowledge — memory and experience admission.
 
 ELO resolves disagreements using repository evidence and canonical authority.
 
@@ -96,6 +105,12 @@ High-risk work may be automated only when the task explicitly permits it and rep
 
 Failure paths are `BLOCKED`, `ESCALATED`, `FAILED`, or `ROLLED_BACK`.
 
+## Experience and memory admission
+
+A valuable experience does not automatically become architecture. ELO must classify the event as `ARCHITECTURAL_EVOLUTION`, `TEMPORAL_EXPERIENCE`, `ROADMAP_CANDIDATE` or `REJECTED`.
+
+A `TEMPORAL_EXPERIENCE` requires canonical identity, provenance, applicability, contradiction checking and explicit ELO admission. An `ARCHITECTURAL_EVOLUTION` must enter the normal architectural gates and PR/merge process.
+
 ## Non-negotiable rules
 
 - Never write directly to `main` during task execution.
@@ -107,6 +122,7 @@ Failure paths are `BLOCKED`, `ESCALATED`, `FAILED`, or `ROLLED_BACK`.
 - Do not create a parallel Core, memory authority, Orchestrator or execution supervisor.
 - Treat the historical external `ELO-Forge` repository as non-canonical. It may be inspected for evidence or historical assets, but the active Forge constructor is inside `Cognitico_IA-corporative`.
 - Do not promote historical Forge SQL, migrations, runtime configuration, dashboards or implementation artifacts merely because they exist. Promote only reconciled output that adds value and conforms to canonical ELO contracts.
+- Do not convert a useful conversation into canonical memory without identity and evidence validation.
 
 ## Evidence contract
 

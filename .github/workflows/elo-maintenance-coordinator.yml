@@ -1,0 +1,127 @@
+name: ELO Maintenance Coordinator
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  issues:
+    types: [opened, edited, labeled, unlabeled, reopened]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  checks: read
+  actions: read
+
+concurrency:
+  group: elo-maintenance-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    if: github.event_name != 'issues' || contains(join(github.event.issue.labels.*.name, ','), 'elo/') || github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout canonical repository
+        uses: actions/checkout@v4
+
+      - name: Audit ELO maintenance contract
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p automation/audit-output
+
+          if [ -n "${ISSUE_NUMBER}" ]; then
+            gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json number,title,body,state,labels,assignees,comments > automation/audit-output/event.json
+          else
+            printf '{"event":"%s"}\n' "${EVENT_NAME}" > automation/audit-output/event.json
+          fi
+
+          python automation/tasks/elo_maintenance_coordinator.py
+
+      - name: Audit open pull request candidates
+        if: github.event.pull_request.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json number,title,state,isDraft,mergeStateStatus,reviewDecision,labels,reviews,statusCheckRollup,headRefName,baseRefName > automation/audit-output/pr.json
+          gh pr checks "${PR_NUMBER}" --repo "${REPOSITORY}" --required > automation/audit-output/required-checks.txt || true
+
+      - name: Publish governed audit decision
+        if: github.event.pull_request.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          pr = json.loads(Path('automation/audit-output/pr.json').read_text())
+          labels = {x['name'] for x in pr.get('labels', [])}
+          review_decision = pr.get('reviewDecision')
+          merge_state = pr.get('mergeStateStatus')
+          checks = Path('automation/audit-output/required-checks.txt').read_text()
+          checks_pass = not any(x in checks.lower() for x in ('fail', 'cancel', 'timed out'))
+          explicit_merge = 'elo/approve-merge' in labels
+          approved = (
+              explicit_merge
+              and review_decision in (None, 'APPROVED')
+              and checks_pass
+              and merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')
+              and not pr.get('isDraft', False)
+          )
+
+          decision = 'APPROVED_FOR_MERGE' if approved else 'READY_FOR_ELO_DECISION'
+          reasons = []
+          if not explicit_merge:
+              reasons.append('explicit label elo/approve-merge is required')
+          if review_decision not in (None, 'APPROVED'):
+              reasons.append(f'reviewDecision={review_decision}')
+          if not checks_pass:
+              reasons.append('required checks are not passing')
+          if merge_state in ('BLOCKED', 'DIRTY', 'UNKNOWN'):
+              reasons.append(f'mergeStateStatus={merge_state}')
+          if pr.get('isDraft', False):
+              reasons.append('pull request is draft')
+
+          payload = {
+              'pr': pr['number'],
+              'decision': decision,
+              'reasons': reasons,
+              'explicit_elo_authorization': explicit_merge,
+              'contract': 'automation/ELO_MAINTENANCE_COORDINATOR.md',
+          }
+          Path('automation/audit-output/decision.json').write_text(json.dumps(payload, indent=2) + '\n')
+          print(json.dumps(payload, indent=2))
+          PY
+
+          DECISION=$(python -c "import json; print(json.load(open('automation/audit-output/decision.json'))['decision'])")
+          if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. All configured evidence gates pass and explicit \\`elo/approve-merge\\` authorization is present. Repository protections remain authoritative."
+            gh pr merge "${PR_NUMBER}" --repo "${REPOSITORY}" --auto --squash
+          else
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **READY_FOR_ELO_DECISION**. The coordinator audited the event but will not merge. Review \\`automation/audit-output/decision.json\\` in the workflow artifact and satisfy the listed gates."
+          fi
+
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: elo-maintenance-audit-${{ github.run_id }}
+          path: automation/audit-output/
