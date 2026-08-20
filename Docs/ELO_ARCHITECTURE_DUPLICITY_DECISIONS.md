@@ -27,13 +27,25 @@ Registrar decisões verificáveis sobre candidatos a duplicidade arquitetural se
 - decisão: preservar.
 - motivo: define arquitetura específica do ecossistema de IA e declara integração com a baseline técnica e outros masters. Não deve ser convertido em segundo owner da arquitetura corporativa.
 
-## Resultado do lote
+### 5. `02-architecture-library/ELO_PR1_FILE_DECISION_REGISTER.yaml`
+- classificação: `GOVERNANCE_REGISTER`
+- decisão: preservar.
+- motivo: é registro de governança/proveniência e não substitui o Master.
 
-- 1 owner canônico confirmado.
-- 1 representação histórica identificada.
+### 6. `02-architecture-library/ELO_PR1_RECONCILIATION_MATRIX.md`
+- classificação: `GOVERNANCE_MATRIX`
+- decisão: preservar.
+- motivo: é matriz de reconciliação e controle da migração histórica, não uma segunda arquitetura.
+
+## Resultado verificável do lote
+
+- 1 owner canônico de arquitetura corporativa confirmado.
+- 1 representação histórica do mesmo Master identificada.
 - 2 arquiteturas especializadas preservadas por função distinta.
-- Nenhuma remoção física autorizada.
-- Nenhuma autoridade paralela criada.
+- 2 artefatos de governança/reconciliação preservados por função distinta.
+- 0 autoridades paralelas autorizadas.
+- 0 remoções físicas autorizadas.
+- 0 conteúdos eliminados por semelhança nominal.
 
 ## Próximo gate
-Mapear consumidores e referências do caminho histórico antes de qualquer remoção/depreciação física.
+Mapear consumidores e referências do caminho histórico e verificar se existe outro artefato que declare a mesma autoridade/concept_id antes de qualquer depreciação ou remoção.
