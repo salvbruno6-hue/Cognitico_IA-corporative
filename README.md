@@ -22,7 +22,24 @@ A evolução deve preservar estas capacidades e fronteiras:
 - integração empresarial sem transformar o ELO em substituto de ERP, MES, CRM ou outros sistemas de registro;
 - separação entre recomendação do ELO e decisão humana autorizada.
 
-O manifesto canônico define como não negociáveis: não criar um segundo Core, não criar memória/autoridade canônica paralela, não inventar fatos, preservar histórico e proveniência, e promover conhecimento contextual para o Core somente após generalização, validação e evolution gate. fileciteturn527file0
+O manifesto canônico define como não negociáveis: não criar um segundo Core, não criar memória/autoridade canônica paralela, não inventar fatos, preservar histórico e proveniência, e promover conhecimento contextual para o Core somente após generalização, validação e evolution gate.
+
+## Consolidação documental validada
+
+A reconciliação dos masters documentais duplicados foi concluída em etapas de identificação, classificação, canonicalização, depreciação, auditoria de consumidores/referências e remoção física segura.
+
+Os seguintes masters legados foram **deprecados, substituídos por owners canônicos e removidos fisicamente** no PR #271, após os gates de validação:
+
+| Artefato legado removido | Owner canônico preservado |
+|---|---|
+| `07-engenharia-de dados/DATA_ENGINEERING_MASTER.md` | `07-data-engineering/DATA_ENGINEERING_MASTER.md` |
+| `11-modelos/MODELS_LIBRARY_MASTER.md` | `11-models-library/MODELS_LIBRARY_MASTER.md` |
+| `12-sistemas/SYSTEMS_ENGINEERING_MASTER.md` | `12-system-engineering/SYSTEMS_ENGINEERING_MASTER.md` |
+| `14-roteiros/ROADMAP_MASTER.md` | `14-roadmap/ROADMAP_MASTER.md` |
+
+A remoção foi validada no `main` pelo commit `9e7ace20698175f9c4e89947dc44ef3a05b43511`. Os workflows pós-merge **ELO PR1 Validation #476**, **ELO Behavioral Validation #872** e **ELO Evolution Gate #791** concluíram com sucesso, incluindo validação canônica, contrato de acesso externo, compilação, testes e handoff do estado do gate.
+
+A remoção foi limitada aos quatro masters redundantes. Documentos especializados, históricos e complementares das respectivas famílias não foram removidos por semelhança nominal.
 
 ## Multiteiner como Tenant Corporativo de Validação
 
@@ -77,7 +94,7 @@ resultado observado
 experiência e aprendizado governado
 ```
 
-O ciclo cognitivo canônico do manifesto é `OBSERVE → CONTEXTUALIZE → ANALYZE → FORMULATE → DECIDE → EXECUTE → MONITOR → LEARN → FOLLOW-UP → REASSESS`. A passagem de leitura para escrita/executação exige autorização explícita e execução governada. fileciteturn527file0
+O ciclo cognitivo canônico do manifesto é `OBSERVE → CONTEXTUALIZE → ANALYZE → FORMULATE → DECIDE → EXECUTE → MONITOR → LEARN → FOLLOW-UP → REASSESS`. A passagem de leitura para escrita/executação exige autorização explícita e execução governada.
 
 ## Gestão à vista e sistemas corporativos
 
@@ -122,22 +139,22 @@ Esses documentos não substituem a arquitetura normativa ou ADRs aprovados. Eles
 - `05-cognitivo-plataforma/` — estrutura histórica/portuguesa
 - `05-cognitive-platform/` — plataforma cognitiva operacional
 - `06-knowledge-engineering/` — engenharia do conhecimento
-- `07-engenharia-de dados/` — estrutura histórica/portuguesa
-- `07-data-engineering/` — engenharia de dados operacional
+- `07-engenharia-de dados/` — estrutura histórica/portuguesa, sem o master legado removido
+- `07-data-engineering/` — engenharia de dados operacional e owner canônico
 - `08-ai/` — estrutura de IA
 - `09-governance/` — governança corporativa
 - `10-adr/` — decisões arquiteturais
-- `11-modelos/` — biblioteca de modelos
-- `12-sistemas/` — engenharia de sistemas
+- `11-modelos/` — biblioteca de modelos e artefatos especializados; o master legado foi removido
+- `12-sistemas/` — engenharia de sistemas e artefatos especializados; o master legado foi removido
 - `13-referências/` — referências externas
-- `14-roteiros/` — roadmap e roteiros
+- `14-roteiros/` — roadmap e roteiros especializados; o master legado foi removido
 - `15-ativos/` — ativos reutilizáveis
 - `Docs/` — documentação evolutiva
 - `src/elo/` — implementação executável do ELO
 
 ## Regra para diretórios duplicados
 
-Existem variantes de nomenclatura em português e inglês. Isso é dívida estrutural conhecida, não duas arquiteturas independentes. Não criar novos diretórios equivalentes. Para novos artefatos canônicos, seguir o caminho operacional definido pelas regras de navegação e preservar o conteúdo histórico até decisão explícita de consolidação.
+Variantes de nomenclatura em português e inglês podem existir por razões históricas ou especializadas. Isso não autoriza duas arquiteturas independentes nem novos masters paralelos. Para novos artefatos canônicos, seguir o caminho operacional definido pelas regras de navegação e preservar conteúdo histórico ou especializado somente quando houver função legítima, consumidor ou proveniência que justifique sua manutenção.
 
 ## Regra de maturidade
 
