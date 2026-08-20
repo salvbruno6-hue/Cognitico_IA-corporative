@@ -30,9 +30,11 @@
       "concept": "cognitive platform",
       "portuguese_root": "05-cognitivo-plataforma/",
       "english_root": "05-cognitive-platform/",
-      "classification": "CONTENT_REVIEW_REQUIRED",
+      "classification": "CONTENT_CONSOLIDATED_PENDING_REFERENCE_VALIDATION",
       "canonical_owner": "05-cognitive-platform/",
-      "legacy_owner": "05-cognitivo-plataforma/"
+      "legacy_owner": "05-cognitivo-plataforma/",
+      "migrated_artifacts": ["COGNITIVE_FUNDAMENTALS.md", "CORE-004_Filosofia_do_ELO.md", "CORE-007_Recursos_Estrategicos.md", "INTELIGENCIA_DE_DEMANDA.md", "KNOWLEDGE_MODEL.md", "RAG.md"],
+      "legacy_removal": "PENDING_REFERENCE_VALIDATION"
     },
     {
       "family_id": "ELO.DATA.07",
@@ -96,6 +98,8 @@
     "Do not mark a family physically consolidated until references and tests pass.",
     "Preserve historical provenance for migrated artifacts.",
     "A consolidated family has one canonical owner even while legacy aliases remain temporarily resolvable.",
-    "For duplicate PT/EN families, classify every legacy artifact, merge complementary content into the canonical owner, then validate consumers before physical removal."
+    "For duplicate PT/EN families, classify every legacy artifact, merge complementary content into the canonical owner, then validate consumers before physical removal.",
+    "The ELO must maintain logical coherence inside each canonical family: every artifact needs a clear purpose, place in the flow, owner, consumers and relationship to adjacent artifacts.",
+    "When a duplicate family is processed, the ELO must repeat the same file-level semantic audit until no useful, non-incongruent legacy content remains outside the canonical owner."
   ]
 }
