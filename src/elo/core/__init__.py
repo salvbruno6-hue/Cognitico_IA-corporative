@@ -2,6 +2,14 @@
 
 from .access_policy import AccessDecision, AccessRequest, AccessResult, SessionMode, authorize
 from .analysis_solicitations_learning import SolicitationLearningCandidate, build_learning_candidate, classify_candidate
+from .artifact_resolver import (
+    AmbiguousArtifactError,
+    ArtifactRecord,
+    ArtifactResolution,
+    ArtifactResolutionError,
+    ArtifactResolver,
+    UnknownArtifactError,
+)
 from .budgeting import (Assumption, BudgetAuthorization, BudgetAuthorizationError, BudgetDecision, BudgetFollowUp,
                         BudgetInput, BudgetInputClass, BudgetLine, BudgetLineType, BudgetOutcome, BudgetRequest,
                         BudgetScenario, BudgetScenarioKind, BudgetSensitivity, BudgetStatus, BudgetVersion,
@@ -34,23 +42,25 @@ from .systemic_primitives import (CausalAssessment, DecisionRecord, OutcomeFeedb
                                   SystemicRelation, TemporalValidity, UncertaintyAssessment)
 
 __all__ = [
-    "AccessDecision", "AccessRequest", "AccessResult", "Assumption", "AdmissionRequest", "AdmissionResult",
-    "authorize", "SessionMode", "BudgetAuthorization", "BudgetAuthorizationError", "BudgetDecision", "BudgetFollowUp",
-    "BudgetInput", "BudgetInputClass", "BudgetLine", "BudgetLineType", "BudgetOutcome", "BudgetRequest",
-    "BudgetScenario", "BudgetScenarioKind", "BudgetSensitivity", "BudgetStatus", "BudgetVersion", "BudgetingError",
-    "CanonicalIdentityRegistry", "CANONICAL_CAPABILITIES", "CapacityConstraint", "CapabilityProbe", "CapabilityRegistry",
-    "CapabilitySnapshot", "CapabilityStatus", "ChatBridge", "ChatBridgeEvent", "ConsultativeOrchestrator",
-    "ConsultativeOutcome", "ConsultativeReturn", "ConsultingResponse", "ConsultingStatus", "ContextEvidence", "ContextPack",
-    "ContextQuery", "ContextResolutionEngine", "ContextSource", "CoreLoopEngine", "CoreLoopRequest", "CoreLoopResult",
-    "CorporateDomain", "CorporateSystemicView", "CrossDomainGovernance", "CrossDomainRelation", "CrossDomainValidation",
-    "CausalAssessment", "ConversationEvent", "ConversationIntake", "ConversationIntakeResult", "CostComponent",
-    "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario", "DiagnosticScenarioEngine", "DiscoveryPlan",
-    "EloCanonicalIdentity", "EvolutionClassification", "EvolutionDecision", "EvolutionGate", "EvolutionMemory",
-    "EvolutionProposal", "EvolutionRecord", "ForecastObservation", "ForecastResult", "ForecastStatus", "GovernedForecastFaculty",
-    "GPTDecisionHandoff", "GovernedBudgetingService", "HybridCapabilityBridge", "KnowledgeAdmission", "MATURITY_DIMENSIONS",
-    "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback", "probe_local_tools", "ProductionEvent", "ProductionFlow",
-    "ProductionStage", "ProviderSelection", "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate",
-    "SourceDiscoveryEngine", "SpecialistFeedback", "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment",
-    "SystemicModel", "SystemicRelation", "TemporalValidity", "UncertaintyAssessment", "assess_resolution_for_forward_strategy",
+    "AccessDecision", "AccessRequest", "AccessResult", "AmbiguousArtifactError", "ArtifactRecord",
+    "ArtifactResolution", "ArtifactResolutionError", "ArtifactResolver", "Assumption", "AdmissionRequest",
+    "AdmissionResult", "authorize", "SessionMode", "BudgetAuthorization", "BudgetAuthorizationError",
+    "BudgetDecision", "BudgetFollowUp", "BudgetInput", "BudgetInputClass", "BudgetLine", "BudgetLineType",
+    "BudgetOutcome", "BudgetRequest", "BudgetScenario", "BudgetScenarioKind", "BudgetSensitivity", "BudgetStatus",
+    "BudgetVersion", "BudgetingError", "CanonicalIdentityRegistry", "CANONICAL_CAPABILITIES", "CapacityConstraint",
+    "CapabilityProbe", "CapabilityRegistry", "CapabilitySnapshot", "CapabilityStatus", "ChatBridge", "ChatBridgeEvent",
+    "ConsultativeOrchestrator", "ConsultativeOutcome", "ConsultativeReturn", "ConsultingResponse", "ConsultingStatus",
+    "ContextEvidence", "ContextPack", "ContextQuery", "ContextResolutionEngine", "ContextSource", "CoreLoopEngine",
+    "CoreLoopRequest", "CoreLoopResult", "CorporateDomain", "CorporateSystemicView", "CrossDomainGovernance",
+    "CrossDomainRelation", "CrossDomainValidation", "CausalAssessment", "ConversationEvent", "ConversationIntake",
+    "ConversationIntakeResult", "CostComponent", "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario",
+    "DiagnosticScenarioEngine", "DiscoveryPlan", "EloCanonicalIdentity", "EvolutionClassification", "EvolutionDecision",
+    "EvolutionGate", "EvolutionMemory", "EvolutionProposal", "EvolutionRecord", "ForecastObservation", "ForecastResult",
+    "ForecastStatus", "GovernedForecastFaculty", "GPTDecisionHandoff", "GovernedBudgetingService", "HybridCapabilityBridge",
+    "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback",
+    "probe_local_tools", "ProductionEvent", "ProductionFlow", "ProductionStage", "ProviderSelection", "Scenario",
+    "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine", "SpecialistFeedback",
+    "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation",
+    "TemporalValidity", "UncertaintyAssessment", "UnknownArtifactError", "assess_resolution_for_forward_strategy",
     "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
