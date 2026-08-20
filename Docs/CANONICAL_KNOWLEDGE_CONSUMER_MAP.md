@@ -23,17 +23,6 @@ Consumidores devem depender da identidade canônica e não de caminhos históric
 | Docs/índices | médio | atualizar links após consolidação |
 | Scripts | alto | eliminar dependência de caminhos frágeis |
 
-## Ordem de migração
-
-1. registrar identidade;
-2. registrar canonical path;
-3. registrar aliases;
-4. descobrir consumidores;
-5. adaptar consumidores;
-6. testar resolução antiga e nova;
-7. migrar endereço;
-8. deprecar alias somente depois dos gates.
-
 ## Evidência executada — 2026-08-20
 
 Foi realizada busca transversal no repositório pelos cinco `legacy_path` registrados no catálogo canônico:
@@ -68,3 +57,7 @@ Uma mudança física só é segura quando a resolução por identidade continua 
 - mudar semântica sem decisão explícita;
 - atualizar somente documentação sem atualizar consumidores;
 - tratar ausência de ocorrência textual como prova suficiente para remoção.
+
+## Próximo gate
+
+`TEXTUAL_SCAN_CLEAR → RUNTIME_ALIAS_VALIDATION → TESTES → CI → DEPRECIAÇÃO → REMOÇÃO`
