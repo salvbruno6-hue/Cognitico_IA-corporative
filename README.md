@@ -41,20 +41,36 @@ A remoção foi validada no `main` pelo commit `9e7ace20698175f9c4e89947dc44ef3a
 
 A remoção foi limitada aos quatro masters redundantes. Documentos especializados, históricos e complementares não foram removidos apenas por semelhança nominal.
 
-## Auditoria estrutural atual — duplicidades ainda existentes
+## Consolidação da família 00 — Enterprise Manifest
 
-A remoção dos masters **não significa que todas as duplicidades de diretórios foram eliminadas**. A árvore atual ainda contém variantes históricas em português e owners operacionais em inglês. Essa condição é **dívida estrutural conhecida**, não duas arquiteturas independentes.
+A família `00` foi auditada arquivo a arquivo. A pasta `00-enterprise-manifest/` era estrutural, contendo apenas README e placeholder, enquanto `00-empresa-manifesto/` continha os artefatos substantivos da missão, objetivos, capacidades, cadeia de valor, modelo operacional, stakeholders, regras estratégicas e manifesto empresarial. A conclusão foi **COMPLEMENTAR/CONSOLIDAR**, e não duplicação para descarte.
+
+Todo o conteúdo útil foi migrado para o owner canônico `00-enterprise-manifest/`, preservando a proveniência de cada artefato. A remoção física de `00-empresa-manifesto/` permanece condicionada à validação final de referências, consumidores, aliases e testes.
+
+| Artefato migrado | Owner canônico |
+|---|---|
+| `01_Missao.md` | `00-enterprise-manifest/01_Missao.md` |
+| `02_Objetivos.md` | `00-enterprise-manifest/02_Objetivos.md` |
+| `03_Capacidades.md` | `00-enterprise-manifest/03_Capacidades.md` |
+| `04_Cadeia_de_Valor.md` | `00-enterprise-manifest/04_Cadeia_de_Valor.md` |
+| `05_Modelo_Operacional.md` | `00-enterprise-manifest/05_Modelo_Operacional.md` |
+| `06_Stakeholders.md` | `00-enterprise-manifest/06_Stakeholders.md` |
+| `07_Regras_Estrategicas.md` | `00-enterprise-manifest/07_Regras_Estrategicas.md` |
+| `ENTERPRISE_MANIFESTO.md` | `00-enterprise-manifest/ENTERPRISE_MANIFESTO.md` |
+
+## Auditoria estrutural atual — duplicidades restantes
+
+Depois da consolidação da família `00`, permanecem variantes históricas em outras famílias. Elas não representam duas arquiteturas independentes e não devem ser removidas apenas por semelhança nominal.
 
 | Camada | Variante histórica / paralela | Owner operacional | Situação |
 |---|---|---|---|
-| 00 | `00-empresa-manifesto/` | `00-enterprise-manifest/` | consolidar após revisão de conteúdo |
 | 01 | `01-meta-arquitetura/` | `01-meta-architecture/` | consolidar após revisão de conteúdo |
 | 05 | `05-cognitivo-plataforma/` | `05-cognitive-platform/` | consolidar após revisão de conteúdo |
-| 07 | `07-engenharia-de dados/` | `07-data-engineering/` | master legado já removido; conteúdo restante requer classificação |
+| 07 | `07-engenharia-de dados/` | `07-data-engineering/` | master legado removido; conteúdo restante requer classificação |
 | 13 | — | `13-reference-architecture/` | owner presente; não assumir `13-referências/` sem evidência |
 | 15 | — | `15-assets/` | owner presente; não assumir `15-ativos/` sem evidência |
 
-As pastas `11-modelos/`, `12-sistemas/` e `14-roteiros/` devem ser tratadas como referências históricas/especializadas somente quando efetivamente existentes na árvore atual; os masters legados correspondentes já foram removidos. O README não deve declarar caminhos como canônicos quando eles não existem fisicamente.
+As pastas `11-modelos/`, `12-sistemas/` e `14-roteiros/` devem ser tratadas como referências históricas/especializadas somente quando efetivamente existentes na árvore atual; os masters legados correspondentes já foram removidos.
 
 ### Regra para esta dívida estrutural
 
@@ -62,8 +78,8 @@ As pastas `11-modelos/`, `12-sistemas/` e `14-roteiros/` devem ser tratadas como
 2. Não copiar conteúdo entre variantes apenas para obter simetria.
 3. Não remover diretórios históricos sem auditoria de conteúdo, consumidores, referências, aliases e proveniência.
 4. Para novos artefatos canônicos, utilizar o owner operacional definido em `ELO_REPOSITORY_NAVIGATION_RULES.md`.
-5. Consolidar variantes por ADR/decisão explícita quando a análise comprovar que não existe conteúdo ou consumidor que justifique sua permanência.
-6. Atualizar este README somente com caminhos comprovados pela árvore do `main`.
+5. Consolidar variantes por decisão explícita quando a análise comprovar que não existe conteúdo ou consumidor que justifique sua permanência.
+6. Atualizar o README somente com caminhos comprovados pela árvore do `main`.
 
 ## Multiteiner como Tenant Corporativo de Validação
 
@@ -149,15 +165,14 @@ Esses documentos não substituem a arquitetura normativa ou ADRs aprovados. Eles
 
 ## Estrutura de alto nível atual
 
-- `00-enterprise-manifest/` — fundamentos empresariais e manifesto operacional
-- `00-empresa-manifesto/` — variante histórica em português; requer auditoria antes de consolidação
+- `00-enterprise-manifest/` — fundamentos empresariais e manifesto operacional; owner canônico da família 00
 - `01-meta-architecture/` — meta-arquitetura operacional
-- `01-meta-arquitetura/` — variante histórica em português; requer auditoria antes de consolidação
+- `01-meta-arquitetura/` — variante histórica em português; requer auditoria
 - `02-architecture-library/` — biblioteca de arquitetura
 - `03-process-library/` — biblioteca de processos
 - `04-knowledge-handbook/` — conhecimento e manuais
 - `05-cognitive-platform/` — plataforma cognitiva operacional
-- `05-cognitivo-plataforma/` — variante histórica em português; requer auditoria antes de consolidação
+- `05-cognitivo-plataforma/` — variante histórica em português; requer auditoria
 - `06-knowledge-engineering/` — engenharia do conhecimento
 - `07-data-engineering/` — engenharia de dados operacional e owner canônico
 - `07-engenharia-de dados/` — variante histórica em português; masters legados removidos
@@ -217,6 +232,6 @@ Use os estados definidos em `ELO_REPOSITORY_NAVIGATION_RULES.md`: `PROPOSED`, `D
 
 ## Próximo marco
 
-O próximo ciclo é a **auditoria e consolidação estrutural das variantes de diretórios ainda existentes**, sem remoção automática. Para cada variante, o ELO deve verificar conteúdo, consumidores, referências, aliases, autoridade e proveniência; somente então decidir `REUSE`, `RELOCATE`, `CONSOLIDATE`, `DEPRECATE` ou `REMOVE`.
+A família `00` está **CONSOLIDADA NO OWNER CANÔNICO**, com remoção física do legado ainda aguardando o gate final de consumidores, referências, aliases e testes. O próximo ciclo é executar a mesma auditoria arquivo-a-arquivo nas famílias `01`, `05` e `07`, sem remoção automática.
 
-Depois desse gate, o ciclo pode avançar para a consolidação do **modelo canônico de dados corporativos da Multiteiner** — produto, módulo, material, estrutura/BOM, fornecedor, preço, estoque, orçamento e processo — e suas interfaces com Context, Evidence, Knowledge, Memory, Agents e Decision Support, evitando novas duplicações.
+Depois desses gates, o ciclo pode avançar para a consolidação do **modelo canônico de dados corporativos da Multiteiner** — produto, módulo, material, estrutura/BOM, fornecedor, preço, estoque, orçamento e processo — e suas interfaces com Context, Evidence, Knowledge, Memory, Agents e Decision Support, evitando novas duplicações.
