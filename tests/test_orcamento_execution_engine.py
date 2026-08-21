@@ -32,7 +32,21 @@ def test_pending_relationships_escalate_to_specialist():
     assert any(f.rule == "RELATIONSHIP_AUDIT" for f in result.findings)
 
 
-def test_missing_model_is_blocked_from_automatic_budgeting():
+def test_missing_model_blocks_automatic_budgeting():
     result = BudgetExecutionEngine().execute({}, None)
-    assert result.decision == "SPECIALIST"
+    assert result.decision == "BLOCKED"
+    assert result.specialist_question is None
+    assert any(f.rule == "MODEL_MATCH_REQUIRED" for f in result.findings)
+
+
+def test_missing_model_remains_blocked_even_with_excess_items():
+    result = BudgetExecutionEngine().execute(
+        {
+            "excess_items": [
+                {"code": "EX.JANELA", "description": "Janela adicional", "quantity": 1, "unit": "un"}
+            ]
+        },
+        None,
+    )
+    assert result.decision == "BLOCKED"
     assert any(f.rule == "MODEL_MATCH_REQUIRED" for f in result.findings)
