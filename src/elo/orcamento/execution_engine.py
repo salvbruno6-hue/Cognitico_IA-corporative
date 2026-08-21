@@ -47,7 +47,7 @@ class BudgetExecutionEngine:
         else:
             findings.append(AuditFinding(
                 "MODEL_MATCH_REQUIRED", "CRITICAL",
-                "Nenhum modelo canônico foi identificado com segurança.", "SPECIALIST"
+                "Nenhum modelo canônico foi identificado com segurança.", "BLOCKED"
             ))
 
         for excess in request.get("excess_items", []):
@@ -66,7 +66,13 @@ class BudgetExecutionEngine:
                 "Existem relações de composição/interligação pendentes de auditoria.", "SPECIALIST"
             ))
 
-        decision: Decision = "SPECIALIST" if any(f.decision == "SPECIALIST" for f in findings) else "AUTO"
+        if any(f.decision == "BLOCKED" for f in findings):
+            decision: Decision = "BLOCKED"
+        elif any(f.decision == "SPECIALIST" for f in findings):
+            decision = "SPECIALIST"
+        else:
+            decision = "AUTO"
+
         question = None
         if decision == "SPECIALIST":
             question = request.get(
