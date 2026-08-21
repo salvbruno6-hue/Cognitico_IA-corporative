@@ -1,8 +1,10 @@
 """Canonical ELO identity, trust and capability boundary.
 
 Authentication is external. This module binds an authenticated provider subject
-from a trusted provider assertion to an explicit ELO identity, role, enterprise
-context, repository scope and capability set. It never grants GitHub permissions.
+from a trusted provider assertion to an authoritative ELO identity record. The
+request may carry identity claims, but privileged role, enterprise context,
+repository scope, capabilities and active state are never trusted from the
+request itself. GitHub remains the infrastructure authorization boundary.
 """
 from dataclasses import dataclass
 from enum import StrEnum
@@ -50,12 +52,12 @@ class TrustResult:
 
 @dataclass(frozen=True)
 class TrustedIdentityRegistry:
-    """Immutable snapshot supplied by an authoritative infrastructure layer."""
+    """Immutable authoritative snapshot supplied by the identity layer."""
 
-    provider_subjects: Mapping[str, str]
+    identities: Mapping[str, EloIdentity]
 
-    def is_registered(self, provider: str, provider_subject: str, principal_id: str) -> bool:
-        return self.provider_subjects.get(f"{provider}:{provider_subject}") == principal_id
+    def resolve(self, provider: str, provider_subject: str) -> EloIdentity | None:
+        return self.identities.get(f"{provider}:{provider_subject}")
 
 
 _CRITICAL_ACTIONS = frozenset({
@@ -71,26 +73,25 @@ _CRITICAL_ACTIONS = frozenset({
 
 def evaluate_trust(request: TrustRequest, registry: TrustedIdentityRegistry) -> TrustResult:
     """Fail-closed trust evaluation for ELO-sensitive operations."""
-    identity = request.identity
-    if not identity.active:
-        return TrustResult(TrustDecision.DENY, "identity_inactive")
-    required = (
-        identity.principal_id,
-        identity.provider,
-        identity.provider_subject,
-        identity.enterprise_context,
-        request.repository,
-        request.action,
-        request.capability,
-    )
-    if not all(required):
+    asserted = request.identity
+    if not all((asserted.provider, asserted.provider_subject, request.repository, request.action, request.capability)):
         return TrustResult(TrustDecision.DENY, "missing_identity_or_scope")
-    if not registry.is_registered(identity.provider, identity.provider_subject, identity.principal_id):
+
+    authoritative = registry.resolve(asserted.provider, asserted.provider_subject)
+    if authoritative is None:
         return TrustResult(TrustDecision.DENY, "provider_identity_not_registered")
-    if request.repository not in identity.repository_scope:
+
+    # Provider subject is the lookup anchor; every privileged ELO claim must
+    # match the authoritative record rather than being accepted from the request.
+    if asserted != authoritative:
+        return TrustResult(TrustDecision.DENY, "identity_claims_do_not_match_authority")
+
+    if not authoritative.active:
+        return TrustResult(TrustDecision.DENY, "identity_inactive")
+    if request.repository not in authoritative.repository_scope:
         return TrustResult(TrustDecision.DENY, "repository_out_of_scope")
-    if request.capability not in identity.capabilities:
+    if request.capability not in authoritative.capabilities:
         return TrustResult(TrustDecision.DENY, "capability_not_granted")
-    if request.action in _CRITICAL_ACTIONS and identity.role is not EloRole.CANONICAL_ADMIN:
+    if request.action in _CRITICAL_ACTIONS and authoritative.role is not EloRole.CANONICAL_ADMIN:
         return TrustResult(TrustDecision.DENY, "canonical_authority_required")
     return TrustResult(TrustDecision.ALLOW, "identity_scope_and_capability_verified")
