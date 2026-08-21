@@ -22,7 +22,98 @@ A evolução deve preservar:
 - integração empresarial sem transformar o ELO em substituto de ERP, MES, CRM ou outros sistemas de registro;
 - separação entre recomendação do ELO e decisão humana autorizada.
 
-O manifesto canônico estabelece como não negociáveis: não criar um segundo Core, não criar memória/autoridade canônica paralela, não inventar fatos, preservar histórico e proveniência, e promover conhecimento contextual para o Core somente após generalização, validação e evolution gate.
+## ELO Cognitivo, Core e Forge — fronteira canônica
+
+O ELO possui uma separação estrutural que deve permanecer explícita mesmo quando pastas históricas ou variantes documentais forem consolidadas:
+
+```text
+                 ELO COGNITIVO / SOUL
+          identidade • cânone • autoridade
+       invariantes • limites • evolução governada
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │  ELO CORE   │
+                  │              │
+                  │ faculdade   │
+                  │ cognitiva   │
+                  │ compartilhada│
+                  └──────┬──────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+      Context       Reasoning       Decision
+      Knowledge     Relations       Evidence
+      Memory        Generalization  Audit
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+                      FORGE
+          especialistas • skills • técnicas
+        experiências • contexto • construção
+                         │
+                         ▼
+                    APPLICATION
+              interfaces e fluxos de uso
+                         │
+                         ▼
+                  INFRASTRUCTURE
+          banco • APIs • providers • runtime
+```
+
+### Localização do Core
+
+O **Core canônico executável** está em:
+
+`src/elo/core/`
+
+Essa pasta não é uma variante documental nem um segundo Core. Ela materializa a faculdade cognitiva compartilhada do ELO e seus contratos reutilizáveis.
+
+O Core deve permanecer:
+
+- provider-neutral;
+- reutilizável entre empresas e domínios;
+- separado de regras específicas da Multiteiner ou de qualquer outro tenant;
+- responsável por mecanismos cognitivos gerais, relações, padrões, heurísticas, parâmetros gerais validados e capacidades compartilhadas;
+- integrado por contratos com Context, Knowledge, Memory, Evidence, Reasoning, Decision, Policy e Provenance.
+
+### O que pertence a cada camada
+
+| Camada | Responsabilidade | Não deve conter |
+|---|---|---|
+| **ELO Cognitivo / Soul** | identidade, cânone, autoridade, invariantes, governança e evolução | implementação específica de especialista |
+| **Core** | faculdade cognitiva compartilhada, relações, generalização, raciocínio, auditoria e conhecimento geral validado | regras de negócio exclusivas de empresa/domínio |
+| **Forge** | especialistas, skills, técnicas, experiências, parâmetros contextuais e construção/validação | segundo Core ou autoridade canônica paralela |
+| **Application** | interfaces e fluxos que consomem capacidades do ELO | redefinição de contratos cognitivos |
+| **Infrastructure** | bancos, APIs, providers, runtime e meios substituíveis | identidade ou autoridade do ELO |
+
+Uma experiência contextual do Forge **não entra diretamente no Core**. Para promoção, ela deve passar por evidência, generalização, testes e Evolution Gate. A experiência de origem permanece preservada no Forge.
+
+### Regra especial para orçamento e Lista-Mãe
+
+O módulo de orçamento, a taxonomia MLT, os modelos M01/M02 etc., composições, valores, mão de obra e relações específicas da empresa não devem ser transformados automaticamente em conhecimento geral do Core.
+
+O fluxo canônico é:
+
+```text
+Lista-Mãe / documento / orçamento
+              ↓
+          FORGE / especialista
+              ↓
+     classificação + relações
+              ↓
+     auditoria + evidência
+              ↓
+       generalização válida?
+          ↙           ↘
+        NÃO            SIM
+         ↓              ↓
+ experiência       Evolution Gate
+ contextual             ↓
+    Forge              Core
+```
+
+Assim, o Core pode fornecer mecanismos para correlacionar, classificar, comparar, auditar e generalizar, enquanto o Forge mantém o conhecimento contextual do especialista e da empresa.
 
 ## Loop de Conclusão — diretriz permanente de manutenção arquitetural
 
@@ -144,7 +235,7 @@ A árvore canônica atual utiliza uma única pasta operacional por família nume
 - `Docs/` — documentação evolutiva e registros de migração
 - `automation/` — automações
 - `forge/` — plano construtor/executável governado
-- `src/elo/` — implementação executável do ELO
+- `src/elo/` — implementação executável do ELO; o Core canônico está em `src/elo/core/`
 - `tests/` — testes e evidências executáveis
 - `runtime/` — componentes de runtime
 - `memory/` — estruturas de memória e aprendizado governado
