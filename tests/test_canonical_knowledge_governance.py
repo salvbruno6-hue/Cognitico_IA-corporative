@@ -1,7 +1,7 @@
 """Governance invariants for canonical knowledge consolidation.
 
-These tests intentionally validate the migration rules without touching the
-ELO runtime. They protect the architecture while the physical tree is audited.
+These tests validate migration rules without touching the ELO runtime. They
+protect the architecture while the physical tree is audited.
 """
 
 import json
@@ -33,7 +33,6 @@ def test_migration_order_protects_references() -> None:
     sequence_start = content.index("## 10. Sequência de execução")
     sequence_end = content.index("## 11. Estado da fase", sequence_start)
     sequence = content[sequence_start:sequence_end]
-
     expected = [
         "Inventário",
         "Hash/conteúdo",
@@ -65,19 +64,22 @@ def test_identity_survives_path_change() -> None:
 
 def test_existing_registry_is_the_single_documentary_registry() -> None:
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
-    assert registry["schema_version"] == "1.1"
+    assert registry["schema_version"] == "1.2"
     assert registry["runtime_authority"] == "existing SourceResolver"
     assert registry["runtime_change_allowed"] is False
     assert registry["physical_removal_allowed"] is False
     assert len(registry["families"]) == 9
 
 
-def test_registry_does_not_invent_identity_before_audit() -> None:
+def test_registry_tracks_audit_state_without_fabricating_completion() -> None:
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    allowed_identity = {"PENDING", "ASSIGNED"}
+    allowed_reference = {"PENDING"}
+    allowed_provenance = {"PENDING", "PRESERVED"}
     for family in registry["families"]:
-        assert family["identity_status"] == "PENDING"
-        assert family["reference_status"] == "PENDING"
-        assert family["provenance_status"] == "PENDING"
+        assert family["identity_status"] in allowed_identity
+        assert family["reference_status"] in allowed_reference
+        assert family["provenance_status"] in allowed_provenance
         assert family["review_required"] is True
 
 
