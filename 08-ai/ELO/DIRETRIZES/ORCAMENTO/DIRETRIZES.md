@@ -1,6 +1,6 @@
 # Diretrizes do ELO — Especialista de Orçamento
 
-**Versão:** 1.1  
+**Versão:** 1.2  
 **Status:** Oficial  
 **Especialista:** Orçamento  
 **Origem:** Governança do ELO
@@ -185,13 +185,51 @@ O especialista deve destacar situações que possam gerar:
 - risco de incompatibilidade com infraestrutura existente;
 - risco de atendimento de SLA.
 
-## 9. Separação entre análise e orçamento
+## 9. Regra específica — Porta dupla
+
+Quando o orçamento utilizar a referência interna de **porta dupla padrão**, distinguir obrigatoriamente se os painéis PIR estão incluídos na composição.
+
+### 9.1 Porta dupla completa
+
+**Valor de referência: R$ 2.191,04**.
+
+Composição informada pelo ELO:
+
+- 2 painéis PIR;
+- alumínios;
+- abertura do vão no painel;
+- serviço de confecção da porta.
+
+### 9.2 Porta dupla sem painéis
+
+**Valor de referência: R$ 1.208,00**.
+
+Composição:
+
+- alumínios;
+- abertura do vão no painel;
+- serviço de confecção da porta;
+- **sem os painéis PIR**.
+
+### 9.3 Regra contra dupla contabilização
+
+A diferença entre as duas referências é de **R$ 983,04**, correspondente aos 2 painéis PIR conforme a composição informada pelo ELO.
+
+Portanto:
+
+- se for utilizada a composição de **R$ 2.191,04**, não lançar novamente os 2 painéis PIR;
+- se for utilizada a composição de **R$ 1.208,00**, os 2 painéis PIR devem ser considerados separadamente, quando aplicáveis;
+- antes de utilizar a referência, conferir se a solução específica da SO exige ou não os painéis.
+
+Esses valores são **referências internas de composição informadas pelo ELO** e não devem ser extrapolados para outros itens sem validação da composição correspondente.
+
+## 10. Separação entre análise e orçamento
 
 O especialista de orçamento recebe do ELO os pontos críticos. A execução detalhada permanece sob responsabilidade do especialista, incluindo levantamento quantitativo, cotação, composição, margem, logística e fechamento comercial.
 
 O ELO guarda os pontos de governança; o Especialista de Orçamento executa a precificação.
 
-## 10. Regra de não assunção silenciosa
+## 11. Regra de não assunção silenciosa
 
 Quando uma informação crítica estiver ausente, não assumir uma solução de baixo custo apenas para fechar a planilha.
 
