@@ -67,7 +67,7 @@ class AuthorizationResult:
 
 @dataclass
 class AuthorizationRegistry:
-    """In-memory reference registry; persistence must use a protected store."""
+    """Reference registry; production persistence must use a protected store."""
 
     bindings: dict[str, OperatorBinding] = field(default_factory=dict)
     pending_challenges: dict[str, tuple[AuthMethod, float]] = field(default_factory=dict)
@@ -107,7 +107,6 @@ class AuthorizationRegistry:
                     Capability.COMMIT,
                     Capability.CREATE_PR,
                     Capability.MERGE_OPERATIONAL,
-                    Capability.MERGE_STRUCTURAL,
                     Capability.VIEW_INTERNAL_ARCHITECTURE,
                 }
             ),
@@ -133,8 +132,8 @@ class AuthorizationRegistry:
         if capability not in binding.capabilities:
             return AuthorizationResult(Decision.DENY, "capability_not_granted")
 
-        if structural_change and capability != Capability.MERGE_STRUCTURAL:
-            return AuthorizationResult(Decision.DENY, "structural_change_requires_structural_capability")
+        if structural_change:
+            return AuthorizationResult(Decision.DENY, "structural_change_requires_separate_governed_authorization")
 
         if binding.environment in {Environment.VISITOR, Environment.SPECIALIST} and capability in {
             Capability.MERGE_OPERATIONAL,
