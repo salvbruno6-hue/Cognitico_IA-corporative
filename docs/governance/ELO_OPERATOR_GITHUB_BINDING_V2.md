@@ -12,11 +12,13 @@ A GitHub connection must not imply that every ChatGPT user/session sharing acces
 
 The ELO authorization decision MUST distinguish:
 
-1. ChatGPT/session identity;
+1. ChatGPT/session identity, when the provider exposes an authoritative reference;
 2. authenticated GitHub identity or GitHub App installation;
 3. ELO operator identity;
 4. capability granted to that operator;
 5. sensitivity and structural impact of the requested operation.
+
+If the ChatGPT provider does not expose a usable authoritative identity reference to the integration, ELO MUST NOT invent one or treat a declared e-mail as proof. The implementation must use the available authenticated authorization flow to establish the operator binding.
 
 ## Threat model
 
@@ -36,7 +38,7 @@ A shared conversation, prompt, project context, repository knowledge or natural-
 
 `Planejamento_multiteiner@outlook.com` may be recorded as the intended operator identity, but an e-mail string in a prompt, commit metadata or request body is NOT sufficient proof of authorization.
 
-Authorization MUST bind to the authenticated identity used by the GitHub integration and to an explicit ELO operator record.
+Authorization MUST be established through an authoritative authentication flow and stored as an explicit ELO operator record.
 
 ### 3. GitHub permission remains authoritative for GitHub access
 
@@ -52,15 +54,44 @@ Consultation and contribution capabilities MUST be separated from merge and admi
 
 Another ChatGPT user, another e-mail, another conversation, a copied prompt, a copied repository document or a copied ELO context MUST NOT inherit the operator's merge/admin authority.
 
+## Persistent operator binding
+
+The ELO operator authorization is persistent. It is NOT a per-merge approval mechanism.
+
+For the first administrative authorization, ELO MUST provide an explicit authentication flow. Where QR is used, it is a bootstrap/authentication mechanism and MUST NOT contain a reusable administrative password or permanent secret.
+
+Conceptual flow:
+
+```text
+ELO session
+  ↓
+No active operator binding
+  ↓
+Authenticate operator through the approved GitHub authorization flow
+  ↓
+Authentication succeeds
+  ↓
+Create persistent ELO operator binding
+  ↓
+ELO_ADMIN = ACTIVE
+```
+
+After the binding has been established, subsequent sessions for the same authorized operator MUST recover the existing authorization without requiring a new QR/authentication challenge for each operational merge.
+
+A different ChatGPT/session identity MUST NOT inherit the existing ELO operator binding merely because the same GitHub credential is connected.
+
+Revocation or replacement of the operator binding is a separate administrative operation and is not triggered by an ordinary merge.
+
 ## Operator binding record
 
-The future implementation MUST maintain an authoritative record conceptually equivalent to:
+The implementation MUST maintain an authoritative record conceptually equivalent to:
 
 ```yaml
 operator_id: OP-001
 status: ACTIVE
-chatgpt_identity_binding: <provider-controlled identity reference>
-github_identity_binding: <authenticated GitHub identity or GitHub App binding>
+chatgpt_identity_binding: <provider-controlled identity reference when available>
+github_identity_binding: <authenticated GitHub identity or GitHub App binding used to establish authorization>
+authentication_binding_method: <approved authentication flow>
 allowed_repositories:
   - salvbruno6-hue/Cognitico_IA-corporative
 capabilities:
@@ -69,11 +100,6 @@ capabilities:
   - CREATE_PR
   - MERGE_OPERATIONAL
 structural_admin: false
-strong_auth_required_for:
-  - MERGE_STRUCTURAL
-  - GOVERNANCE_CHANGE
-  - IDENTITY_CHANGE
-  - SECURITY_CHANGE
 ```
 
 Actual credentials, OAuth tokens, passwords, 2FA codes and private secrets MUST NOT be stored in this record or in the repository.
@@ -86,7 +112,7 @@ Actual credentials, OAuth tokens, passwords, 2FA codes and private secrets MUST 
 | COMMIT | according to GitHub permission | yes | yes |
 | CREATE_PR | according to GitHub permission | yes | yes |
 | MERGE_OPERATIONAL | no | yes, after gates | yes |
-| MERGE_STRUCTURAL | no | escalation | strong authorization |
+| MERGE_STRUCTURAL | no | escalation | yes, under structural controls |
 | CHANGE_RULESET | no | no | strong authorization |
 | CHANGE_IDENTITY | no | no | strong authorization |
 | CREATE_ELO_ADMIN | no | no | strong authorization |
@@ -99,7 +125,7 @@ Before merge, ELO MUST classify the change.
 
 Examples include bug fixes, tests, documentation and refactoring that preserve canonical contracts, identity boundaries, governance controls and architecture.
 
-When all required automated gates pass and the authenticated operator has `MERGE_OPERATIONAL`, the ELO may approve the merge without requiring a second human reviewer solely because the PR exists.
+When all required automated gates pass and the authenticated operator has `MERGE_OPERATIONAL`, the ELO may approve the merge without requiring a second human reviewer solely because the PR exists. The ordinary operational path MUST NOT introduce an additional ELO authentication challenge for each merge once the operator binding is already active.
 
 ### STRUCTURAL
 
@@ -124,9 +150,7 @@ Structural changes MUST escalate and MUST NOT be self-approved by the same opera
 ```text
 PR
  ↓
-Authenticated identity
- ↓
-ELO operator binding
+Authenticated operator binding
  ↓
 Repository scope
  ↓
@@ -136,30 +160,49 @@ Structural-impact classification
  ↓
 CI / tests / Evolution Gate
  ↓
-Strong authorization if required
+Structural authorization only when classification requires it
  ↓
 GitHub merge enforcement
 ```
 
 Failure at any mandatory step is `DENY` or `BLOCKED`, never an implicit approval.
 
-## Scenario acceptance test
+## Scenario acceptance tests
 
-### Scenario A — different ChatGPT user, same connected GitHub credential
+### Scenario A — first authorization of the intended operator
 
-If a different ChatGPT user/session is operating ELO while a GitHub credential belonging to the authorized operator is connected, the ELO MUST NOT infer that the ChatGPT user is the operator. The implementation MUST require a valid operator binding before privileged operations.
+The intended operator enters ELO without an active operator binding.
 
-This repository document cannot by itself revoke the already-authorized GitHub credential. The integration layer and GitHub must enforce the actual credential boundary.
+Expected:
 
-### Scenario B — different GitHub account
+1. ELO shows the administrative authentication state;
+2. the approved GitHub authentication flow is presented;
+3. authentication succeeds;
+4. ELO creates the persistent operator binding;
+5. `ELO_ADMIN` becomes active.
 
-A different GitHub account may consult, commit or create PRs according to its GitHub permissions, but MUST NOT receive `MERGE_OPERATIONAL`, `MERGE_STRUCTURAL` or administrative ELO capabilities merely by reading the repository or using ELO.
+### Scenario B — subsequent session of the same authorized operator
 
-### Scenario C — spoofed e-mail/role
+The authorized operator reconnects or starts a later ELO session after the persistent binding exists.
+
+Expected:
+
+1. ELO recovers the existing binding;
+2. `ELO_ADMIN` remains active;
+3. no new QR/authentication challenge is required solely to perform an operational merge;
+4. GitHub's normal protections remain in force.
+
+### Scenario C — different ChatGPT user/session, same connected GitHub credential
+
+A different ChatGPT user/session MUST NOT inherit the existing ELO operator binding merely because a GitHub credential belonging to the authorized operator is connected.
+
+Expected: the session remains `LIMITED` unless it has its own independently established operator authorization. It cannot use another operator's binding.
+
+### Scenario D — spoofed e-mail/role
 
 Supplying the authorized e-mail, `role: ELO_ADMIN`, `capabilities: ALL` or an operator identifier in request content MUST NOT grant authority.
 
-### Scenario D — structural change by authorized operator
+### Scenario E — structural change by authorized operator
 
 Even the authorized operator cannot use the operational merge path to silently change the authorization model, Trust Boundary, Ruleset, identity registry or Evolution Gate. The change must be classified as structural and escalated.
 
@@ -167,13 +210,13 @@ Even the authorized operator cannot use the operational merge path to silently c
 
 The ELO MUST retain auditable evidence of:
 
-- authenticated identity reference;
+- authenticated identity reference, when available;
 - operator binding decision;
 - repository scope;
 - requested capability;
 - structural classification;
 - CI/evolution evidence;
-- strong-authentication result where required;
+- structural authorization result where required;
 - GitHub merge result.
 
 Never store authentication secrets as evidence.
