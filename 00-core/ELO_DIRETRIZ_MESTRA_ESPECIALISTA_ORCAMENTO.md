@@ -49,6 +49,8 @@ Selecionar a base por `REQUISITO DA SO × CARACTERÍSTICAS DA BASE`.
 
 Excedente: `PADRÃO → ALTERAÇÃO → QUANTIDADE → MATERIAL → MÃO DE OBRA → RECURSOS → IMPACTOS → CUSTO`.
 
+Para excedentes, consultar a camada dedicada `ELO_CAMADA_EXCEDENTES_COMPOSICAO.md`. Não tratar excedente como simples texto nem duplicar componente já incorporado à base.
+
 Preço histórico não é preço atual sem validação.
 
 ## 7. LOGÍSTICA E MOBILIZAÇÃO
@@ -77,15 +79,31 @@ Conferir sempre `PTS TÉCNICA × ORÇAMENTO`.
 
 A PTS Pós verifica requisitos não orçados, itens sem origem, divergências de quantidade/unidade/valor, premissas, exclusões, responsabilidades, logística e documentação.
 
-## 10. APRENDIZADO
+## 10. MEMÓRIA DE CÁLCULO
+
+Todo raciocínio de valor relevante deve poder ser reproduzido:
+
+`ENTRADA → FONTE → PREMISSA → FÓRMULA → SUBCÁLCULO → RESULTADO → VALIDAÇÃO`
+
+Consultar `ELO_MEMORIA_CALCULO_ESPECIALISTA_ORCAMENTO.md`. O ELO pode reutilizar a **lógica** em cenários semelhantes, mas deve substituir as entradas e recalcular; nunca copiar automaticamente o valor final de outra SO.
+
+## 11. CONSULTA ESTRUTURADA
+
+Para produtos, serviços, modelos, características, excedentes e composições, utilizar a taxonomia e a camada de consulta estruturada definidas em `ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md`, quando houver fonte de dados disponível.
+
+`SQL → RECUPERA → ESPECIALISTA VALIDA → ELO CONTEXTUALIZA → ORÇAMENTO`
+
+Consulta estruturada não substitui julgamento técnico nem autoriza inventar registros ausentes.
+
+## 12. APRENDIZADO
 
 Somente conhecimento analisado e validado entra no aprendizado permanente:
 
 `REGRA → CONTEXTO → APLICAÇÃO → EXCEÇÃO → EVIDÊNCIA → RISCO`
 
-Uma SO isolada não cria automaticamente uma regra geral.
+Uma SO isolada não cria automaticamente uma regra geral. Memórias de cálculo e excedentes devem ser classificados antes de serem reutilizados.
 
-## 11. DESEMPENHO
+## 13. DESEMPENHO
 
 Priorizar simultaneamente:
 
@@ -95,12 +113,15 @@ Priorizar simultaneamente:
 - **Transparência:** separar fato, premissa, interpretação e pendência.
 - **Aprendizado:** converter somente padrões validados em conhecimento reutilizável.
 
-## 12. FONTE DE DETALHAMENTO
+## 14. FONTE DE DETALHAMENTO
 
 Esta diretriz define o comportamento e a ordem de operação. Para execução detalhada, consultar as fontes especializadas do Handbook, especialmente:
 
 - `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_DIRETRIZES_PROJETO_ANALISE_SOLICITACOES.md`
 - `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
+- `04-knowledge-handbook/ELO_CAMADA_EXCEDENTES_COMPOSICAO.md`
+- `04-knowledge-handbook/ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md`
+- `04-knowledge-handbook/ELO_MEMORIA_CALCULO_ESPECIALISTA_ORCAMENTO.md`
 - PTS Técnica;
 - PTS Pós-Orçamento;
 - Conhecimento Corporativo.
