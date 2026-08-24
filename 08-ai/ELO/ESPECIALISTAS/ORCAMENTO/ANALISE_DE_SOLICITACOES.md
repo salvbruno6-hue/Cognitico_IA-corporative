@@ -2,178 +2,195 @@
 
 **Especialista:** Orçamento  
 **Governança:** ELO  
-**Status:** Oficial
+**Status:** Oficial  
+**Arquitetura:** `01-meta-architecture/cognitive-architecture/ELO_ANALISE_SOLICITACOES_ARQUITETURA_CANONICA.md`
 
 ## 1. Finalidade do domínio
 
-`Análise de Solicitações` é o domínio operacional em que o Especialista de Orçamento recebe o contexto da SO, o direcionamento do ELO e executa o processo de orçamento.
+`Análise de Solicitações` é o domínio operacional que transforma uma SO/LIC em um orçamento rastreável, auditável e pronto para decisão.
 
-O ELO atua como camada de análise, direcionamento, checklist, conferência e contestação.
+O domínio não é uma biblioteca única. Ele coordena fontes e artefatos:
 
-O Especialista de Orçamento é responsável por toda a execução do orçamento.
+`SO → DOCUMENTOS → ELO → PTS TÉCNICA → ESPECIALISTA → ORÇAMENTO → PTS PÓS → APRENDIZADO`
 
-## 2. Gatilhos oficiais
-
-### Gatilho 1 — `ELO ANALISAR`
-
-Quando acionado em **Análise de Solicitações**, o ELO deve:
-
-1. analisar a SO e documentos válidos;
-2. interpretar a necessidade do cliente;
-3. identificar se é VENDA ou LOCAÇÃO;
-4. identificar o escopo;
-5. identificar famílias comerciais;
-6. indicar taxonomias compatíveis;
-7. apontar quantitativos e pontos que precisam ser conferidos;
-8. identificar excedentes, customizações e itens especiais;
-9. identificar serviços, materiais e necessidades de mão de obra relevantes;
-10. identificar riscos, interfaces e responsabilidades;
-11. gerar o **Checklist ELO**;
-12. gerar o **Direcionamento ao Especialista de Orçamento**;
-13. quando aplicável, estruturar a **PTS Técnica** conforme a diretriz de maturidade da PTS Técnica;
-14. separar itens padrão de fabricação, itens para cotação, itens dependentes de projeto, fornecedor ou vistoria;
-15. identificar divergências entre Termo de Referência, layout e projeto;
-16. indicar perguntas que possam alterar preço, responsabilidade, quantitativo ou solução;
-17. registrar a origem documental ou técnica de cada premissa relevante.
-
-O resultado de `ELO ANALISAR` é uma orientação estruturada para o orçamento. O ELO não executa a composição detalhada nem a precificação.
-
-### Gatilho 2 — `ORÇAR`
-
-Quando acionado após a análise do ELO, o gatilho transfere a execução para o **Especialista de Orçamento**.
-
-O Especialista deve:
-
-1. receber o direcionamento do ELO;
-2. revisar os documentos válidos e o contexto disponível;
-3. executar toda a automação de orçamento;
-4. alimentar 1.0 COMERCIAL;
-5. alimentar 2.0 COMPOSIÇÃO;
-6. executar cálculos;
-7. aplicar BDI;
-8. aplicar Taxa de Administração quando aplicável;
-9. gerar o orçamento;
-10. após gerar o orçamento, executar a fusão dos PTs TEC e dos pós-orçamento;
-11. consolidar a entrega final.
-
-## 3. Responsabilidades
+## 2. Papéis
 
 ### ELO
 
-- analisar a SO;
-- gerar checklist;
-- direcionar o especialista;
-- apontar riscos e omissões;
-- conferir o orçamento produzido;
-- conferir a fusão dos PTs TEC e dos pós-orçamento;
-- contestar quando encontrar inconsistência;
-- solicitar ajuste quando necessário;
-- auditar associações de custos relevantes sem rastreabilidade clara;
-- verificar se custos relevantes possuem fundamento no Termo de Referência, layout, projeto, necessidade de implantação ou premissa registrada.
+É o **orquestrador e auditor** do domínio.
+
+Responsável por:
+
+- interpretar a SO;
+- resolver contexto;
+- identificar fontes e lacunas;
+- gerar direcionamento;
+- indicar riscos, divergências e validações;
+- acionar o Especialista;
+- conferir rastreabilidade;
+- contestar resultados;
+- encaminhar aprendizado.
 
 ### Especialista de Orçamento
 
-- interpretar o direcionamento;
-- executar o orçamento completo;
-- selecionar e organizar itens comerciais;
-- compor serviços;
-- compor materiais;
-- compor mão de obra interna;
-- compor mão de obra externa;
-- precificar;
-- aplicar regras comerciais;
-- calcular o fechamento;
-- gerar orçamento;
-- fazer a fusão dos PTs TEC;
-- fazer a fusão dos pós-orçamento;
-- consolidar a entrega;
-- corrigir o orçamento quando o ELO contestar;
-- registrar a origem dos custos relevantes quando solicitado pelo ELO.
+É o **executor especializado**.
 
-## 4. Fluxo oficial
+Responsável por:
 
-```text
-ANÁLISE DE SOLICITAÇÕES
-        |
-        | GATILHO: ELO ANALISAR
-        v
-ELO ANALISA
-        |
-        +-- Checklist ELO
-        +-- Direcionamento
-        +-- Riscos
-        +-- Pendências
-        +-- Taxonomias a avaliar
-        +-- PTS Técnica, quando aplicável
-        +-- Itens padrão / cotação / projeto / fornecedor / vistoria
-        +-- Rastreabilidade das premissas
-        |
-        v
-ANÁLISE CONCLUÍDA
-        |
-        | GATILHO: ORÇAR
-        v
-ESPECIALISTA DE ORÇAMENTO
-        |
-        +-- 1.0 Comercial
-        +-- 2.1 Serviços
-        +-- 2.2 Materiais
-        +-- 2.3 MO Interna
-        +-- 2.4 MO Externa
-        +-- Cálculos
-        +-- BDI
-        +-- Taxa de Administração
-        +-- Geração do orçamento
-        |
-        v
-ORÇAMENTO GERADO
-        |
-        v
-ESPECIALISTA DE ORÇAMENTO
-        |
-        +-- Fusão PTs TEC
-        +-- Fusão Pós-Orçamento
-        +-- Consolidação Final
-        |
-        v
-ELO CONFERE
-        |
-        +-- Conferência técnica
-        +-- Conferência de rastreabilidade
-        +-- Auditoria de associações relevantes
-        +-- OK
-        |
-        +-- CONTESTAÇÃO
-                |
-                v
-        ORÇAMENTISTA AJUSTA
-                |
-                v
-        ELO CONFERE NOVAMENTE
-```
-
-## 5. Regra de domínio
-
-O domínio do Especialista é identificado pelo processo em que ele atua.
-
-**Especialista em Orçamento → `Análise de Solicitações`**
-
-A pasta do especialista pode conter as instruções e artefatos específicos do especialista, mas o processo operacional permanece nomeado como `Análise de Solicitações`.
-
-## 6. Separação de execução e auditoria
+- selecionar modelo/base;
+- levantar quantitativos;
+- identificar adaptações e excedentes;
+- compor serviços, materiais e mão de obra;
+- executar cálculos;
+- aplicar regras comerciais vigentes;
+- dimensionar logística;
+- consolidar orçamento;
+- produzir memória de cálculo;
+- preparar PTS Pós-Orçamento;
+- ajustar quando houver contestação fundamentada.
 
 Regra permanente:
 
 > **ELO orienta e audita. Especialista de Orçamento executa.**
 
-O ELO não deve assumir a execução detalhada do orçamento, cálculo de custos, montagem da planilha, fusão dos PTs TEC ou fusão dos pós-orçamento.
+## 3. Gatilhos
 
-O Especialista não deve alterar as diretrizes oficiais do ELO. Melhorias permanentes devem ser propostas como nova diretriz, conforme a governança existente.
+### `ELO ANALISAR`
 
-## 7. Referência de maturidade da PTS Técnica
+É a porta de entrada do processo. Não é um segundo motor de orçamento.
 
-A diretriz específica está em:
+Ao ser acionado, o ELO deve:
 
-`08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PTS_TECNICA_MATURIDADE.md`
+1. identificar SO/LIC, cliente, modalidade, objeto e local;
+2. localizar documentos vigentes e registrar ausências;
+3. resolver contexto;
+4. consultar conhecimento aplicável;
+5. identificar família/modelo e quantitativos a conferir;
+6. identificar adaptações, excedentes, serviços, materiais e interfaces relevantes;
+7. avaliar projetos, normas, responsabilidades e riscos;
+8. avaliar prazos de mobilização/montagem/entrega/desmontagem;
+9. preparar logística e pontos críticos;
+10. estruturar PTS Técnica quando aplicável;
+11. produzir Checklist ELO;
+12. entregar Direcionamento ao Especialista.
 
-Ela deve ser utilizada quando a SO exigir análise técnica estruturada antes do orçamento.
+O gatilho deve consultar as fontes canônicas, não duplicar a metodologia completa do Especialista.
+
+### `ORÇAR`
+
+Transfere a execução para o Especialista de Orçamento.
+
+O Especialista não deve pedir que o usuário repita informações já disponíveis no contexto, nos documentos ou no direcionamento.
+
+## 4. Fluxo oficial
+
+```text
+SO / LIC
+   ↓
+ELO ANALISAR
+   ↓
+CONTEXTO + FONTES + GAPS + RISCOS
+   ↓
+PTS TÉCNICA (quando aplicável)
+   ↓
+DIRECIONAMENTO
+   ↓
+ORÇAR
+   ↓
+ESPECIALISTA DE ORÇAMENTO
+   ├─ MODELO / BASE
+   ├─ QUANTITATIVOS
+   ├─ ADAPTAÇÕES
+   ├─ EXCEDENTES
+   ├─ SERVIÇOS / MATERIAIS / MO
+   ├─ PROJETOS
+   ├─ LOGÍSTICA
+   ├─ MEMÓRIA DE CÁLCULO
+   └─ FECHAMENTO
+   ↓
+ORÇAMENTO
+   ↓
+PTS PÓS-ORÇAMENTO
+   ↓
+ELO CONFERE
+   ├─ OK → CONSOLIDA
+   └─ CONTESTAÇÃO → ESPECIALISTA AJUSTA → ELO CONFERE NOVAMENTE
+   ↓
+APRENDIZADO
+```
+
+## 5. Fontes especializadas
+
+O domínio consulta as fontes conforme a necessidade, sem duplicá-las:
+
+### Orçamento
+
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PTS_TECNICA_MATURIDADE.md`
+- `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_DIRETRIZES_PROJETO_ANALISE_SOLICITACOES.md`
+- `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
+
+### Excedentes
+
+`04-knowledge-handbook/ELO_CAMADA_EXCEDENTES_COMPOSICAO.md`
+
+### Taxonomia / SQL
+
+`04-knowledge-handbook/ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md`
+
+### Memória de cálculo
+
+`04-knowledge-handbook/ELO_MEMORIA_CALCULO_ESPECIALISTA_ORCAMENTO.md`
+
+### PTS Pós-Orçamento
+
+`08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
+
+## 6. Rastreabilidade mínima
+
+Todo custo relevante deve poder ser relacionado a:
+
+`DOCUMENTO → REQUISITO → SOLUÇÃO → MODELO → QUANTIDADE → EXCEDENTE → COMPOSIÇÃO → VALOR → PREMISSA → EVIDÊNCIA`
+
+Quando a origem não for direta, registrar a premissa ou justificativa.
+
+## 7. Separação entre conhecimento, memória e caso
+
+**Knowledge:** regra reutilizável e validada.
+
+**Memória de cálculo:** lógica de como um valor foi obtido.
+
+**Memória da SO:** o que ocorreu naquele caso.
+
+**PTS:** artefato formal da análise/conferência.
+
+**Aprendizado:** conhecimento candidato ou validado derivado de experiências e evidências.
+
+Não misturar essas funções.
+
+## 8. Regra de contestação
+
+Quando o ELO contestar:
+
+1. identificar o item;
+2. retornar à fonte;
+3. verificar cálculo, premissa, modelo, quantitativo e composição;
+4. corrigir quando procedente;
+5. atualizar memória/PTS quando afetadas;
+6. devolver para nova conferência.
+
+## 9. Regra de evolução
+
+O Especialista não altera diretamente as diretrizes oficiais do ELO.
+
+Melhorias identificadas durante uma SO devem ser registradas como candidato de aprendizado e submetidas à governança conforme a arquitetura canônica.
+
+Uma experiência isolada não cria automaticamente regra corporativa.
+
+## 10. Critério de domínio
+
+O domínio está corretamente operando quando:
+
+`ELO SABE O QUE PROCURAR → ESPECIALISTA SABE O QUE COMPOR → MEMÓRIA SABE COMO FOI CALCULADO → PTS SABE O QUE FOI COMPROVADO → APRENDIZADO SABE O QUE PODE SER REUTILIZADO`
+
+Essa separação é obrigatória para preservar velocidade, completude, rastreabilidade e evolução sem duplicação.
