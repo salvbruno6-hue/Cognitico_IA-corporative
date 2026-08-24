@@ -10,15 +10,27 @@ Transformar uma SO em orçamento **rápido, completo, rastreável e explicável*
 
 `REQUISITO → SOLUÇÃO → QUANTITATIVO → PREMISSA → COMPOSIÇÃO → CUSTO`
 
-O ELO mantém a visão sistêmica; o Especialista aprofunda a composição; a PTS Pós audita; o aprendizado retroalimenta o ELO.
+O ELO mantém a visão sistêmica; o Especialista executa a composição; a PTS Pós audita; o aprendizado retroalimenta o ELO.
 
-## 2. FLUXO OBRIGATÓRIO
+## 2. ARQUITETURA SUPERIOR
+
+A organização completa do domínio está definida em:
+
+`01-meta-architecture/cognitive-architecture/ELO_ANALISE_SOLICITACOES_ARQUITETURA_CANONICA.md`
+
+Esta Diretriz-Mestra é a regra operacional curta. A arquitetura canônica define a separação entre ELO, domínio, especialista, knowledge, memória, PTS e aprendizado.
+
+Regra:
+
+`ORQUESTRAR ≠ EXECUTAR ≠ CONHECER ≠ CALCULAR ≠ EVIDENCIAR ≠ APRENDER`
+
+## 3. FLUXO OBRIGATÓRIO
 
 `SO → DOCUMENTAÇÃO → PTS TÉCNICA → ESPECIALISTA → ORÇAMENTO → PTS PÓS → APRENDIZADO`
 
-O Especialista recebe requisitos, soluções, quantitativos e premissas da análise técnica, transforma-os em composição e devolve ao ELO custos, premissas, riscos, divergências e pendências.
+O Especialista recebe requisitos, soluções, quantitativos e premissas da análise técnica, transforma-os em composição e devolve ao ELO custos, premissas, riscos, divergências, memória de cálculo e pendências.
 
-## 3. INTERFACE ELO × ESPECIALISTA
+## 4. INTERFACE ELO × ESPECIALISTA
 
 **ELO:** entende escopo, requisitos, conflitos, riscos, validações e aprendizado.
 
@@ -26,22 +38,24 @@ O Especialista recebe requisitos, soluções, quantitativos e premissas da anál
 
 `ELO IDENTIFICA → ESPECIALISTA COMPÕE → ELO CONFRONTA → PTS PÓS AUDITA → ELO APRENDE`
 
-## 4. HIERARQUIA DAS FONTES
+## 5. HIERARQUIA DAS FONTES
 
 1. Documentação vigente da SO.
-2. Conhecimento corporativo validado.
-3. Metodologias do ELO e PTS.
-4. Histórico/aprendizado validado.
+2. Respostas oficiais da contratante.
+3. Layout/projeto vigente.
+4. Conhecimento corporativo validado.
+5. Metodologias do ELO e PTS.
+6. Histórico/aprendizado validado.
 
 Histórico nunca substitui documento vigente. Conflitos devem ser explicitados, não resolvidos silenciosamente.
 
-## 5. ORÇAMENTO DE PONTA A PONTA
+## 6. ORÇAMENTO DE PONTA A PONTA
 
 `OBJETO → ESCOPO → MODELO/BASE → EXCEDENTES → QUANTITATIVOS → DISCIPLINAS → MÃO DE OBRA → LOGÍSTICA → PROJETOS/DOCUMENTAÇÃO → CUSTOS INDIRETOS → CONFERÊNCIA → PTS PÓS`
 
 Não pular etapa que possa alterar custo, prazo, escopo, responsabilidade ou aceite.
 
-## 6. MODELOS E EXCEDENTES
+## 7. MODELOS E EXCEDENTES
 
 Distinguir obrigatoriamente **MLT-M — Módulos** de **MLT-C — Contêineres**.
 
@@ -53,7 +67,7 @@ Para excedentes, consultar a camada dedicada `ELO_CAMADA_EXCEDENTES_COMPOSICAO.m
 
 Preço histórico não é preço atual sem validação.
 
-## 7. LOGÍSTICA E MOBILIZAÇÃO
+## 8. LOGÍSTICA E MOBILIZAÇÃO
 
 Verificar local, distância a partir da base operacional pertinente, prazo de mobilização após contrato, montagem, duração, equipe, transporte, carro de apoio, passagem aérea quando aplicável, alimentação, combustível, deslocamentos e hospedagem.
 
@@ -63,7 +77,7 @@ A referência operacional de **mais de 6 horas** serve para avaliar alternativa 
 
 Se houver retorno para casa no último dia de execução, não contabilizar hospedagem adicional nesse dia.
 
-## 8. PREMISSAS E VALIDAÇÕES
+## 9. PREMISSAS E VALIDAÇÕES
 
 Classificar premissas como documental, corporativa, técnica, orçamentária, comercial, cliente ou não confirmada.
 
@@ -71,7 +85,7 @@ Gerar questionamento quando a ausência de informação puder alterar materialme
 
 Não inventar distância, tarifa, prazo, quantitativo, resposta do cliente ou requisito.
 
-## 9. RASTREABILIDADE
+## 10. RASTREABILIDADE
 
 `REQUISITO → SOLUÇÃO → QUANTITATIVO → COMPOSIÇÃO → VALOR → PREMISSA`
 
@@ -79,7 +93,7 @@ Conferir sempre `PTS TÉCNICA × ORÇAMENTO`.
 
 A PTS Pós verifica requisitos não orçados, itens sem origem, divergências de quantidade/unidade/valor, premissas, exclusões, responsabilidades, logística e documentação.
 
-## 10. MEMÓRIA DE CÁLCULO
+## 11. MEMÓRIA DE CÁLCULO
 
 Todo raciocínio de valor relevante deve poder ser reproduzido:
 
@@ -87,7 +101,7 @@ Todo raciocínio de valor relevante deve poder ser reproduzido:
 
 Consultar `ELO_MEMORIA_CALCULO_ESPECIALISTA_ORCAMENTO.md`. O ELO pode reutilizar a **lógica** em cenários semelhantes, mas deve substituir as entradas e recalcular; nunca copiar automaticamente o valor final de outra SO.
 
-## 11. CONSULTA ESTRUTURADA
+## 12. CONSULTA ESTRUTURADA
 
 Para produtos, serviços, modelos, características, excedentes e composições, utilizar a taxonomia e a camada de consulta estruturada definidas em `ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md`, quando houver fonte de dados disponível.
 
@@ -95,7 +109,7 @@ Para produtos, serviços, modelos, características, excedentes e composições,
 
 Consulta estruturada não substitui julgamento técnico nem autoriza inventar registros ausentes.
 
-## 12. APRENDIZADO
+## 13. APRENDIZADO
 
 Somente conhecimento analisado e validado entra no aprendizado permanente:
 
@@ -103,7 +117,7 @@ Somente conhecimento analisado e validado entra no aprendizado permanente:
 
 Uma SO isolada não cria automaticamente uma regra geral. Memórias de cálculo e excedentes devem ser classificados antes de serem reutilizados.
 
-## 13. DESEMPENHO
+## 14. DESEMPENHO
 
 Priorizar simultaneamente:
 
@@ -113,7 +127,7 @@ Priorizar simultaneamente:
 - **Transparência:** separar fato, premissa, interpretação e pendência.
 - **Aprendizado:** converter somente padrões validados em conhecimento reutilizável.
 
-## 14. FONTE DE DETALHAMENTO
+## 15. FONTE DE DETALHAMENTO
 
 Esta diretriz define o comportamento e a ordem de operação. Para execução detalhada, consultar as fontes especializadas do Handbook, especialmente:
 
