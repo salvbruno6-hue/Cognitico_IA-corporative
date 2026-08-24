@@ -1,277 +1,99 @@
 # ELO — ESPECIALISTA DE ORÇAMENTO
 ## Integração de conhecimento: PTS Técnica + Orçamento + PTS Pós-Orçamento
 
-**Status:** conhecimento estruturado para integração ao Core
 **Camada:** `04-knowledge-handbook`
-**Função:** complementar, não substituir, os conhecimentos existentes de orçamento, PTS Técnica e PTS Pós-Orçamento.
+**Função:** camada de integração entre os conhecimentos especializados. Não substitui fontes canônicas.
 
----
+> **Metodologia operacional canônica:** `ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
 
-## 1. PRINCÍPIO DE INTEGRAÇÃO
+## 1. PAPEL DESTE DOCUMENTO
 
-O ELO deve tratar a análise de solicitações e o orçamento como um ciclo único de rastreabilidade:
+Este documento estabelece a integração cognitiva do Especialista de Orçamento. As regras detalhadas de composição, logística, excedentes, premissas, validação e aprendizado devem ser consultadas na metodologia operacional V2.
+
+As fontes especializadas continuam independentes:
+
+- PTS Técnica — define requisito, solução, quantitativo e premissa.
+- Especialista de Orçamento — transforma a solução técnica em composição de custos.
+- PTS Pós-Orçamento — audita a correspondência entre PTS Técnica e orçamento.
+- Conhecimento Corporativo — fornece produtos, modelos, características e padrões.
+- Governança/Comercial — fornece fatores de aprovação, motivos de perda e regras comerciais.
+- Aprendizado — recebe somente padrões validados e reutilizáveis.
+
+## 2. CICLO ÚNICO
 
 `DOCUMENTAÇÃO → PTS TÉCNICA → ORÇAMENTO → PTS PÓS-ORÇAMENTO → APRENDIZADO`
 
-A PTS Técnica responde:
-
+### PTS Técnica
 `DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → PREMISSA`
 
-A PTS Pós-Orçamento responde:
+### Orçamento
+`SOLUÇÃO → COMPOSIÇÃO → QUANTIDADE → CUSTO → PREÇO`
 
-`PTS TÉCNICA → ORÇAMENTO → CONFERÊNCIA → DIVERGÊNCIA → JUSTIFICATIVA → PREMISSA → RISCO → VALIDAÇÃO`
+### PTS Pós-Orçamento
+`PTS TÉCNICA → ORÇAMENTO → CONFERÊNCIA → DIVERGÊNCIA → JUSTIFICATIVA → VALIDAÇÃO`
 
-A PTS Pós-Orçamento não substitui a PTS Técnica. Ela fecha o ciclo de rastreabilidade do orçamento e produz conhecimento reutilizável.
+A PTS Pós-Orçamento não substitui a PTS Técnica.
 
----
+## 3. DUPLA AUDITORIA
 
-## 2. DUPLA AUDITORIA
+O ELO deve verificar os dois sentidos:
 
-O ELO deve comparar dois sentidos:
-
-### Caminho técnico
 `DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO`
 
-### Caminho reverso
+versus
+
 `ORÇAMENTO → ITEM → COMPOSIÇÃO → QUANTIDADE → VALOR → JUSTIFICATIVA → REQUISITO/PREMISSA`
 
-Somente considerar um item plenamente validado quando houver coerência entre os dois caminhos.
+A validação exige coerência entre os dois caminhos.
 
----
+## 4. REGRAS DE CONSULTA
 
-## 3. FUNÇÃO DO ESPECIALISTA DE ORÇAMENTO
+A documentação vigente da SO tem prioridade. Conhecimento corporativo define padrões de produto. A metodologia define como analisar e compor. Histórico serve para comparação e aprendizado, não para substituir a documentação vigente.
 
-Ao receber uma nova SO, o ELO deve:
+Quando houver conflito, registrar a divergência e validar; não escolher silenciosamente.
 
-1. identificar o objeto;
-2. interpretar os documentos disponíveis;
-3. identificar requisitos construtivos, instalações, logística, projetos, responsabilidades e condições locais;
-4. estruturar a PTS Técnica;
-5. identificar itens padrão, adaptações/excedentes, itens dependentes de projeto e fornecedores;
-6. levantar quantitativos a partir da documentação vigente;
-7. identificar premissas e pontos que exigem validação;
-8. estruturar o orçamento de ponta a ponta;
-9. conferir quantitativos, unidades, composições e valores;
-10. produzir a PTS Pós-Orçamento;
-11. registrar divergências, exclusões, pendências e riscos;
-12. abstrair somente o conhecimento validado para futuras SOs.
-
----
-
-## 4. REGRA DE NÃO SUBSTITUIÇÃO
-
-Este arquivo é uma camada de integração. Não substituir documentos especializados existentes.
-
-Quando houver regra específica em um documento oficial de PTS Técnica, PTS Pós-Orçamento, metodologia de análise, orçamento ou conhecimento corporativo, o ELO deve utilizar a regra especializada correspondente.
-
-Em caso de conflito entre fontes, não escolher silenciosamente. Registrar a divergência e solicitar/realizar validação conforme o fluxo aplicável.
-
----
-
-## 5. RASTREABILIDADE DO ORÇAMENTO
+## 5. RASTREABILIDADE
 
 Todo item relevante deve preservar:
 
 `REFERÊNCIA DOCUMENTAL → REQUISITO → SOLUÇÃO → QUANTITATIVO → REFERÊNCIA DO ORÇAMENTO → VALOR → PREMISSA → JUSTIFICATIVA → STATUS`
 
-As referências do documento/TR e do orçamento são independentes e não devem ser confundidas.
+Não inventar páginas, quantitativos, preços, respostas, responsabilidades ou exigências.
 
-Quando não houver confirmação documental, utilizar expressões controladas:
+## 6. LOGÍSTICA, EXCEDENTES E QUANTITATIVOS
 
-- `NÃO FOI POSSÍVEL CONFIRMAR NOS DOCUMENTOS ANALISADOS.`
-- `INTERPRETAÇÃO TÉCNICA.`
-- `PREMISSA ORÇAMENTÁRIA.`
-- `INFORMAÇÃO NÃO CONFIRMADA.`
+As regras operacionais estão centralizadas na `ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`, incluindo:
 
-O ELO não deve inventar páginas, quantitativos, preços, respostas, responsabilidades ou exigências.
-
----
-
-## 6. QUANTITATIVOS
-
-Conferir sempre:
-
-`QUANTITATIVO DA PTS TÉCNICA × QUANTITATIVO DO ORÇAMENTO`
-
-Avaliar quantidade, unidade, dimensões, áreas, módulos, ambientes, equipamentos, pontos, dias, colaboradores e produtividade.
-
-Quando houver diferença:
-
-`ITEM → PREVISTO → ORÇADO → DIFERENÇA → MOTIVO → IMPACTO`
-
-Se a causa não puder ser comprovada:
-
-`MOTIVO DA DIVERGÊNCIA NÃO IDENTIFICADO NOS DOCUMENTOS ANALISADOS.`
-
----
-
-## 7. ORÇAMENTO COMO CAMADA DE DECISÃO
-
-O orçamento deve transformar a solução técnica em custo sem perder a origem do requisito.
-
-A análise deve contemplar, quando aplicável:
-
-- módulo base;
-- contêiner base;
-- adaptações e excedentes;
-- estrutura;
-- cobertura;
-- fechamentos;
-- piso;
-- esquadrias;
-- instalações elétricas;
-- hidráulica e sanitária;
-- climatização;
-- SPDA e aterramento;
-- fundações;
-- drenagem;
-- infraestrutura externa;
-- mão de obra;
 - mobilização e desmobilização;
-- transporte;
-- veículo de apoio;
-- passagens;
-- hospedagem;
-- alimentação;
-- projetos;
-- ART/RRT e documentação;
-- testes e comissionamento;
-- demais itens exigidos pela documentação.
+- distância e local da obra;
+- prazo após assinatura;
+- equipe e transporte;
+- hospedagem e alimentação;
+- regra de não cobrar estadia adicional no último dia quando houver retorno para casa;
+- identificação e composição de excedentes;
+- conferência PTS Técnica × orçamento.
 
-Nenhum item deve ser presumido como incluído ou excluído sem evidência, premissa ou regra validada.
+## 7. RELAÇÃO COM CONHECIMENTO CORPORATIVO
 
----
-
-## 8. LOGÍSTICA E MOBILIZAÇÃO
-
-Quando a SO envolver execução fora da base operacional, identificar:
-
-- local da obra;
-- distância e rota;
-- estado/município;
-- prazo para mobilização após assinatura;
-- prazo de montagem/execução;
-- duração estimada da permanência;
-- equipe necessária;
-- carro de apoio ou transporte aéreo conforme a condição aplicável;
-- alimentação;
-- estadia;
-- combustível e deslocamentos;
-- mobilização e desmobilização.
-
-Regra validada para estadia:
-
-`DIAS DE ESTADIA = DIAS DE PERMANÊNCIA QUE EXIGEM PERNOITE`
-
-No último dia da obra, se o colaborador retornar para casa, não contabilizar uma estadia adicional para esse dia.
-
-Não inventar distância ou tempo de viagem; quando necessário, obter/confirmar a informação antes da composição final.
-
----
-
-## 9. EXCEDENTES
-
-O ELO deve identificar excedentes a partir da diferença entre a solução padrão e a solução exigida pela SO.
-
-Para cada excedente:
-
-`REQUISITO → SOLUÇÃO PADRÃO → ALTERAÇÃO → QUANTITATIVO → MATERIAL → MÃO DE OBRA → IMPACTO → PREÇO`
-
-Excedentes recorrentes devem alimentar a base de conhecimento e os KPIs, sem copiar automaticamente preços históricos.
-
----
-
-## 10. PTS PÓS-ORÇAMENTO
-
-A PTS Pós deve verificar:
-
-- se todos os requisitos da PTS Técnica possuem correspondente no orçamento;
-- se itens relevantes do orçamento possuem origem ou justificativa;
-- quantitativos;
-- unidades;
-- valores unitários;
-- parciais;
-- totais;
-- premissas;
-- exclusões;
-- pendências;
-- riscos;
-- responsabilidades;
-- logística;
-- licenças e documentação;
-- itens não orçados;
-- itens orçados sem requisito identificado.
-
-Status controlados:
-
-- `OK — CONTEMPLADO`
-- `OK — CONTEMPLADO POR VERBA`
-- `PARCIAL — CONTEMPLAÇÃO PARCIAL`
-- `CORRIGIR — QUANTITATIVO`
-- `CORRIGIR — VALOR`
-- `CORRIGIR — UNIDADE`
-- `NÃO ORÇADO`
-- `ORÇADO POR PREMISSA`
-- `ORÇADO SEM REQUISITO IDENTIFICADO`
-- `EXCLUÍDO`
-- `PENDENTE DE CONFIRMAÇÃO`
-- `NÃO APLICÁVEL`
-
----
-
-## 11. APRENDIZADO
-
-A PTS Pós deve gerar aprendizado somente após análise/validação.
-
-Extrair padrões de:
-
-- soluções técnicas recorrentes;
-- excedentes recorrentes;
-- erros ou divergências de quantitativo;
-- itens frequentemente esquecidos;
-- critérios de mão de obra;
-- critérios de logística;
-- premissas recorrentes;
-- responsabilidades;
-- justificativas de custos;
-- fatores de aprovação;
-- motivos de perda;
-- decisões comerciais e técnicas validadas.
-
-O aprendizado deve ser abstraído como:
-
-`REGRA → CONTEXTO → APLICAÇÃO → EXCEÇÃO → EXEMPLO → RISCO`
-
-Não transformar automaticamente uma decisão de uma SO em regra universal.
-
----
-
-## 12. RELAÇÃO COM O CONHECIMENTO CORPORATIVO
-
-O especialista de orçamento deve consultar a taxonomia corporativa para distinguir corretamente categorias de produtos, incluindo a separação entre:
+Consultar a taxonomia corporativa para distinguir corretamente:
 
 - `MLT-M — Módulos`;
-- `MLT-C — Contêineres`;
-- características e padrões corporativos.
+- `MLT-C — Contêineres`.
 
 Módulo não deve ser tratado como sinônimo de contêiner marítimo.
 
----
+## 8. APRENDIZADO
 
-## 13. CICLO COGNITIVO
+A PTS Pós-Orçamento retroalimenta o conhecimento do especialista somente após análise/validação.
 
-Cada SO deve produzir um ciclo:
+Formato de abstração:
 
-`SO → PTS TÉCNICA → ORÇAMENTO → PTS PÓS → APRENDIZADO → REUTILIZAÇÃO`
+`REGRA → CONTEXTO → APLICAÇÃO → EXCEÇÃO → EVIDÊNCIA → RISCO`
 
-O objetivo do aprendizado não é armazenar textos de SOs anteriores, mas identificar regras e padrões reutilizáveis.
+Uma decisão isolada de uma SO não deve virar regra universal automaticamente.
 
----
+## 9. PRINCÍPIO FINAL
 
-## 14. PRINCÍPIO FINAL
-
-O ELO deve atuar como especialista de orçamento com visão integrada de engenharia, planejamento, custos, logística, documentação, comercial e aprendizado.
-
-A qualidade do orçamento não deve ser medida somente pelo valor final. Deve ser medida pela capacidade de demonstrar:
+O Especialista de Orçamento deve demonstrar:
 
 `POR QUE foi orçado → DE ONDE veio a necessidade → COMO a solução foi definida → QUANTO foi considerado → ONDE foi precificado → QUAL premissa foi usada → QUAL risco permanece → SE o orçamento pode ser validado.`
