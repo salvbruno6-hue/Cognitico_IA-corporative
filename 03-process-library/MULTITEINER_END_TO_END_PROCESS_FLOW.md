@@ -1,551 +1,720 @@
 ---
 id: ELO-PROC-MULTITEINER-001
-name: Multiteiner End-to-End Process Flow
+name: Multiteiner End-to-End Functional Process Flow
 type: reference
 layer: process
 owner: Multiteiner process knowledge / ELO process context
 status: draft
 authority: reference
-version: 0.1
+version: 0.2
 related:
   - ELO-012
   - MULTITEINER_ORGANIZATIONAL_CONTEXT
   - MULTITEINER_METODOLOGIA_ORCAMENTO_ELO
   - ELO-012_MULTITEINER_FLOW_MODULAR_PROTOCOL
-depends_on: []
 ---
 
-# MULTITEINER — FLUXO END-TO-END DETALHADO
+# MULTITEINER — FLUXO END-TO-END FUNCIONAL
 
 ## 1. Finalidade
 
-Este documento é a referência de processo para permitir que o ELO reconstrua, em pesquisa, a sequência operacional da Multiteiner de forma progressiva e minuciosa.
+Este documento é a referência canônica de processo para o ELO reconstruir, pesquisar e explicar o fluxo operacional da Multiteiner em diferentes níveis de detalhe.
 
-Ele não é apenas um desenho visual. Cada etapa é descrita por:
+O objetivo não é produzir somente um fluxograma visual. O objetivo é representar um processo funcional, rastreável e pesquisável, no qual cada passagem possa ser entendida por:
 
 - entrada;
-- decisão/gate;
 - atividade;
+- decisão/gate;
+- condição de passagem;
 - saída;
-- setor envolvido;
-- dependências;
-- dados esperados;
-- exceções;
-- retorno do fluxo;
-- pontos de integração com o ELO.
+- setor/interface;
+- informação gerada;
+- recurso/material;
+- dependência;
+- exceção;
+- retorno/retrabalho;
+- evidência necessária;
+- ponto de integração com o ELO.
 
-O documento deve ser recuperado quando a pergunta envolver, por exemplo:
-
-- fluxo da Multiteiner;
-- fluxo completo;
-- fluxo do PCP;
-- caminho de uma AF;
-- fluxo modular;
-- fluxo customizado;
-- fluxo de reparos;
-- retorno de módulo;
-- quarentena;
-- oficinas;
-- estoque de segurança;
-- relação entre Comercial, Orçamento, PCP, Almoxarifado, Produção, Qualidade, Expedição e Reparos;
-- onde uma informação entra ou sai do processo;
-- qual é a sequência de uma operação.
-
-## 2. Limite epistemológico
-
-Este artefato consolida o fluxo operacional de referência a partir do contexto organizacional existente e do fluxo operacional fornecido para a Multiteiner.
-
-Quando uma etapa, regra, responsável, sistema, tempo ou critério ainda não estiver formalmente validado, o ELO deve tratá-lo como:
-
-`DOCUMENTADO / A VALIDAR`
-
-ou
-
-`OBSERVADO / A VALIDAR`
-
-e não inventar detalhes ausentes.
-
-O fluxo atual observado pode divergir do fluxo projetado. Divergência deve ser registrada como desvio de processo, não usada silenciosamente para sobrescrever o processo documentado.
+Quando uma regra, responsável, tempo, capacidade, custo, critério ou sistema não estiver formalmente validado, deve permanecer como `A VALIDAR`. O ELO não deve inventar dados para completar o processo.
 
 ---
 
-# 3. VISÃO MACRO
+# 2. PRINCÍPIO DE FUNCIONAMENTO
+
+O fluxo deve ser entendido como um ciclo integrado, e não como uma linha que termina na entrega.
 
 ```text
+DEMANDA
+  ↓
 COMERCIAL / LOCAÇÃO
-        ↓
-RECEBIMENTO DA AF
-        ↓
-PLANEJAMENTO / PCP
-        ↓
-PADRÃO OU PERSONALIZADO?
-   ↙                    ↘
-PADRÃO              PERSONALIZADO
-   ↘                    ↙
-   EXCEDENTES / REQUISITOS / MATERIAIS
-                ↓
-          ALMOXARIFADO
-                ↓
-       MATERIAL DISPONÍVEL?
-          ↙            ↘
-        SIM             NÃO
-         ↓               ↓
-      PICKING          COMPRAS
-         ↘               ↙
-             PRODUÇÃO
-                ↓
-            QUALIDADE
-          ↙          ↘
-     APROVADO       FALHA
-        ↓              ↓
-   EXPEDIÇÃO         REPARO
-                       ↓
-             QUARENTENA / LIMPEZA
-                       ↓
-                  DIAGNÓSTICO
-                       ↓
-                    OFICINAS
-                       ↓
-                    TESTES
-                    ↙    ↘
-              APROVADO   FALHA
-                 ↓          ↓
-          ESTOQUE SEG.   RETRABALHO
-                 ↓
-              EXPEDIÇÃO
-                 ↓
-             CLIENTE/CAMPO
-                 ↓
-               RETORNO
-                 ↓
-             NOVO CICLO
+  ↓
+AF
+  ↓
+PCP / PLANEJAMENTO
+  ↓
+PADRÃO × CUSTOMIZADO
+  ↓
+ORÇAMENTO / ENGENHARIA quando aplicável
+  ↓
+LM / OS / NECESSIDADES
+  ↓
+ALMOXARIFADO / COMPRAS
+  ↓
+PRODUÇÃO
+  ↓
+QUALIDADE
+  ↓
+EXPEDIÇÃO
+  ↓
+CLIENTE / CAMPO / LOCAÇÃO
+  ↓
+RETORNO
+  ↓
+QUARENTENA / LIMPEZA / INSPEÇÃO
+  ↓
+REPAROS quando necessário
+  ↓
+QUALIDADE
+  ↓
+ESTOQUE DE SEGURANÇA / DISPONIBILIDADE
+  ↓
+NOVA DEMANDA
 ```
 
-O fluxo modular e o fluxo customizado são tratados como linhas paralelas de atendimento que compartilham recursos e interfaces de planejamento, materiais, qualidade e expedição.
+O ciclo possui dois grandes fluxos produtivos paralelos:
+
+1. `FLUXO MODULAR` — linha de produção puxada para módulos e componentes padronizados;
+2. `FLUXO CUSTOMIZADO` — atendimento com variações, modificações e requisitos específicos.
+
+Ambos compartilham interfaces de PCP, materiais, qualidade e expedição, mas não devem ser confundidos.
 
 ---
 
-# 4. FLUXO 01 — COMERCIAL / LOCAÇÃO → AF
+# 3. MAPA MACRO CANÔNICO
 
-## 4.1 Entrada
+```text
+                         ┌──────────────────────┐
+                         │ COMERCIAL / LOCAÇÃO  │
+                         └──────────┬───────────┘
+                                    ↓
+                                  AF
+                                    ↓
+                         ┌──────────────────────┐
+                         │ PCP / PLANEJAMENTO   │
+                         └──────────┬───────────┘
+                                    ↓
+                         PADRÃO OU CUSTOMIZADO?
+                              ↙             ↘
+                           PADRÃO        CUSTOMIZADO
+                              ↓               ↓
+                       FLUXO MODULAR   ORÇAMENTO / ENG.
+                              ↓               ↓
+                              └──────┬────────┘
+                                     ↓
+                                LM / OS / NEC.
+                                     ↓
+                         ┌──────────────────────┐
+                         │ ALMOXARIFADO / CD    │
+                         └──────────┬───────────┘
+                                    ↓
+                          MATERIAL DISPONÍVEL?
+                              ↙             ↘
+                            SIM              NÃO
+                             ↓                ↓
+                          PICKING          COMPRAS
+                             │                ↓
+                             │        RECEBIMENTO / ESTOQUE
+                             └────────┬───────┘
+                                      ↓
+                                  PRODUÇÃO
+                              ↙             ↘
+                         MODULAR        CUSTOMIZADA
+                              ↘             ↙
+                               └─────┬─────┘
+                                     ↓
+                                  QUALIDADE
+                               ↙             ↘
+                          APROVADO           FALHA
+                             ↓                 ↓
+                         EXPEDIÇÃO         O.S. REPARO
+                             │                 ↓
+                             │          QUARENTENA / LIMPEZA
+                             │                 ↓
+                             │             DIAGNÓSTICO
+                             │                 ↓
+                             │               OFICINAS
+                             │                 ↓
+                             │               TESTES
+                             │              ↙     ↘
+                             │        APROVADO     FALHA
+                             │           ↓            ↓
+                             │      ESTOQUE SEG.   RETRABALHO
+                             │           ↓            │
+                             └───────────┴────────────┘
+                                         ↓
+                                      ENTREGA
+                                         ↓
+                                  CAMPO / LOCAÇÃO
+                                         ↓
+                                      RETORNO
+                                         ↓
+                                  NOVO CICLO
+```
 
-A demanda nasce no Comercial/Locação e é formalizada por AF.
+---
 
-## 4.2 Dados mínimos esperados
+# 4. OBJETOS DE RASTREABILIDADE
+
+O ELO deve conseguir relacionar, quando os dados existirem:
+
+`AF → módulo → modelo → configuração → LM/OS → material → etapa → equipe → qualidade → expedição → retorno → avaria → reparo → custo → estoque`.
+
+Identificadores relevantes:
+
+- AF;
+- ID do módulo/ativo;
+- modelo;
+- configuração;
+- LM/OS;
+- ID da avaria;
+- código do material;
+- ordem/requisição de compra quando existente;
+- registro de qualidade;
+- registro de reparo.
+
+A existência e o formato exato de cada identificador devem ser validados na implementação.
+
+---
+
+# 5. FLUXO 01 — COMERCIAL / LOCAÇÃO → AF
+
+## Entrada
+
+Necessidade comercial, locação ou venda.
+
+## Sequência
+
+```text
+Demanda
+→ negociação / definição do atendimento
+→ especificação do produto
+→ quantidade
+→ configuração
+→ prazo
+→ requisitos especiais
+→ AF
+→ envio para PCP / planejamento
+```
+
+## Gate de completude
+
+Antes de planejar, verificar se a AF contém informação suficiente para análise.
+
+Se incompleta:
+
+`AF → pendência → complementação → nova análise`.
+
+Se completa:
+
+`AF → PCP`.
+
+## Dados de interesse
 
 - cliente;
-- modalidade: venda ou locação;
-- produto/modelo;
+- modalidade;
+- modelo;
 - quantidade;
 - configuração;
 - prazo;
+- local;
 - requisitos especiais;
-- necessidade de customização;
-- informações técnicas disponíveis.
+- necessidade de customização.
 
-## 4.3 Saída
+## ELO
 
-`AF recebida e disponível para análise do planejamento.`
-
-## 4.4 Exceções
-
-- AF incompleta;
-- mudança de escopo;
-- alteração de quantidade;
-- alteração de prazo;
-- customização não especificada;
-- necessidade de complementação técnica.
-
-## 4.5 Interface ELO
-
-O ELO deve relacionar a AF com demanda, modelo, configuração, prazo, modalidade, histórico e demais objetos de planejamento disponíveis.
+Registrar a demanda como origem do planejamento e relacionar com histórico, modelo, configuração e sazonalidade quando houver dados.
 
 ---
 
-# 5. FLUXO 02 — PCP / PLANEJAMENTO
+# 6. FLUXO 02 — PCP / PLANEJAMENTO
 
-## 5.1 Entrada
+## Função
 
-`AF + requisitos comerciais/técnicos + disponibilidade conhecida.`
+O PCP é a camada operacional de orquestração do fluxo. Na arquitetura ELO, seus dados devem ser conectados aos demais setores para planejamento estratégico, tático e operacional.
 
-## 5.2 Sequência
+## Sequência funcional
 
 ```text
 Receber AF
-→ analisar escopo
-→ validar configuração
-→ verificar padrão x personalizado
-→ identificar excedentes/variações
+→ conferir escopo
+→ analisar projeto/configuração
+→ identificar modelo
+→ verificar padrão/customização
+→ identificar excedentes
 → verificar materiais
-→ verificar capacidade
-→ verificar prazo
+→ verificar capacidade conhecida
 → verificar dependências
-→ definir sequência/prioridade
-→ liberar planejamento para execução
+→ verificar prazo
+→ definir prioridade
+→ definir sequência
+→ gerar/liberar LM/OS conforme processo aplicável
+→ acompanhar execução
+→ tratar desvios
 ```
 
-## 5.3 Gate principal
-
-**Projeto/configuração padrão ou personalizado?**
+## Gate — padrão x customizado
 
 ### Padrão
-Segue o fluxo modular padronizado, sujeito a disponibilidade de materiais, capacidade e sequência.
 
-### Personalizado
-Segue tratamento específico de requisitos, materiais, engenharia/orçamento e interfaces adicionais.
+Encaminhar para fluxo modular conforme planejamento e disponibilidade.
 
-## 5.4 PCP como orquestrador
+### Customizado
 
-O PCP não é apenas uma etapa do fluxo. Na arquitetura ELO ele funciona como camada de planejamento e orquestração entre demanda, capacidade, materiais, produção, qualidade, expedição e exceções.
+Encaminhar para orçamento/engenharia/requisitos adicionais antes da liberação produtiva, conforme aplicabilidade.
 
-O ELO deve conseguir responder:
+## Controle de desvio
 
-- o que está planejado;
-- o que foi realizado;
-- qual o desvio;
-- qual restrição apareceu;
-- qual dependência foi afetada;
-- qual decisão precisa ser tomada;
-- qual plano deve ser revisto.
+O ELO deve comparar:
+
+`planejado × realizado × restrição × impacto × ação`.
+
+Não confundir um plano documentado com a situação operacional atual.
 
 ---
 
-# 6. FLUXO 03 — ORÇAMENTO / CUSTOMIZAÇÃO
+# 7. FLUXO 03 — ORÇAMENTO / CUSTOMIZAÇÃO / ENGENHARIA
 
-O orçamento é especialmente relevante quando a montagem do módulo é customizada ou quando o Comercial solicita modificações.
+O orçamento é uma interface estratégica e operacional importante para módulos customizados.
 
-## 6.1 Informações de interesse para o ELO
+## Quando entra
+
+- modificação solicitada pelo Comercial;
+- configuração fora do padrão;
+- necessidade de materiais adicionais;
+- alteração de componentes;
+- customização de montagem;
+- necessidade de composição específica.
+
+## Sequência
+
+```text
+Solicitação
+→ análise do modelo
+→ identificar padrão existente
+→ identificar alteração
+→ identificar materiais
+→ identificar mão de obra/serviços aplicáveis
+→ composição/orçamento
+→ validação
+→ requisitos para PCP
+→ LM/OS conforme processo
+→ execução
+```
+
+## Base histórica que deve alimentar o ELO
 
 - módulos mais locados;
 - módulos mais vendidos;
-- materiais mais utilizados;
 - modelos mais modificados;
+- materiais mais utilizados;
 - tipos de customização recorrentes;
 - sazonalidade de customizados;
-- materiais utilizados em customizações;
-- materiais associados a avarias por modelo;
-- histórico de custos;
-- relação entre modelo, configuração e excedentes.
+- materiais utilizados por customização;
+- custos históricos;
+- frequência de alterações por modelo.
 
-## 6.2 Fluxo
+## Regra
 
-```text
-Necessidade comercial
-→ requisitos
-→ análise do modelo
-→ identificação de padrão
-→ identificação de excedentes/variações
-→ materiais/serviços/mão de obra
-→ composição/orçamento
-→ validação
-→ resultado para planejamento
-```
-
-## 6.3 Relação com PCP
-
-A informação de orçamento não deve ficar isolada. Deve alimentar planejamento com conhecimento sobre variabilidade, recorrência de customização, materiais e carga potencial.
+Uma customização específica não deve automaticamente alterar o cadastro do modelo padrão. O ELO deve distinguir `MODELO`, `VARIAÇÃO`, `CUSTOMIZAÇÃO` e `EXCEDENTE`.
 
 ---
 
-# 7. FLUXO 04 — ALMOXARIFADO / ABASTECIMENTO
+# 8. FLUXO 04 — ALMOXARIFADO / CD / ABASTECIMENTO
 
-## 7.1 Entrada
+## Entrada
 
-`Lista de materiais / necessidade do planejamento / excedentes.`
+Necessidades oriundas do planejamento, produção ou reparo.
 
-## 7.2 Sequência
+## Fluxo logístico
 
 ```text
-Recebimento
-→ conferência
-→ endereçamento
-→ estoque
-→ verificação de disponibilidade
-→ reserva/picking
+Necessidade
+→ verificação
+→ recebimento/conferência quando material chega
+→ registro no CD/estoque
+→ disponibilidade
+→ reserva quando aplicável
+→ picking
 → entrega ao processo
 ```
 
-## 7.3 Decisão
+## Gate — material disponível?
 
-**Material disponível?**
+### SIM
 
-### Sim
+`Estoque → Picking → Abastecimento`.
 
-`Picking → abastecimento da produção/reparo.`
+### NÃO
 
-### Não
+```text
+Necessidade
+→ Compras
+→ Ordem de Compra
+→ acompanhamento
+→ chegada
+→ recebimento
+→ conferência
+→ registro no estoque
+→ picking
+→ abastecimento
+```
 
-`Necessidade → Compras → acompanhamento → recebimento → conferência → estoque → abastecimento.`
+## Dados
 
-## 7.4 Dados relevantes
-
-- disponibilidade real;
-- reserva;
-- ruptura;
-- material crítico;
-- quantidade;
 - código;
+- material;
+- quantidade;
+- unidade;
+- disponibilidade;
+- reserva;
 - consumo;
 - requisição;
-- lead time de compra;
-- devolução;
-- origem do consumo.
+- origem;
+- fornecedor/compra quando disponível;
+- lead time quando validado.
 
-## 7.5 Relação com reparos
+## Interface com reparos
 
-O Almoxarifado também deve registrar materiais efetivamente consumidos em reparos, permitindo calcular custo por módulo, modelo, avaria e intervenção.
+O consumo de materiais de reparo deve ser registrado por módulo/modelo/avaria para permitir análise de:
+
+`avaria → material → quantidade → custo → modelo → oficina → resultado`.
 
 ---
 
-# 8. FLUXO 05 — PRODUÇÃO MODULAR
+# 9. FLUXO 05 — PRODUÇÃO MODULAR
 
-O fluxo modular é tratado como uma linha de produção puxada, paralela ao fluxo customizado.
+O fluxo modular é uma linha de produção puxada paralela ao customizado.
 
-## 8.1 Sequência de referência
+## Sequência de referência
 
 ```text
-Triagem
-→ Chassi
-→ Escovação
-→ Pintura de tratamento
-→ Acabamento branco
-→ Estoque de estruturas
-→ Movimentação
-→ Piso
-→ Teto
-→ Colunas
-→ Trilho
-→ Pintura modular
-→ Paredes
-→ Instalações
-→ Acabamento
-→ Testes
-→ Liberação
+Peças metálicas
+→ estrutura metálica
+→ preparação/escovação
+→ pintura
+→ módulo estrutural
+→ piso
+→ teto
+→ PIR/isolamento
+→ esquadrias
+→ hidráulica
+→ elétrica
+→ dados
+→ acabamentos/complementos
+→ testes
+→ qualidade
+→ liberação
 ```
 
-A sequência é uma referência operacional. Tempos padrão, capacidade e critérios de passagem devem ser obtidos de dados e documentos validados.
+Os nomes e a ordem detalhada de operações devem ser confrontados com o roteiro produtivo oficial de cada família de produto.
 
-## 8.2 Interfaces críticas
+## Componentes complementares
 
-- pintura;
-- componentes complementares;
-- materiais;
-- oficinas;
-- movimentação;
-- qualidade;
-- expedição.
+A análise do fluxo identificou que componentes complementares podem, em determinadas condições, limitar o avanço do conjunto. Entre os itens observados estão:
 
-## 8.3 Componentes complementares
-
-Entre os componentes identificados como capazes de limitar o fluxo em determinados momentos estão:
-
-- telhas de concreto/fibra de vidro conforme o contexto operacional aplicável;
+- telhas;
 - lavatórios;
 - mictórios;
 - cubas;
-- divisórias sanitárias;
-- boxes de chuveiro.
+- boxes;
+- divisórias sanitárias.
 
-A relação causal com um gargalo específico deve ser comprovada por dados quando analisada pelo ELO.
+A existência de gargalo deve ser demonstrada por dados de capacidade, fila, tempo ou disponibilidade; não utilizar percentuais não validados.
 
 ---
 
-# 9. FLUXO 06 — PRODUÇÃO CUSTOMIZADA
+# 10. FLUXO 06 — PRODUÇÃO CUSTOMIZADA
 
-O fluxo customizado compartilha recursos com o fluxo modular, mas exige tratamento adicional de requisitos.
+## Sequência
 
 ```text
-Demanda customizada
-→ análise comercial
-→ orçamento
-→ requisitos técnicos
-→ configuração/excedentes
+Necessidade customizada
+→ requisitos
+→ orçamento/engenharia
+→ definição da alteração
 → materiais
 → planejamento
-→ produção/customização
+→ preparação
+→ execução
+→ montagem
+→ inspeção
+→ testes
 → qualidade
 → expedição
 ```
 
-O ELO deve manter a distinção entre:
+## Interface com modular
 
-`MODELO PADRÃO`
+O ELO deve identificar recursos compartilhados entre os dois fluxos:
 
-`VARIAÇÃO`
+- mão de obra;
+- oficinas;
+- materiais;
+- equipamentos;
+- movimentação;
+- qualidade;
+- expedição.
 
-`EXCEDENTE`
-
-`CUSTOMIZAÇÃO`
-
-para evitar que uma alteração de um atendimento específico seja interpretada automaticamente como alteração do modelo padrão.
+Isso permite analisar conflito de capacidade entre produção modular e customizada.
 
 ---
 
-# 10. FLUXO 07 — QUALIDADE
+# 11. FLUXO 07 — QUALIDADE NA PRODUÇÃO
 
-## 10.1 Entrada
+## Entrada
 
-Módulo/produto concluído em uma etapa produtiva ou recuperado em reparo.
+Módulo ou conjunto concluído.
 
-## 10.2 Sequência
+## Sequência
 
 ```text
-Receber para inspeção
+Receber para teste
 → verificar critérios
-→ executar testes aplicáveis
+→ executar testes
 → registrar resultado
 ```
 
-### Aprovado
+### APROVADO
 
-`Liberação → expedição ou estoque, conforme o fluxo.`
+```text
+Qualidade
+→ registro/AS-BUILT quando aplicável
+→ liberação
+→ expedição ou estoque conforme destino
+```
 
-### Falha
+### FALHA
 
-`Não conformidade → reparo/retrabalho → nova inspeção.`
+```text
+Qualidade
+→ não conformidade
+→ O.S. de reparo/retrabalho
+→ intervenção
+→ teste
+→ nova decisão
+```
 
-## 10.3 Regra ELO
-
-Falha de qualidade não deve desaparecer do histórico. Deve permanecer vinculada ao módulo, modelo, etapa, causa, intervenção e resultado.
+Toda falha deve permanecer rastreável.
 
 ---
 
-# 11. FLUXO 08 — EXPEDIÇÃO
+# 12. FLUXO 08 — EXPEDIÇÃO
 
-## 11.1 Sequência de referência
+## Sequência
 
 ```text
 Módulo liberado
 → segregação no pátio
-→ verificação da necessidade de instalação
+→ identificar necessidade de instalação
 → packing
-→ conferência
-→ gate
+→ conferência final
+→ gate de expedição
 → saída controlada
-→ entrega/cliente/campo
+→ transporte
+→ entrega
 ```
 
-No contexto operacional também há referências a equipamento etiquetado, checklist, NF, conformidade, sistema operacional e liberação do motorista. Detalhes de cada responsabilidade devem ser validados com a documentação operacional correspondente.
+Quando instalação de excedentes no local for aplicável:
+
+`Segregação → instalação → packing/conferência conforme fluxo → gate → saída`.
+
+Quando não for aplicável:
+
+`Segregação → packing → conferência → gate → saída`.
+
+Responsabilidades, documentos e sistemas específicos devem ser validados na documentação operacional.
 
 ---
 
-# 12. FLUXO 09 — LOCAÇÃO / CAMPO
+# 13. FLUXO 09 — CAMPO / LOCAÇÃO
 
 ```text
 Expedição
 → transporte
-→ montagem/instalação quando aplicável
-→ uso
-→ manutenção/ocorrências
+→ recebimento no local
+→ instalação/montagem quando aplicável
+→ operação/locação
+→ ocorrência ou necessidade de manutenção quando aplicável
 → desmobilização
 → retorno
 ```
 
-Eventos de campo devem permanecer vinculados ao ativo/módulo sempre que houver rastreabilidade disponível.
+O módulo deve manter vínculo com sua identificação sempre que houver rastreabilidade disponível.
 
 ---
 
-# 13. FLUXO 10 — RETORNO / PÓS-LOCAÇÃO
+# 14. FLUXO 10 — RETORNO
 
-## 13.1 Entrada
+## Entrada
 
-Retorno do módulo/ativo ao pátio/operação.
+Módulo retornado de locação, campo ou outra origem operacional.
 
-## 13.2 Sequência
+## Sequência
 
 ```text
-Aviso de retorno
+Aviso/solicitação de retorno
 → recebimento
-→ descarregamento
+→ entrada no pátio
 → identificação
-→ vistoria
-→ classificação da condição
+→ descarregamento
+→ vistoria inicial
+→ classificação
 ```
 
-## 13.3 Estados possíveis
+## Gate — condição do módulo
 
-```text
-ATIVO OK
-ATIVO EM REPARO
-ATIVO EM QUARENTENA
-```
+### Sem necessidade de reparo
 
-O retorno alimenta novamente o ciclo operacional.
+`liberação → disponibilidade/estoque conforme regra`.
+
+### Necessita avaliação/reparo
+
+`quarentena → limpeza → checklist → diagnóstico`.
+
+### Condição não definida
+
+`quarentena → avaliação técnica`.
+
+O critério exato de cada estado deve ser validado operacionalmente.
 
 ---
 
-# 14. FLUXO 11 — REPAROS / RECUPERAÇÃO
+# 15. FLUXO 11 — REPAROS / RECUPERAÇÃO
 
-Este fluxo deve ser tratado pelo ELO como um subprocesso rastreável do ciclo de retorno.
+Este subprocesso possui duas entradas principais:
 
-## 14.1 Sequência principal
+1. `falha na qualidade da produção`;
+2. `retorno de módulo/ativo da locação/campo`.
+
+Não tratar as duas origens como se fossem o mesmo evento.
+
+## 15.1 Entrada A — falha de produção
 
 ```text
-RETORNO
-  ↓
-RECEBIMENTO
-  ↓
-QUARENTENA
-  ↓
-LIMPEZA
-  ↓
-IDENTIFICAÇÃO / CHECKLIST DE AVARIAS
-  ↓
-DIAGNÓSTICO
-  ↓
-DEFINIÇÃO DE INTERVENÇÃO
-  ↓
-MATERIAL DISPONÍVEL?
-  ↙              ↘
-SIM              NÃO
- ↓                 ↓
-OFICINA         ALMOXARIFADO/COMPRAS
- ↘                 ↙
-       REPARO
-          ↓
-       TESTES
-          ↓
-   QUALIDADE APROVADA?
-       ↙          ↘
-     SIM          NÃO
-      ↓             ↓
-ESTOQUE SEG.    RETRABALHO
-      ↓             │
-      └─────────────┘
+Produção
+→ qualidade
+→ falha
+→ O.S. de reparo/retrabalho
+→ diagnóstico/intervenção
+→ oficina
+→ teste
+→ qualidade
 ```
 
-## 14.2 Quarentena
+## 15.2 Entrada B — retorno da locação
 
-Objetivo: impedir que o módulo seja tratado como disponível antes da avaliação.
+```text
+Retorno
+→ quarentena
+→ limpeza/higienização
+→ identificação
+→ checklist de avarias
+→ diagnóstico
+→ programação do reparo
+```
 
-Dados mínimos:
+## 15.3 Fluxo comum de reparo
+
+```text
+Diagnóstico
+→ definir intervenção
+→ definir oficina
+→ verificar material
+→ executar reparo
+→ registrar horas/equipe
+→ registrar materiais
+→ inspeção/teste
+```
+
+## Gate — material disponível?
+
+### SIM
+
+`material → oficina → execução`.
+
+### NÃO
+
+`necessidade → almoxarifado/compras → recebimento → material → oficina`.
+
+## Gate — reparo aprovado?
+
+### SIM
+
+`liberação → estoque de segurança/disponibilidade`.
+
+### NÃO
+
+`falha → retrabalho → nova inspeção/teste`.
+
+---
+
+# 16. REPAROS — QUARENTENA
+
+## Objetivo
+
+Impedir que um módulo retornado seja tratado como disponível antes da avaliação.
+
+## Registro mínimo
 
 - ID do módulo;
 - AF/origem quando disponível;
 - modelo;
 - configuração;
-- data de retorno;
+- data/hora de entrada;
 - localização;
+- responsável pelo recebimento;
 - condição inicial;
-- responsável pelo recebimento.
+- status.
 
-## 14.3 Limpeza
+## Estado
 
-Preparar o módulo para inspeção e intervenção, registrando quando necessário:
+`QUARENTENA` significa indisponibilidade até conclusão da avaliação aplicável.
 
-- entrada;
-- conclusão;
+---
+
+# 17. REPAROS — LIMPEZA / HIGIENIZAÇÃO
+
+## Objetivo
+
+Preparar o módulo para inspeção e intervenção.
+
+## Registro
+
+- módulo;
+- data/hora;
 - equipe;
+- início/fim quando aplicável;
+- condição encontrada;
 - observações;
-- condições encontradas.
+- necessidade de nova limpeza quando identificada.
 
-## 14.4 Checklist de avarias
+A duração real deve ser obtida por apontamento, não estimada pelo ELO.
 
-Registrar por ocorrência:
+---
+
+# 18. REPAROS — CHECKLIST DE AVARIAS
+
+Cada ocorrência deve ser registrada individualmente quando possível.
+
+## Campos
 
 - ID da avaria;
-- módulo;
+- ID do módulo;
+- AF;
 - modelo;
+- data da inspeção;
+- inspetor;
 - componente;
 - condição;
 - tipo de avaria;
@@ -557,34 +726,85 @@ Registrar por ocorrência:
 - prioridade;
 - data do diagnóstico.
 
-## 14.5 Diagnóstico
+## Tipos de análise
+
+- estrutural;
+- pintura/acabamento;
+- piso;
+- teto/cobertura;
+- PIR/isolamento;
+- esquadrias;
+- hidráulica;
+- elétrica;
+- dados;
+- mobiliário/complementos;
+- limpeza;
+- outros.
+
+---
+
+# 19. REPAROS — DIAGNÓSTICO E DIRECIONAMENTO
 
 ```text
-Avaria identificada
-→ avaliar causa provável
+Avaria
+→ avaliar extensão
+→ determinar causa provável
 → definir intervenção
-→ definir oficina/recurso
-→ verificar material
-→ programar reparo
+→ determinar oficina
+→ verificar materiais
+→ definir prioridade
+→ liberar execução
 ```
 
-## 14.6 Oficinas
+O direcionamento pode envolver, conforme a ocorrência:
 
-As oficinas devem ser tratadas como capacidades produtivas. O registro deve permitir saber:
+- hidráulica;
+- elétrica;
+- estrutura;
+- pintura;
+- marcenaria;
+- acabamento;
+- outras capacidades validadas.
 
-- qual oficina executou;
+O conjunto exato de oficinas deve ser mantido como cadastro configurável.
+
+---
+
+# 20. REPAROS — EXECUÇÃO
+
+Cada etapa deve gerar apontamento.
+
+## Dados mínimos
+
+- módulo;
+- modelo;
+- oficina;
 - equipe;
 - número de pessoas;
 - início;
 - fim;
-- horas;
+- horas calculadas;
 - etapa;
+- status;
 - retrabalho;
 - motivo do retrabalho.
 
-## 14.7 Materiais do reparo
+## Estrutura de medição
 
-Registrar:
+```text
+TEMPO DE CICLO
+= fim da etapa - início da etapa
+```
+
+A capacidade diária não deve ser assumida. Deve ser calculada posteriormente a partir dos apontamentos reais.
+
+---
+
+# 21. REPAROS — MATERIAIS E CUSTOS
+
+Cada material consumido deve estar relacionado ao módulo/reparo quando houver rastreabilidade.
+
+## Dados
 
 - código;
 - material;
@@ -592,335 +812,458 @@ Registrar:
 - quantidade;
 - custo unitário;
 - custo total;
-- requisição;
 - origem;
-- módulo;
-- modelo;
-- avaria.
+- requisição;
+- responsável;
+- ID da avaria quando disponível.
 
-Isso permite construir posteriormente:
+## Relações analíticas
 
-`modelo → avaria → material → custo → horas → resultado`.
+```text
+Modelo
+  ↓
+Avaria
+  ↓
+Material
+  ↓
+Quantidade
+  ↓
+Custo
+```
 
-## 14.8 Testes de qualidade
-
-Registrar:
-
-- item testado;
-- critério;
-- resultado;
-- evidência;
-- necessidade de retrabalho;
-- reinspeção;
-- resultado final.
-
-## 14.9 Liberação
-
-Somente após resultado compatível com os critérios definidos:
-
-`Qualidade → Pronto → Estoque de Segurança`, quando aplicável.
+Isso permite ao ELO identificar posteriormente materiais recorrentes por modelo e avarias com maior impacto de consumo.
 
 ---
 
-# 15. FLUXO 12 — ESTOQUE DE SEGURANÇA
-
-O estoque de segurança deve ser tratado como consequência de análise de demanda, retorno, disponibilidade e capacidade de recuperação.
-
-Não assumir percentual ou quantidade mínima sem apuração.
-
-## 15.1 Estados
+# 22. REPAROS — QUALIDADE E TESTES
 
 ```text
-QUARENTENA
-EM REPARO
-EM QUALIDADE
-PRONTO
-ESTOQUE SEGURANÇA
+Reparo concluído
+→ inspeção
+→ teste aplicável
+→ resultado
 ```
 
-## 15.2 Informação mínima
+### Aprovado
 
+`liberação`.
+
+### Aprovado com pendência
+
+`registrar pendência → definir tratamento → liberação somente conforme regra validada`.
+
+### Reprovado
+
+`O.S./retrabalho → oficina → novo teste`.
+
+O teste deve preservar evidência e responsável quando disponíveis.
+
+---
+
+# 23. ESTOQUE DE SEGURANÇA
+
+## Finalidade
+
+Disponibilizar módulos recuperados para atender demanda futura, conforme política definida pela Multiteiner.
+
+## Fluxo
+
+```text
+Reparo aprovado
+→ liberação
+→ classificação do módulo
+→ localização
+→ entrada no estoque de segurança
+→ disponibilidade para PCP
+```
+
+## PCP deve enxergar
+
+- quantidade pronta;
+- quantidade em reparo;
+- quantidade em quarentena;
+- quantidade disponível;
 - modelo;
 - configuração;
-- quantidade em cada estado;
-- estoque mínimo validado;
-- gap;
-- prioridade;
 - localização;
-- data da atualização.
+- idade do estoque quando houver data confiável.
 
-## 15.3 Decisão ELO
+## Regra
 
-O ELO pode sinalizar:
+Não definir percentual ou quantidade mínima sem base histórica e validação da política da empresa.
 
-`demanda futura + estoque disponível + módulos em recuperação + capacidade de reparo → risco de disponibilidade`
+O ELO deve primeiro construir a série histórica de:
 
-A decisão de estoque mínimo deve permanecer baseada em evidência e governança.
+`demanda × retornos × reparos × disponibilidade × tempo de recuperação`.
+
+Depois poderá apoiar a definição de estoque de segurança.
 
 ---
 
-# 16. FLUXO DE RETORNO DO REPARO PARA O PCP
+# 24. FECHAMENTO DO CICLO
 
-O reparo não termina no estoque. O dado retorna ao planejamento.
+O fluxo não termina em estoque.
 
 ```text
-AVARIA
- ↓
-MODELO
- ↓
-CAUSA / COMPONENTE
- ↓
-TEMPO DE REPARO
- ↓
-MATERIAL CONSUMIDO
- ↓
-CUSTO
- ↓
-QUALIDADE
- ↓
-DISPONIBILIDADE RECUPERADA
- ↓
-ESTOQUE
- ↓
+ESTOQUE / DISPONIBILIDADE
+        ↓
 PCP
+        ↓
+NOVA DEMANDA
+        ↓
+EXPEDIÇÃO
+        ↓
+CAMPO / LOCAÇÃO
+        ↓
+RETORNO
+        ↓
+QUARENTENA
+        ↓
+REPARO QUANDO NECESSÁRIO
+        ↓
+ESTOQUE
 ```
 
-Isso permite ao ELO relacionar o comportamento de reparos com:
-
-- demanda;
-- modelo;
-- customização;
-- almoxarifado;
-- produção;
-- qualidade;
-- RH/capacidade;
-- orçamento;
-- locação.
+Isso transforma o processo em ciclo de vida do módulo.
 
 ---
 
-# 17. MAPA DE DADOS POR SETOR
+# 25. GATES PRINCIPAIS DO PROCESSO
 
-| Setor | Dados que alimentam o ELO |
+| Gate | Pergunta | Saída SIM | Saída NÃO |
+|---|---|---|---|
+| G01 | AF está completa? | PCP | Pendência/complementação |
+| G02 | Padrão ou customizado? | Modular | Customizado |
+| G03 | Material disponível? | Picking | Compras |
+| G04 | Produção concluída? | Qualidade | Continuação produtiva |
+| G05 | Qualidade aprovada? | Expedição/estoque | Reparo/retrabalho |
+| G06 | Módulo retornado necessita reparo? | Quarentena/reparo | Disponibilidade |
+| G07 | Material de reparo disponível? | Oficina | Almoxarifado/compras |
+| G08 | Reparo aprovado? | Estoque/liberação | Retrabalho |
+| G09 | Módulo disponível para demanda? | PCP/expedição | Recuperação/produção |
+
+Os critérios formais dos gates devem ser validados com os responsáveis do processo.
+
+---
+
+# 26. ESTADOS DO MÓDULO
+
+O ELO deve tratar estado como diferente de processo.
+
+Exemplo de estados:
+
+```text
+DEMANDA
+→ PLANEJADO
+→ EM PRODUÇÃO
+→ EM QUALIDADE
+→ LIBERADO
+→ EM EXPEDIÇÃO
+→ EM CAMPO/LOCAÇÃO
+→ EM RETORNO
+→ QUARENTENA
+→ EM LIMPEZA
+→ EM DIAGNÓSTICO
+→ EM REPARO
+→ EM TESTE
+→ ESTOQUE DE SEGURANÇA
+→ DISPONÍVEL
+```
+
+Um módulo pode retornar a um estado anterior por falha/retrabalho.
+
+---
+
+# 27. FLUXO DE EXCEÇÕES
+
+O ELO deve preservar os caminhos alternativos.
+
+## AF incompleta
+
+`Comercial → AF → PCP → pendência → Comercial → AF revisada → PCP`.
+
+## Material indisponível
+
+`PCP → Almoxarifado → Compras → Recebimento → Estoque → Picking → Produção`.
+
+## Falha de qualidade
+
+`Produção → Qualidade → Reparo → Teste → Qualidade`.
+
+## Retorno com avaria
+
+`Locação → Retorno → Quarentena → Limpeza → Checklist → Diagnóstico → Reparo`.
+
+## Reparo reprovado
+
+`Teste → Falha → Retrabalho → Teste`.
+
+## Mudança de escopo
+
+`Demanda/AF → PCP → replanejamento → orçamento/engenharia quando aplicável → execução`.
+
+---
+
+# 28. DADOS POR SETOR
+
+| Setor | Dados principais para o ELO |
 |---|---|
-| Comercial/Locação | AF, demanda, modalidade, prazo, alterações |
-| Orçamento | modelo, customização, excedentes, materiais, custos, recorrência |
-| Engenharia | projeto, configuração, BOM, requisitos, liberação técnica |
-| PCP | plano, sequência, capacidade, prioridade, realizado, desvio |
-| Compras | fornecedor, pedido, lead time, atraso, material crítico |
-| Almoxarifado | estoque, reserva, picking, consumo, ruptura, requisição |
-| Produção | etapas, tempos, quantidade, WIP, produtividade, retrabalho |
-| Oficinas | capacidade, equipe, horas, reparos, fila |
-| Qualidade | testes, falhas, aprovação, retrabalho |
-| Expedição | packing, conferência, gate, saída |
-| Campo/Locação | montagem, uso, ocorrências, desmobilização, retorno |
-| Reparos | avarias, diagnóstico, materiais, custo, horas, resultado |
-| RH | disponibilidade/capacidade de pessoas, quando autorizado e necessário |
+| Comercial/Locação | demanda, AF, cliente, modalidade, modelo, quantidade, prazo |
+| PCP | prioridade, sequência, plano, restrições, dependências, status |
+| Orçamento | customização, modelo, materiais, recorrência, custos, sazonalidade |
+| Engenharia | requisitos técnicos, configuração, alterações |
+| Almoxarifado | estoque, reserva, picking, consumo, ruptura |
+| Compras | necessidade, OC, chegada, prazo, recebimento |
+| Produção | etapa, início/fim, equipe, quantidade, status |
+| Qualidade | teste, resultado, não conformidade, retrabalho |
+| Expedição | segregação, packing, conferência, gate, saída |
+| Campo/Locação | entrega, instalação, utilização, ocorrência, retorno |
+| Reparos | avaria, diagnóstico, oficina, equipe, tempo, material, custo |
+| RH | disponibilidade e composição da equipe quando aplicável |
 
 ---
 
-# 18. MAPA DE DECISÕES
+# 29. MODELO DE DADOS PARA O ELO
+
+A arquitetura deve permitir relações entre entidades.
 
 ```text
-AF recebida?
-→ sim: analisar
-→ não: aguardar informação
-
-Padrão ou personalizado?
-→ padrão: fluxo modular
-→ personalizado: fluxo customizado
-
-Material disponível?
-→ sim: picking/abastecimento
-→ não: compras
-
-Capacidade disponível?
-→ sim: sequenciar
-→ não: replanejar/escalar
-
-Produto conforme?
-→ sim: liberar
-→ não: reparar/retrabalhar
-
-Avaria no retorno?
-→ não: estoque
-→ sim: quarentena/diagnóstico/reparo
-
-Reparo concluído?
-→ sim: qualidade
-→ não: permanecer em reparo
-
-Qualidade aprovada?
-→ sim: estoque segurança/pronto
-→ não: retrabalho
+AF
+ ├── cliente
+ ├── modelo
+ ├── configuração
+ ├── quantidade
+ └── prazo
+      │
+      ▼
+PLANEJAMENTO
+ ├── prioridade
+ ├── sequência
+ ├── LM/OS
+ └── restrições
+      │
+      ▼
+MÓDULO
+ ├── produção
+ ├── qualidade
+ ├── expedição
+ ├── campo
+ ├── retorno
+ └── reparos
+       │
+       ├── AVARIA
+       │    ├── causa
+       │    ├── severidade
+       │    └── componente
+       │
+       ├── ETAPA DE REPARO
+       │    ├── oficina
+       │    ├── equipe
+       │    └── tempo
+       │
+       └── MATERIAL
+            ├── quantidade
+            └── custo
 ```
 
 ---
 
-# 19. COMO O ELO DEVE RESPONDER A PESQUISAS SOBRE O FLUXO
+# 30. O QUE O ELO DEVE RESPONDER SOBRE O FLUXO
 
-Quando o usuário perguntar genericamente:
+Perguntas de recuperação:
 
-> "Qual é o fluxo da Multiteiner?"
-
-O ELO deve recuperar primeiro a visão macro e depois oferecer a decomposição por subprocesso.
-
-Quando perguntar:
-
-> "Como funciona o PCP?"
-
-Recuperar a seção PCP e as interfaces com Comercial, Orçamento, Almoxarifado, Produção, Qualidade, Expedição e Reparos.
-
-Quando perguntar:
-
-> "Qual o fluxo de reparo?"
-
-Recuperar diretamente:
-
-`Retorno → Recebimento → Quarentena → Limpeza → Checklist → Diagnóstico → Material → Oficinas → Testes → Qualidade → Estoque de Segurança / Retrabalho`.
-
-Quando perguntar:
-
-> "Como o reparo conversa com o Almoxarifado?"
-
-Recuperar o vínculo:
-
-`Avaria → diagnóstico → material necessário → disponibilidade → requisição/compra → consumo → custo → resultado`.
-
-Quando perguntar:
-
-> "Como o orçamento conversa com o PCP?"
-
-Recuperar:
-
-`demanda/customização → modelo/configuração → excedentes → materiais/serviços → custo/carga → planejamento`.
+- Qual é o fluxo completo da Multiteiner?
+- Qual é o fluxo desde a AF até a entrega?
+- Qual é o fluxo do PCP?
+- Como uma AF entra na produção?
+- Qual a diferença entre modular e customizado?
+- Onde entra o orçamento?
+- Como o Almoxarifado abastece a produção?
+- O que acontece quando falta material?
+- Qual o caminho de uma falha de qualidade?
+- Qual o fluxo de reparos?
+- Como um módulo retornado entra em quarentena?
+- Como funciona o checklist de avarias?
+- Como o módulo é direcionado para oficina?
+- Como o custo do reparo é calculado?
+- Como o módulo volta ao estoque de segurança?
+- Como o retorno da locação fecha o ciclo?
+- Quais setores alimentam o PCP?
+- Quais informações do orçamento devem alimentar o planejamento?
 
 ---
 
-# 20. REGRAS DE RETRIEVAL / INDEXAÇÃO
+# 31. NÍVEIS DE RECUPERAÇÃO
 
-## 20.1 Termos canônicos
+Quando o usuário solicitar o fluxo, o ELO deve responder progressivamente:
 
-O conteúdo deve ser indexado pelos seguintes conceitos:
+### Nível 1 — Macro
 
-`Multiteiner`, `fluxo Multiteiner`, `processo Multiteiner`, `fluxo end-to-end`, `PCP`, `planejamento`, `AF`, `Comercial`, `Locação`, `Orçamento`, `Customizado`, `Modular`, `Almoxarifado`, `Compras`, `Produção`, `Qualidade`, `Expedição`, `Retorno`, `Pós-locação`, `Quarentena`, `Limpeza`, `Avaria`, `Diagnóstico`, `Reparo`, `Oficina`, `Teste`, `Estoque de Segurança`.
+`Comercial → PCP → Materiais → Produção → Qualidade → Expedição → Campo → Retorno → Reparos → Estoque`.
 
-## 20.2 Sinônimos de busca
+### Nível 2 — Processo
 
-- fluxo modular = produção modular = linha modular = fluxo puxado modular;
-- fluxo customizado = montagem customizada = módulo personalizado;
-- retorno = pós-locação = retorno de módulo/ativo;
-- reparo = recuperação = reprocesso, quando o contexto indicar;
-- quarentena = módulo em quarentena;
-- estoque de segurança = reserva de módulos recuperados, somente quando o contexto confirmar a intenção.
+Abrir os subprocessos de cada bloco.
 
-## 20.3 Recuperação hierárquica
+### Nível 3 — Etapa
 
-O ELO deve preferir:
+Mostrar entrada, atividade, gate, saída e responsável/setor quando validado.
 
-1. processo específico;
-2. etapa específica;
-3. interface entre etapas;
-4. visão macro;
-5. contexto organizacional geral.
+### Nível 4 — Dados
 
-Não retornar apenas um fragmento quando a pergunta solicitar o fluxo completo.
+Mostrar quais dados são gerados/consumidos.
 
-## 20.4 Provenance
+### Nível 5 — Operacional
 
-Cada resposta baseada neste documento deve manter a referência ao artefato `ELO-PROC-MULTITEINER-001` e, quando necessário, indicar que determinado detalhe está `A VALIDAR`.
+Mostrar sequência, exceções, retrabalho e interfaces.
 
-## 20.5 Contradições
+### Nível 6 — Analítico
 
-Se outra fonte apresentar sequência diferente:
+Mostrar indicadores, sinais, desvios, gargalos e relações somente quando existirem dados/evidências suficientes.
+
+---
+
+# 32. PROCESSO × ESTADO × TELEMETRIA
+
+O ELO deve manter três camadas separadas:
+
+### Processo documentado
+
+Como o fluxo deve ser entendido/documentado.
+
+### Estado operacional
+
+Onde cada módulo/ordem está agora.
+
+### Telemetria/medição
+
+O que os dados reais mostram sobre tempo, quantidade, custo, capacidade, falha e produtividade.
+
+Não utilizar este documento para afirmar que determinada capacidade, percentual ou tempo é o valor real atual.
+
+---
+
+# 33. PROCESSO × ELO
+
+O ELO não substitui o processo físico.
+
+Ele atua como camada de integração e inteligência:
 
 ```text
-detectar contradição
-→ identificar fontes
-→ comparar autoridade
-→ verificar versão/data
-→ preservar ambas como evidência quando necessário
-→ solicitar validação
+PROCESSOS DOS SETORES
+        ↓
+DADOS
+        ↓
+INTEGRAÇÃO
+        ↓
+ESTADO ATUAL
+        ↓
+INDICADORES
+        ↓
+CORRELAÇÕES
+        ↓
+SINAIS / DESVIOS
+        ↓
+DIAGNÓSTICO
+        ↓
+DECISÃO ESTRATÉGICA
+        ↓
+PLANO TÁTICO
+        ↓
+EXECUÇÃO
+        ↓
+NOVOS DADOS
 ```
 
-Não sobrescrever silenciosamente o fluxo.
+O PCP é uma das principais camadas de orquestração operacional, enquanto o ELO fornece a visão integrada para planejamento estratégico, tático e operacional.
 
 ---
 
-# 21. RELAÇÃO COM O ELO
+# 34. REGRAS DE GOVERNANÇA
 
-O ELO deve usar este documento como **conhecimento de processo**, não como lógica rígida de execução.
+1. Não transformar hipótese em fato.
+2. Não inserir produtividade sem apontamento real.
+3. Não inserir custo sem origem identificável.
+4. Não definir estoque de segurança por percentual inventado.
+5. Não alterar o processo documentado silenciosamente com base em um caso isolado.
+6. Registrar divergências como desvios ou pontos a validar.
+7. Preservar a origem dos dados.
+8. Manter o vínculo entre módulo e eventos sempre que possível.
+9. Diferenciar processo, estado atual e telemetria.
+10. Quando houver conflito entre fontes, informar a divergência e indicar a fonte/versão a validar.
 
-A interpretação deve seguir:
+---
+
+# 35. CRITÉRIO DE COMPLETUDE
+
+O fluxo será considerado funcional quando for possível responder, para qualquer módulo ou ordem rastreável:
 
 ```text
-PERGUNTA
-  ↓
-CONTEXTO
-  ↓
-RECUPERAÇÃO DO PROCESSO
-  ↓
-ETAPA(S) RELEVANTE(S)
-  ↓
-DADOS ATUAIS
-  ↓
-EVIDÊNCIAS
-  ↓
-ANÁLISE
-  ↓
-RESPOSTA / ORIENTAÇÃO
+DE ONDE VEIO?
+      ↓
+O QUE FOI SOLICITADO?
+      ↓
+COMO FOI PLANEJADO?
+      ↓
+PADRÃO OU CUSTOMIZADO?
+      ↓
+QUAIS MATERIAIS?
+      ↓
+ONDE FOI PRODUZIDO?
+      ↓
+QUEM EXECUTOU?
+      ↓
+FOI APROVADO?
+      ↓
+FOI EXPEDIDO?
+      ↓
+FOI UTILIZADO/LOCADO?
+      ↓
+RETORNOU?
+      ↓
+TEVE AVARIA?
+      ↓
+QUAL AVARIA?
+      ↓
+QUAL OFICINA?
+      ↓
+QUAIS MATERIAIS?
+      ↓
+QUANTO TEMPO?
+      ↓
+QUAL CUSTO?
+      ↓
+PASSOU NA QUALIDADE?
+      ↓
+FOI PARA ESTOQUE DE SEGURANÇA?
+      ↓
+ESTÁ DISPONÍVEL PARA NOVA DEMANDA?
 ```
 
-O fluxo documentado informa **como o processo é representado**. Dados operacionais atuais informam **como o processo está acontecendo agora**.
-
-Essa distinção é obrigatória para que o ELO não confunda desenho de processo com estado operacional atual.
+Se uma pergunta não puder ser respondida, o ELO deve indicar que o dado não está disponível ou não está validado, em vez de completar a resposta por inferência não sustentada.
 
 ---
 
-# 22. CICLO COGNITIVO APLICADO AO PROCESSO
+# 36. STATUS DE VALIDAÇÃO
 
-Para análise de uma ocorrência no fluxo:
+Este documento representa o **fluxo de referência em evolução** da Multiteiner.
 
-```text
-OBSERVE
-→ DETECT
-→ CORRELATE
-→ CONTEXTUALIZE
-→ IDENTIFY GAPS
-→ ASK
-→ RETRIEVE
-→ COMPARE EXPERIENCES
-→ FORM HYPOTHESES
-→ GATHER EVIDENCE
-→ REASON
-→ SIMULATE SCENARIOS
-→ RECOMMEND
-→ HUMAN DECISION
-→ OBSERVE OUTCOME
-→ LEARN
-```
+A estrutura macro está consolidada para uso do ELO, enquanto detalhes operacionais específicos devem continuar sendo validados com documentos, registros e responsáveis de cada setor.
 
-O ELO deve separar processo documentado, dado atual, hipótese, evidência, recomendação e decisão humana.
+Os próximos incrementos de maturidade devem transformar cada etapa em registro operacional mensurável, especialmente:
 
----
+- tempos reais;
+- capacidade real;
+- filas;
+- quantidade por etapa;
+- custos;
+- produtividade;
+- causas de retrabalho;
+- consumo de materiais;
+- frequência de avarias;
+- disponibilidade de equipes;
+- demanda;
+- retorno de módulos;
+- estoque de segurança.
 
-# 23. PRÓXIMA EVOLUÇÃO DO ARTEFATO
-
-Este documento deve evoluir de `DRAFT` para níveis superiores somente quando houver evidência de validação operacional.
-
-Próximas informações desejáveis:
-
-- tempos reais por etapa;
-- responsáveis formais;
-- sistemas utilizados em cada gate;
-- critérios de entrada e saída;
-- capacidade por recurso;
-- regras de prioridade;
-- critérios de qualidade;
-- dados reais de reparo;
-- custos reais;
-- relação modelo × avaria;
-- estoque de segurança calculado a partir de histórico;
-- evidências de aderência entre fluxo documentado e fluxo realizado.
-
-Nenhum desses dados deve ser preenchido por estimativa apresentada como fato.
+O princípio é: **primeiro medir, depois estabelecer parâmetro; primeiro registrar, depois otimizar.**
