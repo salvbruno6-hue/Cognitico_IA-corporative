@@ -87,3 +87,5 @@ jobs:
         run: python -m pip install -e ".[test]"
       - name: Run external access security tests
         run: python -m pytest -q tests/security/test_external_access_contract.py tests/test_specialist_consultation_boundary.py
+
+# Evidence-trigger integrity: this workflow must execute for every PR HEAD under evaluation.
