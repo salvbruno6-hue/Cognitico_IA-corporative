@@ -1,0 +1,8 @@
+{
+  "schema_version":"1.0.0",
+  "ambiente":"simulacao",
+  "recursos":[
+    {"id":"REC-001","tipo":"movimentacao","descricao":"Recurso operacional de movimentacao","capacidade_total_horas":160,"horas_comprometidas":145,"disponibilidade_horas":15,"status":"restrito"},
+    {"id":"REC-002","tipo":"movimentacao","descricao":"Recurso operacional de movimentacao","capacidade_total_horas":160,"horas_comprometidas":90,"disponibilidade_horas":70,"status":"disponivel"}
+  ]
+}
