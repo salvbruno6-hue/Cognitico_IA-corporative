@@ -1,0 +1,9 @@
+{
+  "schema_version":"1.0.0",
+  "ambiente":"simulacao",
+  "relacoes":[
+    {"demanda_id":"DEM-001","recurso_id":"REC-001","horas_estimadas":20},
+    {"demanda_id":"DEM-002","recurso_id":"REC-002","horas_estimadas":15},
+    {"demanda_id":"DEM-003","recurso_id":"REC-001","horas_estimadas":30}
+  ]
+}
