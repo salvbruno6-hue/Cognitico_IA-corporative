@@ -1,0 +1,10 @@
+{
+  "schema_version":"1.0.0",
+  "ambiente":"simulacao",
+  "cenarios":[
+    {"id":"CEN-001","nome":"Normal","objetivo":"Verificar demanda sem violacao conhecida"},
+    {"id":"CEN-002","nome":"Atraso de material","objetivo":"Verificar atraso superior a tolerancia"},
+    {"id":"CEN-003","nome":"Excesso de demanda sobre recurso","objetivo":"Verificar deficit de capacidade"},
+    {"id":"CEN-004","nome":"Restricoes simultaneas","objetivo":"Verificar multiplos sinais na mesma demanda"}
+  ]
+}

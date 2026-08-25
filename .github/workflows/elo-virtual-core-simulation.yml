@@ -1,0 +1,70 @@
+name: ELO Virtual Core Simulation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'elo-virtual-core/**'
+      - '.github/workflows/elo-virtual-core-simulation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'elo-virtual-core/**'
+      - '.github/workflows/elo-virtual-core-simulation.yml'
+
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: elo-virtual-core
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate JSON inputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          files = list(Path('.').rglob('*.json'))
+          for path in files:
+              with path.open(encoding='utf-8') as f:
+                  json.load(f)
+              print(f'JSON OK: {path}')
+          PY
+
+      - name: Compile simulation code
+        run: python -m py_compile regras/orquestrador.py testes/simular_cenarios.py
+
+      - name: Run simulation
+        run: python regras/orquestrador.py
+
+      - name: Run behavioral assertions
+        run: python testes/simular_cenarios.py
+
+      - name: Show diagnostic in GitHub Actions
+        if: always()
+        run: |
+          echo '## ELO Virtual Core — diagnóstico' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f data/diagnostico_pcp.json ]; then
+            echo '### diagnostico_pcp.json' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat data/diagnostico_pcp.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'diagnostico_pcp.json não foi gerado.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload diagnostic artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: elo-virtual-core-diagnostic
+          path: elo-virtual-core/data/diagnostico_pcp.json
+          if-no-files-found: warn

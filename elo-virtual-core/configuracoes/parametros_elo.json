@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "ambiente": "simulacao",
+  "capacidade": {
+    "limite_alerta_gargalo_capacidade": 0.85,
+    "limite_critico_gargalo_capacidade": 0.95
+  },
+  "materiais": {
+    "dias_tolerancia_atraso_material": 2,
+    "estoque_minimo_percentual": 0.20
+  },
+  "criticidade": {
+    "peso_criticidade_reparo": 5,
+    "peso_criticidade_atraso": 4,
+    "peso_criticidade_material": 4,
+    "peso_criticidade_capacidade": 3,
+    "escala_minima": 1,
+    "escala_maxima": 5
+  },
+  "decisao": {
+    "limite_prioridade_alta": 0.75,
+    "limite_prioridade_critica": 0.90,
+    "permitir_repriorizacao_automatica": true,
+    "permitir_bloqueio_automatico": false
+  },
+  "governanca": {
+    "alteracao_automatica_parametros": false,
+    "requer_validacao_para_parametros_criticos": true,
+    "registrar_decisoes": true
+  }
+}
