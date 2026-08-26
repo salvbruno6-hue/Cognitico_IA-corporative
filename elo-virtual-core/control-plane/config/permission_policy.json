@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "default_decision": "deny",
+  "principals": {
+    "gpt_interface": {
+      "role": "peripheral",
+      "can": ["submit_request", "receive_result"],
+      "cannot": ["direct_database_access", "direct_secret_access", "bypass_policy"]
+    },
+    "elo_core": {
+      "role": "orchestrator",
+      "can": ["classify", "route", "query_authorized_sources", "validate", "decide", "audit"],
+      "requires_explicit_policy_for": ["write", "execute", "merge", "delete"]
+    }
+  },
+  "operations": {
+    "read": {"default": "allow_if_source_authorized"},
+    "write": {"default": "deny", "requires": ["policy", "validated_target"]},
+    "execute": {"default": "deny", "requires": ["policy", "validated_command"]},
+    "merge": {"default": "deny", "requires": ["policy", "passing_validation", "explicit_approval"]},
+    "delete": {"default": "deny", "requires": ["explicit_approval", "audit_record"]}
+  },
+  "sources": {
+    "supabase_elo_forge": {
+      "project_ref": "fxbpevjrkwhbicpmecow",
+      "allowed_operation": ["read"],
+      "write_requires_explicit_policy": true
+    },
+    "github_elo_forge": {
+      "allowed_operation": ["read"],
+      "write_requires_explicit_policy": true,
+      "merge_requires_explicit_approval": true
+    }
+  },
+  "security": {
+    "secrets_from_repository": false,
+    "credentials_in_prompt": false,
+    "log_secret_values": false,
+    "fail_closed": true
+  }
+}

@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: ELO Control Plane API
+  version: 1.0.0
+  description: Transport interface for submitting requests to the ELO orchestrator.
+servers:
+  - url: /v1
+paths:
+  /query:
+    post:
+      summary: Submit a read-oriented request to ELO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Structured ELO result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EloResponse'
+        '403':
+          description: Policy denied operation
+        '422':
+          description: Invalid request
+  /plan:
+    post:
+      summary: Generate an execution plan without executing state-changing operations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Execution plan
+  /status:
+    get:
+      summary: Return ELO control plane status
+      responses:
+        '200':
+          description: Status
+  /schema:
+    get:
+      summary: Return known data-source metadata
+      responses:
+        '200':
+          description: Source metadata
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      required: [request_id, input]
+      properties:
+        request_id:
+          type: string
+        input:
+          type: string
+        actor:
+          type: string
+          default: gpt_interface
+        dry_run:
+          type: boolean
+          default: true
+        context:
+          type: object
+    EloResponse:
+      type: object
+      required: [request_id, status, source, result]
+      properties:
+        request_id:
+          type: string
+        status:
+          type: string
+        source:
+          type: string
+        route:
+          type: string
+        result:
+          type: object
+        evidence:
+          type: array
+          items:
+            type: object
+        decision:
+          type: object
+        warnings:
+          type: array
+          items:
+            type: string
