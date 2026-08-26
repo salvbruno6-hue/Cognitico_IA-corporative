@@ -1,0 +1,12 @@
+services:
+  elo-control-plane:
+    build:
+      context: ../..
+      dockerfile: control-plane/deployment/Dockerfile
+    environment:
+      ELO_ENV: ${ELO_ENV:-development}
+      ELO_SUPABASE_PROJECT_REF: ${ELO_SUPABASE_PROJECT_REF:-fxbpevjrkwhbicpmecow}
+      ELO_LOG_LEVEL: ${ELO_LOG_LEVEL:-INFO}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
