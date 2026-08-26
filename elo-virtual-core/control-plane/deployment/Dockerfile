@@ -1,12 +1,13 @@
 FROM python:3.12-slim
 
-WORKDIR /app
+WORKDIR /app/control-plane
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    ELO_HOST=0.0.0.0 \
+    ELO_PORT=8080
 
-COPY . /app
+COPY elo-virtual-core/control-plane /app/control-plane
 
-# Application dependencies will be pinned when the ELO runtime package is introduced.
 EXPOSE 8080
 
-CMD ["python", "-m", "elo_virtual_core.control_plane"]
+CMD ["python", "-m", "runtime.http_api"]
