@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "environment": "development",
+  "request": {
+    "max_payload_bytes": 1048576,
+    "timeout_seconds": 30,
+    "max_tool_calls_per_request": 12,
+    "max_query_rows": 1000,
+    "require_request_id": true
+  },
+  "routing": {
+    "supabase_keywords": [
+      "taxonomia", "MLT", "M01", "M02", "modelo", "dimensão", "kit", "kit_itens", "lista mãe", "material", "estrutura modular"
+    ],
+    "github_keywords": [
+      "arquivo", "branch", "issue", "pull request", "PR", "workflow", "action", "commit"
+    ],
+    "unknown_source_policy": "ask_or_report_missing_source"
+  },
+  "data_quality": {
+    "require_source_trace": true,
+    "require_relationship_validation": true,
+    "allow_inference": true,
+    "inference_must_be_labeled": true,
+    "missing_data_policy": "do_not_fabricate"
+  },
+  "execution": {
+    "dry_run_default": true,
+    "write_default": false,
+    "merge_default": false,
+    "delete_default": false,
+    "approval_required_for_state_change": true
+  },
+  "observability": {
+    "audit_enabled": true,
+    "record_intent": true,
+    "record_route": true,
+    "record_operation": true,
+    "record_result_status": true,
+    "never_record_secrets": true
+  }
+}
