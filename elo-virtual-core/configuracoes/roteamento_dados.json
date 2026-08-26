@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "default_source": "local",
+  "sources": {
+    "supabase_elo_forge": {
+      "type": "supabase",
+      "project_ref": "fxbpevjrkwhbicpmecow",
+      "purpose": "consulta operacional e relacionamentos persistidos do ELO Forge",
+      "tables": [
+        "taxonomia",
+        "dimensoes",
+        "modelos",
+        "modelo_apresentacao",
+        "lista_mae",
+        "kits",
+        "kit_itens",
+        "estrutura_modular",
+        "estrutura_modular_itens"
+      ]
+    }
+  },
+  "routing": {
+    "supabase_when_related_to": [
+      "taxonomia", "MLT", "modulo", "módulo", "container", "contêiner",
+      "dimensao", "dimensão", "modelo", "M01", "M02", "kit",
+      "lista mae", "lista mãe", "material", "produto", "estrutura modular",
+      "estrutura_modular"
+    ],
+    "prefer_supabase_for": [
+      "dados atuais", "consulta de registros", "relacionamentos entre entidades",
+      "composição de modelos", "itens de kits", "dados da Lista Mãe", "estrutura modular"
+    ],
+    "fallback": "local",
+    "never_guess_data": true
+  }
+}
