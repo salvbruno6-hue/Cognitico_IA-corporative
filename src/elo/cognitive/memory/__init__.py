@@ -1,5 +1,3 @@
-"""Typed memory primitives for ELO Cognitive."""
+from .retriever import CognitiveRetriever, RetrievalResult
 
-from .types import InMemoryMemoryStore, MemoryKind, MemoryRecord
-
-__all__ = ["InMemoryMemoryStore", "MemoryKind", "MemoryRecord"]
+__all__ = ["CognitiveRetriever", "RetrievalResult"]

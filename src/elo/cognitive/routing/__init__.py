@@ -1,5 +1,4 @@
-"""ELO cognitive routing primitives."""
-
 from .router import CognitiveRoute, CognitiveRouter, RoutingRequest
+from .learned import AdaptiveCognitiveRouter, RoutingExperience
 
-__all__ = ["CognitiveRoute", "CognitiveRouter", "RoutingRequest"]
+__all__ = ["CognitiveRoute", "CognitiveRouter", "RoutingRequest", "AdaptiveCognitiveRouter", "RoutingExperience"]
