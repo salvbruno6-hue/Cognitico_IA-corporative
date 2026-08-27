@@ -40,13 +40,16 @@ jobs:
           PY
 
       - name: Compile simulation code
-        run: python -m py_compile regras/orquestrador.py testes/simular_cenarios.py
+        run: python -m py_compile regras/orquestrador.py testes/simular_cenarios.py testes/test_roteador_consultas.py testes/test_auditoria_capacidades.py
 
       - name: Run simulation
         run: python regras/orquestrador.py
 
       - name: Run behavioral assertions
         run: python testes/simular_cenarios.py
+
+      - name: Run virtual capability audit
+        run: python -m pytest -q testes/test_auditoria_capacidades.py
 
       - name: Show diagnostic in GitHub Actions
         if: always()
