@@ -26,6 +26,10 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 14. The Forge constructor plane is an execution/building area inside the canonical repository; it is not a second Core, second governance authority, or shadow main.
 15. Forge branches must build against the canonical `main`, compare results with canonical contracts, and promote changes only through the governed PR path.
 16. Operational SQL, migrations, runtime configuration, generated artifacts, dashboards, and other implementation artifacts are evidence sources during Forge review, not canonical architecture by default.
+17. **ELO is the canonical cognitive orchestrator. Supabase, Forge, GitHub and automations are specialized members of the architecture and must not autonomously assume ELO cognitive authority.**
+18. **For `ELO APRENDER`, Supabase is consultative memory: it supplies existing knowledge/evidence to ELO; it does not independently admit, promote or persist learning.**
+19. **No governed learning commit may occur before explicit ELO cognitive MERGE approval.**
+20. **Architecture evolution must follow INSPECT → REUSE → EXTEND → RELATE → REFACTOR/MIGRATE → CREATE ONLY IF INDISPENSABLE.**
 
 ## 3. Required inspection sequence
 
@@ -60,41 +64,11 @@ Do not mix these classifications in one change unless the task explicitly requir
 
 ## 5. ELO execution gates
 
-The implementation sequence is governed by explicit gates. Current roadmap sequence:
-
-ELO-001 Cognitive Interface Vertical Slice
-→ ELO-002 Context Engine MVP
-→ ELO-003 Knowledge Retrieval MVP
-→ ELO-004 AI Gateway
-→ ELO-005 Governed Reasoning MVP
-→ ELO-006 Provenance
-→ ELO-007 Decision Intelligence MVP
-→ ELO-008 IAM/Tenant Enforcement
-→ ELO-009 Governed Memory MVP
-→ ELO-010 Controlled Agent Runtime
-→ ELO-011 Demand Intelligence
-→ ELO-012 First Enterprise Adapter
-→ ELO-013 Production Readiness
+The implementation sequence is governed by explicit gates. Current roadmap sequence remains authoritative.
 
 A later phase must not be implemented as if an earlier phase were complete unless the relevant gate has been explicitly approved.
 
-## 6. Current ELO-001 rule
-
-ELO-001 is considered complete only when the real path is demonstrated and tested:
-
-ELOChat
-→ HTTP/API adapter
-→ CognitiveAPI
-→ Session
-→ CognitiveCore
-→ ResponseBuilder
-→ CognitiveResponse
-
-Required evidence includes valid request validation, mandatory tenant context, session creation/recovery, domain preservation, typed core input, canonical response, request/response correlation, processing time, consistent errors, happy-path tests, error tests, and local execution documentation.
-
-Do not treat `compileall` alone as proof of functionality. A test suite that collects zero tests is a failure of the gate.
-
-## 7. Architecture boundaries
+## 6. Architecture boundaries
 
 The ELO architecture must preserve conceptual separation between:
 
@@ -114,41 +88,61 @@ The ELO architecture must preserve conceptual separation between:
 
 The Forge Constructor Plane constructs and validates implementations but does not become an ungoverned parallel Reasoning Engine, Cognitive Core, Memory system, or governance authority.
 
-## 8. Multi-tenancy and identity
+## 7. Cognitive orchestration boundary
 
-Where a governed operation is involved, preserve:
+ELO is the cognitive authority and orchestrator.
 
-- tenant_id
-- domain
-- principal_id
-- session_id
-- request_id
-- correlation_id
+Canonical relationship:
 
-`department` may exist as a business attribute, but must not be the primary security boundary.
+`ELO decides/orchestrates → specialized member provides evidence or executes → ELO verifies`
 
-## 9. Evidence and provenance
+Supabase is a consultative memory member. It may retrieve, relate and return structured memory, but it must not independently interpret, promote or commit learning.
 
-Do not conflate:
+Forge is the execution/versioning member. It may build, test, commit and prepare PRs only after the ELO gates authorize the operation.
 
-AuditEvent != ProvenanceRecord != Evidence
+GitHub Issue/PR is the durable decision and versioning ledger. It records evidence and approvals; it does not replace ELO cognitive judgment.
 
-Knowledge sources must remain distinguishable from hypotheses, recommendations, decisions, and organizational experience.
+Automations are deterministic process adapters. A technical trigger must never outrun ELO governance.
 
-Forge artifacts must retain their origin and classification when used as evidence. Inspection of an operational artifact does not constitute promotion into the canonical architecture.
+## 8. ELO APRENDER canonical sequence
 
-## 10. AI provider boundary
+`ELO APRENDER → ELO ANALYSIS → SUPABASE MEMORY CONSULT → ELO CONSOLIDATION → COGNITIVE MERGE → GOVERNANCE → ISSUE DOSSIER → MERGED APPROVED? → COMMIT → COMMIT VERIFY → ISSUE UPDATE → PR → GIT MERGE → MAIN/ELO`
 
-Application and cognitive components must not hard-code direct provider coupling when the architecture calls for an AI Gateway.
+**Cognitive MERGE** means ELO consolidates experiences and concepts into governed knowledge.
 
-Preferred direction:
+**Git MERGE** means the approved PR is integrated into `main`.
 
-Cognitive capability
-→ AI Gateway
-→ Provider contract
-→ Provider
+They are distinct operations.
 
-## 11. Testing requirements
+No commit may precede the cognitive MERGE approval for a governed learning change.
+
+## 9. Learning and memory admission
+
+A valuable experience does not automatically become architecture or a rule.
+
+ELO must distinguish, as applicable:
+
+- CASE
+- PRECEDENT
+- LEARNING_CANDIDATE
+- VALIDATED_LEARNING
+- CONCEPTUAL_KNOWLEDGE
+- INSTRUCTIONAL_KNOWLEDGE
+- RULE
+
+Existing `VALIDATED_LEARNING` should be reused and enriched with relevant evidence rather than duplicated.
+
+A precedent must not be promoted to a rule automatically.
+
+## 10. Multi-tenancy and identity
+
+Where a governed operation is involved, preserve tenant_id, domain, principal_id, session_id, request_id and correlation_id where applicable.
+
+## 11. Evidence and provenance
+
+Do not conflate AuditEvent, ProvenanceRecord and Evidence. Knowledge sources must remain distinguishable from hypotheses, recommendations, decisions and organizational experience.
+
+## 12. Testing requirements
 
 For implementation work:
 
@@ -158,84 +152,29 @@ For implementation work:
 - record failures honestly;
 - never report a phase as READY when required tests are absent or failing.
 
-## 12. Git discipline
+## 13. Git discipline
 
-Preferred flow:
+Preferred flow for governed learning and architecture changes:
 
-issue/task
-→ dedicated branch
-→ focused commits
-→ tests
-→ pull request
-→ architectural review
-→ merge
+`issue/task → ELO analysis → cognitive MERGE approval → dedicated branch → commit → verification → PR → Git merge → final verification`
 
-For Forge work, use a dedicated `forge/*` branch namespace or an explicitly named constructor branch. Do not use a long-lived Forge branch as a substitute for `main`.
+Do not write directly to `main` during task execution.
 
-Do not mix unrelated work in the same commit.
+Do not commit a governed learning change before ELO cognitive MERGE approval.
 
-Suggested commit prefixes:
+## 14. Autonomous ELO execution loop
 
-- `docs:` documentation
-- `feat:` new capability
-- `fix:` corrective change
-- `test:` tests
-- `refactor:` structural refactor without intended behavior change
-- `chore:` tooling/maintenance
-- `security:` security/governance correction
-- `adr:` architecture decision
+When a task objective is explicit, executable and within policy, ELO should continue through the complete governed workflow:
 
-## 13. Autonomous ELO execution loop
+`OBJECTIVE → DECOMPOSE → EXECUTE → VALIDATE → SPECIALIST_REVIEW → ELO_REVIEW → CORRECT/REPLAN → REVALIDATE → COGNITIVE_MERGE → APPROVE → COMMIT → VERIFY → PR → GIT_MERGE → VERIFY → LEARN → REPORT`
 
-When a task objective is explicit, executable, and within policy, ELO should continue through the complete governed workflow rather than stopping at a recommendation:
+Automatic merge is allowed only when ELO emits `APPROVE_MERGE`, required specialist/CI/acceptance/scope/protection gates pass, no blocking finding remains, and no governed learning commit occurred before cognitive approval.
 
-OBJECTIVE
-→ DECOMPOSE
-→ EXECUTE
-→ VALIDATE
-→ SPECIALIST REVIEW
-→ ELO ARCHITECTURAL REVIEW
-→ CORRECT
-→ REVALIDATE
-→ APPROVE
-→ MERGE
-→ VERIFY
-→ REPORT
+## 15. Stop conditions
 
-The loop may repeat correction/review cycles up to the task's configured limit. A terminal state must be one of COMPLETED, BLOCKED, ESCALATED, or FAILED.
+Stop and request an architectural decision when two canonical contracts conflict, a change would break a public contract without migration, a new persistent data model is required but unspecified, a component would bypass an established governance boundary, evidence is insufficient, required capabilities are unavailable, or correction cycles are exhausted.
 
-Automatic merge is allowed only when:
-
-- ELO decision is `APPROVE_MERGE`;
-- required specialist reviews pass or are explicitly not applicable;
-- required CI checks pass;
-- acceptance criteria pass;
-- no blocking review finding remains;
-- scope is compliant;
-- forbidden/destructive actions were not introduced;
-- the change is not being pushed directly to `main`;
-- repository protections permit the merge.
-
-High-risk work may be automated only when the task explicitly permits it and repository policy does not require a human approval. The agent must never bypass a repository protection or invent authority.
-
-## 14. Stop conditions
-
-Stop and request an architectural decision when:
-
-- two canonical contracts conflict;
-- two folders appear to be competing authorities;
-- a change would break a public contract without migration;
-- a new security boundary is required;
-- a new persistent data model is required but not specified;
-- a roadmap capability is required to complete the current phase;
-- a component would need to bypass an established governance boundary;
-- evidence is insufficient to make the requested conclusion safely;
-- required credentials/capabilities are unavailable;
-- correction cycles are exhausted.
-
-## 15. Definition of done for AI work
-
-A task is not DONE merely because files were generated.
+## 16. Definition of done for AI work
 
 DONE requires:
 

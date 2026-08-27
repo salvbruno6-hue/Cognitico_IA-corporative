@@ -1,64 +1,92 @@
-# ELO Chat ↔ Codex Bridge v1
+# ELO Chat ↔ Codex Bridge v2
 
 ## Purpose
 
 This contract turns an explicit ELO objective into a governed execution loop across the canonical Cognitico repository and Codex without creating a second Cognitive Core, memory authority, Orchestrator, or supervisory authority.
 
-## Roles
+## Canonical cognitive orchestration
 
-- **ELO Cognitivo / ChatGPT:** objective, decomposition, task state, execution context, architectural authority, specialist questions, next-action selection, acceptance criteria, continuation/correction/replanning/escalation decisions, risk decision and terminal decision.
-- **Specialists:** bounded evidence providers for architecture, security, data, operations, testing and domain concerns. Specialists do not override ELO authority.
-- **GitHub:** durable task ledger, branch/commit/PR/evidence history and merge control plane.
+**ELO is the cognitive orchestrator and decision authority.** Supabase, Forge, GitHub and automations are specialized members of the architecture. They provide memory, execution, durable task history/versioning or deterministic process support; they do not independently interpret, admit, promote or govern ELO knowledge.
+
+Canonical member roles:
+
+- **ELO Cognitivo / ChatGPT:** objective, decomposition, analysis, memory interpretation, cognitive merge, governance, decision, acceptance criteria, continuation/correction/replanning/escalation and verification.
+- **Supabase:** consultative structured memory. It returns existing concepts, experiences, precedents, validated learning, calculation memory, associations, decisions, provenance and possible duplicates to ELO. It must not autonomously promote or persist learning as a substitute for ELO governance.
+- **Specialists:** bounded evidence providers for architecture, security, data, operations, testing, domain, finance/costing and cognitive/knowledge concerns. Specialists do not override ELO authority.
+- **GitHub:** durable task ledger, Issue/branch/commit/PR/evidence history and Git integration control plane.
 - **ELO Core:** canonical execution mechanisms and runtime capabilities.
 - **ELO Forge:** internal constructor plane inside the canonical Cognitico repository. It inspects, builds, experiments, tests, corrects and prepares changes for promotion. It has no independent architectural authority.
-- **Codex:** execution engine operating within the declared task scope and the ELO/Core/Forge contracts. It inspects, edits, tests, corrects and reports evidence.
-- **ELO Maintenance Coordinator:** deterministic GitHub process executor defined in `automation/ELO_MAINTENANCE_COORDINATOR.md`. It audits stalled Issues/PRs, routes specialist consultations, records gate results and may enable repository auto-merge only when explicit ELO authorization and all configured gates are present. It is not a second supervisor.
-- **Human owner:** escalation authority when policy, credentials, contradiction, repository protection or other configured limits require human action.
+- **Codex:** execution engine operating within declared scope and ELO/Core/Forge contracts. It inspects, edits, tests, corrects and reports evidence.
+- **ELO Maintenance Coordinator:** deterministic GitHub process executor. It may coordinate configured gates, but is not a second supervisor and cannot override ELO decisions.
+- **Human owner:** escalation authority when policy, credentials, contradiction, repository protection or configured limits require human action.
+
+## ELO APRENDER canonical loop
+
+`ELO APRENDER → ELO ANALYSES → SUPABASE MEMORY CONSULT → ELO CONSOLIDATES → COGNITIVE MERGE → GOVERNANCE → ISSUE DOSSIER → MERGED APPROVED? → COMMIT → COMMIT VERIFY → ISSUE UPDATE → PR → GIT MERGE → MAIN/ELO`
+
+The word **MERGE** has two explicit meanings in this contract:
+
+1. **Cognitive MERGE:** ELO consolidates experience, concepts and evidence into governed knowledge without duplicating existing validated knowledge.
+2. **Git MERGE:** the approved PR is integrated into `main` after commit and repository gates pass.
+
+They must never be treated as the same operation.
+
+## Learning admission and memory
+
+When `ELO APRENDER` is triggered:
+
+1. ELO analyzes SO, PTS Técnica, Orçamento, PTS Pós-Orçamento, context, decisions, calculations, adaptations, excedentes, norms, responsibilities, deadlines, logistics, mobilization, hosting and risks as applicable.
+2. ELO consults Supabase for existing memory and evidence.
+3. Supabase returns memory to ELO; it does not become the learning authority.
+4. ELO compares, normalizes, groups, detects duplicates, confronts precedents, evaluates recurrence and identifies divergences.
+5. ELO performs the cognitive MERGE.
+6. ELO classifies the result as applicable, including `CASE`, `PRECEDENT`, `LEARNING_CANDIDATE`, `VALIDATED_LEARNING`, `CONCEPTUAL_KNOWLEDGE`, `INSTRUCTIONAL_KNOWLEDGE` or `RULE` according to canonical governance.
+7. Existing `VALIDATED_LEARNING` is reused and enriched with relevant evidence rather than duplicated.
+8. A precedent is never promoted to a rule automatically.
+9. The Issue records the origin, evidence, Supabase findings, ELO analysis, cognitive merge, classification and proposed change.
+10. **No commit is allowed before explicit ELO MERGE approval.**
+11. After approval, the Forge/Git execution layer commits, verifies the commit and creates the PR.
+12. Git merge into `main` occurs only after the configured repository gates pass.
+
+## Architecture continuity
+
+Before creating any table, memory, layer, function, contract, automation or implementation:
+
+`INSPECT → REUSE → EXTEND → RELATE → REFACTOR/MIGRATE → CREATE ONLY IF INDISPENSABLE`
+
+Parallel structures with equivalent responsibility are prohibited. The canonical source of truth for a domain must remain singular. Existing contracts and memory structures must be preferred over new implementations.
 
 ## Agentic completion loop
 
-`OBJECTIVE → DECOMPOSE → EXECUTE → VALIDATE → SPECIALIST_REVIEW → ELO_REVIEW → CORRECT/REPLAN → REVALIDATE → APPROVE → MERGE → VERIFY → LEARN → REPORT`
+`OBJECTIVE → DECOMPOSE → EXECUTE → VALIDATE → SPECIALIST_REVIEW → ELO_REVIEW → CORRECT/REPLAN → REVALIDATE → COGNITIVE_MERGE → APPROVE → COMMIT → VERIFY → PR → GIT_MERGE → VERIFY → LEARN → REPORT`
 
-ELO should continue through the loop when the objective is executable. It should return to the user with a terminal result: `COMPLETED`, `BLOCKED`, `ESCALATED`, `FAILED`, or `ROLLED_BACK`.
+ELO should continue through the loop when the objective is executable. Terminal results are `COMPLETED`, `BLOCKED`, `ESCALATED`, `FAILED` or `ROLLED_BACK`.
 
-## Cognitive execution supervision
+## Merge gate
 
-The ELO Cognitivo is the native supervisor of the task. It must be able to determine:
+Automatic Git merge is allowed only when all are true:
 
-- who is doing what;
-- current state;
-- objective and acceptance criteria;
-- next best action;
-- evidence already available;
-- specialists involved and missing;
-- current cycle;
-- why the task has not finished;
-- whether execution may safely continue;
-- whether to correct, replan or escalate;
-- whether promotion/merge is justified.
+- ELO cognitive MERGE is explicitly approved;
+- ELO emits `APPROVE_MERGE`;
+- no commit occurred before that approval;
+- required specialist findings are PASS or NOT_APPLICABLE;
+- required CI checks pass;
+- acceptance criteria pass;
+- no blocking review finding remains;
+- changed-file scope is compliant;
+- no forbidden/destructive action was introduced;
+- execution occurred on a non-main branch;
+- repository protections permit the merge.
 
-Do not create an `ExecutionSupervisor`, `SupervisorCore`, `CognitiveSupervisor` or equivalent parallel authority.
+## Maintenance and automation rule
 
-## Maintenance coordination
+Automations are process adapters, not cognitive authorities. An automation may collect evidence, run tests, prepare a workspace, create a branch/PR after authorization, or verify a result. It must not autonomously admit learning, write canonical learning memory, bypass ELO review, or commit a governed learning change before ELO cognitive MERGE approval.
 
-The repository workflow `.github/workflows/elo-maintenance-coordinator.yml` is the GitHub-side process adapter. Its deterministic decision contract is implemented in `automation/tasks/elo_maintenance_coordinator.py` and tested in `tests/test_elo_maintenance_coordinator.py`.
-
-The coordinator may audit a stalled approval, but **approval is never inferred from inactivity**. A merge candidate requires explicit `elo/approve-merge` authorization in addition to acceptance, specialist, CI, review, scope and protection gates.
+The solicitation-learning scheduled workflow therefore produces evidence/candidates only and does not autonomously commit or push learning to `main`.
 
 ## Specialist protocol
 
-For architecture, security, data, automation, deployment or production-impacting work, use applicable specialist lanes:
-
-1. Architecture — boundaries, coupling, contracts and compatibility.
-2. Security — secrets, authorization, supply chain and attack surface.
-3. Data — schemas, migrations, provenance and tenant isolation.
-4. Operations — deployment, reliability, rollback and observability.
-5. Testing — acceptance coverage, regression and evidence quality.
-6. Domain — business/process correctness when applicable.
-7. Finance/Costing — budget, costing and commercial evolution when applicable.
-8. Cognitive/Knowledge — memory and experience admission.
-
-ELO resolves disagreements using repository evidence and canonical authority.
+For architecture, security, data, automation, deployment or production-impacting work, use applicable specialist lanes. ELO resolves disagreements using repository evidence and canonical authority.
 
 ## Autonomous correction
 
@@ -72,24 +100,7 @@ When a specialist or ELO review identifies an actionable defect within scope:
 6. repeat the affected review;
 7. continue until approved or a terminal blocker is reached.
 
-Default maximum correction cycles: `3`, unless the task explicitly defines a lower bound or another governed limit.
-
-## Merge gate
-
-Automatic merge is allowed only when all are true:
-
-- task state is `APPROVED`;
-- ELO emits `APPROVE_MERGE`;
-- required specialist findings are PASS or NOT_APPLICABLE;
-- required CI checks pass;
-- acceptance criteria pass;
-- no blocking review finding remains;
-- changed-file scope is compliant;
-- no forbidden/destructive action was introduced;
-- execution occurred on a non-main branch;
-- repository protections permit the merge.
-
-Never bypass branch protection or required checks.
+Default maximum correction cycles: `3`.
 
 ## Risk classes
 
@@ -97,32 +108,13 @@ Never bypass branch protection or required checks.
 - **MEDIUM:** application logic, APIs, automation, dependency or schema changes.
 - **HIGH:** security, authentication/authorization, irreversible migration, production infrastructure, governance rules, or material operational impact.
 
-High-risk work may be automated only when the task explicitly permits it and repository policy does not require human approval. Otherwise the terminal state is `ESCALATED`.
+High-risk work may be automated only when explicitly permitted and repository policy allows it; otherwise escalate.
 
 ## Task states
 
-`PROPOSED → READY → IN_PROGRESS → VALIDATION → SPECIALIST_REVIEW → ELO_REVIEW → CORRECTING/REPLANNING → APPROVED → MERGING → VERIFIED → COMPLETED`
+`PROPOSED → READY → IN_PROGRESS → VALIDATION → SPECIALIST_REVIEW → ELO_REVIEW → COGNITIVE_MERGE → APPROVED → COMMITTING → PR_OPEN → GIT_MERGING → VERIFIED → COMPLETED`
 
-Failure paths are `BLOCKED`, `ESCALATED`, `FAILED`, or `ROLLED_BACK`.
-
-## Experience and memory admission
-
-A valuable experience does not automatically become architecture. ELO must classify the event as `ARCHITECTURAL_EVOLUTION`, `TEMPORAL_EXPERIENCE`, `ROADMAP_CANDIDATE` or `REJECTED`.
-
-A `TEMPORAL_EXPERIENCE` requires canonical identity, provenance, applicability, contradiction checking and explicit ELO admission. An `ARCHITECTURAL_EVOLUTION` must enter the normal architectural gates and PR/merge process.
-
-## Non-negotiable rules
-
-- Never write directly to `main` during task execution.
-- Never bypass repository protections.
-- Never silently expand scope.
-- Never suppress failed validation or specialist findings.
-- Preserve task, decision, branch, commit, PR, validation and merge evidence.
-- Reuse existing ELO contracts before creating new ones.
-- Do not create a parallel Core, memory authority, Orchestrator or execution supervisor.
-- Treat the historical external `ELO-Forge` repository as non-canonical. It may be inspected for evidence or historical assets, but the active Forge constructor is inside `Cognitico_IA-corporative`.
-- Do not promote historical Forge SQL, migrations, runtime configuration, dashboards or implementation artifacts merely because they exist. Promote only reconciled output that adds value and conforms to canonical ELO contracts.
-- Do not convert a useful conversation into canonical memory without identity and evidence validation.
+Failure paths are `BLOCKED`, `ESCALATED`, `FAILED` or `ROLLED_BACK`.
 
 ## Evidence contract
 
@@ -133,7 +125,8 @@ Every terminal task retains:
 - current state and next action;
 - current cycle and correction history;
 - specialist findings;
-- evidence references;
+- Supabase memory evidence when applicable;
+- ELO cognitive merge decision;
 - branch and commits;
 - changed files;
 - validation results;
@@ -143,14 +136,14 @@ Every terminal task retains:
 - final verification;
 - learning result.
 
-## Forge relationship
+## Non-negotiable rules
 
-The active Forge is an internal constructor plane of the canonical Cognitico repository. Its workflow is:
-
-`TASK → forge/<task> → BUILD → TEST → CORRECT → VALIDATE → PR → ELO REVIEW → MERGE`
-
-The historical external `ELO-Forge` repository is not a canonical runtime or governance authority. Its contents may be used as evidence and candidates through:
-
-`OBSERVE → CLASSIFY → COMPARE → EVIDENCE → PROMOTE/REUSE/EXTEND/REJECT/ROADMAP → TRACE`
-
-No historical Forge artifact becomes canonical merely because it exists in the external repository.
+- Never write directly to `main` during task execution.
+- Never bypass repository protections.
+- Never suppress failed validation or specialist findings.
+- Never create a parallel Core, memory authority, Orchestrator or execution supervisor.
+- Never allow Supabase or an automation to autonomously promote learning.
+- Never commit a governed learning change before ELO cognitive MERGE approval.
+- Preserve task, decision, branch, commit, PR, validation and merge evidence.
+- Reuse existing ELO contracts before creating new ones.
+- Treat the historical external `ELO-Forge` repository as non-canonical.
