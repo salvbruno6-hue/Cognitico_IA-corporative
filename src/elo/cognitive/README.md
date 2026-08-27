@@ -48,3 +48,7 @@ Action / Recommendation / Response
 - a camada cognitiva deve consumir configuração validada e políticas de segurança
 - qualquer uso de IA externa deve passar por governança e observabilidade
 - resultados cognitivos devem ser rastreáveis a contexto, evidências e origem
+
+## Evolução 2026-08
+
+A implementação adicional de contexto, memória, roteamento, verificação e avaliação deve preservar estes princípios. O conhecimento externo é fonte de pesquisa e adaptação, não autoridade canônica.
