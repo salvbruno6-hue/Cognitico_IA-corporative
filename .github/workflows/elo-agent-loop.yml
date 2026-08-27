@@ -19,6 +19,15 @@ permissions:
   issues: write
   pull-requests: write
 
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  REPO: ${{ github.repository }}
+  ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+  MAX_CYCLES: 3
+
 jobs:
   execute-review-correct-merge:
     if: >-
@@ -26,18 +35,9 @@ jobs:
       (github.event_name == 'issues' && github.event.label.name == 'codex-ready')
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      REPO: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
-      MAX_CYCLES: 3
 
     steps:
       - name: Resolve task context
-        id: context
         shell: bash
         run: |
           set -euo pipefail
@@ -49,8 +49,6 @@ jobs:
           task_id="$(sed -n 's/^Task ID: `\([^`]*\)`.*/\1/p' <<<"$body" | head -n1 || true)"
           [[ -n "$task_id" ]] || task_id="$(sed -n 's/^\[\([^]]*\)\].*/\1/p' <<<"$title" | head -n1 || true)"
           [[ -n "$task_id" ]] || task_id="ELO-AUTO-001"
-          echo "task_id=$task_id" >> "$GITHUB_OUTPUT"
-          echo "task_path=$task_path" >> "$GITHUB_OUTPUT"
           echo "TASK_ID=$task_id" >> "$GITHUB_ENV"
           echo "TASK_PATH=$task_path" >> "$GITHUB_ENV"
 
@@ -80,14 +78,7 @@ jobs:
           effort: ${{ vars.CODEX_EFFORT || 'high' }}
           output-file: codex-implementation.txt
           prompt: |
-            You are the ELO execution agent. Read AGENTS.md, the bridge contract and the task.
-            Inspect the repository before editing. Reuse existing canonical architecture.
-            Do not create a second Cognitive Core, memory authority or Orchestrator.
-            Prepare the requested change in the workspace only. Do NOT commit, push, create a PR, merge, or write to main.
-            For learning tasks, ELO is the cognitive authority. Consult the configured Supabase memory when available through the repository's existing integration or SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.
-            Treat Supabase as consultative memory only: return evidence to ELO; do not autonomously admit, promote or persist learning.
-            Produce an auditable learning dossier when applicable: source, evidence, prior knowledge, duplicates, precedent, candidate learning, validated learning, conceptual/instructional knowledge, and proposed change.
-            Run relevant validation and report evidence.
+            Act as the ELO execution agent. Read AGENTS.md, bridge contract and task. Inspect repository and reuse canonical architecture. Do not create a second Cognitive Core, memory authority or Orchestrator. Prepare the requested change in workspace only. Do NOT commit, push, create a PR, merge, or write to main. For learning tasks, ELO is the cognitive authority; consult Supabase as memory only and return evidence to ELO. Never autonomously persist or promote learning. Produce an auditable dossier and run relevant validation.
 
       - name: Create local execution branch
         shell: bash
@@ -95,122 +86,112 @@ jobs:
           set -euo pipefail
           branch="codex/${TASK_ID,,}-${GITHUB_RUN_ID}"
           git switch -c "$branch"
-          echo "branch=$branch" >> "$GITHUB_ENV"
-          git status --short
+          echo "BRANCH=$branch" >> "$GITHUB_ENV"
 
-      - name: ELO cognitive merge review cycle 1
-        id: decision1
+      - name: ELO governance cycle
+        id: elo_cycle
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
           model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
           effort: ${{ vars.CODEX_EFFORT || 'high' }}
-          output-file: elo-review-1.txt
+          output-file: elo-governance.txt
           prompt: |
-            Act as ELO governance authority. Review the uncommitted workspace diff against main.
-            Read AGENTS.md, the bridge contract and the task. For learning work, verify the Supabase memory consultation and treat it only as evidence.
-            Perform the cognitive MERGE: compare experience with existing knowledge, consolidate equivalent concepts, avoid duplicate validated learning, and classify case/precedent/candidate/validated/conceptual/instructional/rule.
-            Verify architecture continuity: reuse existing structures before proposing new ones.
-            Verify that no persistence, commit or merge occurred before this approval gate.
-            Write a complete decision dossier to elo-merge-dossier.md. Do not edit the requested implementation.
-            End with exactly one line: ELO_DECISION=APPROVE_MERGE or ELO_DECISION=CORRECT or ELO_DECISION=BLOCK.
+            You are ELO governance authority. Review the current workspace diff against main. Consult Supabase memory as evidence only. Perform cognitive MERGE, consolidate equivalent knowledge, avoid duplicate VALIDATED_LEARNING, distinguish CASE/PRECEDENT/LEARNING_CANDIDATE/VALIDATED_LEARNING/CONCEPTUAL_KNOWLEDGE/INSTRUCTIONAL_KNOWLEDGE/RULE, and verify architecture continuity. For budget-learning tasks, inspect SO → PTS Técnica → Orçamento → PTS Pós and memory-of-calculation evidence where available. Do not commit, push, create a PR or merge. If corrections are needed, list precise corrective actions. Write elo-merge-dossier.md. End with exactly one line: ELO_DECISION=APPROVE_COMMIT or ELO_DECISION=CORRECT or ELO_DECISION=BLOCK.
 
-      - name: Determine cycle 1 decision
+      - name: Parse ELO decision
+        id: elo_gate
         shell: bash
         run: |
           set -euo pipefail
-          grep -E 'ELO_DECISION=(APPROVE_MERGE|CORRECT|BLOCK)' elo-review-1.txt | tail -n1 > decision-1.txt
-          echo "decision=$(cat decision-1.txt)" >> "$GITHUB_OUTPUT"
-
-      - name: Correct cycle 1
-        if: steps.decision1.outputs.decision == 'ELO_DECISION=CORRECT'
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
-          effort: ${{ vars.CODEX_EFFORT || 'high' }}
-          prompt: |
-            Read elo-review-1.txt, AGENTS.md, the bridge contract and the task. Implement only ELO's corrective actions.
-            Preserve canonical architecture. Do not commit, push, create a PR, merge, or write to main. Re-run validation.
-
-      - name: ELO cognitive merge review cycle 2
-        id: decision2
-        if: steps.decision1.outputs.decision == 'ELO_DECISION=CORRECT'
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
-          effort: ${{ vars.CODEX_EFFORT || 'high' }}
-          output-file: elo-review-2.txt
-          prompt: |
-            Perform the second ELO governance review against main. Read prior evidence and the current diff.
-            Re-check Supabase memory evidence where applicable. Verify all corrections, no duplicate memory authority, no autonomous persistence, and readiness for cognitive MERGE approval.
-            Do not edit implementation. End with exactly ELO_DECISION=APPROVE_MERGE, ELO_DECISION=CORRECT, or ELO_DECISION=BLOCK.
-
-      - name: Determine cycle 2 decision
-        if: steps.decision1.outputs.decision == 'ELO_DECISION=CORRECT'
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -E 'ELO_DECISION=(APPROVE_MERGE|CORRECT|BLOCK)' elo-review-2.txt | tail -n1 > decision-2.txt
-          echo "decision=$(cat decision-2.txt)" >> "$GITHUB_OUTPUT"
-
-      - name: Correct cycle 2
-        if: steps.decision2.outputs.decision == 'ELO_DECISION=CORRECT'
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
-          effort: ${{ vars.CODEX_EFFORT || 'high' }}
-          prompt: |
-            Read elo-review-2.txt and the task. Implement only the corrective actions identified by ELO.
-            Do not commit, push, create a PR, merge, or write to main. Re-run validation.
-
-      - name: Final ELO governance review
-        id: final_review
-        if: steps.decision1.outputs.decision == 'ELO_DECISION=CORRECT'
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
-          effort: ${{ vars.CODEX_EFFORT || 'high' }}
-          output-file: elo-review-final.txt
-          prompt: |
-            Perform the final ELO governance review against main. Read AGENTS.md, the bridge contract, task and all review evidence.
-            Confirm cognitive MERGE approval, architecture continuity, Supabase consultative role, acceptance criteria, validation and absence of autonomous persistence.
-            Do not edit files. End with exactly ELO_DECISION=APPROVE_MERGE or ELO_DECISION=BLOCK.
-
-      - name: Determine final ELO approval
-        id: final_gate
-        shell: bash
-        env:
-          D1: ${{ steps.decision1.outputs.decision }}
-          D2: ${{ steps.decision2.outputs.decision }}
-        run: |
-          set -euo pipefail
-          final="$D1"
-          if [[ "$D1" == "ELO_DECISION=CORRECT" ]]; then final="$D2"; fi
-          if [[ "$final" == "ELO_DECISION=CORRECT" ]]; then final="$(grep -E 'ELO_DECISION=(APPROVE_MERGE|BLOCK)' elo-review-final.txt | tail -n1)"; fi
-          echo "$final" | tee elo-final-decision.txt
-          if [[ "$final" != "ELO_DECISION=APPROVE_MERGE" ]]; then
-            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO learning/execution blocked before commit. Decision: $final. No commit or PR was created."
+          decision="$(grep -E 'ELO_DECISION=(APPROVE_COMMIT|CORRECT|BLOCK)' elo-governance.txt | tail -n1 || true)"
+          echo "$decision" | tee elo-decision.txt
+          [[ -n "$decision" ]] || { echo 'Missing ELO decision'; exit 1; }
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          if [[ "$decision" == "ELO_DECISION=BLOCK" ]]; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO blocked the learning/execution before Commit. No persistence was performed."
             exit 1
           fi
-          echo "ELO_MERGED_APPROVED=true" >> "$GITHUB_ENV"
 
-      - name: Record approved cognitive MERGE in Issue
-        if: success()
+      - name: ELO correction loop
+        if: steps.elo_gate.outputs.decision == 'ELO_DECISION=CORRECT'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
+          effort: ${{ vars.CODEX_EFFORT || 'high' }}
+          prompt: |
+            Read elo-governance.txt, AGENTS.md, the bridge contract and the task. Apply only the corrective actions identified by ELO. Preserve canonical architecture. Do not commit, push, create a PR, merge, or write to main. Re-run validation. Leave the workspace ready for another ELO governance cycle.
+
+      - name: Re-run ELO governance after correction
+        if: steps.elo_gate.outputs.decision == 'ELO_DECISION=CORRECT'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
+          effort: ${{ vars.CODEX_EFFORT || 'high' }}
+          output-file: elo-governance-final.txt
+          prompt: |
+            Perform the final ELO governance review after corrections. Read the task, AGENTS.md, bridge contract, prior dossier and current diff. Supabase remains consultative only. Confirm cognitive MERGE readiness, knowledge classification, duplicate prevention, acceptance criteria and absence of unauthorized persistence. Do not edit. End with exactly one line: ELO_DECISION=APPROVE_COMMIT or ELO_DECISION=BLOCK.
+
+      - name: Resolve final ELO Commit gate
+        id: final_elo_gate
+        shell: bash
+        env:
+          FIRST: ${{ steps.elo_gate.outputs.decision }}
+        run: |
+          set -euo pipefail
+          if [[ "$FIRST" == "ELO_DECISION=APPROVE_COMMIT" ]]; then
+            final="$FIRST"
+          else
+            final="$(grep -E 'ELO_DECISION=(APPROVE_COMMIT|BLOCK)' elo-governance-final.txt | tail -n1 || true)"
+          fi
+          echo "$final" | tee elo-final-decision.txt
+          [[ "$final" == "ELO_DECISION=APPROVE_COMMIT" ]] || { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO final gate blocked Commit. Issue remains pending."; exit 1; }
+
+      - name: Select Virtual Laboratory for governed learning
+        id: lab_scope
         shell: bash
         run: |
           set -euo pipefail
-          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO cognitive MERGE APPROVED. Supabase memory was consultative; ELO retained governance. Commit is now authorized."
+          body="$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title,body --jq '.body // ""')"
+          title="$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title --jq '.title')"
+          if grep -Eiq 'orçamento|orcamento|PTS Técnica|PTS Pós|aprendizado|memória de cálculo|formação de preço|excedente|precedente' <<<"$title $body"; then
+            echo "BUDGET_LEARNING=true" >> "$GITHUB_ENV"
+          else
+            echo "BUDGET_LEARNING=false" >> "$GITHUB_ENV"
+          fi
 
-      - name: Commit only after ELO MERGE approval
+      - name: Virtual Laboratory - budget learning gate
+        if: env.BUDGET_LEARNING == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          model: ${{ vars.CODEX_MODEL || 'gpt-5.5' }}
+          effort: ${{ vars.CODEX_EFFORT || 'high' }}
+          output-file: virtual-lab-report.txt
+          prompt: |
+            Act as the ELO Virtual Laboratory. This is a PRE-COMMIT gate. Do not modify canonical production behavior. Test the proposed budget-learning change using available repository evidence and fixtures. Run relevant regression, historical/synthetic scenario, consistency, duplicate-learning, architecture-continuity and governance tests. For budget learning, compare SO → PTS Técnica → Orçamento → PTS Pós and validate calculation logic as entrada → fonte → premissa → fórmula → subcálculo → resultado → validação where applicable. Verify PRECEDENT is not promoted to RULE and VALIDATED_LEARNING is not duplicated. Write virtual-lab-report.md with tests, evidence and failures. End with exactly one line: LAB_DECISION=PASS or LAB_DECISION=FAIL or LAB_DECISION=REVIEW.
+
+      - name: Virtual Laboratory gate result
+        id: lab_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$BUDGET_LEARNING" != 'true' ]]; then
+            echo 'LAB_DECISION=NOT_REQUIRED' | tee lab-decision.txt
+            exit 0
+          fi
+          decision="$(grep -E 'LAB_DECISION=(PASS|FAIL|REVIEW)' virtual-lab-report.txt | tail -n1 || true)"
+          echo "$decision" | tee lab-decision.txt
+          [[ "$decision" == 'LAB_DECISION=PASS' ]] || { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Virtual Laboratory did not pass: $decision. No Commit/PR/Merge executed. Issue returns to ELO correction loop."; exit 1; }
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Virtual Laboratory PASS. ELO Commit gate remains valid."
+
+      - name: Commit after ELO approval and required laboratory gate
         if: success()
         shell: bash
         run: |
@@ -218,9 +199,10 @@ jobs:
           git config user.name 'ELO Codex Agent'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m "feat(elo): execute ${TASK_ID}"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
-          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git diff --cached --quiet && { echo 'No changes to commit'; exit 1; }
+          git commit -m "feat(elo): governed ${TASK_ID}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$BRANCH"
+          echo "COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Confirm commit and create PR
         if: success()
@@ -228,24 +210,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${commit_sha:-}"
-          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Commit autorizado e confirmado após ELO MERGE: ${commit_sha}. Criando PR para integração."
-          pr_url="$(gh pr create --repo "$REPO" --base main --head "$branch" --title "${TASK_ID}: governed ELO execution" --body "ELO governed execution. Cognitive MERGE approved before commit; Supabase used as consultative memory; commit verified before PR.")"
-          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
-          echo "pr_url=$pr_url" >> "$GITHUB_ENV"
+          test -n "${COMMIT_SHA:-}"
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Commit ${COMMIT_SHA} confirmado após ELO APPROVE_COMMIT e gates de validação. Criando PR."
+          pr_url="$(gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "${TASK_ID}: governed ELO execution" --body "ELO governed execution. Supabase consultative memory only. ELO APPROVE_COMMIT precedes commit. Budget-learning changes require Virtual Laboratory PASS before commit.")"
+          echo "PR_URL=$pr_url" >> "$GITHUB_ENV"
 
-      - name: Merge Git after approval gates
+      - name: Approve merge gate
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          gh pr comment "$pr_url" --repo "$REPO" --body "ELO_DECISION=APPROVE_MERGE. Cognitive MERGE and pre-commit governance gates passed."
-          gh pr merge "$pr_url" --repo "$REPO" --squash --delete-branch
+          gh pr comment "$PR_URL" --repo "$REPO" --body "PR ready for APPROVE_MERGE. Commit ${COMMIT_SHA} is already verified."
 
-      - name: Final verification
+      - name: Merge Git
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO task ${TASK_ID} completed: cognitive MERGE → commit → PR → Git merge → main verified."
+          gh pr merge "$PR_URL" --repo "$REPO" --squash --delete-branch
+
+      - name: Verify merged state
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr_state="$(gh pr view "$PR_URL" --repo "$REPO" --json state,mergedAt --jq '.state + "|" + (.mergedAt // "")')"
+          [[ "$pr_state" == MERGED\|* ]] || { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "PR created but MERGED not confirmed. Issue remains open."; exit 1; }
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO loop completed: analysis → Supabase consultation → cognitive MERGE → governance → Issue → Virtual Laboratory (when applicable) → APPROVE_COMMIT → Commit → PR → Merge confirmed."
           gh issue close "$ISSUE_NUMBER" --repo "$REPO" --reason completed
