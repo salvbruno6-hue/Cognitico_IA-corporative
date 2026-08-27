@@ -32,6 +32,9 @@ jobs:
       - name: Checkout canonical repository
         uses: actions/checkout@v4
 
+      - name: Prepare audit output
+        run: mkdir -p automation/audit-output
+
       - name: Audit ELO maintenance contract
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,14 +43,11 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          mkdir -p automation/audit-output
-
           if [ -n "${ISSUE_NUMBER}" ]; then
             gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json number,title,body,state,labels,assignees,comments > automation/audit-output/event.json
           else
             printf '{"event":"%s"}\n' "${EVENT_NAME}" > automation/audit-output/event.json
           fi
-
           python automation/tasks/elo_maintenance_coordinator.py
 
       - name: Audit open pull request candidates
@@ -114,10 +114,10 @@ jobs:
 
           DECISION=$(python -c "import json; print(json.load(open('automation/audit-output/decision.json'))['decision'])")
           if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. All configured evidence gates pass and explicit \\`elo/approve-merge\\` authorization is present. Repository protections remain authoritative."
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. All configured evidence gates pass and explicit \`elo/approve-merge\` authorization is present. Repository protections remain authoritative."
             gh pr merge "${PR_NUMBER}" --repo "${REPOSITORY}" --auto --squash
           else
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **READY_FOR_ELO_DECISION**. The coordinator audited the event but will not merge. Review \\`automation/audit-output/decision.json\\` in the workflow artifact and satisfy the listed gates."
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **READY_FOR_ELO_DECISION**. The coordinator audited the event but will not merge. Review \`automation/audit-output/decision.json\` in the workflow artifact and satisfy the listed gates."
           fi
 
       - name: Upload audit evidence
