@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
 
@@ -24,7 +24,7 @@ class MemoryRecord:
     tenant_id: str | None
     source: str
     confidence: float
-    valid_from: datetime = datetime.now(timezone.utc)
+    valid_from: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     valid_until: datetime | None = None
     provenance: tuple[str, ...] = ()
 
