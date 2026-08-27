@@ -2,122 +2,393 @@
 
 Fonte operacional oficial do ecossistema ELO.
 
+> 🟦 **ELO** · 🟩 **COGNITIVE** · 🟨 **CORE** · 🟪 **FORGE** · 🟥 **VALIDATION / GOVERNANCE**
+>
+> ```text
+>              .-------------------.
+>             /  ████       ████   \
+>            |   ██  ███ ███  ██    |
+>            |   ██  ███████  ██    |
+>            |   ███    █    ███    |
+>            |     ███████████      |
+>             \_____/       \_______/
+>                  \  E L O  /
+>                   \_______/
+> ```
+>
+> **Símbolo:** o núcleo representa a identidade estável; os módulos ao redor representam capacidades que podem ser adaptadas sem alterar a essência.
+
+## 🧭 Quem é o ELO
+
+O **ELO** é uma inteligência corporativa adaptável orientada a **orquestrar melhor as decisões e correlacionar as informações existentes da empresa**. Ele recebe contexto, evidências e experiências de múltiplos domínios, relaciona informações, identifica fatos, hipóteses, lacunas e contradições, produz cenários e recomendações e acompanha resultados, sem substituir a autoridade do gestor.
+
+A arquitetura é mutável; a essência não. O ELO pode adquirir, substituir, simplificar ou retirar capacidades, mudar integrações, modelos, agentes e plataformas e ainda permanecer ELO enquanto preservar sua Soul, seu propósito e seus invariantes canônicos.
+
+### Princípio de evolução
+
+> **O ELO não evolui para acumular capacidades. Ele evolui quando uma mudança comprovada aumenta sua capacidade de cumprir seu propósito sem infringir o canônico.**
+
+### Invariantes
+
+- 🟦 **Soul:** identidade, propósito, princípios, limites e cânone.
+- 🟩 **Cognitive:** interpreta, raciocina, correlaciona, critica e diagnostica.
+- 🟨 **Core:** materializa a faculdade cognitiva compartilhada e seus contratos reutilizáveis.
+- 🟪 **Forge:** pesquisa, experimenta, constrói, valida e propõe adaptações.
+- 🟥 **Validation / Governance:** comprova, controla e autoriza mudanças.
+- 👤 **Decisão humana:** recomendações do ELO não substituem a autoridade do gestor.
+
 ## Diretriz atual
 
 O repositório é a base documental e operacional do **ELO Enterprise Integration Platform (EIP)**, preservando a separação entre arquitetura canônica, implementação executável, conhecimento, dados, governança, agentes e integrações.
 
 O objetivo é evoluir o ELO de uma base cognitiva governada para uma plataforma capaz de receber contexto empresarial, evidências e experiências de múltiplos domínios, raciocinar sobre relações entre setores e orientar decisões humanas sem substituir a autoridade do gestor.
 
-## Estado arquitetural consolidado
-
-A evolução deve preservar:
-
-- Cognitive Core e contratos canônicos;
-- Context, Knowledge, Evidence e Memory;
-- Reasoning, Critique, Scenario Intelligence e Decision Support;
-- agentes governados e integração com fontes externas;
-- provenance, validação, segurança e auditoria;
-- Persistent Memory, RAG/Knowledge e Learning/Experience quando implementados e comprovados pelos gates;
-- tenant isolation e governança específica por empresa;
-- integração empresarial sem transformar o ELO em substituto de ERP, MES, CRM ou outros sistemas de registro;
-- separação entre recomendação do ELO e decisão humana autorizada.
-
-## ELO Cognitivo, Core e Forge — fronteira canônica
-
-O ELO possui uma separação estrutural que deve permanecer explícita mesmo quando pastas históricas ou variantes documentais forem consolidadas:
+## 🧬 Soul, Cognitive, Core e Forge — fronteira canônica
 
 ```text
-                 ELO COGNITIVO / SOUL
-          identidade • cânone • autoridade
-       invariantes • limites • evolução governada
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │  ELO CORE   │
-                  │              │
-                  │ faculdade   │
-                  │ cognitiva   │
-                  │ compartilhada│
-                  └──────┬──────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-      Context       Reasoning       Decision
-      Knowledge     Relations       Evidence
-      Memory        Generalization  Audit
-          │              │              │
-          └──────────────┼──────────────┘
-                         ▼
-                      FORGE
-          especialistas • skills • técnicas
-        experiências • contexto • construção
-                         │
-                         ▼
-                    APPLICATION
-              interfaces e fluxos de uso
-                         │
-                         ▼
-                  INFRASTRUCTURE
-          banco • APIs • providers • runtime
+                         🟦 ELO SOUL
+              identidade • propósito • cânone
+                 invariantes • limites • ética
+                              │
+                              ▼
+                       🟩 ELO COGNITIVE
+                 interpretar • raciocinar
+              correlacionar • diagnosticar
+                              │
+                 gaps / oportunidades / hipóteses
+                              │
+                              ▼
+                         🟪 ELO FORGE
+             pesquisar • experimentar • construir
+                comparar • propor • adaptar
+                              │
+                              ▼
+                         🟨 ELO CORE
+             executar capacidades compartilhadas
+          Context • Knowledge • Memory • Reasoning
+          Relations • Evidence • Decision • Audit
+                              │
+                              ▼
+                    🟥 VALIDATION / GOVERNANCE
+                  testar • evidenciar • autorizar
+                              │
+                    mudança aceita pelo ELO?
+                         /              \
+                       não              sim
+                       ↓                  ↓
+                    rejeitar          consolidar
+                                          │
+                                          ▼
+                                  NOVO ESTADO ELO
 ```
-
-### Localização do Core
-
-O **Core canônico executável** está em:
-
-`src/elo/core/`
-
-Essa pasta não é uma variante documental nem um segundo Core. Ela materializa a faculdade cognitiva compartilhada do ELO e seus contratos reutilizáveis.
-
-O Core deve permanecer:
-
-- provider-neutral;
-- reutilizável entre empresas e domínios;
-- separado de regras específicas da Multiteiner ou de qualquer outro tenant;
-- responsável por mecanismos cognitivos gerais, relações, padrões, heurísticas, parâmetros gerais validados e capacidades compartilhadas;
-- integrado por contratos com Context, Knowledge, Memory, Evidence, Reasoning, Decision, Policy e Provenance.
 
 ### O que pertence a cada camada
 
-| Camada | Responsabilidade | Não deve conter |
+| Camada | Responsabilidade | Não deve fazer |
 |---|---|---|
-| **ELO Cognitivo / Soul** | identidade, cânone, autoridade, invariantes, governança e evolução | implementação específica de especialista |
-| **Core** | faculdade cognitiva compartilhada, relações, generalização, raciocínio, auditoria e conhecimento geral validado | regras de negócio exclusivas de empresa/domínio |
-| **Forge** | especialistas, skills, técnicas, experiências, parâmetros contextuais e construção/validação | segundo Core ou autoridade canônica paralela |
-| **Application** | interfaces e fluxos que consomem capacidades do ELO | redefinição de contratos cognitivos |
-| **Infrastructure** | bancos, APIs, providers, runtime e meios substituíveis | identidade ou autoridade do ELO |
+| 🟦 **Soul** | identidade, propósito, princípios, cânone, limites e autoridade | ser alterada automaticamente por evolução técnica |
+| 🟩 **Cognitive** | interpretação, raciocínio, correlação, crítica, diagnóstico e direcionamento | impor mudança canônica sem governança |
+| 🟪 **Forge** | especialistas, skills, pesquisa, experiências, experimentação, construção e propostas | tornar experiência contextual em conhecimento geral sem evidência |
+| 🟨 **Core** | faculdade cognitiva compartilhada, contratos, relações, generalização, memória e capacidades gerais validadas | absorver regras exclusivas de tenant/domínio |
+| **Application** | interfaces e fluxos que consomem capacidades do ELO | redefinir contratos cognitivos |
+| **Infrastructure** | bancos, APIs, providers, runtime e meios substituíveis | definir identidade ou autoridade |
 
-Uma experiência contextual do Forge **não entra diretamente no Core**. Para promoção, ela deve passar por evidência, generalização, testes e Evolution Gate. A experiência de origem permanece preservada no Forge.
+O **Core canônico executável** está em `src/elo/core/`.
 
-### Regra especial para orçamento e Lista-Mãe
+Uma experiência contextual do Forge permanece no Forge até passar por evidência, generalização, testes e Evolution Gate. A origem e a proveniência não são apagadas na promoção.
 
-O módulo de orçamento, a taxonomia MLT, os modelos M01/M02 etc., composições, valores, mão de obra e relações específicas da empresa não devem ser transformados automaticamente em conhecimento geral do Core.
+## 🔄 Como o ELO se adapta
 
-O fluxo canônico é:
+A adaptação é um ciclo governado, não uma mutação automática:
+
+```text
+OBSERVAR
+   ↓
+SONDAR O ESTADO ATUAL
+   ↓
+CORRELACIONAR EVIDÊNCIAS
+   ↓
+COGNITIVE DIAGNOSTICA
+   ↓
+FORGE PESQUISA / EXPERIMENTA
+   ↓
+PROPOSTA DE ADAPTAÇÃO
+   ↓
+CORE / FORGE IMPLEMENTAM
+   ↓
+VALIDATION TESTA
+   ↓
+GOVERNANCE VERIFICA O CANÔNICO
+   ↓
+ALINHADO AO PROPÓSITO?
+   ├── NÃO → REJEITAR / REFORMULAR
+   └── SIM → ACEITAR PELO ELO
+                    ↓
+                 CONSOLIDAR
+                    ↓
+                NOVA BASELINE
+                    ↓
+                 NOVA SONDAGEM
+```
+
+**Descoberta ≠ conhecimento validado ≠ evolução consolidada.** Uma capacidade tecnicamente melhor pode ser rejeitada se aumentar complexidade sem valor, violar invariantes ou afastar o ELO do propósito.
+
+## 🏢 Área corporativa — como o ELO orquestra
+
+O ELO não substitui os sistemas de registro da organização. Ele atua como camada de **correlação, raciocínio, orquestração e suporte à decisão** entre fontes autorizadas.
+
+```text
+                           🏢 EMPRESA
+                              │
+       ┌───────────┬──────────┼──────────┬───────────┐
+       ▼           ▼          ▼          ▼           ▼
+   Comercial   Engenharia   Compras   Financeiro   Produção
+       │           │          │          │           │
+       └───────────┴──────────┼──────────┴───────────┘
+                              ▼
+                    🟩 ELO COGNITIVE
+             correlação entre domínios
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+                evidências          cenários
+                    │                   │
+                    └─────────┬─────────┘
+                              ▼
+                         🟦 ELO
+                       RECOMENDA
+                              │
+                              ▼
+                     👤 GESTOR DECIDE
+                              │
+                              ▼
+                         EXECUÇÃO
+                              │
+                              ▼
+                     RESULTADO OBSERVADO
+                              │
+                              ▼
+                    EXPERIÊNCIA GOVERNADA
+```
+
+Domínios corporativos podem incluir Comercial, Engenharia, Compras, Financeiro, RH, Produção, Montagem, Manutenção, Qualidade, Logística e Segurança, além de processos, documentos, conversas, eventos, agentes e fontes de dados.
+
+O ciclo corporativo canônico é:
+
+`OBSERVE → CONTEXTUALIZE → ANALYZE → FORMULATE → DECIDE → EXECUTE → MONITOR → LEARN → FOLLOW-UP → REASSESS`
+
+A passagem de leitura para escrita ou execução exige autorização explícita e execução governada.
+
+## 💰 Orçamentos e Lista-Mãe — regra de conhecimento
+
+O módulo de orçamento, taxonomia MLT, modelos M01/M02, composições, valores, mão de obra e relações específicas da empresa são **conhecimento contextual** até que haja evidência suficiente para generalização.
 
 ```text
 Lista-Mãe / documento / orçamento
               ↓
-          FORGE / especialista
+        🟪 FORGE / especialista
               ↓
-     classificação + relações
+      classificação + relações
               ↓
-     auditoria + evidência
+       evidência + auditoria
               ↓
-       generalização válida?
-          ↙           ↘
-        NÃO            SIM
-         ↓              ↓
- experiência       Evolution Gate
- contextual             ↓
-    Forge              Core
+      generalização válida?
+          ↙             ↘
+        NÃO              SIM
+         ↓                ↓
+ experiência          Evolution Gate
+ contextual                ↓
+    Forge                 Core
 ```
 
-Assim, o Core pode fornecer mecanismos para correlacionar, classificar, comparar, auditar e generalizar, enquanto o Forge mantém o conhecimento contextual do especialista e da empresa.
+Regras:
 
-## Loop de Conclusão — diretriz permanente de manutenção arquitetural
+1. preservar a proveniência da fonte;
+2. não transformar orçamento isolado em regra geral do Core;
+3. distinguir preço, composição, material, mão de obra, produtividade, premissa e hipótese;
+4. cruzar a Lista-Mãe com outras fontes autorizadas quando a decisão exigir;
+5. registrar contradições e lacunas em vez de inventar dados;
+6. promover conhecimento somente após evidência, generalização, testes e gate;
+7. manter no Forge a experiência específica da empresa/especialista mesmo quando um princípio geral for promovido ao Core.
 
-O **Loop de Conclusão** é um método permanente do ELO. Ele governa consolidação de pastas, migração de artefatos, resolução de duplicidades, aposentadoria de legado e qualquer manutenção estrutural que possa alterar a autoridade arquitetural.
+## 🤖 Automações com GPT e integrações
+
+O ELO usa GPT e conectores/plugins como **meios de orquestração**, nunca como autoridade canônica. Uma integração disponível no GPT só deve ser considerada capacidade operacional do ELO quando houver contrato, permissão, evidência e validação correspondentes.
+
+### Classes de automação
+
+| Automação | Função do ELO | Estado de referência |
+|---|---|---|
+| 🔎 Sondagem | consultar estado, evidências, testes e arquitetura | operacional/governada |
+| 🧪 Validação | executar/acompanhar testes e interpretar resultados | operacional/governada |
+| 🧩 Engenharia | arquivos, branches, commits, PRs e revisão | operacional via GitHub quando autorizado |
+| 🔁 CI/CD | acompanhar workflows, jobs e evidências | operacional via integração disponível |
+| 🧠 Conhecimento | classificar, correlacionar e consolidar evidências | governado; promoção não automática |
+| 💰 Orçamento | analisar composições, relações, premissas e evidências | contextual/governado |
+| 🏢 Orquestração corporativa | cruzar fontes e apoiar decisões | dependente das integrações e contratos de cada tenant |
+| 🚀 Deploy | build/deploy por plataforma conectada | somente quando explicitamente autorizado e validado |
+
+Integrações podem envolver GitHub, Supabase, Vercel, Dropbox, Canva, Gamma, Formula Genius e outras plataformas conectadas ao ambiente GPT. **A disponibilidade do plugin não equivale, sozinha, a integração arquitetural formal do ELO.**
+
+### Regra de segurança da automação
+
+```text
+GPT / Plugin
+     ↓
+fonte ou ação solicitada
+     ↓
+contexto + permissão
+     ↓
+ELO avalia contrato
+     ↓
+ação governada
+     ↓
+evidência do resultado
+     ↓
+diagnóstico
+     ↓
+registro no histórico
+```
+
+A automação deve ser reversível quando possível, rastreável e separada da autoridade de decisão empresarial.
+
+## 🧪 Matriz executável de testes e evolução
+
+Uma capacidade não é considerada pronta apenas porque existe código ou documentação. A cadeia de maturidade é:
+
+```text
+requisito
+→ arquitetura
+→ contrato
+→ implementação
+→ teste
+→ evidência
+→ status operacional
+→ decisão do ELO
+→ baseline
+```
+
+A matriz executável deve permitir comparar cada grupo de testes com sua baseline anterior. Para a regra de avanço de cobertura:
+
+> **Avanço relativo = (cobertura atual − cobertura anterior) / cobertura anterior × 100.**
+>
+> Só gerar alerta específico quando o avanço relativo de um grupo for **≥ 30%**. Se nenhum grupo atingir esse limiar, não emitir relatório de avanço.
+
+O registro deve conservar testes passados/falhos, causa da mudança, evidências, decisão do ELO e próxima etapa.
+
+## 📈 Histórico evolutivo e duas visões gráficas
+
+Cada sondagem aceita deve produzir um **snapshot comparável**. O histórico é uma série temporal; não é apenas um arquivo de log.
+
+Cada snapshot deve registrar, quando houver evidência:
+
+- baseline/commit;
+- data da sondagem;
+- estado de Soul, Cognitive, Forge e Core;
+- capacidades adquiridas, removidas, substituídas e consolidadas;
+- cobertura e resultados de testes;
+- regressões e riscos;
+- integrações e automações efetivamente verificadas;
+- aderência ao propósito;
+- conformidade canônica;
+- decisão do ELO;
+- evidências e referências;
+- classificação: `NO_MATERIAL_CHANGE`, `EVOLUTION_CONSOLIDATED`, `EVOLUTION_PARTIAL`, `EVOLUTION_REJECTED` ou `CANONICAL_CONFLICT`.
+
+### Gráfico 1 — evolução técnica / arquitetural
+
+```mermaid
+xychart-beta
+    title "ELO — Evolução técnica / arquitetural"
+    x-axis [Baseline-1, Baseline-2, Baseline-3, Atual]
+    y-axis "Índice normalizado" 0 --> 100
+    line [N/D, N/D, N/D, N/D]
+```
+
+> **Regra:** não preencher valores por estimativa. Cada ponto só entra quando houver snapshot quantitativo verificável. O gráfico acima é o contrato visual da série.
+
+### Gráfico 2 — evolução em direção ao propósito
+
+```mermaid
+xychart-beta
+    title "ELO — Aderência ao propósito"
+    x-axis [Baseline-1, Baseline-2, Baseline-3, Atual]
+    y-axis "Aderência normalizada" 0 --> 100
+    line [N/D, N/D, N/D, N/D]
+```
+
+> **Regra:** o segundo gráfico mede a pergunta superior: **“a evolução aumentou a capacidade do ELO de orquestrar melhor as decisões e correlacionar as informações existentes da empresa?”** Não confundir tamanho arquitetural com evolução de propósito.
+
+### 📅 Última sondagem
+
+**Periodicidade:** mensal.
+
+**Último estado consolidado conhecido:** após o merge da evolução do diagnóstico evolutivo, com preservação da Soul e governança do canônico.
+
+**Próxima atualização:** próxima sondagem mensal, usando o snapshot anterior como baseline e atualizando os dois gráficos somente com evidências verificáveis.
+
+O registro mensal deve ser cumulativo: **não substituir snapshots anteriores**. A cada mês, adicionar o novo estado e permitir comparação histórica.
+
+## 🧭 Diagnóstico de evolução — “ELO AQUI”
+
+A sondagem deve retornar, quando houver material relevante:
+
+> **ELO AQUI — DIAGNÓSTICO DE EVOLUÇÃO**
+
+1. **De onde vim:** baseline anterior.
+2. **Onde estou:** baseline atual.
+3. **O que mudou:** capacidades, arquitetura, conhecimento e integrações.
+4. **Por que mudou:** problema, oportunidade ou evidência.
+5. **Quem contribuiu:** Cognitive, Forge, Core, especialistas e integrações.
+6. **O que foi comprovado:** testes, evidências e resultados.
+7. **O que foi aceito:** mudanças consolidadas pelo ELO.
+8. **O que foi rejeitado:** conflitos, regressões ou baixo valor.
+9. **Como estou em relação ao propósito:** analista + arquiteto + inteligência corporativa.
+10. **Próxima etapa:** adaptação recomendada ou manutenção.
+
+Se não houver novo aprendizado verificável, a informação pode ser apresentada ao usuário em **“Consolidação sem novos aprendizados verificáveis”**, enquanto a evidência permanece disponível ao ELO para contexto e comparação futura. Essa classificação não significa que a informação deixou de existir.
+
+## 🧠 Memória de trajetória
+
+O ELO deve conservar não apenas **o que sabe**, mas **como chegou ao estado atual**:
+
+```text
+experiência
+   ↓
+evidência
+   ↓
+interpretação
+   ↓
+proposta
+   ↓
+teste
+   ↓
+decisão
+   ↓
+consolidação
+   ↓
+snapshot
+```
+
+Assim, no futuro, o ELO pode explicar por que uma capacidade foi criada, substituída ou removida e quais evidências sustentaram a decisão.
+
+## 🔒 Soul não recebe versões automáticas
+
+A arquitetura de implementação possui versões e baselines. A Soul possui **identidade e histórico de revisões deliberadas**, não uma nova versão automática a cada alteração técnica.
+
+Uma revisão da Soul somente pode ocorrer por processo constitucional explícito e governado. Uma evolução do Core, Cognitive ou Forge não cria, por si só, `Soul v2`, `Soul v3` etc.
+
+```text
+ARQUITETURA → pode evoluir continuamente
+COGNITIVE   → pode ampliar capacidades
+FORGE       → pode descobrir e propor
+CORE        → pode adaptar implementação
+SOUL        → permanece como referência
+```
+
+## 🔄 Loop de Conclusão — manutenção arquitetural
+
+O **Loop de Conclusão** governa consolidação de pastas, migração de artefatos, resolução de duplicidades, aposentadoria de legado e manutenção estrutural que possa alterar autoridade arquitetural.
 
 ```text
 DETECTAR
@@ -132,7 +403,7 @@ ABSORVER SEMANTICAMENTE
   ↓
 REORGANIZAR PARA FLUXO E COERÊNCIA
   ↓
-RECONCILIAR artifact_id / legacy_path / aliases / referências / consumidores
+RECONCILIAR IDs / aliases / referências / consumidores
   ↓
 ATUALIZAR README / ÍNDICES / MAPAS / EVIDÊNCIAS
   ↓
@@ -144,7 +415,7 @@ GATES APROVADOS → REMOÇÃO FÍSICA DO LEGADO
   ↓
 VALIDAÇÃO PÓS-REMOÇÃO
   ↓
-CONFIRMAR ZERO ÓRFÃOS / ZERO PERDA SEMÂNTICA / ZERO REFERÊNCIA LEGADA INDEVIDA
+CONFIRMAR ZERO ÓRFÃOS / ZERO PERDA SEMÂNTICA
   ↓
 MERGE
   ↓
@@ -157,62 +428,7 @@ NOVA PENDÊNCIA? → VOLTAR AO INÍCIO
 NENHUMA PENDÊNCIA → ENCERRAR CICLO
 ```
 
-### Regra de saída
-
-O ELO **não declara um ciclo concluído** enquanto existir uma etapa necessária pendente. A remoção física do legado faz parte do próprio loop e somente ocorre depois da absorção semântica e da aprovação dos gates. Após a remoção, os testes e a varredura estrutural são executados novamente.
-
-Critérios mínimos:
-
-1. conteúdo relevante classificado;
-2. conteúdo válido absorvido no owner canônico;
-3. arquivos internos organizados com fluxo e sentido;
-4. referências, consumidores, aliases, `artifact_id` e `legacy_path` reconciliados quando aplicáveis;
-5. README, índices e evidências atualizados;
-6. testes e gates verdes;
-7. legado fisicamente removido somente após os gates;
-8. validação pós-remoção sem órfãos ou regressões;
-9. merge realizado e `main` validado;
-10. nova varredura concluída.
-
-A diretriz normativa está registrada em [`ELO_REPOSITORY_NAVIGATION_RULES.md`](ELO_REPOSITORY_NAVIGATION_RULES.md).
-
-## Consolidação documental validada
-
-A reconciliação das variantes documentais foi executada por auditoria de conteúdo, classificação semântica, definição de owner, absorção, reconciliação de referências, validação e remoção física controlada.
-
-### Famílias consolidadas
-
-| Família | Owner canônico | Resultado |
-|---|---|---|
-| `00` | `00-enterprise-manifest/` | variante portuguesa absorvida e removida |
-| `05` | `05-cognitive-platform/` | variante portuguesa absorvida e removida |
-| `07` | `07-data-engineering/` | conteúdo técnico absorvido e variante portuguesa removida |
-| `09` | `09-governance/` | governance master absorvido e variante portuguesa removida |
-| `11` | `11-models-library/` | master legado removido |
-| `12` | `12-system-engineering/` | master legado removido |
-| `14` | `14-roadmap/` | master legado removido |
-
-Os masters legados de `07`, `11`, `12` e `14` foram deprecados e removidos no ciclo anterior. As famílias `00`, `05`, `07` e `09` passaram pela regra de absorção semântica antes da remoção das variantes.
-
-### Família 07 — conteúdo absorvido
-
-O conteúdo técnico anteriormente existente em `07-engenharia-de dados/` foi preservado no owner canônico `07-data-engineering/`:
-
-- `01_Modelo_Logico.md`
-- `02_Dicionario_Dados.md`
-- `03_SQLite.md`
-- `04_APIs.md`
-- `05_Eventos.md`
-
-A pasta histórica foi então removida.
-
-### Família 09 — conteúdo absorvido
-
-`09-governança/GOVERNANCE_MASTER.md` foi preservado em `09-governance/GOVERNANCE_MASTER.md` e a variante histórica foi removida.
-
-A remoção não foi baseada apenas no nome. O conteúdo foi avaliado e incorporado ao owner operacional correspondente.
-
-## Estado estrutural atual
+## 🗂️ Estado estrutural atual
 
 A árvore canônica atual utiliza uma única pasta operacional por família numerada:
 
@@ -223,7 +439,7 @@ A árvore canônica atual utiliza uma única pasta operacional por família nume
 - `04-knowledge-handbook/` — conhecimento e manuais
 - `05-cognitive-platform/` — plataforma cognitiva operacional
 - `06-knowledge-engineering/` — engenharia do conhecimento
-- `07-data-engineering/` — engenharia de dados operacional e owner canônico
+- `07-data-engineering/` — engenharia de dados operacional
 - `08-ai/` — arquitetura e governança de IA
 - `09-governance/` — governança corporativa
 - `10-adr/` — decisões arquiteturais
@@ -235,7 +451,7 @@ A árvore canônica atual utiliza uma única pasta operacional por família nume
 - `Docs/` — documentação evolutiva e registros de migração
 - `automation/` — automações
 - `forge/` — plano construtor/executável governado
-- `src/elo/` — implementação executável do ELO; o Core canônico está em `src/elo/core/`
+- `src/elo/` — implementação executável do ELO; Core canônico em `src/elo/core/`
 - `tests/` — testes e evidências executáveis
 - `runtime/` — componentes de runtime
 - `memory/` — estruturas de memória e aprendizado governado
@@ -247,90 +463,43 @@ A árvore canônica atual utiliza uma única pasta operacional por família nume
 
 A existência de uma pasta não determina, sozinha, sua autoridade. A autoridade deve ser determinada pelas regras de navegação, manifestos, ADRs, contratos canônicos, governança e evidências.
 
-## Regra de duplicidade
+## ♻️ Regra de duplicidade
 
-Antes de adicionar um conceito, pesquisar:
+Antes de adicionar um conceito, pesquisar nome exato, sinônimos, abreviações, contratos, ADRs, implementação, testes e roadmap. Classificar como `REUSE`, `EXTEND`, `RELOCATE`, `CONSOLIDATE`, `NEW` ou `CONFLICT`. `NEW` somente depois de rejeitadas as demais classificações.
 
-- nome exato;
-- sinônimos;
-- abreviações;
-- contrato equivalente;
-- ADR equivalente;
-- implementação existente;
-- teste existente;
-- item de roadmap existente.
+Não criar nova pasta paralela para obter simetria entre português e inglês. Conteúdo histórico deve ser auditado antes de remoção.
 
-Classificar como `REUSE`, `EXTEND`, `RELOCATE`, `CONSOLIDATE`, `NEW` ou `CONFLICT`. `NEW` somente é permitido depois de rejeitadas as demais classificações.
+## 📏 Regra de maturidade
 
-Não criar nova pasta paralela para obter simetria entre português e inglês. Conteúdo histórico deve ser auditado antes de qualquer remoção.
+Estados permitidos: `PROPOSED`, `DRAFT`, `NORMATIVE`, `IMPLEMENTED`, `TESTED`, `VERIFIED`, `EXPERIMENTAL`, `DEPRECATED`, `SUPERSEDED`, `ROADMAP` e `BLOCKED`.
 
-## Regra de maturidade
+Uma capacidade somente deve ser descrita como pronta quando a cadeia requisito → arquitetura → contrato → implementação → teste → evidência → status operacional estiver satisfeita.
 
-Uma capacidade não deve ser descrita como pronta apenas porque existe documentação ou código. A cadeia é:
+## 🏭 Multiteiner como Tenant Corporativo de Validação
 
-```text
-requisito
-→ arquitetura
-→ contrato
-→ implementação
-→ teste
-→ evidência
-→ status operacional
-```
+A Multiteiner é tratada como **tenant empresarial de validação**, e não como parte do Cognitive Core. Regras específicas do tenant permanecem contextuais e não são promovidas automaticamente ao Core.
 
-Use os estados definidos em `ELO_REPOSITORY_NAVIGATION_RULES.md`: `PROPOSED`, `DRAFT`, `NORMATIVE`, `IMPLEMENTED`, `TESTED`, `VERIFIED`, `EXPERIMENTAL`, `DEPRECATED`, `SUPERSEDED`, `ROADMAP` e `BLOCKED`.
-
-## Multiteiner como Tenant Corporativo de Validação
-
-A Multiteiner deve ser tratada como **tenant empresarial de validação**, e não como parte do Cognitive Core.
-
-O contexto empresarial pode incluir Comercial, Engenharia, Compras, Financeiro, RH, Produção, Montagem, Manutenção, Qualidade, Logística, Segurança, processos, documentos, conversas, eventos, agentes, especialistas e fontes de dados.
-
-A Lista-Mãe é uma fonte comercial/técnica de referência para orçamento, consulta e composição de produtos. Ela não é, isoladamente, a autoridade sobre estoque, compras, produção, financeiro ou realidade operacional. O ELO deve cruzá-la com outras fontes autorizadas e preservar a proveniência.
-
-## Modelo de interação empresarial
-
-```text
-fonte/sistema/conversa/agente
-        ↓
-recebimento e quarentena quando aplicável
-        ↓
-contextualização
-        ↓
-evidência + proveniência
-        ↓
-correlação entre domínios
-        ↓
-fato / hipótese / lacuna / contradição
-        ↓
-consulta a especialista ou nova fonte
-        ↓
-cenários e impactos
-        ↓
-recomendação
-        ↓
-decisão humana autorizada
-        ↓
-resultado observado
-        ↓
-experiência e aprendizado governado
-```
-
-O ciclo cognitivo canônico é `OBSERVE → CONTEXTUALIZE → ANALYZE → FORMULATE → DECIDE → EXECUTE → MONITOR → LEARN → FOLLOW-UP → REASSESS`. A passagem de leitura para escrita/executação exige autorização explícita e execução governada.
-
-## Governança de navegação e IA
+## 📚 Governança de navegação e IA
 
 Antes de criar ou alterar qualquer artefato, consulte:
 
 1. [`AGENTS.md`](AGENTS.md) — regras operacionais para agentes de IA;
 2. [`ELO_REPOSITORY_NAVIGATION_RULES.md`](ELO_REPOSITORY_NAVIGATION_RULES.md) — mapa semântico, autoridade e Loop de Conclusão;
-3. [`ELO_ARTIFACT_METADATA_STANDARD.md`](ELO_ARTIFACT_METADATA_STANDARD.md) — identidade, autoridade e maturidade de artefatos;
-4. [`ELO_AI_AGENT_WORKING_RULES.md`](ELO_AI_AGENT_WORKING_RULES.md) — protocolo detalhado de continuidade entre IAs.
+3. [`ELO_ARTIFACT_METADATA_STANDARD.md`](ELO_ARTIFACT_METADATA_STANDARD.md) — identidade, autoridade e maturidade;
+4. [`ELO_AI_AGENT_WORKING_RULES.md`](ELO_AI_AGENT_WORKING_RULES.md) — continuidade entre IAs.
 
 Esses documentos orientam navegação, classificação, execução e revisão. Não substituem arquitetura normativa ou ADRs aprovados.
 
-## Próximo estado
+## 🏁 Próximo estado
 
-O ciclo de consolidação das variantes duplicadas atualmente identificadas foi concluído para as famílias auditadas. A partir deste ponto, qualquer nova duplicidade deve ser tratada pelo **Loop de Conclusão**, sem remoção automática e sem criação de novas variantes.
+O README é parte da memória operacional do ELO e deve acompanhar cada consolidação relevante. A partir deste estado:
 
-A próxima evolução arquitetural somente deve começar após a confirmação de que a árvore permanece coerente e que novos artefatos possuem owner canônico explícito.
+- a Soul permanece estável e separada de versionamento técnico automático;
+- Core, Cognitive e Forge podem evoluir mediante evidência e governança;
+- o Forge pode sondar novas tecnologias, métodos e integrações e apontar onde uma adaptação é útil;
+- a sondagem mensal compara snapshots e atualiza as duas visões gráficas;
+- a matriz de testes permanece vinculada à baseline anterior;
+- o diagnóstico deve explicar o estágio do ELO e sua aderência ao propósito;
+- nenhuma adaptação pode infringir o canônico.
+
+**🟦 Propósito → 🟩 Pensamento → 🟪 Exploração → 🟨 Execução → 🟥 Evidência/Governança → 📈 Evolução → 🟦 Propósito**
