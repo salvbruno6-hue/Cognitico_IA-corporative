@@ -8,7 +8,7 @@ keeping Soul invariants outside ordinary evolution.
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Iterable, Mapping
+from typing import Iterable
 
 
 class EvolutionImpact(StrEnum):
@@ -63,8 +63,8 @@ class AcceptedEvolution:
     def __post_init__(self) -> None:
         if not self.change_id.strip() or not self.summary.strip():
             raise ValueError("change identity and summary are required")
-        if not self.canonical_safe and self.accepted:
-            raise ValueError("a canonical-unsafe change cannot be accepted")
+        if self.accepted and (not self.canonical_safe or not self.purpose_alignment):
+            raise ValueError("an accepted evolution must be purpose-aligned and canonical-safe")
 
 
 @dataclass(frozen=True)
@@ -98,7 +98,11 @@ class EvolutionDiagnosticEngine:
     ) -> EvolutionDiagnostic:
         conflicts = tuple(sorted(set(canonical_conflicts)))
         accepted = tuple(change for change in accepted_changes if change.accepted)
-        unsafe_accepted = tuple(change.change_id for change in accepted if not change.canonical_safe)
+        unsafe_accepted = tuple(
+            change.change_id
+            for change in accepted
+            if not change.canonical_safe or not change.purpose_alignment
+        )
         conflicts = tuple(sorted(set(conflicts).union(unsafe_accepted)))
 
         acquired = tuple(sorted(current.capabilities - previous.capabilities))
