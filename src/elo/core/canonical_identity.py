@@ -2,8 +2,11 @@
 
 The canonical identity is intentionally read-only at runtime. Architectural
 changes must be performed through an explicit governance process.
-"""
 
+``architecture_version`` records the verified mutable architectural state; it
+is not an automatic version of the ELO Soul. A Soul/identity change is a
+separate governed constitutional event.
+"""
 from dataclasses import dataclass
 from typing import Mapping
 
