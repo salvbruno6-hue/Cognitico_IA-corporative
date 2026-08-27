@@ -25,6 +25,7 @@ from .core_loop import CoreLoopEngine, CoreLoopRequest, CoreLoopResult
 from .corporate_systemic import CorporateSystemicView
 from .cross_domain import CorporateDomain, CrossDomainGovernance, CrossDomainRelation, CrossDomainValidation
 from .diagnostic_scenario_engine import DiagnosticLens, DiagnosticObservation, DiagnosticScenario, DiagnosticScenarioEngine, ScenarioMode
+from .evolution_diagnostic import AcceptedEvolution, EvolutionDiagnostic, EvolutionDiagnosticEngine, EvolutionImpact, EvolutionSnapshot, EvolutionState, render_elo_here
 from .evolution_gate import EvolutionClassification, EvolutionDecision, EvolutionGate, EvolutionProposal
 from .evolution_memory import EvolutionMemory, EvolutionRecord
 from .forecasting import ForecastObservation, ForecastResult, ForecastStatus, GovernedForecastFaculty
@@ -55,12 +56,13 @@ __all__ = [
     "CrossDomainRelation", "CrossDomainValidation", "CausalAssessment", "ConversationEvent", "ConversationIntake",
     "ConversationIntakeResult", "CostComponent", "DiagnosticLens", "DiagnosticObservation", "DiagnosticScenario",
     "DiagnosticScenarioEngine", "DiscoveryPlan", "EloCanonicalIdentity", "EvolutionClassification", "EvolutionDecision",
-    "EvolutionGate", "EvolutionMemory", "EvolutionProposal", "EvolutionRecord", "ForecastObservation", "ForecastResult",
-    "ForecastStatus", "GovernedForecastFaculty", "GPTDecisionHandoff", "GovernedBudgetingService", "HybridCapabilityBridge",
-    "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment", "MultiScenarioGate", "OutcomeFeedback",
-    "probe_local_tools", "ProductionEvent", "ProductionFlow", "ProductionStage", "ProviderSelection", "Scenario",
-    "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine", "SpecialistFeedback",
-    "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation",
-    "TemporalValidity", "UncertaintyAssessment", "UnknownArtifactError", "assess_resolution_for_forward_strategy",
+    "EvolutionGate", "EvolutionMemory", "EvolutionProposal", "EvolutionRecord", "AcceptedEvolution", "EvolutionDiagnostic",
+    "EvolutionDiagnosticEngine", "EvolutionImpact", "EvolutionSnapshot", "EvolutionState", "render_elo_here",
+    "ForecastObservation", "ForecastResult", "ForecastStatus", "GovernedForecastFaculty", "GPTDecisionHandoff",
+    "GovernedBudgetingService", "HybridCapabilityBridge", "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment",
+    "MultiScenarioGate", "OutcomeFeedback", "probe_local_tools", "ProductionEvent", "ProductionFlow", "ProductionStage",
+    "ProviderSelection", "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
+    "SpecialistFeedback", "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel",
+    "SystemicRelation", "TemporalValidity", "UncertaintyAssessment", "UnknownArtifactError", "assess_resolution_for_forward_strategy",
     "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]
