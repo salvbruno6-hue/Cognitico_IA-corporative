@@ -30,6 +30,9 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 18. **For `ELO APRENDER`, Supabase is consultative memory: it supplies existing knowledge/evidence to ELO; it does not independently admit, promote or persist learning.**
 19. **No governed learning commit may occur before explicit ELO cognitive MERGE approval.**
 20. **Architecture evolution must follow INSPECT → REUSE → EXTEND → RELATE → REFACTOR/MIGRATE → CREATE ONLY IF INDISPENSABLE.**
+21. **For budget learning, information recovered from another SO, quotation, PTS, PTS Pós-Orçamento, calculation memory, Supabase record or prior experience is CONSULTATIVE REFERENCE unless explicit evidence proves it belongs to the current SO. It must never silently become the origin, item value, quantity, premise or decision of the current SO.**
+22. **When ELO uses a consultative reference, it must preserve provenance and explain: SOURCE, ORIGINAL CONTEXT, RECOVERED INFORMATION, WHY IT WAS FOUND, WHY IT MAY APPLY, EQUIVALENCE/ASSUMPTIONS, VALIDATIONS PENDING and STATUS. ELO may recommend applicability, but must not represent applicability as origin or fact without evidence.**
+23. **For budget references, applicability should be reasoned from relevant evidence such as recency, product/material identity, technical characteristics, color, thickness, unit, price per m², supplier/commercial condition and other context-specific attributes. The reasoning must state which attributes support or weaken applicability.**
 
 ## 3. Required inspection sequence
 
@@ -106,7 +109,7 @@ Automations are deterministic process adapters. A technical trigger must never o
 
 ## 8. ELO APRENDER canonical sequence
 
-`ELO APRENDER → ELO ANALYSIS → SUPABASE MEMORY CONSULT → ELO CONSOLIDATION → COGNITIVE MERGE → GOVERNANCE → ISSUE DOSSIER → MERGED APPROVED? → COMMIT → COMMIT VERIFY → ISSUE UPDATE → PR → GIT MERGE → MAIN/ELO`
+`ELO APRENDER → ELO ANALYSIS → SUPABASE MEMORY CONSULT → ELO CONSOLIDATION → COGNITIVE MERGE → GOVERNANCE → ISSUE DOSSIER → VIRTUAL LABORATORY (when applicable) → ELO APPROVE_COMMIT → COMMIT → COMMIT VERIFY → PR → ELO APPROVE_MERGE → GIT MERGE → MAIN/ELO`
 
 **Cognitive MERGE** means ELO consolidates experiences and concepts into governed knowledge.
 
@@ -115,6 +118,8 @@ Automations are deterministic process adapters. A technical trigger must never o
 They are distinct operations.
 
 No commit may precede the cognitive MERGE approval for a governed learning change.
+
+For budget-learning changes, the Virtual Laboratory must verify provenance separation and applicability reasoning before `APPROVE_COMMIT`.
 
 ## 9. Learning and memory admission
 
@@ -152,21 +157,25 @@ For implementation work:
 - record failures honestly;
 - never report a phase as READY when required tests are absent or failing.
 
+For budget-learning validation, tests must include at least one provenance-separation case and one applicability-reasoning case where the changed behavior supports them.
+
 ## 13. Git discipline
 
 Preferred flow for governed learning and architecture changes:
 
-`issue/task → ELO analysis → cognitive MERGE approval → dedicated branch → commit → verification → PR → Git merge → final verification`
+`issue/task → ELO analysis → cognitive MERGE approval → dedicated branch → Virtual Laboratory when applicable → APPROVE_COMMIT → commit → verification → PR → APPROVE_MERGE → Git merge → final verification`
 
 Do not write directly to `main` during task execution.
 
-Do not commit a governed learning change before ELO cognitive MERGE approval.
+Do not commit a governed learning change before ELO cognitive MERGE approval and required laboratory gates pass.
 
 ## 14. Autonomous ELO execution loop
 
 When a task objective is explicit, executable and within policy, ELO should continue through the complete governed workflow:
 
-`OBJECTIVE → DECOMPOSE → EXECUTE → VALIDATE → SPECIALIST_REVIEW → ELO_REVIEW → CORRECT/REPLAN → REVALIDATE → COGNITIVE_MERGE → APPROVE → COMMIT → VERIFY → PR → GIT_MERGE → VERIFY → LEARN → REPORT`
+`OBJECTIVE → DECOMPOSE → EXECUTE → VALIDATE → SPECIALIST_REVIEW → ELO_REVIEW → CORRECT/REPLAN → REVALIDATE → COGNITIVE_MERGE → GOVERNANCE → VIRTUAL_LABORATORY → APPROVE_COMMIT → COMMIT → VERIFY → PR → APPROVE_MERGE → GIT_MERGE → VERIFY → LEARN → REPORT`
+
+For budget-learning issues, the laboratory gate must test that external references remain references and that ELO provides source plus applicability rationale before committing.
 
 Automatic merge is allowed only when ELO emits `APPROVE_MERGE`, required specialist/CI/acceptance/scope/protection gates pass, no blocking finding remains, and no governed learning commit occurred before cognitive approval.
 
@@ -186,4 +195,5 @@ DONE requires:
 - git status clean except for intentional changes;
 - commit/PR information reported;
 - unresolved risks explicitly listed;
-- final verification completed after merge.
+- final verification completed after merge;
+- for budget learning, provenance and applicability checks explicitly evidenced.
