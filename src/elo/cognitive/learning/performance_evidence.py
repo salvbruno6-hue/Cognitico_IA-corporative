@@ -1,7 +1,7 @@
-"""Structured performance evidence used by adaptive cognitive routing.
+"""Structured, tenant-scoped performance evidence for adaptive routing.
 
-Evidence is tenant-scoped and non-canonical. It can influence future ranking
-only after the normal Forge/governance promotion path.
+Evidence is non-canonical. Runtime observations may inform routing only after
+passing the existing Forge/governance promotion path.
 """
 from dataclasses import dataclass
 from typing import Any
@@ -35,17 +35,35 @@ class PerformanceEvidence:
 
 @dataclass(frozen=True)
 class PerformanceAggregate:
+    tenant_id: str
     capability: str
+    context_key: str
     model_id: str | None
     tool_id: str | None
     observations: int
     mean_quality: float
     mean_reliability: float
     mean_efficiency: float
+    confidence: float
+
+    @property
+    def evidence_state(self) -> str:
+        return "measured" if self.observations else "none"
+
+    @property
+    def promotion_state(self) -> str:
+        return "candidate" if self.observations > 0 else "none"
 
 
-def aggregate(evidence: list[PerformanceEvidence]) -> list[PerformanceAggregate]:
-    """Aggregate only within identical tenant/capability/context/executor scope."""
+def aggregate(
+    evidence: list[PerformanceEvidence],
+    *,
+    minimum_observations: int = 1,
+) -> list[PerformanceAggregate]:
+    """Aggregate without crossing tenant, context, capability or executor scope."""
+    if minimum_observations < 1:
+        raise ValueError("minimum_observations must be at least 1")
+
     groups: dict[tuple[str, str, str, str | None, str | None], list[PerformanceEvidence]] = {}
     for item in evidence:
         item.validate()
@@ -53,27 +71,41 @@ def aggregate(evidence: list[PerformanceEvidence]) -> list[PerformanceAggregate]
         groups.setdefault(key, []).append(item)
 
     result: list[PerformanceAggregate] = []
-    for (_, capability, _, model_id, tool_id), items in groups.items():
+    for (tenant_id, capability, context_key, model_id, tool_id), items in groups.items():
+        if len(items) < minimum_observations:
+            continue
         efficiency = [1.0 / (1.0 + x.latency_ms / 1000.0 + x.cost) for x in items]
+        observations = len(items)
+        # Confidence rises with repeated verified observations and is bounded at 1.
+        confidence = min(1.0, observations / (observations + 4.0))
         result.append(PerformanceAggregate(
+            tenant_id=tenant_id,
             capability=capability,
+            context_key=context_key,
             model_id=model_id,
             tool_id=tool_id,
-            observations=len(items),
-            mean_quality=sum(x.quality for x in items) / len(items),
-            mean_reliability=sum(x.reliability for x in items) / len(items),
-            mean_efficiency=sum(efficiency) / len(efficiency),
+            observations=observations,
+            mean_quality=sum(x.quality for x in items) / observations,
+            mean_reliability=sum(x.reliability for x in items) / observations,
+            mean_efficiency=sum(efficiency) / observations,
+            confidence=confidence,
         ))
     return result
 
 
 def to_routing_metadata(aggregate_result: PerformanceAggregate) -> dict[str, Any]:
-    """Expose measured evidence as metadata; never promote it to Canon."""
+    """Expose measured evidence while preserving tenant scope and promotion gate."""
     return {
+        "tenant_id": aggregate_result.tenant_id,
+        "capability": aggregate_result.capability,
+        "context_key": aggregate_result.context_key,
+        "model_id": aggregate_result.model_id,
+        "tool_id": aggregate_result.tool_id,
         "observations": aggregate_result.observations,
         "quality": aggregate_result.mean_quality,
         "reliability": aggregate_result.mean_reliability,
         "efficiency": aggregate_result.mean_efficiency,
-        "evidence_state": "measured",
-        "promotion_state": "candidate",
+        "confidence": aggregate_result.confidence,
+        "evidence_state": aggregate_result.evidence_state,
+        "promotion_state": aggregate_result.promotion_state,
     }
