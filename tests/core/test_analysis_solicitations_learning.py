@@ -39,4 +39,4 @@ def test_different_budget_experience_is_new_concept():
 
 
 def test_normalization_removes_solicitation_identity_only():
-    assert _normalize("SO 155.26  Confirmar produtividade") == "<so> confirmar produtividade"
+    assert _normalize("SO 155.26  Confirmar produtividade") == "<SO> confirmar produtividade"
