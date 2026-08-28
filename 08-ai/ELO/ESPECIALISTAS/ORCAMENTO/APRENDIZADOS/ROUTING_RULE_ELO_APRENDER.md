@@ -23,6 +23,8 @@ A mesma execução de `ELO APRENDER` deve produzir as duas camadas quando houver
 
 Antes de criar ou alterar aprendizado, o gatilho deve identificar a SO/documentos, localizar o artefato canônico, pesquisar fontes legadas como proveniência, consultar conceitos existentes e seus estados, consultar memória de cálculo existente, agrupar semanticamente e deduplicar, e agregar nova evidência quando o conceito já existir.
 
+A **Análise de Solicitações é a fonte primária de investigação**. Conhecimento previamente persistido, incluindo `memory/evolution`, serve como histórico, evidência ou apoio auxiliar e não substitui a consulta à fonte original. Uma SO já aprendida pode e deve ser reinvestigada para identificar informação material ainda não absorvida.
+
 ## Varredura de cálculos obrigatória
 
 Para toda SO de orçamento, executar `VARRER_CÁLCULOS` antes da consolidação final. Percorrer SO, TR, PTS Técnica, Orçamento, PTS Pós-Orçamento, planilhas, composições e anexos disponíveis.
@@ -30,6 +32,41 @@ Para toda SO de orçamento, executar `VARRER_CÁLCULOS` antes da consolidação 
 Investigar cálculos explícitos e implícitos de quantitativos, excedentes, cobertura/telhado, estrutura, hidráulica/esgoto, elétrica, climatização, manutenção, mão de obra, produtividade, logística, acoplamento, ART/RRT, áreas, equipamentos, composição de preços, equivalências e percentuais.
 
 Não guardar apenas o número: reconstruir `entrada → fonte → premissa → fórmula → subcálculo → resultado → validação → origem`.
+
+## Conhecimento cognitivo reutilizável de orçamento
+
+Quando uma experiência de orçamento revelar uma metodologia generalizável, o ELO deve classificá-la como **CONHECIMENTO COGNITIVO** no Git, sem confundi-la com uma memória de cálculo específica no Supabase.
+
+Metodologias reutilizáveis reconhecidas pelo ELO:
+
+1. **Regra de três composta:** redimensionar precedentes considerando simultaneamente quantidade, período, frequência, produtividade, equipe e logística.
+2. **Custo fixo × variável:** separar custos que não variam com o quantitativo daqueles proporcionais ao serviço.
+3. **Produtividade inversa:** converter produtividade em necessidade de dias/equipe.
+4. **Frequência × período:** dimensionar ciclos e atendimentos recorrentes conforme periodicidade e duração contratual.
+5. **Quantidade × consumo unitário:** dimensionar materiais e componentes por unidade de referência.
+6. **Equipe × produtividade:** verificar se a composição da equipe é compatível com a produtividade necessária.
+7. **Atendimento médio:** estimar demanda de serviços corretivos usando histórico/precedentes quando não houver quantitativo explícito.
+8. **Padrão × excedente:** preservar a composição padrão e dimensionar separadamente acréscimos e adaptações.
+9. **Precedente × equivalência:** reutilizar uma referência somente após validar contexto, composição, unidade, material e condições de execução.
+10. **Piso operacional:** impedir que o resultado matemático gere uma quantidade operacionalmente inviável.
+11. **Arredondamento técnico:** converter frações em quantidades executáveis conforme a natureza do serviço.
+12. **Cenários:** comparar cenários mínimo, provável e conservador quando houver incerteza relevante.
+13. **Sensibilidade:** identificar as variáveis que mais impactam o valor final.
+14. **Custo por unidade equivalente:** comparar SOs de escalas diferentes por módulo, equipamento, metro, mês ou outra unidade adequada.
+15. **Rateio por unidade:** distribuir custos consolidados entre unidades quando tecnicamente justificável.
+16. **Conversão de periodicidade:** transformar frequências semanais, mensais, trimestrais ou outras em ciclos de execução.
+17. **Validação cruzada:** confrontar o resultado com precedente, produtividade, TR, histórico e demais evidências disponíveis.
+18. **Detecção de anomalia:** sinalizar resultados muito acima ou abaixo de precedentes equivalentes.
+19. **Contingência condicionada:** considerar margem adicional somente quando houver justificativa técnica/comercial identificável.
+20. **Regra de não proporcionalidade:** impedir a aplicação automática de proporcionalidade a custos que possuem comportamento fixo ou mínimo operacional.
+
+### Regra específica para regra de três composta
+
+A regra de três composta é um **método de dimensionamento por precedente**, não uma regra cega. O ELO deve:
+
+`identificar precedente → identificar variáveis dimensionadoras → comparar equivalência → redimensionar → arredondar quando necessário → validar contra TR/SLA/histórico → aplicar.`
+
+O resultado matemático não substitui a premissa operacional. Quando houver conflito entre proporcionalidade e exigência contratual, SLA, histórico ou mínimo operacional, o ELO deve registrar a divergência e justificar a escolha.
 
 ## Proibição de destinos paralelos
 
