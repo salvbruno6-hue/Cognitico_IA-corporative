@@ -13,8 +13,8 @@ SO_RE = re.compile(r"\b(?:SO\s*)?\d{1,4}[./-]\d{2,4}\b", re.I)
 
 
 def _normalize(value: str) -> str:
-    value = SO_RE.sub("<SO>", value)
-    return re.sub(r"\s+", " ", value.strip().lower())
+    value = SO_RE.sub("<SO>", value.strip().lower())
+    return re.sub(r"\s+", " ", value).strip()
 
 
 def _concept_key(category: str, statement: str) -> str:
