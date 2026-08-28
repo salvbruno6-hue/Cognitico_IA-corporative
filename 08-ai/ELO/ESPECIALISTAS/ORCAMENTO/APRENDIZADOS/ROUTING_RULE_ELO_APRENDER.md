@@ -52,3 +52,65 @@ O Laboratório Virtual é separado e somente é executado quando chamado explici
 ## Critério de conclusão
 
 A experiência só pode ser considerada consolidada quando o commit Git aplicável e, havendo cálculos, a persistência/confirmação no Supabase estiverem confirmadas.
+
+## Compatibilidade — fluxo macro do ELO APRENDER
+
+Esta seção é aditiva e não substitui nem altera o Prompt Mestre. O gatilho deve interpretar o fluxo da seguinte forma:
+
+```text
+ELO APRENDER
+     │
+     ▼
+ANÁLISE DE SOLICITAÇÕES
+     │
+     ├── SO
+     ├── TR
+     ├── PTS Técnica
+     ├── Orçamento
+     ├── PTS Pós
+     └── demais documentos/evidências
+     │
+     ▼
+ELO COGNITIVO
+     │
+     ├── identifica decisões
+     ├── identifica soluções
+     ├── identifica experiências
+     ├── identifica critérios
+     ├── identifica precedentes
+     └── VARRER CÁLCULOS
+     │
+     ├──────────────────┐
+     ▼                  ▼
+    GIT              SUPABASE
+     │                  │
+     ▼                  ▼
+CONHECIMENTO         MEMÓRIA
+COGNITIVO            DE CÁLCULO
+     │                  │
+     ▼                  ▼
+08-ai/ELO/           tabelas de
+ESPECIALISTAS/       cálculos
+ORCAMENTO/
+APRENDIZADOS/
+```
+
+### Regra de compatibilidade
+
+A inclusão deste fluxo não cria novo gatilho, não altera o comando `ELO APRENDER`, não altera o Laboratório, não cria destino paralelo e não modifica o modelo de persistência.
+
+Ele apenas explicita a sequência operacional já estabelecida:
+
+`ELO APRENDER → ANÁLISE DE SOLICITAÇÕES → ELO COGNITIVO → VARRER CÁLCULOS → GIT + SUPABASE → CONFIRMAÇÃO`.
+
+### Regra de separação das camadas
+
+`GIT = conhecimento cognitivo/instrucional.`
+
+`SUPABASE = memória quantitativa estruturada, cálculos e evidências.`
+
+Quando não houver cálculo aplicável, não criar registro artificial no Supabase. Quando houver cálculo aplicável, executar a persistência prevista no fluxo existente.
+
+### Regra de não regressão
+
+O fluxo existente de `ELO APRENDER` permanece a autoridade de execução. Esta seção não deve ser interpretada como novo fluxo concorrente, novo gatilho ou nova origem de dados.
