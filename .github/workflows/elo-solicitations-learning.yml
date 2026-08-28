@@ -7,7 +7,11 @@ on:
   push:
     paths:
       - 'memory/evolution/**'
+      - 'memory/solicitations/**'
+      - 'memory/solicitations_learning/**'
+      - '04-knowledge-handbook/**'
       - 'scripts/solicitations_learning_consolidate.py'
+      - 'scripts/elo_budget_capability_report.py'
       - 'src/elo/core/analysis_solicitations_learning.py'
       - 'tests/core/test_analysis_solicitations_learning.py'
 
@@ -32,18 +36,22 @@ jobs:
       - name: Run core solicitation-learning tests
         run: python -m pytest tests/core/test_analysis_solicitations_learning.py
 
-      - name: Consolidate candidates without autonomous persistence
+      - name: Consolidate candidates
         run: python scripts/solicitations_learning_consolidate.py
 
-      - name: Publish candidate report as workflow evidence only
+      - name: Discover current budget capabilities
+        run: python scripts/elo_budget_capability_report.py
+
+      - name: Publish learning and capability report as workflow evidence
         uses: actions/upload-artifact@v4
         with:
-          name: elo-solicitation-learning-candidates
+          name: elo-solicitation-learning-capabilities
           path: memory/solicitations_learning
           if-no-files-found: ignore
 
       - name: Governance notice
         run: |
-          echo 'ELO governance is authoritative for learning admission and persistence.'
-          echo 'This workflow does not commit, push, promote, or merge learning autonomously.'
-          echo 'Candidates are evidence for ELO analysis and approval.'
+          echo 'ELO governance is authoritative for learning interpretation and persistence.'
+          echo 'Git knowledge artifacts provide semantic/conceptual/instructional evidence.'
+          echo 'Supabase remains consultative memory for structured calculations and related evidence.'
+          echo 'This workflow discovers and reports capabilities; it does not autonomously promote learning.'
