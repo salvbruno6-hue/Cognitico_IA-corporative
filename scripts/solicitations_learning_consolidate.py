@@ -1,18 +1,22 @@
-"""Consolidate admitted solicitation learning records into candidates."""
+"""Consolidate admitted solicitation learning into the canonical ELO budget-learning directory."""
 from __future__ import annotations
+
 import hashlib
 import json
 from collections import defaultdict
 from pathlib import Path
 
 EVOLUTION = Path("memory/evolution")
-OUTPUT = Path("memory/solicitations_learning")
+OUTPUT = Path("08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS")
+
 
 def _normalize(value: str) -> str:
     return " ".join(value.lower().split())
 
+
 def _candidate_id(normalized: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:24]
+
 
 def main() -> int:
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -50,8 +54,9 @@ def main() -> int:
         json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(f"candidates={len(index)}")
+    print(f"candidates={len(index)} output={OUTPUT}")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

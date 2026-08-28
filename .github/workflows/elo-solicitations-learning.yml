@@ -7,6 +7,7 @@ on:
   push:
     paths:
       - 'memory/evolution/**'
+      - '08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/**'
       - 'scripts/solicitations_learning_consolidate.py'
       - 'src/elo/core/analysis_solicitations_learning.py'
       - 'tests/core/test_analysis_solicitations_learning.py'
@@ -32,18 +33,19 @@ jobs:
       - name: Run core solicitation-learning tests
         run: python -m pytest tests/core/test_analysis_solicitations_learning.py
 
-      - name: Consolidate candidates without autonomous persistence
+      - name: Consolidate candidates into canonical ELO budget-learning path
         run: python scripts/solicitations_learning_consolidate.py
 
-      - name: Publish candidate report as workflow evidence only
+      - name: Publish canonical budget-learning evidence
         uses: actions/upload-artifact@v4
         with:
           name: elo-solicitation-learning-candidates
-          path: memory/solicitations_learning
+          path: 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS
           if-no-files-found: ignore
 
       - name: Governance notice
         run: |
-          echo 'ELO governance is authoritative for learning admission and persistence.'
-          echo 'This workflow does not commit, push, promote, or merge learning autonomously.'
-          echo 'Candidates are evidence for ELO analysis and approval.'
+          echo 'ELO is the cognitive authority for learning admission and persistence.'
+          echo 'All solicitation-budget learning is directed to 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS.'
+          echo 'Supabase remains consultative memory for structured calculations and evidence.'
+          echo 'No autonomous promotion or merge is performed by this workflow.'
