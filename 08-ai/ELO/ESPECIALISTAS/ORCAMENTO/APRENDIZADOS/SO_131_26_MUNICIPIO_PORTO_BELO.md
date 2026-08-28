@@ -50,3 +50,23 @@ Durante a revisão final, não avaliar somente os valores. Conferir também se:
 **TR → Identificação da exigência → Análise de equivalência → Pedido de esclarecimento → Resposta do cliente → Adequação do orçamento → PTS Técnica → PTS Pós-Orçamento → Aprendizado.**
 
 Este ciclo deve ser reutilizado nas próximas solicitações de orçamento de contêineres e estruturas modulares.
+
+### 9. Memória quantitativa consolidada da SO 131.26
+Os cálculos quantitativos permanecem como camada de memória de cálculo no Supabase; este arquivo registra apenas os principais aprendizados e as referências para reconstrução.
+
+- **Abertura de vãos:** 3 portas de 2,10 × 0,80 m = 5,04 m²; 2 janelas de 1,20 × 1,00 m = 2,40 m²; total = **7,44 m²**.
+- **Reforços:** 4 barras de metalon 50 × 30 × 1,20 mm, barras de 6 m = **24,00 m**.
+- **Divisórias PIR 40 mm:** 5 × 1,13 × 2,65 = **14,9725 m²** teóricos.
+- **Piso:** **27,255 m²**, quantitativo de planilha; origem geométrica integral não disponível, portanto tratar como memória parcial.
+- **Pintura externa:** **114,65 m²**, quantitativo de planilha; tratar como memória parcial quando não houver origem geométrica.
+- **Subtotal geral:** **R$ 21.473,42**.
+- **BDI:** **65%**.
+- **Total matemático com BDI:** R$ 21.473,42 × 1,65 = aproximadamente **R$ 35.431,14**.
+- **Total apresentado na planilha:** **R$ 35.431,15**; diferença de **R$ 0,01**, preservada para auditoria.
+
+### 10. Regra de memória e rastreabilidade
+- Conhecimento, regras, decisões, critérios e precedentes: **Git**.
+- Fórmulas, entradas, quantitativos, resultados e validações: **Supabase**.
+- Não inventar cálculo para preencher lacunas.
+- Não alterar silenciosamente valores divergentes da planilha.
+- Toda memória deve permitir rastrear **fonte → item → parâmetro → fórmula → resultado → validação**.
