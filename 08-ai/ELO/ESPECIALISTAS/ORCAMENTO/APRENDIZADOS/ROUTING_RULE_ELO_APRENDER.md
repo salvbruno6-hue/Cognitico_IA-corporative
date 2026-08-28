@@ -6,6 +6,8 @@ Quando `ELO APRENDER` processar uma experiência cuja origem seja uma **Solicita
 
 `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/`
 
+O arquivo `ELO_RETORNO_CANONICO.md` define também o padrão obrigatório de retorno ao consultar ou aprender uma SO.
+
 ## Proibição de destinos paralelos
 
 O gatilho não deve criar novos aprendizados de orçamento em:
@@ -26,11 +28,28 @@ Arquivos históricos existentes nesses locais devem ser tratados como fontes leg
 5. Consultar a memória existente antes de criar conteúdo.
 6. Se o conceito já existir, agregar evidência ao conhecimento existente; se `VALIDATED_LEARNING`, reutilizar sem duplicar.
 7. Preservar `SO → documento → evidência → classificação → decisão → commit/PR/merge`.
-8. Commit só após a governança e os testes aplicáveis.
+8. Executar a varredura de cálculos prevista no fluxo de `ELO APRENDER` e persistir os cálculos aplicáveis no Supabase.
+9. Commit só após a governança e os testes aplicáveis.
+
+## Retorno canônico
+
+Ao receber `ELO APRENDER` ou uma consulta do tipo `ELO — o que sabemos sobre a SO X`, o retorno deve integrar:
+
+- identificação e escopo da SO;
+- PTS Técnica;
+- tratamento do orçamento;
+- excedentes e composições;
+- PTS Pós-Orçamento;
+- decisões e resoluções;
+- conhecimento cognitivo/instrucional armazenado no Git;
+- memória de cálculo armazenada no Supabase;
+- referências externas/entre SOs com fonte e motivo de aplicabilidade.
+
+Quando houver memória de cálculo no Supabase, apresentá-la obrigatoriamente no padrão definido em `ELO_RETORNO_CANONICO.md`, com: `ID`, `ID Memória`, `Categoria`, `Item`, `Fonte`, `Entrada/Base`, `Unidade`, `Parâmetro/Premissa`, `Fórmula`, `Subcálculo`, `Resultado`, `Unidade Resultado`, `Validação` e `Origem`.
 
 ## Supabase
 
-Supabase permanece **memória consultiva**, especialmente para cálculos e evidências estruturadas. Ele fornece informação ao ELO, mas não determina o destino do aprendizado nem substitui a governança cognitiva do ELO.
+Supabase permanece a camada canônica da **memória quantitativa/de cálculo** do orçamento. Ele fornece informação ao ELO e recebe os cálculos estruturados extraídos pelo subfluxo de varredura; não determina o destino do aprendizado cognitivo nem substitui a governança do ELO.
 
 ## Proveniência de referências
 
