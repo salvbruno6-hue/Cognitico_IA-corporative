@@ -1,45 +1,54 @@
 # ELO APRENDER — Roteamento Canônico de Aprendizados de Orçamento
 
-## Regra obrigatória do gatilho
+## Autoridade operacional
 
-Quando `ELO APRENDER` processar uma experiência cuja origem seja uma **Solicitação de Orçamento (SO)** e o conhecimento pertencer ao domínio do **Especialista de Orçamento**, o artefato de aprendizado deve ser criado ou consolidado exclusivamente em:
+O comportamento completo do gatilho é definido por `ELO_APRENDER_CANONICO_MASTER_PROMPT.md`.
+
+Este arquivo controla o roteamento físico; o Prompt Mestre controla busca, varredura, separação, persistência, governança e retorno.
+
+## Regra obrigatória
+
+Quando `ELO APRENDER` processar uma Solicitação de Orçamento (SO) do domínio do Especialista de Orçamento, o artefato cognitivo deve ser criado ou consolidado exclusivamente em:
 
 `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/`
 
+## Separação Git × Supabase
+
+- **Git:** conhecimento cognitivo/instrucional, conceitos, decisões, critérios, precedentes, regras, diretrizes e governança.
+- **Supabase:** somente memória quantitativa estruturada de cálculos e suas evidências.
+
+A mesma execução de `ELO APRENDER` deve produzir as duas camadas quando houver conteúdo aplicável.
+
+## Busca cognitiva obrigatória
+
+Antes de criar ou alterar aprendizado, o gatilho deve identificar a SO/documentos, localizar o artefato canônico, pesquisar fontes legadas como proveniência, consultar conceitos existentes e seus estados, consultar memória de cálculo existente, agrupar semanticamente e deduplicar, e agregar nova evidência quando o conceito já existir.
+
+## Varredura de cálculos obrigatória
+
+Para toda SO de orçamento, executar `VARRER_CÁLCULOS` antes da consolidação final. Percorrer SO, TR, PTS Técnica, Orçamento, PTS Pós-Orçamento, planilhas, composições e anexos disponíveis.
+
+Investigar cálculos explícitos e implícitos de quantitativos, excedentes, cobertura/telhado, estrutura, hidráulica/esgoto, elétrica, climatização, manutenção, mão de obra, produtividade, logística, acoplamento, ART/RRT, áreas, equipamentos, composição de preços, equivalências e percentuais.
+
+Não guardar apenas o número: reconstruir `entrada → fonte → premissa → fórmula → subcálculo → resultado → validação → origem`.
+
 ## Proibição de destinos paralelos
 
-O gatilho não deve criar novos aprendizados de orçamento em:
+O gatilho não deve criar novos aprendizados de orçamento em `memory/solicitations/<SO>/LEARNING.md`, `memory/solicitations_learning/`, `04-knowledge-handbook/` ou qualquer outro diretório paralelo.
 
-- `memory/solicitations/<SO>/LEARNING.md`
-- `memory/solicitations_learning/`
-- `04-knowledge-handbook/`
-- qualquer outro diretório paralelo de aprendizado de orçamento.
+Arquivos históricos nesses locais são fontes legadas para migração/consolidação, preservando proveniência.
 
-Arquivos históricos existentes nesses locais devem ser tratados como fontes legadas para migração/consolidação, preservando sua proveniência; não devem gerar novos artefatos nesses destinos.
+## Governança e integridade
 
-## Decisão de roteamento
+Se o conceito já estiver `VALIDATED_LEARNING`, reutilizar sem duplicar e agregar somente ocorrência/evidência. Nunca promover `PRECEDENT` a `RULE` automaticamente.
 
-1. Identificar a SO e o documento de origem.
-2. Reconstruir SO / PTS Técnica / Orçamento / PTS Pós quando disponíveis.
-3. Classificar o domínio do conhecimento.
-4. Se for aprendizado do Especialista de Orçamento, resolver o destino canônico acima.
-5. Consultar a memória existente antes de criar conteúdo.
-6. Se o conceito já existir, agregar evidência ao conhecimento existente; se `VALIDATED_LEARNING`, reutilizar sem duplicar.
-7. Preservar `SO → documento → evidência → classificação → decisão → commit/PR/merge`.
-8. Commit só após a governança e os testes aplicáveis.
+O ID de cálculo é gerado/controlado pelo Supabase. O modelo não fabrica IDs.
 
-## Supabase
+Se a persistência aplicável falhar, a experiência permanece pendente e não pode ser marcada como consolidada.
 
-Supabase permanece **memória consultiva**, especialmente para cálculos e evidências estruturadas. Ele fornece informação ao ELO, mas não determina o destino do aprendizado nem substitui a governança cognitiva do ELO.
+## Laboratório
 
-## Proveniência de referências
-
-Informação recuperada de outra SO é referência consultiva, nunca origem da SO corrente. O ELO deve apresentar fonte, contexto original, informação recuperada, motivo da busca, motivo da possível aplicação, premissas/equivalências e validação necessária.
-
-## Promoção
-
-`PRECEDENT` não é promovido automaticamente a `RULE`. Conhecimento `CONCEPTUAL_KNOWLEDGE` ou `INSTRUCTIONAL_KNOWLEDGE` não deve ser confundido com regra operacional. O destino físico não determina a classificação cognitiva.
+O Laboratório Virtual é separado e somente é executado quando chamado explicitamente pelo usuário.
 
 ## Critério de conclusão
 
-A experiência só pode ser considerada consolidada quando o commit aplicável estiver confirmado. Se o commit falhar, permanecerá pendente para retomada.
+A experiência só pode ser considerada consolidada quando o commit Git aplicável e, havendo cálculos, a persistência/confirmação no Supabase estiverem confirmadas.
