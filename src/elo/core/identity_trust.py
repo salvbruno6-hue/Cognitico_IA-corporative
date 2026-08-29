@@ -1,10 +1,9 @@
 """Canonical ELO identity, trust and capability boundary.
 
-Authentication is external. This module binds an authenticated provider subject
-from a trusted provider assertion to an authoritative ELO identity record. The
-request may carry identity claims, but privileged role, enterprise context,
-repository scope, capabilities and active state are never trusted from the
-request itself. GitHub remains the infrastructure authorization boundary.
+Authentication is external. This module binds a provider subject from a trusted
+provider assertion to an authoritative ELO identity record. Privileged role,
+enterprise context, repository scope, capabilities and active state are never
+accepted from the request.
 """
 from dataclasses import dataclass
 from enum import StrEnum
@@ -38,7 +37,14 @@ class EloIdentity:
 
 @dataclass(frozen=True)
 class TrustRequest:
-    identity: EloIdentity
+    """Unprivileged request context plus the authenticated provider subject.
+
+    Authority attributes deliberately do not exist on this request object.
+    They can therefore only be obtained from the authoritative registry.
+    """
+
+    provider: str
+    provider_subject: str
     repository: str
     action: str
     capability: str
@@ -72,19 +78,16 @@ _CRITICAL_ACTIONS = frozenset({
 
 
 def evaluate_trust(request: TrustRequest, registry: TrustedIdentityRegistry) -> TrustResult:
-    """Fail-closed trust evaluation for ELO-sensitive operations."""
-    asserted = request.identity
-    if not all((asserted.provider, asserted.provider_subject, request.repository, request.action, request.capability)):
+    """Fail-closed trust evaluation using registry authority, never request claims."""
+    if not all((request.provider, request.provider_subject, request.repository, request.action, request.capability)):
         return TrustResult(TrustDecision.DENY, "missing_identity_or_scope")
 
-    authoritative = registry.resolve(asserted.provider, asserted.provider_subject)
+    # The provider subject is the only identity input. All privileged authority
+    # attributes are resolved from the trusted registry and cannot be supplied
+    # or overridden by the caller.
+    authoritative = registry.resolve(request.provider, request.provider_subject)
     if authoritative is None:
         return TrustResult(TrustDecision.DENY, "provider_identity_not_registered")
-
-    # Provider subject is the lookup anchor; every privileged ELO claim must
-    # match the authoritative record rather than being accepted from the request.
-    if asserted != authoritative:
-        return TrustResult(TrustDecision.DENY, "identity_claims_do_not_match_authority")
 
     if not authoritative.active:
         return TrustResult(TrustDecision.DENY, "identity_inactive")
