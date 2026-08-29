@@ -124,3 +124,7 @@ The ELO layer protects semantic authority. GitHub protects repository, credentia
 ## Non-goals
 
 This contract does not implement GitHub permissions, 2FA, passkeys, SSH keys, OAuth, PATs, organization membership, branch protection or network controls. Those remain infrastructure/provider responsibilities and are governed separately by #262.
+
+## Laboratory reconciliation
+
+The trust-boundary implementation is evaluated against the current `main` baseline before merge. CI remains the authoritative execution evidence for the evaluated PR HEAD.
