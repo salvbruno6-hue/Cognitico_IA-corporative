@@ -85,3 +85,6 @@ def test_inactive_authoritative_identity_is_denied():
     inactive = replace(AUTHORITATIVE_IDENTITY, active=False)
     inactive_registry = TrustedIdentityRegistry({"github:github-subject-1": inactive})
     assert evaluate_trust(req(identity=inactive), inactive_registry).decision is TrustDecision.DENY
+
+
+# Keep the regression suite explicit: trust-boundary changes must remain fail-closed.
