@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('ELO Auth: VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórias.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
 });
 
 type Props = { children: React.ReactNode };
@@ -17,7 +25,8 @@ export function ELOGoogleLogin({ children }: Props) {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(({ data, error: sessionError }) => {
+
+    void supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!active) return;
       if (sessionError) setError(sessionError.message);
       setSession(data.session);
@@ -25,6 +34,7 @@ export function ELOGoogleLogin({ children }: Props) {
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
       setSession(nextSession);
       setLoading(false);
     });
@@ -39,7 +49,9 @@ export function ELOGoogleLogin({ children }: Props) {
     setError(null);
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     if (authError) setError(authError.message);
   }
@@ -51,6 +63,7 @@ export function ELOGoogleLogin({ children }: Props) {
   }
 
   if (loading) return <div role="status">Verificando sessão…</div>;
+
   if (session) {
     return (
       <div data-elo-auth="authenticated">
