@@ -1,27 +1,32 @@
 """ELO APRENDER — cognitive consolidation for Análise de Solicitações.
 
-Primary source: Análise de Solicitações and its SO documents.
+Primary source: the GPT project/data source named "Análise de Solicitações".
 Canonical destination: 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/.
 Git stores cognitive knowledge; Supabase stores quantitative calculation memory.
 memory/evolution is auxiliary history/evidence and never replaces source investigation.
+
+IMPORTANT: "Análise de Solicitações" is a project/source boundary, not a
+repository directory. The executor must receive/access that project source
+through its mounted/runtime source adapter. It must not fall back to Dropbox or
+invent a repository path as the primary source.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
-from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS"
 EVOLUTION = ROOT / "memory/evolution"
-SOURCE_CANDIDATES = (
-    ROOT / "Análise de Solicitações",
-    ROOT / "ANÁLISE DE SOLICITAÇÕES",
-    ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/ANALISE_DE_SOLICITACOES",
-    ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/ANALISE_DE_SOLICITACOES.md",
-)
+
+# Runtime adapter: the project "Análise de Solicitações" is the authoritative
+# source. Its actual mounted path is supplied by the host/runtime, rather than
+# inferred from GitHub, Dropbox, or an arbitrary repository directory.
+PROJECT_SOURCE_ENV = "ELO_ANALISE_SOLICITACOES_ROOT"
+SOURCE_PROJECT_NAME = "Análise de Solicitações"
 
 CALCULATION_CHAIN = (
     "input", "source", "premise", "formula", "subcalculation", "result", "validation"
@@ -37,10 +42,12 @@ def _candidate_id(normalized: str) -> str:
 
 
 def _source_root() -> Path | None:
-    for candidate in SOURCE_CANDIDATES:
-        if candidate.exists():
-            return candidate
-    return None
+    """Resolve the GPT project source only through the runtime adapter."""
+    configured = os.environ.get(PROJECT_SOURCE_ENV, "").strip()
+    if not configured:
+        return None
+    candidate = Path(configured).expanduser()
+    return candidate if candidate.exists() else None
 
 
 def _source_files() -> list[Path]:
@@ -87,14 +94,18 @@ def _calculation_candidates(text: str) -> list[dict]:
 
 def _scan_primary_sources() -> list[dict]:
     records = []
+    source_root = _source_root()
+    if source_root is None:
+        return records
     for path in _source_files():
         text = _read_text(path)
         if not text.strip():
             continue
-        relative = str(path.relative_to(ROOT))
+        relative = str(path.relative_to(source_root))
         records.append({
             "so": _extract_so(text, path.parent.name),
             "source": relative,
+            "source_project": SOURCE_PROJECT_NAME,
             "source_type": path.suffix.lower().lstrip("."),
             "source_hash": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "text_length": len(text),
@@ -139,16 +150,17 @@ def _load_evolution_auxiliary() -> list[dict]:
 def main() -> int:
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
-    # Primary investigation is now the solicitation source tree. Existing
-    # Evolution Memory is auxiliary evidence only and cannot substitute it.
+    # Primary investigation is the GPT project source. Evolution Memory is
+    # auxiliary evidence only and cannot substitute the primary investigation.
     source_root = _source_root()
     primary_records = _scan_primary_sources()
     auxiliary_records = _load_evolution_auxiliary()
     existing = _load_existing_concepts()
 
     manifest = {
-        "schema_version": "elo-aprender-cognitive-v3",
-        "primary_source": str(source_root.relative_to(ROOT)) if source_root else None,
+        "schema_version": "elo-aprender-cognitive-v4",
+        "primary_source_project": SOURCE_PROJECT_NAME,
+        "primary_source_adapter": PROJECT_SOURCE_ENV,
         "primary_source_status": "FOUND" if source_root else "SOURCE_NOT_ACCESSIBLE",
         "primary_source_records": primary_records,
         "auxiliary_evolution_records": len(auxiliary_records),
@@ -162,6 +174,7 @@ def main() -> int:
             "CONCEPTUAL_KNOWLEDGE", "INSTRUCTIONAL_KNOWLEDGE", "RULE",
         ],
         "rules": {
+            "primary_source_is_gpt_project": True,
             "reinvestigate_existing_solicitations": True,
             "new_knowledge_requires_governance_and_persistence_confirmation": True,
             "new_calculation_requires_supabase_persistence_confirmation": True,
@@ -169,16 +182,19 @@ def main() -> int:
             "never_invent_data_formula_evidence_or_ids": True,
             "laboratory_only_when_explicitly_called": True,
             "evolution_memory_is_auxiliary": True,
+            "do_not_use_dropbox_as_primary_source": True,
+            "do_not_assume_repo_directory_is_project_source": True,
         },
     }
 
-    # This manifest is an auditable scan artifact. It deliberately does not
-    # simulate Supabase writes or claim learning persistence before confirmation.
+    # Auditable scan artifact. This deliberately does not simulate Supabase
+    # writes or claim learning persistence before actual confirmation.
     target = OUTPUT / "_elo_cognitive_scan.json"
     target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(json.dumps({
-        "status": "SCAN_COMPLETED",
+        "status": "SCAN_COMPLETED" if source_root else "SOURCE_NOT_ACCESSIBLE",
+        "primary_source_project": SOURCE_PROJECT_NAME,
         "primary_source_status": manifest["primary_source_status"],
         "primary_source_files": len(primary_records),
         "calculation_candidates": sum(len(r["calculation_candidates"]) for r in primary_records),
