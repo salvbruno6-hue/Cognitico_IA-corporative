@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './ELOGoogleLogin';
 
+const ELO_BASE_PATH = import.meta.env.BASE_URL;
+
 /**
  * Route component for /auth/callback.
  * Supabase processes the OAuth response and restores the persisted session.
@@ -22,9 +24,7 @@ export function ELOAuthCallback() {
         return;
       }
 
-      // Keep the callback route free of provider tokens. The Supabase client
-      // owns the session and persists/refreshes it according to its auth config.
-      window.location.replace('/');
+      window.location.replace(ELO_BASE_PATH);
     });
 
     return () => {
