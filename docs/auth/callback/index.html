@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ELO — Callback de autenticação</title>
+</head>
+<body>
+  <main style="font-family:system-ui,sans-serif;max-width:720px;margin:12vh auto;padding:24px">
+    <h1>ELO</h1>
+    <p id="status">Processando retorno de autenticação…</p>
+    <noscript>JavaScript é necessário para concluir o retorno de autenticação.</noscript>
+  </main>
+  <script>
+    (function () {
+      var status = document.getElementById('status');
+      var params = new URLSearchParams(window.location.search);
+      var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      var hasOAuthResponse = params.has('code') || params.has('error') || hash.has('access_token') || hash.has('error');
+
+      if (!hasOAuthResponse) {
+        status.textContent = 'Callback disponível. Nenhuma resposta OAuth foi recebida.';
+        return;
+      }
+
+      // A troca/validação de credenciais pertence ao Supabase/frontend oficial.
+      // Este entrypoint nunca persiste tokens, secrets ou identidade localmente.
+      status.textContent = 'Retorno OAuth recebido. A sessão deve ser concluída pelo frontend oficial do ELO.';
+    }());
+  </script>
+</body>
+</html>
