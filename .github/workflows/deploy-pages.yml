@@ -3,6 +3,8 @@ name: ELO GitHub Pages
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -11,21 +13,19 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  VITE_SUPABASE_URL: https://fxbpevjrkwhbicpmecow.supabase.co
+  VITE_SUPABASE_ANON_KEY: sb_publishable_oVTd0WpYAxTQeLCLha2AkQ_XIZt9WKk
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     defaults:
       run:
         working-directory: frontend
-    env:
-      VITE_SUPABASE_URL: https://fxbpevjrkwhbicpmecow.supabase.co
-      VITE_SUPABASE_ANON_KEY: sb_publishable_oVTd0WpYAxTQeLCLha2AkQ_XIZt9WKk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,6 +49,45 @@ jobs:
         run: npm run build
 
       - name: Create SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - name: Verify production entrypoint
+        run: |
+          test -f dist/index.html
+          test -f dist/404.html
+          grep -q "Cognitico_IA-corporative" dist/index.html
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install --no-audit --no-fund
+
+      - name: Build React frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ env.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Create SPA fallback
+        working-directory: frontend
         run: cp dist/index.html dist/404.html
 
       - name: Setup Pages
