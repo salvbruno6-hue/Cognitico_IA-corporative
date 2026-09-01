@@ -47,9 +47,12 @@ export function ELOGoogleLogin({ children }: Props) {
 
   async function signInWithGoogle() {
     setError(null);
+
     const base = import.meta.env.BASE_URL || '/';
     const callbackPath = `${base.replace(/\/$/, '')}/auth/callback`;
-    const redirectTo = new URL(callbackPath, window.location.origin).toString();
+    const configuredOrigin = import.meta.env.VITE_ELO_PUBLIC_URL as string | undefined;
+    const publicOrigin = (configuredOrigin || window.location.origin).replace(/\/$/, '');
+    const redirectTo = new URL(callbackPath, `${publicOrigin}/`).toString();
 
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
