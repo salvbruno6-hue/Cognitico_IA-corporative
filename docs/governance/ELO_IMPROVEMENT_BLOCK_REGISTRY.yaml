@@ -1,0 +1,46 @@
+version: 1
+registry: ELO_IMPROVEMENT_BLOCKS
+branch: feat/elo-improvement-blocks-04-12
+blocks:
+  - id: ELO-B04
+    name: reasoning-critique
+    state: implemented-extend
+    canonical_owner: src/elo/reasoning
+  - id: ELO-B05
+    name: decision-engine
+    state: implemented-extend
+    canonical_owner: 05-cognitive-platform
+  - id: ELO-B06
+    name: budget-intelligence
+    state: implemented-extend
+    canonical_owner: src/elo/core/budgeting.py
+  - id: ELO-B07
+    name: experience-learning
+    state: implemented-extend
+    canonical_owner: src/elo/core/learning_governance.py
+  - id: ELO-B08
+    name: agent-runtime
+    state: implemented-scaffold
+    canonical_owner: src/elo/agents/runtime.py
+  - id: ELO-B09
+    name: workflow-automation
+    state: implemented-scaffold
+    canonical_owner: automation/workflow_contract.py
+  - id: ELO-B10
+    name: infrastructure-integrations
+    state: roadmap-poc-gated
+    canonical_owner: 12-system-engineering/ELO_INTEGRATION_EVALUATION_MATRIX.md
+  - id: ELO-B11
+    name: corporate-workspace
+    state: implemented-contract
+    canonical_owner: frontend/ELO_CORPORATE_WORKSPACE_CONTRACT.md
+  - id: ELO-B12
+    name: evolution-dashboard
+    state: implemented-contract
+    canonical_owner: docs/governance/ELO_EVOLUTION_DASHBOARD_CONTRACT.md
+rules:
+  new_component_requires_duplicate_check: true
+  provider_neutrality: true
+  tenant_isolation: mandatory
+  evidence_before_promotion: true
+  human_authorization_for_consequential_actions: true
