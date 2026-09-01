@@ -5,7 +5,6 @@ import { ELOGoogleLogin } from './auth/ELOGoogleLogin';
 import { playELOSound, setELOSoundEnabled, setELOSoundVolume } from './eloSound';
 
 type Area = 'memoria' | 'processamento' | 'decisao' | 'historico' | 'configuracoes' | 'ajuda' | null;
-
 type AreaInfo = { title: string; label: string; text: string; metrics: string[] };
 
 const areas: Record<Exclude<Area, null>, AreaInfo> = {
@@ -26,8 +25,12 @@ function ELOCore() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [volume, setVolume] = useState(70);
 
-  const open = (area: Exclude<Area, null>) => { action(); setActiveArea(area); };
-  const close = () => { action('close'); setActiveArea(null); };
+  const open = (area: Exclude<Area, null>) => {
+    // Atualiza a interface antes do feedback sonoro: áudio nunca pode impedir a abertura do diálogo.
+    setActiveArea(area);
+    action();
+  };
+  const close = () => { setActiveArea(null); action('close'); };
 
   useEffect(() => {
     setELOSoundEnabled(soundEnabled);
@@ -83,7 +86,9 @@ function ELOCore() {
               <span className="elo-module-kicker">{area.title.toUpperCase()}</span><span className="elo-module-icon">{key === 'memoria' ? '◉' : key === 'processamento' ? '◌' : '♎'}</span>
               <h2>{area.label}</h2><p>{area.text}</p>
               <div className="elo-metrics">{area.metrics.map(metric => <span key={metric}>{metric}</span>)}</div>
-              <button type="button" onClick={() => open(key)}>Acessar {area.title} <b>→</b></button>
+              <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); open(key); }} aria-haspopup="dialog" aria-label={`Acessar ${area.title}`}>
+                Acessar {area.title} <b>→</b>
+              </button>
             </article>;
           })}
         </div>
