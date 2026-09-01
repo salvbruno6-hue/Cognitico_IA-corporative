@@ -1,11 +1,22 @@
 let audioContext: AudioContext | null = null;
+let soundEnabled = true;
+let soundVolume = 0.7;
 
 function getAudioContext() {
   if (!audioContext) audioContext = new AudioContext();
   return audioContext;
 }
 
+export function setELOSoundEnabled(enabled: boolean) {
+  soundEnabled = enabled;
+}
+
+export function setELOSoundVolume(volume: number) {
+  soundVolume = Math.max(0, Math.min(1, volume));
+}
+
 export function playELOSound(kind: 'login' | 'click' | 'success' | 'close' = 'click') {
+  if (!soundEnabled || soundVolume <= 0) return;
   try {
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') void ctx.resume();
@@ -24,7 +35,7 @@ export function playELOSound(kind: 'login' | 'click' | 'success' | 'close' = 'cl
     if (notes.length > 1) oscillator.frequency.setValueAtTime(notes[1], now + 0.08);
     if (notes.length > 2) oscillator.frequency.setValueAtTime(notes[2], now + 0.16);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.045, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.045 * soundVolume, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + (notes.length > 1 ? 0.28 : 0.14));
     oscillator.connect(gain).connect(ctx.destination);
     oscillator.start(now);

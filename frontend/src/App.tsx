@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ELOAuthCallback } from './auth/ELOAuthCallback';
 import { ELOGoogleLogin } from './auth/ELOGoogleLogin';
-import { playELOSound } from './eloSound';
+import { playELOSound, setELOSoundEnabled, setELOSoundVolume } from './eloSound';
 
 type Area = 'memoria' | 'processamento' | 'decisao' | 'historico' | 'configuracoes' | 'ajuda' | null;
 
-const areas = {
-  memoria: { title: 'Memória', label: 'Conhecimento', text: 'Base de conhecimento corporativo do ELO: informações, referências, registros e aprendizados consolidados.', metrics: ['Datasets Ativos · 25', 'Políticas Ativas · 10', 'Metases Ativos · 23', 'Recuperação Rápida · 12 ms'] },
-  processamento: { title: 'Processamento', label: 'Arbitragem', text: 'Camada de processamento: agentes analisam, cruzam dados e executam a arbitragem das informações.', metrics: ['Agentes em Uso · 8', 'Status Operacional · Ativo', 'Status · Cloud', 'Última Execução · 2 min'] },
+type AreaInfo = { title: string; label: string; text: string; metrics: string[] };
+
+const areas: Record<Exclude<Area, null>, AreaInfo> = {
+  memoria: { title: 'Memória', label: 'Conhecimento', text: 'Base de conhecimento corporativo do ELO: informações, referências, registros e aprendizados consolidados.', metrics: ['Datasets Ativos · 25', 'Políticas Ativas · 10', 'Metas Ativas · 23', 'Recuperação Rápida · 12 ms'] },
+  processamento: { title: 'Processamento', label: 'Arbitragem', text: 'Camada de processamento: agentes analisam, cruzam dados e executam a arbitragem das informações.', metrics: ['Agentes em Uso · 8', 'Status Operacional · Ativo', 'Ambiente · Cloud', 'Última Execução · 2 min'] },
   decisao: { title: 'Decisão', label: 'Governança', text: 'Camada de governança: decisões são validadas, auditadas e registradas para garantir rastreabilidade.', metrics: ['Políticas Ativas · 12', 'Audit-Ready · 100%', 'Auditorias Ativas · 12', 'Status · Conforme'] },
-  historico: { title: 'Histórico', label: 'Rastreabilidade', text: 'Linha do tempo das atividades e decisões registradas pelo ELO.', metrics: ['Eventos · 24', 'Últimas 24h · 24', 'Registros íntegros · 100%'] },
-  configuracoes: { title: 'Configurações', label: 'Parâmetros', text: 'Preferências de interface, notificações e parâmetros operacionais do ambiente.', metrics: ['Som · Ativo', 'Notificações · Ativas', 'Ambiente · Produção'] },
+  historico: { title: 'Histórico', label: 'Rastreabilidade', text: 'Linha do tempo das atividades e decisões registradas pelo ELO.', metrics: ['Eventos · 24', 'Últimas 24h · 24', 'Registros Íntegros · 100%'] },
+  configuracoes: { title: 'Configurações', label: 'Parâmetros', text: 'Preferências de interface, notificações e parâmetros operacionais do ambiente.', metrics: ['Som · Configurável', 'Notificações · Configuráveis', 'Ambiente · Produção'] },
   ajuda: { title: 'Ajuda', label: 'Suporte', text: 'Orientações sobre navegação, memória, processamento, decisão e governança do ELO.', metrics: ['Status · Operacional', 'Documentação · Disponível'] },
-} as const;
+};
 
 function action(kind: 'click' | 'success' | 'close' = 'click') { playELOSound(kind); }
 
@@ -21,16 +23,32 @@ function ELOCore() {
   const [activeArea, setActiveArea] = useState<Area>(null);
   const [notifications, setNotifications] = useState(true);
   const [alerts, setAlerts] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [volume, setVolume] = useState(70);
 
   const open = (area: Exclude<Area, null>) => { action(); setActiveArea(area); };
   const close = () => { action('close'); setActiveArea(null); };
 
+  useEffect(() => {
+    setELOSoundEnabled(soundEnabled);
+    setELOSoundVolume(volume / 100);
+  }, [soundEnabled, volume]);
+
+  useEffect(() => {
+    if (!activeArea) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeArea]);
+
   return (
     <main className="elo-dashboard" data-elo-core="authenticated">
       <aside className="elo-sidebar" aria-label="Navegação principal">
-        <button className="elo-sidebar-brand" type="button" onClick={() => { action(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><span className="elo-mark">∞</span><strong>ELO</strong><small>Cognitive_IA-corporative</small></button>
+        <button className="elo-sidebar-brand" type="button" onClick={() => { action(); setActiveArea(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+          <span className="elo-mark">∞</span><strong>ELO</strong><small>Cognitive_IA-corporative</small>
+        </button>
         <nav>
-          <button className="is-active" type="button" onClick={() => open('memoria')}>⌂ <span>Núcleo ELO</span></button>
+          <button className="is-active" type="button" onClick={() => { action(); setActiveArea(null); }} aria-current="page">⌂ <span>Núcleo ELO</span></button>
           <button type="button" onClick={() => open('memoria')}>◉ <span>Memória</span></button>
           <button type="button" onClick={() => open('processamento')}>◌ <span>Processamento</span></button>
           <button type="button" onClick={() => open('decisao')}>♎ <span>Decisão</span></button>
@@ -39,13 +57,18 @@ function ELOCore() {
           <button type="button" onClick={() => open('configuracoes')}>⚙ <span>Configurações</span></button>
           <button type="button" onClick={() => open('ajuda')}>? <span>Ajuda</span></button>
         </nav>
-        <button className="elo-sidebar-sound" type="button" onClick={() => { action(); window.dispatchEvent(new CustomEvent('elo-sound-toggle')); }} aria-label="Alternar som">◖ <span>Som ativado</span></button>
+        <button className="elo-sidebar-sound" type="button" onClick={() => { const next = !soundEnabled; setSoundEnabled(next); setELOSoundEnabled(next); if (next) playELOSound('success'); }} aria-pressed={soundEnabled} aria-label="Alternar som">
+          {soundEnabled ? '◖' : '○'} <span>Som {soundEnabled ? 'ativado' : 'desativado'}</span>
+        </button>
       </aside>
 
       <section className="elo-main">
         <div className="elo-dashboard-top">
           <span className="elo-connected"><i /> CONECTADO AO ELO</span>
-          <div className="elo-dashboard-actions"><button type="button" onClick={() => { action(); setActiveArea('configuracoes'); }}>⚙</button><button type="button" onClick={() => { action(); setNotifications(v => !v); }}>♢</button></div>
+          <div className="elo-dashboard-actions">
+            <button type="button" onClick={() => open('configuracoes')} aria-label="Abrir configurações">⚙</button>
+            <button type="button" onClick={() => { action(); setNotifications(v => !v); }} aria-pressed={notifications} aria-label="Alternar notificações">{notifications ? '♢' : '○'}</button>
+          </div>
         </div>
 
         <section className="elo-hero">
@@ -71,11 +94,11 @@ function ELOCore() {
           <div><b>↻ ÚLTIMA SINCRONIZAÇÃO</b><span>31/08/2026 23:24</span></div>
         </section>
 
-        <section className="elo-controls">
+        <section className="elo-controls" aria-label="Som e notificações">
           <div><b>Som e Notificações</b><span>Controles de interação do ELO</span></div>
           <label><span>Notificações do sistema</span><input type="checkbox" checked={notifications} onChange={(e) => { action(); setNotifications(e.target.checked); }} /></label>
           <label><span>Alertas de eventos</span><input type="checkbox" checked={alerts} onChange={(e) => { action(); setAlerts(e.target.checked); }} /></label>
-          <label><span>Volume</span><input type="range" min="0" max="100" defaultValue="70" onChange={() => action()} /></label>
+          <label><span>Volume</span><input type="range" min="0" max="100" value={volume} onChange={(e) => { setVolume(Number(e.target.value)); }} aria-label="Volume do som" /></label>
         </section>
 
         {activeArea && <div className="elo-modal-backdrop" role="presentation" onClick={close}>
