@@ -2,76 +2,96 @@ import { useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ELOAuthCallback } from './auth/ELOAuthCallback';
 import { ELOGoogleLogin } from './auth/ELOGoogleLogin';
+import { playELOSound } from './eloSound';
 
-type CoreArea = 'memoria' | 'processamento' | 'decisao' | null;
+type Area = 'memoria' | 'processamento' | 'decisao' | 'historico' | 'configuracoes' | 'ajuda' | null;
 
-const areaContent = {
-  memoria: {
-    title: 'Memória',
-    text: 'Camada de conhecimento do ELO. Aqui ficarão consultas, registros e referências consolidadas.',
-  },
-  processamento: {
-    title: 'Processamento',
-    text: 'Camada de arbitragem do ELO. Aqui ficarão análises, validações e processamento das informações.',
-  },
-  decisao: {
-    title: 'Decisão',
-    text: 'Camada de governança do ELO. Aqui ficarão decisões arbitradas, diretrizes e controles.',
-  },
+const areas = {
+  memoria: { title: 'Memória', label: 'Conhecimento', text: 'Base de conhecimento corporativo do ELO: informações, referências, registros e aprendizados consolidados.', metrics: ['Datasets Ativos · 25', 'Políticas Ativas · 10', 'Metases Ativos · 23', 'Recuperação Rápida · 12 ms'] },
+  processamento: { title: 'Processamento', label: 'Arbitragem', text: 'Camada de processamento: agentes analisam, cruzam dados e executam a arbitragem das informações.', metrics: ['Agentes em Uso · 8', 'Status Operacional · Ativo', 'Status · Cloud', 'Última Execução · 2 min'] },
+  decisao: { title: 'Decisão', label: 'Governança', text: 'Camada de governança: decisões são validadas, auditadas e registradas para garantir rastreabilidade.', metrics: ['Políticas Ativas · 12', 'Audit-Ready · 100%', 'Auditorias Ativas · 12', 'Status · Conforme'] },
+  historico: { title: 'Histórico', label: 'Rastreabilidade', text: 'Linha do tempo das atividades e decisões registradas pelo ELO.', metrics: ['Eventos · 24', 'Últimas 24h · 24', 'Registros íntegros · 100%'] },
+  configuracoes: { title: 'Configurações', label: 'Parâmetros', text: 'Preferências de interface, notificações e parâmetros operacionais do ambiente.', metrics: ['Som · Ativo', 'Notificações · Ativas', 'Ambiente · Produção'] },
+  ajuda: { title: 'Ajuda', label: 'Suporte', text: 'Orientações sobre navegação, memória, processamento, decisão e governança do ELO.', metrics: ['Status · Operacional', 'Documentação · Disponível'] },
 } as const;
 
+function action(kind: 'click' | 'success' | 'close' = 'click') { playELOSound(kind); }
+
 function ELOCore() {
-  const [activeArea, setActiveArea] = useState<CoreArea>(null);
+  const [activeArea, setActiveArea] = useState<Area>(null);
+  const [notifications, setNotifications] = useState(true);
+  const [alerts, setAlerts] = useState(true);
+
+  const open = (area: Exclude<Area, null>) => { action(); setActiveArea(area); };
+  const close = () => { action('close'); setActiveArea(null); };
 
   return (
-    <main className="elo-core" data-elo-core="authenticated">
-      <div className="elo-core__status"><span /> CONECTADO AO ELO</div>
-      <h1>Núcleo ELO</h1>
-      <p>Sessão autenticada. A camada de inteligência corporativa está disponível.</p>
+    <main className="elo-dashboard" data-elo-core="authenticated">
+      <aside className="elo-sidebar" aria-label="Navegação principal">
+        <button className="elo-sidebar-brand" type="button" onClick={() => { action(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><span className="elo-mark">∞</span><strong>ELO</strong><small>Cognitive_IA-corporative</small></button>
+        <nav>
+          <button className="is-active" type="button" onClick={() => open('memoria')}>⌂ <span>Núcleo ELO</span></button>
+          <button type="button" onClick={() => open('memoria')}>◉ <span>Memória</span></button>
+          <button type="button" onClick={() => open('processamento')}>◌ <span>Processamento</span></button>
+          <button type="button" onClick={() => open('decisao')}>♎ <span>Decisão</span></button>
+          <hr />
+          <button type="button" onClick={() => open('historico')}>◷ <span>Histórico</span></button>
+          <button type="button" onClick={() => open('configuracoes')}>⚙ <span>Configurações</span></button>
+          <button type="button" onClick={() => open('ajuda')}>? <span>Ajuda</span></button>
+        </nav>
+        <button className="elo-sidebar-sound" type="button" onClick={() => { action(); window.dispatchEvent(new CustomEvent('elo-sound-toggle')); }} aria-label="Alternar som">◖ <span>Som ativado</span></button>
+      </aside>
 
-      <div className="elo-core__grid" aria-label="Áreas do ELO">
-        <button type="button" className="elo-core__card" onClick={() => setActiveArea('memoria')}>
-          <strong>MEMÓRIA</strong>
-          <span>Conhecimento</span>
-          <small>Consultar →</small>
-        </button>
-        <button type="button" className="elo-core__card" onClick={() => setActiveArea('processamento')}>
-          <strong>PROCESSAMENTO</strong>
-          <span>Arbitragem</span>
-          <small>Consultar →</small>
-        </button>
-        <button type="button" className="elo-core__card" onClick={() => setActiveArea('decisao')}>
-          <strong>DECISÃO</strong>
-          <span>Governança</span>
-          <small>Consultar →</small>
-        </button>
-      </div>
+      <section className="elo-main">
+        <div className="elo-dashboard-top">
+          <span className="elo-connected"><i /> CONECTADO AO ELO</span>
+          <div className="elo-dashboard-actions"><button type="button" onClick={() => { action(); setActiveArea('configuracoes'); }}>⚙</button><button type="button" onClick={() => { action(); setNotifications(v => !v); }}>♢</button></div>
+        </div>
 
-      {activeArea && (
-        <section className="elo-core__panel" aria-live="polite">
-          <div>
-            <strong>{areaContent[activeArea].title}</strong>
-            <p>{areaContent[activeArea].text}</p>
-          </div>
-          <button type="button" onClick={() => setActiveArea(null)}>Fechar</button>
+        <section className="elo-hero">
+          <div className="elo-hero-logo"><span className="elo-mark elo-mark--hero">∞</span><span><b>ELO</b><small>Cognitive_IA-corporative | Orchestration System</small></span></div>
+          <div className="elo-hero-copy"><span>● CONECTADO AO ELO</span><h1>NÚCLEO ELO</h1><p>Sessão autenticada. A camada de inteligência corporativa e orquestração está disponível.</p></div>
         </section>
-      )}
+
+        <div className="elo-card-grid">
+          {(['memoria', 'processamento', 'decisao'] as const).map((key) => {
+            const area = areas[key];
+            return <article className={`elo-module elo-module--${key}`} key={key}>
+              <span className="elo-module-kicker">{area.title.toUpperCase()}</span><span className="elo-module-icon">{key === 'memoria' ? '◉' : key === 'processamento' ? '◌' : '♎'}</span>
+              <h2>{area.label}</h2><p>{area.text}</p>
+              <div className="elo-metrics">{area.metrics.map(metric => <span key={metric}>{metric}</span>)}</div>
+              <button type="button" onClick={() => open(key)}>Acessar {area.title} <b>→</b></button>
+            </article>;
+          })}
+        </div>
+
+        <section className="elo-system-strip" aria-label="Status do sistema">
+          <div><b>⌁ ATIVIDADE RECENTE</b><span>24 eventos nas últimas 24h</span></div>
+          <div><b>✓ STATUS DO SISTEMA</b><span>Todos os sistemas operacionais</span></div>
+          <div><b>↻ ÚLTIMA SINCRONIZAÇÃO</b><span>31/08/2026 23:24</span></div>
+        </section>
+
+        <section className="elo-controls">
+          <div><b>Som e Notificações</b><span>Controles de interação do ELO</span></div>
+          <label><span>Notificações do sistema</span><input type="checkbox" checked={notifications} onChange={(e) => { action(); setNotifications(e.target.checked); }} /></label>
+          <label><span>Alertas de eventos</span><input type="checkbox" checked={alerts} onChange={(e) => { action(); setAlerts(e.target.checked); }} /></label>
+          <label><span>Volume</span><input type="range" min="0" max="100" defaultValue="70" onChange={() => action()} /></label>
+        </section>
+
+        {activeArea && <div className="elo-modal-backdrop" role="presentation" onClick={close}>
+          <section className="elo-modal" role="dialog" aria-modal="true" aria-labelledby="elo-modal-title" onClick={(e) => e.stopPropagation()}>
+            <span className="elo-eyebrow">{areas[activeArea].label.toUpperCase()}</span><h2 id="elo-modal-title">{areas[activeArea].title}</h2><p>{areas[activeArea].text}</p>
+            <div className="elo-modal-metrics">{areas[activeArea].metrics.map(metric => <span key={metric}>{metric}</span>)}</div>
+            <button type="button" onClick={close}>Fechar</button>
+          </section>
+        </div>}
+      </section>
     </main>
   );
 }
 
-function Login() {
-  return <ELOGoogleLogin><ELOCore /></ELOGoogleLogin>;
-}
+function Login() { return <ELOGoogleLogin><ELOCore /></ELOGoogleLogin>; }
 
 export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/auth/callback" element={<ELOAuthCallback />} />
-      <Route path="/app/*" element={<Login />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
+  return <Routes><Route path="/" element={<Login />} /><Route path="/login" element={<Login />} /><Route path="/auth/callback" element={<ELOAuthCallback />} /><Route path="/app/*" element={<Login />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes>;
 }
