@@ -1,11 +1,5 @@
 [data-elo-auth="login"] {
-  position: relative;
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 5vh 5vw;
-  overflow: hidden;
+  position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 5vh 5vw; overflow: hidden;
   background: radial-gradient(circle at 50% 18%, rgba(20,153,255,.11), transparent 30%), radial-gradient(circle at 12% 52%, rgba(20,153,255,.08), transparent 30%), radial-gradient(circle at 88% 66%, rgba(104,74,255,.08), transparent 34%), linear-gradient(145deg, #05080d 0%, #0b1017 52%, #070a10 100%);
 }
 [data-elo-auth="login"]::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px); background-size:52px 52px; mask-image:linear-gradient(to bottom,black 0%,transparent 82%); }
@@ -32,3 +26,25 @@
 @media (max-width:900px){[data-elo-auth="login"]{padding:18px 12px 24px;}[data-elo-auth="login"] .elo-login-panel{width:min(94vw,720px);height:min(88vh,920px);min-height:600px;border-radius:24px;}[data-elo-auth="login"] .elo-login-content{width:min(84%,580px);padding-top:74px;} .elo-login-logo{margin-bottom:32px;}[data-elo-auth="login"] .elo-login-content h1{width:100%;margin-bottom:46px;text-align:center;}[data-elo-auth="login"] .elo-google-button{width:100%;min-height:66px;}}
 @media (max-width:560px){[data-elo-auth="login"] .elo-login-panel{width:100%;height:calc(100dvh - 36px);min-height:560px;border-radius:20px;}[data-elo-auth="login"] .elo-login-content{width:min(86%,440px);padding:62px 0 44px;}.elo-login-logo{height:66px;margin-bottom:28px;}.elo-login-wordmark{font-size:58px;}.elo-login-orbit{width:54px;height:54px;}[data-elo-auth="login"] .elo-login-content h1{width:100%;font-size:36px;margin-bottom:38px;text-align:center;}[data-elo-auth="login"] .elo-google-button{min-height:62px;border-radius:16px;padding:14px 20px;font-size:16px;}[data-elo-auth="login"] .elo-login-description{margin-top:28px;font-size:15px;text-align:center;}}
 @media (prefers-reduced-motion:reduce){[data-elo-auth="login"]::after{animation:none;}[data-elo-auth="login"] .elo-google-button{transition:none;}}
+
+[data-elo-auth="setup"] { position:relative; min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; overflow:hidden; background:radial-gradient(circle at 50% 20%,rgba(20,153,255,.12),transparent 34%),linear-gradient(145deg,#05080d,#0b1017 55%,#070a10); color:#f0f4f8; }
+[data-elo-auth="setup"]::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(rgba(255,255,255,.014) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px); background-size:52px 52px; }
+.elo-setup-panel { position:relative; z-index:1; width:min(760px,94vw); min-height:0!important; height:auto!important; overflow:visible!important; }
+[data-elo-auth="setup"] .elo-login-content { width:min(88%,620px); padding:72px 0 64px; }
+.elo-setup-kicker { color:#48b5ff; font:600 12px/1.2 Inter,sans-serif; letter-spacing:.18em; margin-bottom:22px; }
+[data-elo-auth="setup"] h1 { width:100%; margin:0 0 20px; color:#f0f4f8; font:600 clamp(34px,4vw,52px)/1.08 Sora,sans-serif; letter-spacing:-.045em; text-align:center; }
+.elo-setup-lead { max-width:590px; margin:0 0 34px; color:#9aaab7; font:400 16px/1.6 Inter,sans-serif; text-align:center; }
+.elo-setup-status { width:100%; display:grid; gap:10px; margin-bottom:26px; }
+.elo-setup-status > div { display:grid; grid-template-columns:18px 1fr auto; align-items:center; gap:10px; min-height:58px; padding:12px 16px; border:1px solid rgba(255,255,255,.08); border-radius:14px; background:rgba(255,255,255,.025); text-align:left; }
+.elo-setup-status strong { font:600 14px/1.2 Inter,sans-serif; }
+.elo-setup-status small { color:#8293a1; font:400 12px/1.2 Inter,sans-serif; }
+.elo-status-dot,.elo-status-pending { width:9px; height:9px; border-radius:50%; display:block; }
+.elo-status-dot { background:#4fd3a6; box-shadow:0 0 12px rgba(79,211,166,.55); }
+.elo-status-pending { background:#8997a5; box-shadow:0 0 10px rgba(137,151,165,.2); }
+[data-elo-auth="setup"] .elo-chatgpt-button { width:100%; min-height:62px; background:linear-gradient(135deg,#f7f8fa,#e7edf3); }
+.elo-setup-note { max-width:570px; margin:18px auto 20px; color:#778895; font:400 12px/1.55 Inter,sans-serif; text-align:center; }
+.elo-setup-secondary,.elo-setup-signout { border:0; background:transparent; cursor:pointer; font:500 13px/1.4 Inter,sans-serif; }
+.elo-setup-secondary { color:#55baff; margin-top:4px; }
+.elo-setup-signout { color:#6f7d89; margin-top:18px; }
+.elo-setup-secondary:hover,.elo-setup-signout:hover { text-decoration:underline; }
+@media (max-width:560px){[data-elo-auth="setup"]{padding:12px;}[data-elo-auth="setup"] .elo-login-content{width:86%;padding:54px 0 44px;}.elo-setup-status > div{grid-template-columns:14px 1fr;}.elo-setup-status small{grid-column:2;}.elo-setup-lead{font-size:15px;}}

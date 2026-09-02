@@ -11,11 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
 });
 
 type Props = { children: React.ReactNode };
@@ -32,58 +28,44 @@ function GoogleIcon() {
 }
 
 function ELOLogo() {
-  return (
-    <div className="elo-login-logo" aria-label="ELO">
-      <span className="elo-login-wordmark" aria-hidden="true">EL</span>
-      <span className="elo-login-orbit" aria-hidden="true"><i /><b /></span>
-    </div>
-  );
+  return <div className="elo-login-logo" aria-label="ELO"><span className="elo-login-wordmark" aria-hidden="true">EL</span><span className="elo-login-orbit" aria-hidden="true"><i /><b /></span></div>;
+}
+
+function getPublicOrigin() {
+  const configuredOrigin = import.meta.env.VITE_ELO_PUBLIC_URL as string | undefined;
+  return (configuredOrigin || window.location.origin).replace(/\/$/, '');
 }
 
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [setup, setSetup] = useState(false);
 
   useEffect(() => {
     let active = true;
-
     void supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!active) return;
       if (sessionError) setError(sessionError.message);
       setSession(data.session);
       setLoading(false);
     });
-
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
       setLoading(false);
     });
-
-    return () => {
-      active = false;
-      data.subscription.unsubscribe();
-    };
+    return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
   async function signInWithGoogle() {
     setError(null);
-    // The click is a trusted browser gesture: unlock the ELO audio engine before OAuth navigation.
     startELOAmbient();
     playELOSound('click');
-
     const base = import.meta.env.BASE_URL || '/';
     const callbackPath = `${base.replace(/\/$/, '')}/auth/callback`;
-    const configuredOrigin = import.meta.env.VITE_ELO_PUBLIC_URL as string | undefined;
-    const publicOrigin = (configuredOrigin || window.location.origin).replace(/\/$/, '');
-    const redirectTo = new URL(callbackPath, `${publicOrigin}/`).toString();
-
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
-
+    const redirectTo = new URL(callbackPath, `${getPublicOrigin()}/`).toString();
+    const { error: authError } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
     if (authError) setError(authError.message);
   }
 
@@ -93,40 +75,49 @@ export function ELOGoogleLogin({ children }: Props) {
     if (signOutError) setError(signOutError.message);
   }
 
+  function continueToChatGPT() {
+    playELOSound('success');
+    window.open('https://chatgpt.com/', '_blank', 'noopener,noreferrer');
+  }
+
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
 
-  if (session) {
+  if (session && !setup) {
     return (
-      <div data-elo-auth="authenticated">
-        <header style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-          <span>Conectado ao ELO</span>
-          <button type="button" onClick={signOut}>Sair</button>
-        </header>
-        {children}
-        {error && <p role="alert">{error}</p>}
-      </div>
+      <main data-elo-auth="setup" className="elo-setup-page">
+        <section className="elo-login-panel elo-setup-panel">
+          <div className="elo-login-content">
+            <ELOLogo />
+            <span className="elo-setup-kicker">CONFIGURAÇÃO INICIAL</span>
+            <h1>Preparar acesso ao ELO</h1>
+            <p className="elo-setup-lead">Sua identidade administrativa já foi autenticada. Agora escolha como deseja entrar na camada conversacional do ELO.</p>
+            <div className="elo-setup-status" aria-label="Status da configuração">
+              <div><span className="elo-status-dot" /> <strong>Google</strong><small>Identidade autenticada</small></div>
+              <div><span className="elo-status-dot" /> <strong>Supabase</strong><small>Sessão ELO ativa</small></div>
+              <div><span className="elo-status-pending" /> <strong>ChatGPT</strong><small>Conexão ainda não autorizada</small></div>
+            </div>
+            <button className="elo-google-button elo-chatgpt-button" type="button" onClick={continueToChatGPT}>Continuar para o ChatGPT</button>
+            <p className="elo-setup-note">A abertura do ChatGPT não concede, por si só, acesso ao ELO. A autorização entre ChatGPT e ELO será concluída por uma integração OAuth/MCP compatível.</p>
+            <button className="elo-setup-secondary" type="button" onClick={() => setSetup(true)}>Entrar no Núcleo ELO agora</button>
+            <button className="elo-setup-signout" type="button" onClick={signOut}>Sair da sessão administrativa</button>
+          </div>
+        </section>
+      </main>
     );
+  }
+
+  if (session && setup) {
+    return <div data-elo-auth="authenticated">{children}<button type="button" onClick={signOut}>Sair</button>{error && <p role="alert">{error}</p>}</div>;
   }
 
   return (
     <main data-elo-auth="login" aria-labelledby="elo-login-title">
-      <section className="elo-login-panel">
-        <div className="elo-login-content">
-          <ELOLogo />
-          <h1 id="elo-login-title">Entrar no ELO</h1>
-          <button
-            className="elo-google-button"
-            type="button"
-            onClick={signInWithGoogle}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') startELOAmbient(); }}
-          >
-            <GoogleIcon />
-            <span>Continuar com Google</span>
-          </button>
-          <p className="elo-login-description">Use sua conta Google para acessar o ELO.</p>
-          {error && <p className="elo-login-error" role="alert">Não foi possível iniciar o login: {error}</p>}
-        </div>
-      </section>
+      <section className="elo-login-panel"><div className="elo-login-content">
+        <ELOLogo /><h1 id="elo-login-title">Entrar no ELO</h1>
+        <button className="elo-google-button" type="button" onClick={signInWithGoogle} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') startELOAmbient(); }}><GoogleIcon /><span>Continuar com Google</span></button>
+        <p className="elo-login-description">Use sua conta Google para acessar o ELO.</p>
+        {error && <p className="elo-login-error" role="alert">Não foi possível iniciar o login: {error}</p>}
+      </div></section>
     </main>
   );
 }
