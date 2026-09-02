@@ -3,6 +3,7 @@
 The ELO decides the mission, context, specialist role and evaluation criteria.
 This adapter only connects that governed request to a selected provider.
 Secrets are read from the execution environment and are never stored here.
+Provider-side response storage is disabled so ELO remains the canonical memory authority.
 """
 
 from dataclasses import dataclass, field
@@ -49,8 +50,8 @@ class OpenAIProvider:
 
     provider_id = "openai"
 
-    def __init__(self, api_key: str | None = None):
-        self._api_key = api_key or os.environ.get("OPENAI_API_KEY")
+    def __init__(self):
+        self._api_key = os.environ.get("OPENAI_API_KEY")
         if not self._api_key:
             raise RuntimeError("OPENAI_API_KEY is required for the OpenAI adapter")
 
@@ -66,7 +67,7 @@ class OpenAIProvider:
                 f"SPECIALIST MISSION:\n{request.instructions}\n\n"
                 f"CORPORATE CONTEXT:\n{request.context}"
             ),
-            store=True,
+            store=False,
         )
         return AIResponse(
             request_id=request.request_id,
