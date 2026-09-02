@@ -68,6 +68,6 @@ class PerformanceMemory:
             if score is not None:
                 grouped.setdefault(item.signature, []).append(score)
         return {
-            signature: sum(scores) / len(scores)
+            signature: round(sum(scores) / len(scores), 12)
             for signature, scores in grouped.items()
         }
