@@ -48,3 +48,14 @@
 .elo-setup-signout { color:#6f7d89; margin-top:18px; }
 .elo-setup-secondary:hover,.elo-setup-signout:hover { text-decoration:underline; }
 @media (max-width:560px){[data-elo-auth="setup"]{padding:12px;}[data-elo-auth="setup"] .elo-login-content{width:86%;padding:54px 0 44px;}.elo-setup-status > div{grid-template-columns:14px 1fr;}.elo-setup-status small{grid-column:2;}.elo-setup-lead{font-size:15px;}}
+
+[data-elo-auth="oauth-consent"] { position:relative; min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; overflow:hidden; background:radial-gradient(circle at 50% 18%,rgba(20,153,255,.12),transparent 34%),linear-gradient(145deg,#05080d,#0b1017 55%,#070a10); color:#f0f4f8; }
+[data-elo-auth="oauth-consent"]::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(rgba(255,255,255,.014) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px); background-size:52px 52px; }
+[data-elo-auth="oauth-consent"] .elo-login-panel { position:relative; z-index:1; width:min(760px,94vw); min-height:0; height:auto; overflow:visible; }
+[data-elo-auth="oauth-consent"] .elo-login-content { width:min(88%,620px); padding:68px 0 58px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+[data-elo-auth="oauth-consent"] h1 { width:100%; margin:0 0 20px; color:#f0f4f8; font:600 clamp(34px,4vw,52px)/1.08 Sora,sans-serif; letter-spacing:-.045em; text-align:center; }
+.elo-consent-actions { width:100%; display:grid; gap:12px; margin-top:4px; }
+.elo-consent-actions button { width:100%; }
+.elo-consent-actions .elo-setup-secondary { min-height:54px; border:1px solid rgba(255,255,255,.12); border-radius:14px; color:#9fb0be; background:rgba(255,255,255,.025); text-decoration:none; }
+.elo-consent-actions .elo-setup-secondary:hover { background:rgba(255,255,255,.05); }
+.elo-consent-actions button:disabled { opacity:.55; cursor:wait; }
