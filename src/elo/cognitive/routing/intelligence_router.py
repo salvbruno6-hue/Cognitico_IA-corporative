@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Mapping
 
 from .execution_routing import ExecutionRouter, RoutingDecision
-from ..integrations.ai_provider import AIProvider, AIRequest, AIResponse
+from ...integrations.ai_provider import AIProvider, AIRequest, AIResponse
 
 
 @dataclass(frozen=True)
