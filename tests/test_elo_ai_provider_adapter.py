@@ -30,8 +30,9 @@ def test_request_keeps_governed_specialist_context():
     assert "evidências" in request.context
 
 
-def test_adapter_does_not_accept_another_provider():
-    provider = OpenAIProvider(api_key="test-key")
+def test_adapter_does_not_accept_another_provider(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    provider = OpenAIProvider()
     request = AIRequest(
         request_id="req-2",
         tenant_id="tenant-1",
