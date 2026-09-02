@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
+import './login.css';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -17,6 +18,26 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 type Props = { children: React.ReactNode };
+
+function GoogleIcon() {
+  return (
+    <svg className="elo-google-icon" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5Z" />
+      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 16 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4c-7.7 0-14.3 4.3-17.7 10.7Z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.4 35 26.8 36 24 36c-5.2 0-9.7-3.3-11.3-8l-6.5 5C9.6 39.4 16.2 44 24 44Z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3.1-3.7 5.5-7 6.6l.1.1 6.3 5.3C34.3 40.6 44 34 44 24c0-1.3-.1-2.4-.4-3.5Z" />
+    </svg>
+  );
+}
+
+function ELOLogo() {
+  return (
+    <div className="elo-login-logo" aria-label="ELO">
+      <span className="elo-login-wordmark">EL</span>
+      <span className="elo-login-orbit" aria-hidden="true"><i /><b /></span>
+    </div>
+  );
+}
 
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
@@ -68,7 +89,7 @@ export function ELOGoogleLogin({ children }: Props) {
     if (signOutError) setError(signOutError.message);
   }
 
-  if (loading) return <div role="status">Verificando sessão…</div>;
+  if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
 
   if (session) {
     return (
@@ -85,13 +106,19 @@ export function ELOGoogleLogin({ children }: Props) {
 
   return (
     <main data-elo-auth="login" aria-labelledby="elo-login-title">
-      <section>
-        <h1 id="elo-login-title">Entrar no ELO</h1>
-        <p>Use sua conta Google para acessar o ELO.</p>
-        <button type="button" onClick={signInWithGoogle}>
-          Continuar com Google
-        </button>
-        {error && <p role="alert">Não foi possível iniciar o login: {error}</p>}
+      <section className="elo-login-panel">
+        <div className="elo-login-content">
+          <ELOLogo />
+          <div className="elo-login-copy">
+            <h1 id="elo-login-title">Entrar no ELO</h1>
+            <p>Use sua conta Google para acessar o ELO.</p>
+          </div>
+          <button className="elo-google-button" type="button" onClick={signInWithGoogle}>
+            <GoogleIcon />
+            <span>Continuar com Google</span>
+          </button>
+          {error && <p className="elo-login-error" role="alert">Não foi possível iniciar o login: {error}</p>}
+        </div>
       </section>
     </main>
   );

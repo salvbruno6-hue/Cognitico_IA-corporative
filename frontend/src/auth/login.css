@@ -1,0 +1,207 @@
+[data-elo-auth="login"] {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: start center;
+  padding: clamp(34px, 8vh, 82px) 20px 40px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(20, 153, 255, .10), transparent 28%),
+    radial-gradient(circle at 10% 50%, rgba(20, 153, 255, .08), transparent 30%),
+    radial-gradient(circle at 90% 70%, rgba(139, 77, 255, .07), transparent 32%),
+    linear-gradient(145deg, #05080d 0%, #0b1017 52%, #06090f 100%);
+}
+
+[data-elo-auth="login"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: linear-gradient(to bottom, black, transparent 75%);
+}
+
+[data-elo-auth="login"] .elo-login-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 620px);
+  min-height: 610px;
+  display: flex;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 28px;
+  background: linear-gradient(160deg, rgba(12,17,24,.94), rgba(7,11,17,.97));
+  box-shadow: 0 28px 90px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.025);
+  overflow: hidden;
+}
+
+[data-elo-auth="login"] .elo-login-panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 220px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(20,153,255,.8), transparent);
+  box-shadow: 0 0 28px rgba(20,153,255,.35);
+}
+
+[data-elo-auth="login"] .elo-login-content {
+  width: min(100%, 430px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 58px 32px 56px;
+  text-align: center;
+}
+
+.elo-login-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 76px;
+  margin-bottom: 30px;
+  color: #f4f7fa;
+  filter: drop-shadow(0 0 24px rgba(20,153,255,.12));
+}
+
+.elo-login-wordmark {
+  font: 600 70px/.9 Sora, sans-serif;
+  letter-spacing: -.075em;
+}
+
+.elo-login-orbit {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin-left: -1px;
+}
+
+.elo-login-orbit i,
+.elo-login-orbit b {
+  position: absolute;
+  inset: 6px;
+  border: 8px solid transparent;
+  border-radius: 50%;
+  transform: rotate(38deg);
+}
+
+.elo-login-orbit i {
+  border-left-color: #1688ff;
+  border-top-color: #1670e8;
+  filter: drop-shadow(0 0 9px rgba(22,136,255,.35));
+}
+
+.elo-login-orbit b {
+  inset: 12px 8px 5px 13px;
+  border-right-color: #48b5ff;
+  border-bottom-color: #1d78ed;
+  transform: rotate(218deg);
+}
+
+[data-elo-auth="login"] .elo-login-copy {
+  display: grid;
+  gap: 13px;
+  margin-bottom: 34px;
+}
+
+[data-elo-auth="login"] .elo-login-copy h1 {
+  margin: 0;
+  color: #f0f4f8;
+  font: 600 clamp(34px, 5vw, 48px)/1.08 Sora, sans-serif;
+  letter-spacing: -.045em;
+}
+
+[data-elo-auth="login"] .elo-login-copy p {
+  margin: 0;
+  padding: 0;
+  max-width: 370px;
+  color: #8899a6;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+[data-elo-auth="login"] .elo-google-button {
+  width: 100%;
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+  padding: 16px 24px;
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 14px;
+  background: #f7f8fa;
+  color: #17202b;
+  font: 600 17px/1.2 Inter, sans-serif;
+  box-shadow: 0 12px 34px rgba(0,0,0,.28);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+[data-elo-auth="login"] .elo-google-button:hover {
+  transform: translateY(-2px);
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(20,153,255,.16), 0 12px 34px rgba(0,0,0,.28);
+}
+
+[data-elo-auth="login"] .elo-google-button:active {
+  transform: translateY(0);
+}
+
+.elo-google-icon {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+}
+
+[data-elo-auth="login"] .elo-login-error {
+  margin: 16px 0 0;
+  padding: 0;
+  color: #ff8e80;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  [data-elo-auth="login"] {
+    padding: 24px 12px;
+  }
+
+  [data-elo-auth="login"] .elo-login-panel {
+    min-height: 0;
+    border-radius: 22px;
+  }
+
+  [data-elo-auth="login"] .elo-login-content {
+    padding: 48px 24px 42px;
+  }
+
+  .elo-login-logo {
+    margin-bottom: 24px;
+  }
+
+  .elo-login-wordmark {
+    font-size: 58px;
+  }
+
+  .elo-login-orbit {
+    width: 54px;
+    height: 54px;
+  }
+
+  [data-elo-auth="login"] .elo-login-copy {
+    margin-bottom: 28px;
+  }
+
+  [data-elo-auth="login"] .elo-login-copy h1 {
+    font-size: 34px;
+  }
+
+  [data-elo-auth="login"] .elo-google-button {
+    min-height: 62px;
+    font-size: 16px;
+  }
+}
