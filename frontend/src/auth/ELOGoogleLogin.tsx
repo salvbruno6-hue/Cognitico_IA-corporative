@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
+import { playELOSound, startELOAmbient } from '../eloSound';
 import './login.css';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -33,7 +34,7 @@ function GoogleIcon() {
 function ELOLogo() {
   return (
     <div className="elo-login-logo" aria-label="ELO">
-      <span className="elo-login-wordmark">EL</span>
+      <span className="elo-login-wordmark" aria-hidden="true">EL</span>
       <span className="elo-login-orbit" aria-hidden="true"><i /><b /></span>
     </div>
   );
@@ -68,6 +69,9 @@ export function ELOGoogleLogin({ children }: Props) {
 
   async function signInWithGoogle() {
     setError(null);
+    // The click is a trusted browser gesture: unlock the ELO audio engine before OAuth navigation.
+    startELOAmbient();
+    playELOSound('click');
 
     const base = import.meta.env.BASE_URL || '/';
     const callbackPath = `${base.replace(/\/$/, '')}/auth/callback`;
@@ -109,14 +113,17 @@ export function ELOGoogleLogin({ children }: Props) {
       <section className="elo-login-panel">
         <div className="elo-login-content">
           <ELOLogo />
-          <div className="elo-login-copy">
-            <h1 id="elo-login-title">Entrar no ELO</h1>
-            <p>Use sua conta Google para acessar o ELO.</p>
-          </div>
-          <button className="elo-google-button" type="button" onClick={signInWithGoogle}>
+          <h1 id="elo-login-title">Entrar no ELO</h1>
+          <button
+            className="elo-google-button"
+            type="button"
+            onClick={signInWithGoogle}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') startELOAmbient(); }}
+          >
             <GoogleIcon />
             <span>Continuar com Google</span>
           </button>
+          <p className="elo-login-description">Use sua conta Google para acessar o ELO.</p>
           {error && <p className="elo-login-error" role="alert">Não foi possível iniciar o login: {error}</p>}
         </div>
       </section>
