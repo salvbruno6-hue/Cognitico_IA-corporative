@@ -43,6 +43,16 @@ export function ELOOAuthConsent() {
         return;
       }
 
+      const { data: authorization, error: authzError } = await supabase.functions.invoke('elo-authz', {
+        body: { purpose: 'oauth_consent' },
+      });
+      if (!active) return;
+      if (authzError || !authorization?.authorized) {
+        setError(authzError?.message ?? 'Acesso administrativo ao ELO não autorizado.');
+        setLoading(false);
+        return;
+      }
+
       const { data, error: detailsError } = await supabase.auth.oauth.getAuthorizationDetails(id);
       if (!active) return;
       if (detailsError) setError(detailsError.message);
