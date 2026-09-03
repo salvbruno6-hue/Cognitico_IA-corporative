@@ -60,10 +60,30 @@ async function authenticate(req: Request) {
   return { ok: true as const, user: data.user, identity, roles };
 }
 
+async function resolveActiveSession(identityId: string, requestId: string) {
+  const { data: sessions, error } = await supabase
+    .from("elo_identity_sessions")
+    .select("session_id,issued_at,expires_at,revoked_at,last_seen_at")
+    .eq("identity_id", identityId)
+    .is("revoked_at", null)
+    .order("issued_at", { ascending: false })
+    .limit(1);
+  if (error) return { ok: false as const, reason: "session_lookup_failed" };
+
+  const now = Date.now();
+  const session = (sessions ?? []).find((candidate: any) => {
+    const expiresAt = Date.parse(String(candidate.expires_at));
+    return Number.isFinite(expiresAt) && expiresAt > now;
+  });
+  if (!session) return { ok: false as const, reason: "active_elo_session_required" };
+
+  return { ok: true as const, session, requestId };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Headers": "authorization, content-type, x-elo-request-id",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   }});
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -74,11 +94,25 @@ Deno.serve(async (req: Request) => {
     return json({ authorized: false, reason: auth.reason }, status);
   }
 
+  const requestId = req.headers.get("x-elo-request-id")?.trim() || crypto.randomUUID();
   let body: any = {};
   try { body = await req.json(); } catch { return json({ authorized: false, reason: "invalid_json" }, 400); }
 
   const action = typeof body.action === "string" && body.action.trim() ? body.action.trim() : "read";
   const repository = typeof body.repository === "string" ? body.repository.trim() : "";
+
+  const session = await resolveActiveSession(auth.identity.identity_id, requestId);
+  if (!session.ok) {
+    await supabase.from("elo_authorization_audit").insert({
+      identity_id: auth.identity.identity_id,
+      action,
+      resource: repository || null,
+      decision: "DENY",
+      reason: session.reason,
+      request_id: requestId,
+    });
+    return json({ authorized: false, reason: session.reason }, 403);
+  }
 
   if (repository) {
     const { data: scopes, error: scopeError } = await supabase
@@ -90,23 +124,54 @@ Deno.serve(async (req: Request) => {
     const allowed = (scopes ?? []).some((row: any) =>
       row.elo_scopes?.active === true && row.elo_scopes?.scope_key === repository
     );
-    if (!allowed) return json({ authorized: false, reason: "repository_out_of_scope" }, 403);
+    if (!allowed) {
+      await supabase.from("elo_authorization_audit").insert({
+        identity_id: auth.identity.identity_id,
+        session_id: session.session.session_id,
+        action,
+        resource: repository,
+        decision: "DENY",
+        reason: "repository_out_of_scope",
+        request_id: requestId,
+      });
+      return json({ authorized: false, reason: "repository_out_of_scope" }, 403);
+    }
   }
 
   const isCanonicalAdmin = auth.roles.includes("ELO_ADMIN") || auth.roles.includes("CANONICAL_ADMIN");
   if (CRITICAL_ACTIONS.has(action) && !isCanonicalAdmin) {
+    await supabase.from("elo_authorization_audit").insert({
+      identity_id: auth.identity.identity_id,
+      session_id: session.session.session_id,
+      action,
+      resource: repository || null,
+      decision: "DENY",
+      reason: "canonical_authority_required",
+      request_id: requestId,
+    });
     return json({ authorized: false, reason: "canonical_authority_required" }, 403);
   }
   if (!READ_ACTIONS.has(action) && !CRITICAL_ACTIONS.has(action)) {
+    await supabase.from("elo_authorization_audit").insert({
+      identity_id: auth.identity.identity_id,
+      session_id: session.session.session_id,
+      action,
+      resource: repository || null,
+      decision: "DENY",
+      reason: "action_not_granted",
+      request_id: requestId,
+    });
     return json({ authorized: false, reason: "action_not_granted" }, 403);
   }
 
   await supabase.from("elo_authorization_audit").insert({
     identity_id: auth.identity.identity_id,
+    session_id: session.session.session_id,
     action,
     resource: repository || null,
     decision: "ALLOW",
-    reason: "identity_role_and_scope_verified",
+    reason: "identity_session_role_and_scope_verified",
+    request_id: requestId,
   });
 
   return json({
@@ -114,11 +179,13 @@ Deno.serve(async (req: Request) => {
     role: auth.roles[0] ?? null,
     roles: auth.roles,
     identity_id: auth.identity.identity_id,
+    session_id: session.session.session_id,
     display_name: auth.identity.display_name,
     provider: auth.identity.provider,
     enterprise_context: auth.identity.enterprise_context,
     action,
     repository: repository || null,
+    request_id: requestId,
     authorization_authority: "elo-authz",
   });
 });
