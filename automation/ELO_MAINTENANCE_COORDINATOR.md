@@ -74,6 +74,10 @@ The Supabase identity model is the persistent authority behind that boundary. En
 - `elo_identity_registry`, roles, scopes, sessions and authorization audit remain the persistent identity/governance structures; a new in-memory `AuthorizationRegistry` is not an acceptable competing source of truth.
 - Provider authentication remains external. A valid provider token proves authentication only; ELO authority still requires the authoritative ELO binding and applicable scope/capability.
 
+**Runtime reconciliation requirement:** `elo-authz` must resolve authorization from the authoritative ELO identity binding and applicable persistent role/scope/capability records. A local check that merely converts a valid authenticated user into a hard-coded `ELO_ADMIN` result is insufficient and must remain `BLOCKED` until reconciled. The endpoint may expose the decision, but it must not redefine the authority represented by `identity_trust.py` and the persistent identity model.
+
+`elo-mcp` must consume that decision rather than independently reconstruct identity, role, scope or capability. The MCP adapter must also preserve the identity/correlation information returned by the canonical boundary for downstream audit rather than silently replacing the actor with a transport-only identity.
+
 Any implementation that independently converts authentication into `ELO_ADMIN`, creates a parallel operator registry, or grants authority from a GitHub connection alone is a canonicality conflict and must be blocked.
 
 ### Router reconciliation rule
