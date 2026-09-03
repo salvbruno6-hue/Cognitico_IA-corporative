@@ -2,5 +2,8 @@
   "compilerOptions": {
     "strict": true,
     "lib": ["deno.window"]
+  },
+  "tasks": {
+    "test": "deno test --allow-env --allow-net"
   }
 }
