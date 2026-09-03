@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from './ELOGoogleLogin';
 import './login.css';
 
+const OAUTH_RETURN_KEY = 'elo.oauth.return_to';
+
 export function ELOOAuthConsent() {
   const [authorizationId, setAuthorizationId] = useState('');
   const [details, setDetails] = useState<any>(null);
@@ -25,13 +27,19 @@ export function ELOOAuthConsent() {
       if (!active) return;
 
       if (!sessionData.session) {
-        const redirectTo = window.location.href;
+        sessionStorage.setItem(OAUTH_RETURN_KEY, window.location.href);
+        const base = import.meta.env.BASE_URL || '/';
+        const callbackPath = `${base.replace(/\/$/, '')}/auth/callback`;
+        const redirectTo = new URL(callbackPath, window.location.origin).toString();
         const { error: authError } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo },
         });
-        if (authError && active) setError(authError.message);
-        if (active) setLoading(false);
+        if (authError && active) {
+          sessionStorage.removeItem(OAUTH_RETURN_KEY);
+          setError(authError.message);
+          setLoading(false);
+        }
         return;
       }
 
