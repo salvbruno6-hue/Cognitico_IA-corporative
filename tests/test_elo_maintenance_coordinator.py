@@ -62,3 +62,32 @@ def test_temporal_experience_cannot_bypass_identity_or_provenance():
     outcome, reasons = audit(event)
     assert outcome is Outcome.WAITING_FOR_EVIDENCE
     assert "provenance_incomplete" in reasons
+
+
+def test_new_capability_requires_reuse_analysis():
+    event = base_event(reuse_analysis_complete=False)
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.WAITING_FOR_EVIDENCE
+    assert "reuse_analysis_required" in reasons
+
+
+def test_duplicate_or_parallel_capability_is_blocked():
+    event = base_event(duplicate_or_parallel_found=True)
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.BLOCKED
+    assert "duplicate_or_parallel_capability_detected" in reasons
+    assert not merge_gate(event)
+
+
+def test_unresolved_source_of_truth_is_blocked():
+    event = base_event(source_of_truth_resolved=False)
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.BLOCKED
+    assert "source_of_truth_unresolved" in reasons
+
+
+def test_canonical_contract_conflict_is_blocked():
+    event = base_event(contract_conflict=True)
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.BLOCKED
+    assert "canonical_contract_conflict" in reasons
