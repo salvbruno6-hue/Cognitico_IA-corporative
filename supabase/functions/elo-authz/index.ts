@@ -5,19 +5,32 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+// Capability codes are canonical persistent ELO vocabulary. This map is the
+// single action-to-capability contract at the authorization boundary; it does
+// not create or rename persistent capabilities.
 const ACTION_CAPABILITY: Record<string, string> = {
-  read: "data.read",
-  consult: "data.read",
-  search: "data.read",
-  inspect: "data.read",
-  modify_cognitive_identity: "identity.modify",
-  modify_core: "core.modify",
-  modify_canonical_memory: "memory.canonical.modify",
-  modify_security_policy: "security.policy.modify",
-  change_permissions: "authorization.modify",
-  promote_to_core: "core.promote",
-  merge_protected_change: "repository.merge",
+  read: "READ",
+  consult: "READ",
+  search: "READ",
+  inspect: "READ",
+  modify_cognitive_identity: "ADMIN",
+  modify_core: "CANONICAL_WRITE",
+  modify_canonical_memory: "CANONICAL_WRITE",
+  modify_security_policy: "ADMIN",
+  change_permissions: "ADMIN",
+  promote_to_core: "CANONICAL_WRITE",
+  merge_protected_change: "APPROVE",
 };
+
+const CRITICAL_ACTIONS = new Set([
+  "modify_cognitive_identity",
+  "modify_core",
+  "modify_canonical_memory",
+  "modify_security_policy",
+  "change_permissions",
+  "promote_to_core",
+  "merge_protected_change",
+]);
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -161,6 +174,11 @@ Deno.serve(async (req: Request) => {
       await audit(auth.identity.identity_id, session.session.session_id, action, repository, "DENY", "repository_out_of_scope", requestId);
       return json({ authorized: false, reason: "repository_out_of_scope", request_id: requestId }, 403);
     }
+  }
+
+  if (CRITICAL_ACTIONS.has(action) && !auth.roles.includes("CANONICAL_ADMIN")) {
+    await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", "canonical_authority_required", requestId);
+    return json({ authorized: false, reason: "canonical_authority_required", request_id: requestId }, 403);
   }
 
   const capabilityResult = await hasCapability(auth.roleIds, capability);
