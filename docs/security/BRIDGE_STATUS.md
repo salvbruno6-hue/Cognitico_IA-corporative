@@ -1,0 +1,1 @@
+Implementation branch for the canonical authentication-to-authorization session bridge.
