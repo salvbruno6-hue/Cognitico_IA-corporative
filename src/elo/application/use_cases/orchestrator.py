@@ -2,6 +2,10 @@
 
 This module coordinates the application flow without owning the Cognitive Core,
 canonical domain data, memory, or execution adapters.
+
+Execution authority is supplied as a decision produced by the canonical
+authorization boundary. The orchestrator deliberately does not interpret
+roles, capabilities, sessions, scopes, or bearer credentials.
 """
 
 from dataclasses import dataclass
@@ -30,7 +34,7 @@ class OrchestrationRequest:
     domain: str
     objective: str
     evidence_ids: tuple[str, ...] = ()
-    execution_authorized: bool = False
+    authorization_decision: bool = False
 
 
 @dataclass(frozen=True)
@@ -40,15 +44,27 @@ class OrchestrationDecision:
     reason: str
 
 
+class AuthorizationBoundary(Protocol):
+    """Adapter to the canonical ELO authorization authority."""
+
+    def authorize_execution(self, request: OrchestrationRequest) -> bool:
+        """Return the already-evaluated canonical authorization decision."""
+
+
 class Orchestrator(Protocol):
     """Application boundary for the closed ELO observation loop."""
 
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
-        """Return EXECUTE only when explicit execution authority is present."""
+        """Return EXECUTE only when canonical execution authority is present."""
 
 
 class GovernedOrchestrator:
-    """Minimal deterministic coordinator for the ELO application boundary."""
+    """Minimal deterministic coordinator for the ELO application boundary.
+
+    This class does not implement authorization. ``authorization_decision``
+    must be produced by the canonical authorization boundary before execution
+    can be selected. No role/capability/session/scope logic is duplicated here.
+    """
 
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         if not request.tenant_id or not request.principal_id:
@@ -69,14 +85,14 @@ class GovernedOrchestrator:
                 "INCONCLUSIVE",
                 "execution requires governed evidence",
             )
-        if not request.execution_authorized:
+        if not request.authorization_decision:
             return OrchestrationDecision(
                 OrchestrationStage.HANDOFF,
                 "RECOMMENDATION",
-                "execution authority was not granted",
+                "canonical authorization decision was not granted",
             )
         return OrchestrationDecision(
             OrchestrationStage.EXECUTE,
             "AUTHORIZED",
-            "explicit execution authority and governed evidence are present",
+            "canonical authorization decision and governed evidence are present",
         )
