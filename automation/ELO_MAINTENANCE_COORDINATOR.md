@@ -18,7 +18,7 @@ It does **not** infer approval from silence, bypass branch protection, or promot
 
 ## Canonical non-duplication rule
 
-**No new ELO capability, rule, table, workflow, function, authentication path, memory mechanism, gate, adapter, or source of truth may be created until the existing structure has been inventoried and reconciled.**
+**No new ELO capability, rule, table, workflow, function, authentication path, memory mechanism, gate, adapter, router, or source of truth may be created until the existing structure has been inventoried and reconciled.**
 
 The default action is **REUSE → STRENGTHEN → REFACTOR → DEPRECATE**, not CREATE.
 
@@ -40,13 +40,73 @@ The coordinator must return `BLOCKED` when:
 - the source of truth is unresolved;
 - the proposal conflicts with a canonical contract;
 - a structural change is being introduced through an operational path;
-- an existing canonical component can satisfy the requirement but the proposal creates a second mechanism instead of strengthening/reusing it.
+- an existing canonical component can satisfy the requirement but the proposal creates a second mechanism instead of strengthening/reusing it;
+- two components claim the same canonical decision responsibility without an explicit delegation boundary.
 
 Missing inventory or reuse analysis is not treated as permission to proceed; it is `WAITING_FOR_EVIDENCE`.
 
+## Canonical responsibility map
+
+The following responsibilities must remain singular even when several implementation components exist:
+
+| Responsibility | Canonical owner | Allowed subordinate components | Prohibited condition |
+|---|---|---|---|
+| ELO identity/authorization | ELO authorization boundary | endpoint guards, agent/tool guards, session adapters | another component independently grants ELO operator authority |
+| execution/model/tool selection | `ExecutionRouter` | provider gateway, policy router, `IntelligenceRouter` facade/symbiont | another router becomes an independent canonical selector |
+| temporary conversational context | `TemporalConversationMemory` | integration/projection adapters | parallel canonical session-memory store |
+| decision records | decision-memory contract | persistence adapters | second decision authority/source of truth |
+| evolution experience | `EvolutionMemory` / governed evolution boundary | persistence adapters, projections | experience store promotes itself to canonical knowledge |
+| budget learning | `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/` + governed Supabase calculation memory | deterministic consolidation/projection scripts | parallel solicitation-learning destination |
+| evidence/validation | existing evidence and validation gates | specialized tests/workflows | new gate duplicates an existing promotion decision |
+| maintenance coordination | `ELO Maintenance Coordinator` | GitHub workflow invocation | second supervisor/coordinator |
+| canonical repository truth | Cognitico repository | Forge/build artifacts, external providers | competing repository/source of truth |
+
+**Naming does not establish ownership.** A file or class called `router`, `memory`, `gate`, `engine`, `manager` or `coordinator` is subordinate unless its canonical responsibility is explicitly established by the architecture.
+
+### Router reconciliation rule
+
+Routers are classified by responsibility, not by name.
+
+- `ExecutionRouter` owns canonical execution/model/tool selection.
+- Provider gateways may adapt or route infrastructure requests but may not redefine ELO's canonical selection decision.
+- `IntelligenceRouter` and symbiotic intelligence components may coordinate or expose routing capabilities only within the existing execution-routing contract.
+- Policy routers may select an allowed policy path, but authorization remains governed by the canonical ELO authorization boundary.
+
+When two routers can independently make the same canonical decision, the coordinator must classify the situation as a potential parallel authority and require reconciliation before promotion.
+
+### Memory and learning reconciliation rule
+
+Memory planes are distinct by lifecycle and responsibility; they are not separate authorities merely because they use different adapters.
+
+- temporal memory is provisional/session-scoped;
+- decision memory preserves traceable decisions;
+- evolution memory preserves non-canonical experience;
+- organizational/canonical knowledge is admitted only through the governed promotion path;
+- quantitative budget calculation memory remains in its canonical Supabase responsibility;
+- semantic budget learning remains in the canonical `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/` path.
+
+No learning workflow may silently create a second destination, second memory engine, or second canonical knowledge path. A projection script may transform or consolidate records, but cannot redefine the canonical destination.
+
+### Workflow reconciliation rule
+
+Multiple workflows are permitted only when their responsibilities are complementary and their terminal decisions are non-overlapping.
+
+Before adding or modifying a workflow, inventory:
+
+- trigger/event source;
+- files/scripts invoked;
+- labels/statuses changed;
+- artifacts/evidence produced;
+- gates evaluated;
+- terminal decision produced;
+- downstream workflows consumed;
+- overlap with existing workflows.
+
+If two workflows independently produce the same canonical decision, the coordinator must require consolidation or explicit delegation. The solution is not a new supervisory workflow.
+
 ## Maintenance loop
 
-`SCAN → CLASSIFY → IDENTIFY_OWNER → RESOLVE_CANONICAL_ID → CHECK_SOURCE_OF_TRUTH → CHECK_EXISTING_CAPABILITY → CHECK_PRODUCERS/CONSUMERS → CHECK_REFERENCES/ALIASES → CHECK_DUPLICATES → CHECK_CONTRACT_CONFLICTS → CHECK_SPECIALIST → AUDIT_GATES → DECIDE → REQUEST_ACTION → VALIDATE → MERGE/RETURN → REVERIFY → LEARN`
+`SCAN → CLASSIFY → IDENTIFY_OWNER → RESOLVE_CANONICAL_ID → CHECK_SOURCE_OF_TRUTH → CHECK_EXISTING_CAPABILITY → CHECK_PRODUCERS/CONSUMERS → CHECK_REFERENCES/ALIASES → CHECK_DUPLICATES → CHECK_DECISION_RESPONSIBILITY → CHECK_CONTRACT_CONFLICTS → CHECK_SPECIALIST → AUDIT_GATES → DECIDE → REQUEST_ACTION → VALIDATE → MERGE/RETURN → REVERIFY → LEARN`
 
 For architectural maintenance, the coordinator must apply the existing ELO completion loop before removal:
 
@@ -65,15 +125,16 @@ The audit evaluates:
 5. producers and consumers;
 6. source-of-truth ownership;
 7. duplicate/parallel implementation risk;
-8. canonical contract conflicts;
-9. required specialist lane;
-10. specialist finding status;
-11. CI status;
-12. unresolved review findings;
-13. evidence and traceability;
-14. branch/base protection;
-15. destructive or irreversible operations;
-16. explicit ELO merge authorization.
+8. canonical decision responsibility;
+9. canonical contract conflicts;
+10. required specialist lane;
+11. specialist finding status;
+12. CI status;
+13. unresolved review findings;
+14. evidence and traceability;
+15. branch/base protection;
+16. destructive or irreversible operations;
+17. explicit ELO merge authorization.
 
 Only the conjunction below permits a merge recommendation:
 
