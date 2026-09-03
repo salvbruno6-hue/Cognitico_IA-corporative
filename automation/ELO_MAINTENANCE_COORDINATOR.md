@@ -16,9 +16,37 @@ It does **not** infer approval from silence, bypass branch protection, or promot
 - **Specialist:** bounded domain evidence provider.
 - **Coordinator:** deterministic process executor. It does not become a new supervisor or Core.
 
+## Canonical non-duplication rule
+
+**No new ELO capability, rule, table, workflow, function, authentication path, memory mechanism, gate, adapter, or source of truth may be created until the existing structure has been inventoried and reconciled.**
+
+The default action is **REUSE → STRENGTHEN → REFACTOR → DEPRECATE**, not CREATE.
+
+A proposed component is admissible only when ELO can identify:
+
+1. its canonical `concept_id` and target owner;
+2. the existing canonical component that already performs the responsibility, or documented evidence that no equivalent exists;
+3. all known producers and consumers;
+4. aliases, parallel implementations, overlapping workflows and competing sources of truth;
+5. the contract it must satisfy;
+6. its dependency and migration impact;
+7. the test and evidence path proving that the change does not create a second authority.
+
+### Hard blocking conditions
+
+The coordinator must return `BLOCKED` when:
+
+- a duplicate or parallel capability is detected and the proposal attempts to add another implementation;
+- the source of truth is unresolved;
+- the proposal conflicts with a canonical contract;
+- a structural change is being introduced through an operational path;
+- an existing canonical component can satisfy the requirement but the proposal creates a second mechanism instead of strengthening/reusing it.
+
+Missing inventory or reuse analysis is not treated as permission to proceed; it is `WAITING_FOR_EVIDENCE`.
+
 ## Maintenance loop
 
-`SCAN → CLASSIFY → IDENTIFY_OWNER → CHECK_CONSUMERS → CHECK_REFERENCES → CHECK_SPECIALIST → AUDIT_GATES → DECIDE → REQUEST_ACTION → VALIDATE → MERGE/RETURN → REVERIFY → LEARN`
+`SCAN → CLASSIFY → IDENTIFY_OWNER → RESOLVE_CANONICAL_ID → CHECK_SOURCE_OF_TRUTH → CHECK_EXISTING_CAPABILITY → CHECK_PRODUCERS/CONSUMERS → CHECK_REFERENCES/ALIASES → CHECK_DUPLICATES → CHECK_CONTRACT_CONFLICTS → CHECK_SPECIALIST → AUDIT_GATES → DECIDE → REQUEST_ACTION → VALIDATE → MERGE/RETURN → REVERIFY → LEARN`
 
 For architectural maintenance, the coordinator must apply the existing ELO completion loop before removal:
 
@@ -32,18 +60,24 @@ The audit evaluates:
 
 1. explicit objective and acceptance criteria;
 2. changed scope;
-3. required specialist lane;
-4. specialist finding status;
-5. CI status;
-6. unresolved review findings;
-7. evidence and traceability;
-8. branch/base protection;
-9. destructive or irreversible operations;
-10. explicit ELO merge authorization.
+3. canonical identity and target;
+4. existing capability reuse analysis;
+5. producers and consumers;
+6. source-of-truth ownership;
+7. duplicate/parallel implementation risk;
+8. canonical contract conflicts;
+9. required specialist lane;
+10. specialist finding status;
+11. CI status;
+12. unresolved review findings;
+13. evidence and traceability;
+14. branch/base protection;
+15. destructive or irreversible operations;
+16. explicit ELO merge authorization.
 
 Only the conjunction below permits a merge recommendation:
 
-`ACCEPTANCE_PASS ∧ SPECIALIST_PASS ∧ CI_PASS ∧ REVIEWS_CLEAR ∧ SCOPE_COMPLIANT ∧ NO_FORBIDDEN_ACTION ∧ ELO_APPROVE_MERGE`
+`CANONICAL_TARGET_RESOLVED ∧ SOURCE_OF_TRUTH_RESOLVED ∧ REUSE_ANALYSIS_COMPLETE ∧ NO_DUPLICATE_OR_PARALLEL ∧ NO_CANONICAL_CONTRACT_CONFLICT ∧ ACCEPTANCE_PASS ∧ SPECIALIST_PASS ∧ CI_PASS ∧ REVIEWS_CLEAR ∧ SCOPE_COMPLIANT ∧ NO_FORBIDDEN_ACTION ∧ ELO_APPROVE_MERGE`
 
 The coordinator may enable the repository's existing auto-merge mechanism only after all gates pass and the explicit `elo/approve-merge` authorization is present. It never manufactures that authorization.
 
@@ -66,23 +100,16 @@ The coordinator records the specialist lane and creates a consultation request a
 
 When a user opens a conversation about an Issue/event, ELO should resolve the event to its canonical identity and ask the specialist question before proposing an evolution when domain evidence is required.
 
-Example contract:
+The handoff must also expose the reuse/duplication decision before implementation:
 
 ```yaml
-event:
-  issue: 000
-  concept_id: "ELO.<domain>.<canonical-id>"
-  event_class: "budget"
-specialist:
-  lane: "domain-finance"
-  question: "Can this capability be admitted as the next governed evolution?"
-evidence:
-  required: true
-evolution:
-  target: "canonical-architecture | temporal-experience | reject | roadmap"
-  canonical_identity_required: true
-elo_decision:
-  status: "PENDING_SPECIALIST"
+canonicality:
+  target_resolved: true
+  source_of_truth_resolved: true
+  reuse_analysis_complete: true
+  canonical_match_found: false
+  duplicate_or_parallel_found: false
+  contract_conflict: false
 ```
 
 ## Experience versus architecture
