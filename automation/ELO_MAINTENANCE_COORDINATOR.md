@@ -51,7 +51,7 @@ The following responsibilities must remain singular even when several implementa
 
 | Responsibility | Canonical owner | Allowed subordinate components | Prohibited condition |
 |---|---|---|---|
-| ELO identity/authorization | ELO authorization boundary | endpoint guards, agent/tool guards, session adapters | another component independently grants ELO operator authority |
+| ELO identity/trust/authorization | `src/elo/core/identity_trust.py` + authoritative identity registry | `elo-authz` endpoint, `elo-mcp` transport adapter, agent/tool/session guards | another component independently grants operator authority or creates a competing identity registry |
 | execution/model/tool selection | `ExecutionRouter` | provider gateway, policy router, `IntelligenceRouter` facade/symbiont | another router becomes an independent canonical selector |
 | temporary conversational context | `TemporalConversationMemory` | integration/projection adapters | parallel canonical session-memory store |
 | decision records | decision-memory contract | persistence adapters | second decision authority/source of truth |
@@ -62,6 +62,19 @@ The following responsibilities must remain singular even when several implementa
 | canonical repository truth | Cognitico repository | Forge/build artifacts, external providers | competing repository/source of truth |
 
 **Naming does not establish ownership.** A file or class called `router`, `memory`, `gate`, `engine`, `manager` or `coordinator` is subordinate unless its canonical responsibility is explicitly established by the architecture.
+
+### Identity and authorization reconciliation rule
+
+`src/elo/core/identity_trust.py` is the canonical code-level trust boundary: provider subject is resolved against the authoritative identity registry, while role, enterprise context, repository scope, capabilities and active state are never accepted from the request. fileciteturn131file0
+
+The Supabase identity model is the persistent authority behind that boundary. Endpoint implementations must adapt to it rather than recreate its decision model.
+
+- `elo-authz` is an authenticated authorization endpoint/adapter; it must not become a second policy engine.
+- `elo-mcp` is an MCP transport adapter; its read boundary, tool guards and audit path are subordinate to the same authorization decision.
+- `elo_identity_registry`, roles, scopes, sessions and authorization audit remain the persistent identity/governance structures; a new in-memory `AuthorizationRegistry` is not an acceptable competing source of truth.
+- Provider authentication remains external. A valid provider token proves authentication only; ELO authority still requires the authoritative ELO binding and applicable scope/capability.
+
+Any implementation that independently converts authentication into `ELO_ADMIN`, creates a parallel operator registry, or grants authority from a GitHub connection alone is a canonicality conflict and must be blocked.
 
 ### Router reconciliation rule
 
