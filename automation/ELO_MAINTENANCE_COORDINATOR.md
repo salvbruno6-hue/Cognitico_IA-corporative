@@ -65,7 +65,7 @@ The following responsibilities must remain singular even when several implementa
 
 ### Identity and authorization reconciliation rule
 
-`src/elo/core/identity_trust.py` is the canonical code-level trust boundary: provider subject is resolved against the authoritative identity registry, while role, enterprise context, repository scope, capabilities and active state are never accepted from the request. fileciteturn131file0
+`src/elo/core/identity_trust.py` is the canonical code-level trust boundary: provider subject is resolved against the authoritative identity registry, while role, enterprise context, repository scope, capabilities and active state are never accepted from the request.
 
 The Supabase identity model is the persistent authority behind that boundary. Endpoint implementations must adapt to it rather than recreate its decision model.
 
@@ -117,6 +117,12 @@ Before adding or modifying a workflow, inventory:
 
 If two workflows independently produce the same canonical decision, the coordinator must require consolidation or explicit delegation. The solution is not a new supervisory workflow.
 
+### Merge execution boundary
+
+The coordinator may produce and record `APPROVED_FOR_MERGE` as a governed decision when all required gates and authorization evidence are present, but **the coordinator workflow itself must not execute the GitHub merge or enable auto-merge**.
+
+Merge execution remains a separate operation subject to the canonical authenticated operator binding, repository protections, structural-impact classification and applicable merge gates. The existence of `elo/approve-merge` is evidence of authorization only; it must not be manufactured, inferred from workflow state, or converted into an automatic merge by the coordinator.
+
 ## Maintenance loop
 
 `SCAN → CLASSIFY → IDENTIFY_OWNER → RESOLVE_CANONICAL_ID → CHECK_SOURCE_OF_TRUTH → CHECK_EXISTING_CAPABILITY → CHECK_PRODUCERS/CONSUMERS → CHECK_REFERENCES/ALIASES → CHECK_DUPLICATES → CHECK_DECISION_RESPONSIBILITY → CHECK_CONTRACT_CONFLICTS → CHECK_SPECIALIST → AUDIT_GATES → DECIDE → REQUEST_ACTION → VALIDATE → MERGE/RETURN → REVERIFY → LEARN`
@@ -153,7 +159,7 @@ Only the conjunction below permits a merge recommendation:
 
 `CANONICAL_TARGET_RESOLVED ∧ SOURCE_OF_TRUTH_RESOLVED ∧ REUSE_ANALYSIS_COMPLETE ∧ NO_DUPLICATE_OR_PARALLEL ∧ NO_CANONICAL_CONTRACT_CONFLICT ∧ ACCEPTANCE_PASS ∧ SPECIALIST_PASS ∧ CI_PASS ∧ REVIEWS_CLEAR ∧ SCOPE_COMPLIANT ∧ NO_FORBIDDEN_ACTION ∧ ELO_APPROVE_MERGE`
 
-The coordinator may enable the repository's existing auto-merge mechanism only after all gates pass and the explicit `elo/approve-merge` authorization is present. It never manufactures that authorization.
+The coordinator may record the recommendation and evidence, but **must not execute merge or enable auto-merge**. GitHub repository protections and the separately authorized merge operation remain the enforcement boundary.
 
 ## Specialist routing
 
