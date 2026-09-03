@@ -33,6 +33,7 @@ from .gpt_handoff import ConsultativeReturn, GPTDecisionHandoff
 from .hybrid_bridge import HybridCapabilityBridge, ProviderSelection
 from .identity_trust import EloIdentity, EloRole, TrustDecision, TrustRequest, TrustResult, TrustedIdentityRegistry, evaluate_trust
 from .knowledge_admission import AdmissionRequest, AdmissionResult, KnowledgeAdmission
+from .knowledge_promotion import BLOCKED_STATUS, FACULTY_CANDIDATE_STATUS, PROMOTABLE_STATUS, KnowledgePromotionDecision, promote_validated_learning
 from .local_capabilities import probe_local_tools
 from .maturity_engine import MATURITY_DIMENSIONS, MaturityAssessment
 from .production_flow import ProductionEvent, ProductionFlow, ProductionStage
@@ -46,8 +47,9 @@ from .systemic_primitives import (CausalAssessment, DecisionRecord, OutcomeFeedb
 __all__ = [
     "AccessDecision", "AccessRequest", "AccessResult", "AmbiguousArtifactError", "ArtifactRecord",
     "ArtifactResolution", "ArtifactResolutionError", "ArtifactResolver", "Assumption", "AdmissionRequest",
-    "AdmissionResult", "authorize", "SessionMode", "BudgetAuthorization", "BudgetAuthorizationError",
-    "BudgetDecision", "BudgetFollowUp", "BudgetInput", "BudgetInputClass", "BudgetLine", "BudgetLineType",
+    "AdmissionResult", "authorize", "SessionMode", "BLOCKED_STATUS", "FACULTY_CANDIDATE_STATUS",
+    "PROMOTABLE_STATUS", "KnowledgePromotionDecision", "promote_validated_learning", "BudgetAuthorization",
+    "BudgetAuthorizationError", "BudgetDecision", "BudgetFollowUp", "BudgetInput", "BudgetInputClass", "BudgetLine", "BudgetLineType",
     "BudgetOutcome", "BudgetRequest", "BudgetScenario", "BudgetScenarioKind", "BudgetSensitivity", "BudgetStatus",
     "BudgetVersion", "BudgetingError", "CanonicalIdentityRegistry", "CANONICAL_CAPABILITIES", "CapacityConstraint",
     "CapabilityProbe", "CapabilityRegistry", "CapabilitySnapshot", "CapabilityStatus", "ChatBridge", "ChatBridgeEvent",
