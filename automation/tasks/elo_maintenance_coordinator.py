@@ -42,6 +42,12 @@ class Event:
     experience_value: bool
     provenance_complete: bool = False
     contradiction_free: bool = False
+    canonical_target_resolved: bool = True
+    reuse_analysis_complete: bool = True
+    canonical_match_found: bool = False
+    duplicate_or_parallel_found: bool = False
+    contract_conflict: bool = False
+    source_of_truth_resolved: bool = True
     labels: frozenset[str] = field(default_factory=frozenset)
 
 
@@ -65,12 +71,30 @@ def specialist_lane(event_class: str) -> str | None:
     return SPECIALIST_BY_EVENT.get(event_class.lower().strip())
 
 
+def canonicality_gate(event: Event) -> tuple[Outcome | None, list[str]]:
+    """Enforce reuse-first and single-source-of-truth rules before evolution."""
+    if not event.canonical_identity_valid or not event.canonical_target_resolved:
+        return Outcome.WAITING_FOR_EVIDENCE, ["canonical_identity_or_target_missing"]
+    if not event.source_of_truth_resolved:
+        return Outcome.BLOCKED, ["source_of_truth_unresolved"]
+    if not event.reuse_analysis_complete:
+        return Outcome.WAITING_FOR_EVIDENCE, ["reuse_analysis_required"]
+    if event.duplicate_or_parallel_found:
+        return Outcome.BLOCKED, ["duplicate_or_parallel_capability_detected"]
+    if event.contract_conflict:
+        return Outcome.BLOCKED, ["canonical_contract_conflict"]
+    return None, []
+
+
 def audit(event: Event) -> tuple[Outcome, list[str]]:
     """Return the next governed state and machine-readable reasons."""
     if event.forbidden_action:
         return Outcome.BLOCKED, ["forbidden_or_destructive_action"]
-    if not event.canonical_identity_valid:
-        return Outcome.WAITING_FOR_EVIDENCE, ["canonical_identity_missing_or_invalid"]
+
+    canonical_outcome, canonical_reasons = canonicality_gate(event)
+    if canonical_outcome is not None:
+        return canonical_outcome, canonical_reasons
+
     if not event.evidence_complete:
         return Outcome.WAITING_FOR_EVIDENCE, ["evidence_incomplete"]
     if event.specialist_pass is None:
@@ -120,6 +144,9 @@ def consultation_request(event: Event) -> dict[str, object]:
         "specialist_lane": lane,
         "question": "Can this event be admitted as the next governed ELO evolution?",
         "requires_canonical_identity": True,
+        "requires_reuse_analysis": True,
+        "requires_single_source_of_truth": True,
+        "requires_duplicate_check": True,
         "evidence_required": True,
     }
 
@@ -139,6 +166,4 @@ def summarize(events: Iterable[Event]) -> list[dict[str, object]]:
 
 
 if __name__ == "__main__":
-    # Contract smoke mode used by CI. GitHub mutation is handled only by the
-    # workflow adapter, never by this module.
     print("ELO Maintenance Coordinator contract: OK")

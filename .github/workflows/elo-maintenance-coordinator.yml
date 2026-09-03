@@ -107,6 +107,7 @@ jobs:
               'reasons': reasons,
               'explicit_elo_authorization': explicit_merge,
               'contract': 'automation/ELO_MAINTENANCE_COORDINATOR.md',
+              'merge_execution': 'forbidden_by_coordinator',
           }
           Path('automation/audit-output/decision.json').write_text(json.dumps(payload, indent=2) + '\n')
           print(json.dumps(payload, indent=2))
@@ -114,8 +115,7 @@ jobs:
 
           DECISION=$(python -c "import json; print(json.load(open('automation/audit-output/decision.json'))['decision'])")
           if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. All configured evidence gates pass and explicit \`elo/approve-merge\` authorization is present. Repository protections remain authoritative."
-            gh pr merge "${PR_NUMBER}" --repo "${REPOSITORY}" --auto --squash
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Configured evidence gates pass and explicit \`elo/approve-merge\` authorization is present. This coordinator records the decision only; it does not execute merge. Repository protections and the canonical authenticated operator binding remain authoritative."
           else
             gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **READY_FOR_ELO_DECISION**. The coordinator audited the event but will not merge. Review \`automation/audit-output/decision.json\` in the workflow artifact and satisfy the listed gates."
           fi
