@@ -5,6 +5,17 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+const READ_ACTIONS = new Set(["read", "consult", "search", "inspect"]);
+const CRITICAL_ACTIONS = new Set([
+  "modify_cognitive_identity",
+  "modify_core",
+  "modify_canonical_memory",
+  "modify_security_policy",
+  "change_permissions",
+  "promote_to_core",
+  "merge_protected_change",
+]);
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -28,7 +39,7 @@ async function authenticate(req: Request) {
 
   const { data: identity, error: identityError } = await supabase
     .from("elo_identity_registry")
-    .select("identity_id,display_name,active")
+    .select("identity_id,display_name,active,provider,provider_subject,enterprise_context")
     .eq("auth_user_id", data.user.id)
     .eq("active", true)
     .maybeSingle();
@@ -41,12 +52,12 @@ async function authenticate(req: Request) {
     .eq("identity_id", identity.identity_id);
   if (roleError) return { ok: false as const, reason: "role_lookup_failed" };
 
-  const isAdmin = (roleRows ?? []).some((row: any) =>
-    row.elo_roles?.code === "ELO_ADMIN" && row.elo_roles?.active === true
-  );
-  if (!isAdmin) return { ok: false as const, reason: "elo_admin_required" };
+  const roles = (roleRows ?? [])
+    .map((row: any) => row.elo_roles)
+    .filter((role: any) => role?.active === true)
+    .map((role: any) => String(role.code));
 
-  return { ok: true as const, user: data.user, identity };
+  return { ok: true as const, user: data.user, identity, roles };
 }
 
 Deno.serve(async (req: Request) => {
@@ -63,10 +74,51 @@ Deno.serve(async (req: Request) => {
     return json({ authorized: false, reason: auth.reason }, status);
   }
 
+  let body: any = {};
+  try { body = await req.json(); } catch { return json({ authorized: false, reason: "invalid_json" }, 400); }
+
+  const action = typeof body.action === "string" && body.action.trim() ? body.action.trim() : "read";
+  const repository = typeof body.repository === "string" ? body.repository.trim() : "";
+
+  if (repository) {
+    const { data: scopes, error: scopeError } = await supabase
+      .from("elo_identity_scopes")
+      .select("elo_scopes(scope_key,active)")
+      .eq("identity_id", auth.identity.identity_id);
+    if (scopeError) return json({ authorized: false, reason: "scope_lookup_failed" }, 403);
+
+    const allowed = (scopes ?? []).some((row: any) =>
+      row.elo_scopes?.active === true && row.elo_scopes?.scope_key === repository
+    );
+    if (!allowed) return json({ authorized: false, reason: "repository_out_of_scope" }, 403);
+  }
+
+  const isCanonicalAdmin = auth.roles.includes("ELO_ADMIN") || auth.roles.includes("CANONICAL_ADMIN");
+  if (CRITICAL_ACTIONS.has(action) && !isCanonicalAdmin) {
+    return json({ authorized: false, reason: "canonical_authority_required" }, 403);
+  }
+  if (!READ_ACTIONS.has(action) && !CRITICAL_ACTIONS.has(action)) {
+    return json({ authorized: false, reason: "action_not_granted" }, 403);
+  }
+
+  await supabase.from("elo_authorization_audit").insert({
+    identity_id: auth.identity.identity_id,
+    action,
+    resource: repository || null,
+    decision: "ALLOW",
+    reason: "identity_role_and_scope_verified",
+  });
+
   return json({
     authorized: true,
-    role: "ELO_ADMIN",
+    role: auth.roles[0] ?? null,
+    roles: auth.roles,
     identity_id: auth.identity.identity_id,
     display_name: auth.identity.display_name,
+    provider: auth.identity.provider,
+    enterprise_context: auth.identity.enterprise_context,
+    action,
+    repository: repository || null,
+    authorization_authority: "elo-authz",
   });
 });
