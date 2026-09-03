@@ -5,6 +5,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 const MCP_PROTOCOL_VERSION = "2025-06-18";
+const RESOURCE_PATH = "/functions/v1/elo-mcp";
+const RESOURCE_METADATA_PATH = "/functions/v1/elo-mcp/oauth-protected-resource";
 
 const ALLOWED_TABLES = new Set([
   "taxonomia", "dimensoes", "modelos", "modelo_apresentacao", "kits",
@@ -31,6 +33,15 @@ function rpc(id: unknown, result: unknown) {
 
 function rpcError(id: unknown, code: number, message: string) {
   return json({ jsonrpc: "2.0", id, error: { code, message } });
+}
+
+function protectedResourceMetadata(req: Request) {
+  const origin = new URL(req.url).origin;
+  return json({
+    resource: `${origin}${RESOURCE_PATH}`,
+    authorization_servers: [`${SUPABASE_URL}/auth/v1`],
+    bearer_methods_supported: ["header"],
+  });
 }
 
 async function authenticate(req: Request) {
@@ -108,6 +119,11 @@ Deno.serve(async (req: Request) => {
     }});
   }
 
+  const pathname = new URL(req.url).pathname.replace(/\/$/, "");
+  if (req.method === "GET" && pathname.endsWith(RESOURCE_METADATA_PATH)) {
+    return protectedResourceMetadata(req);
+  }
+
   if (req.method === "GET") {
     return json({
       name: "ELO MCP",
@@ -115,7 +131,8 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       authentication: "Supabase Auth OAuth 2.1 / Bearer JWT",
       mode: "read-only",
-      endpoint: `${SUPABASE_URL}/functions/v1/elo-mcp`,
+      endpoint: `${SUPABASE_URL}${RESOURCE_PATH}`,
+      oauthProtectedResourceMetadata: `${SUPABASE_URL}${RESOURCE_METADATA_PATH}`,
     });
   }
 
@@ -126,7 +143,7 @@ Deno.serve(async (req: Request) => {
     await audit(auth.user?.id ?? null, "authentication", "denied", { reason: auth.reason });
     if (auth.reason === "missing_bearer" || auth.reason === "invalid_token") {
       return json({ error: "unauthorized", reason: auth.reason }, 401, {
-        "WWW-Authenticate": 'Bearer realm="ELO MCP"',
+        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${new URL(RESOURCE_METADATA_PATH, new URL(req.url).origin).toString()}"`,
       });
     }
     return json({ error: "forbidden", reason: auth.reason }, 403);
