@@ -15,7 +15,7 @@ def request(**overrides: object) -> OrchestrationRequest:
         "domain": "orcamento",
         "objective": "avaliar viabilidade",
         "evidence_ids": ("ev-1",),
-        "execution_authorized": False,
+        "authorization_decision": False,
     }
     values.update(overrides)
     return OrchestrationRequest(**values)  # type: ignore[arg-type]
@@ -33,13 +33,13 @@ def test_missing_evidence_is_inconclusive() -> None:
     assert result.status == "INCONCLUSIVE"
 
 
-def test_without_authority_never_executes() -> None:
-    result = ORCHESTRATOR.decide_execution(request(execution_authorized=False))
+def test_without_canonical_authorization_never_executes() -> None:
+    result = ORCHESTRATOR.decide_execution(request(authorization_decision=False))
     assert result.stage is OrchestrationStage.HANDOFF
     assert result.status == "RECOMMENDATION"
 
 
-def test_explicit_authority_and_evidence_permit_execution() -> None:
-    result = ORCHESTRATOR.decide_execution(request(execution_authorized=True))
+def test_canonical_authorization_and_evidence_permit_execution() -> None:
+    result = ORCHESTRATOR.decide_execution(request(authorization_decision=True))
     assert result.stage is OrchestrationStage.EXECUTE
     assert result.status == "AUTHORIZED"
