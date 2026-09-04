@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-import re
 from typing import Iterable
 
 
@@ -59,10 +58,10 @@ def reconcile_repository(
 ) -> ReconciliationEvidence:
     """Inspect changed paths and repository references without mutating files.
 
-    A same-stem or concept-linked source is only a *candidate*. It becomes a
-    proven duplicate/parallel capability when explicit canonical owner/source
-    evidence identifies that candidate as the existing source of truth.
-    Otherwise the duplicate state remains UNKNOWN and CREATE is not admitted.
+    A same-stem or concept-linked source is a *candidate*. It becomes a
+    proven duplicate/parallel capability only when explicit canonical
+    owner/source evidence identifies that existing candidate. Candidate
+    discovery alone therefore remains UNKNOWN.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -82,8 +81,8 @@ def reconcile_repository(
     candidates: list[str] = []
     references: list[str] = []
     owners: list[str] = []
+    owner_evidence: list[tuple[str, str]] = []
     independent_references: list[str] = []
-    owner_targets: list[str] = []
     reasons: list[str] = []
 
     for path in all_files:
@@ -108,12 +107,7 @@ def reconcile_repository(
         )
         if explicit_owner and (stem_hit or concept_hit):
             owners.append(relative)
-            # Explicit owner/source evidence is stronger than a generic
-            # reference, but it only proves duplication when it identifies an
-            # existing candidate path/name.
-            for candidate in changed_stems:
-                if candidate in lower:
-                    owner_targets.append(candidate)
+            owner_evidence.append((relative, lower))
 
         if (stem_hit or concept_hit) and not explicit_owner:
             independent_references.append(relative)
@@ -128,15 +122,21 @@ def reconcile_repository(
     references = sorted(set(references))
     owners = sorted(set(owners))
     independent_references = sorted(set(independent_references))
-    owner_targets = sorted(set(owner_targets))
 
-    # Candidate discovery is not itself proof of duplication. Explicit owner /
-    # source-of-truth evidence must point at the candidate. Generic references
-    # therefore leave the state UNKNOWN rather than creating a false block.
     candidate_stems = {
         Path(candidate).stem.lower().replace("-", "_")
         for candidate in candidates
     }
+    owner_targets = {
+        stem
+        for _, text in owner_evidence
+        for stem in candidate_stems
+        if stem in text
+    }
+
+    # Candidate discovery is not itself proof of duplication. Explicit owner /
+    # source-of-truth evidence must identify the candidate. Generic references
+    # therefore leave the state UNKNOWN rather than creating a false block.
     duplicate: bool | None
     if candidate_stems.intersection(owner_targets):
         duplicate = True
@@ -159,9 +159,6 @@ def reconcile_repository(
     else:
         reasons.append("Canonical owner/source of truth not explicitly proven")
 
-    # A proven duplicate is sufficient to classify REUSE. For a genuinely new
-    # capability, explicit owner/source plus a proven non-duplicate state would
-    # be required. UNKNOWN must remain incomplete.
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
     decision = None
     if complete:
