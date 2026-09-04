@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   ingest:
@@ -19,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.14
         uses: actions/setup-python@v5
@@ -37,14 +40,41 @@ jobs:
       - name: Project solicitation-scoped memory
         run: python scripts/solicitation_memory_project.py
 
-      - name: Persist conversation and solicitation memory projections
+      - name: Prepare governed memory projection branch
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         run: |
+          set -euo pipefail
           git config user.name 'ELO Conversation Bridge'
           git config user.email 'actions@users.noreply.github.com'
           git add memory/evolution memory/solicitations
           if git diff --cached --quiet; then
             echo 'No new memory projections.'
-          else
-            git commit -m 'chore(memory): persist conversation and solicitation projections'
-            git push
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          branch="elo/memory-projection-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
+          git commit -m 'chore(memory): persist conversation and solicitation projections'
+          git push --set-upstream origin "$branch"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+
+      - name: Create governed PR for memory projection
+        if: steps.prepare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.prepare.outputs.branch }}
+        run: |
+          set -euo pipefail
+          pr_url="$(gh pr create \
+            --repo "$REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title 'chore(memory): governed conversation projection' \
+            --body 'ELO Conversation Bridge memory projection. This workflow prepares and submits a PR; it does not write directly to main and does not merge automatically. Canonical ELO memory/governance and repository merge gates remain authoritative.')"
+          echo "Created governed memory PR: $pr_url"
