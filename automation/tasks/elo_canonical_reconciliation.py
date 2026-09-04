@@ -59,9 +59,10 @@ def reconcile_repository(
 ) -> ReconciliationEvidence:
     """Inspect changed paths and repository references without mutating files.
 
-    A same-stem candidate is evidence of a possible parallel implementation,
-    not by itself proof of canonical equivalence. CREATE is admissible only when
-    identity, owner/source-of-truth and duplicate state are all explicit.
+    A same-stem candidate or independent concept-linked reference is evidence
+    requiring reconciliation. Owner/source documentation alone is not proof of
+    a duplicate implementation. CREATE is admissible only when identity,
+    owner/source-of-truth and duplicate state are all explicit.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -81,6 +82,7 @@ def reconcile_repository(
     candidates: list[str] = []
     references: list[str] = []
     owners: list[str] = []
+    independent_references: list[str] = []
     reasons: list[str] = []
 
     for path in all_files:
@@ -105,32 +107,28 @@ def reconcile_repository(
         )
         if explicit_owner and (stem_hit or concept_hit):
             owners.append(relative)
+        if (stem_hit or concept_hit) and not explicit_owner:
+            independent_references.append(relative)
 
-        # A same-stem implementation is a candidate for reconciliation. It is
-        # deliberately not treated as canonical merely because its filename is
-        # similar.
         if path.stem.lower().replace("-", "_") in changed_stems:
             candidates.append(relative)
 
     candidates = sorted(set(candidates))
     references = sorted(set(references))
     owners = sorted(set(owners))
+    independent_references = sorted(set(independent_references))
 
     canonical_identity = None
     source_of_truth = None
     duplicate: bool | None = None
 
-    # The changed item is new relative to the scan. Existing candidates or
-    # explicit capability references establish that reconciliation found a
-    # potentially equivalent/parallel implementation.
     if candidates:
         duplicate = True
         reasons.append("Same-stem existing implementation requires canonical reconciliation")
-    elif terms and references:
+    elif independent_references:
         duplicate = True
-        reasons.append("Concept-linked existing references require canonical reconciliation")
+        reasons.append("Independent repository references indicate a related capability")
     else:
-        # Absence of a textual match is not proof of architectural absence.
         duplicate = None
         reasons.append("Duplicate state is not proven; absence is not sufficient to authorize CREATE")
 
