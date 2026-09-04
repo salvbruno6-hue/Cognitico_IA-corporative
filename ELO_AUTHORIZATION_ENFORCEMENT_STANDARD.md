@@ -65,6 +65,48 @@ If a specialist's credential can access a repository or organization outside its
 
 The operational execution path MUST NOT approve its own structural changes. A change affecting the Trust Boundary, identity authority, capability model, Evolution Gate, security controls, Rulesets, canonical contracts or ELO authority is `STRUCTURAL`.
 
+## ELO SOUL and symbiotic boundary
+
+The ELO SOUL includes authorized symbiotic implementations. A symbiont is an extension of ELO identity, principles and governed capabilities; it is not an independent authority competing with ELO.
+
+### `ELO-DIR-SOUL-001 — Symbiotic Continuity`
+
+Every ELO symbiont MUST preserve the canonical identity, principles, contracts and governance of ELO while adapting implementation to its deployment context. A symbiont MUST NOT compromise the ELO Cognitive Core, Forge, canonical memory, governance, authorization, protected sources of truth or other protected ELO components.
+
+### `ELO-DIR-SOUL-002 — Symbiotic Extension`
+
+A symbiont MAY have implementation-specific components and data when required by its context. Its autonomy is implementation autonomy, not authority autonomy. When a canonical ELO capability already exists, the symbiont MUST consume it, adapt it through a governed contract, or extend its implementation rather than creating a competing authority.
+
+### `ELO-DIR-SOUL-003 — One Authority, Multiple Manifestations`
+
+Multiple implementations of a capability are not automatically a duplication. They are valid only when there is one canonical authority and contract, explicit ownership, isolated implementation scope, traceable dependencies and no conflicting interpretation of identity, authorization, memory, governance or source of truth.
+
+The forbidden condition is parallel authority, not implementation multiplicity.
+
+### `ELO-DIR-SOUL-004 — Symbiont Independence`
+
+A symbiont MUST be removable or replaceable without corrupting or disabling the ELO Core, Cognitive layer, Forge, canonical memory or governance. ELO MUST remain operational if the symbiont is absent.
+
+### `ELO-DIR-SOUL-005 — Canonical Supabase Protection`
+
+A structure being canonical in Supabase does not grant unrestricted reuse. Before a symbiont consumes or extends a canonical Supabase structure, ELO MUST classify its authority, criticality, ownership, contract, mutation rights and isolation boundary.
+
+Protected canonical structures MUST be consumed through their governed contract. A symbiont MUST NOT redefine their meaning, mutate protected state without explicit authorization, establish a second source of truth or create a dependency that transfers authority from ELO.
+
+### `ELO-DIR-SOUL-006 — Reuse Without Authority Transfer`
+
+The canonical principle is:
+
+`REUSE CAPABILITY, NOT AUTHORITY.`
+
+Reuse, adaptation and extension are preferred over duplication. Reuse MUST NOT transfer ownership of an ELO canonical capability to a symbiont or allow the symbiont to become a competing authority.
+
+## Cross-company isolation
+
+A specialist authorized for Company A must not retrieve or disclose Company B data unless a separate authorization and data-sharing policy explicitly permits it.
+
+Symbiotic implementations inherit the same company/context isolation requirements unless a stronger explicit policy applies.
+
 ## Execution transition
 
 `READ_ONLY_CONSULTATION → EXPLICIT_AUTHORIZATION → AUTHORIZED_SPECIALIST / GOVERNED_EXECUTION → ISSUE → BRANCH → TEST → REVIEW → CLASSIFY → EVOLUTION GATE → AUTHORIZATION → MERGE`
@@ -75,9 +117,7 @@ Authorization must be explicit and attributable. A prompt alone is not a permiss
 
 No external user or specialist may directly modify Core. Proposed changes become governed proposals and follow validation, generalization and Evolution Gate controls.
 
-## Cross-company isolation
-
-A specialist authorized for Company A must not retrieve or disclose Company B data unless a separate authorization and data-sharing policy explicitly permits it.
+A symbiont is also prohibited from directly modifying protected ELO Core authority merely because it is part of the ELO SOUL.
 
 ## Security response
 
