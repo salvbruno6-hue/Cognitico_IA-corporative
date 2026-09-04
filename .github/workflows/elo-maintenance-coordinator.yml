@@ -50,6 +50,45 @@ jobs:
           fi
           python automation/tasks/elo_maintenance_coordinator.py
 
+      - name: Canonical repository reconciliation
+        if: github.event.pull_request.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr diff "${PR_NUMBER}" --repo "${REPOSITORY}" --name-only > automation/audit-output/changed-paths.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from automation.tasks.elo_canonical_reconciliation import event_facts, reconcile_repository
+
+          changed = [line.strip() for line in Path('automation/audit-output/changed-paths.txt').read_text().splitlines() if line.strip()]
+          terms = []
+          for path in changed:
+              stem = Path(path).stem.replace('-', '_').lower()
+              if len(stem) >= 3:
+                  terms.append(stem)
+          evidence = reconcile_repository('.', changed, terms)
+          payload = {
+              'changed_paths': list(evidence.changed_paths),
+              'candidates': list(evidence.candidates),
+              'references': list(evidence.references),
+              'owners': list(evidence.owners),
+              'source_of_truth': evidence.source_of_truth,
+              'canonical_identity': evidence.canonical_identity,
+              'duplicate_or_parallel': evidence.duplicate_or_parallel,
+              'reuse_analysis_complete': evidence.reuse_analysis_complete,
+              'decision': evidence.decision,
+              'waiting_for_evidence': evidence.waiting_for_evidence,
+              'reasons': list(evidence.reasons),
+              'event_facts': event_facts(evidence),
+          }
+          Path('automation/audit-output/reconciliation.json').write_text(json.dumps(payload, indent=2) + '\n')
+          print(json.dumps(payload, indent=2))
+          PY
+
       - name: Audit open pull request candidates
         if: github.event.pull_request.number != ''
         env:
@@ -74,22 +113,37 @@ jobs:
           from pathlib import Path
 
           pr = json.loads(Path('automation/audit-output/pr.json').read_text())
+          reconciliation = json.loads(Path('automation/audit-output/reconciliation.json').read_text())
           labels = {x['name'] for x in pr.get('labels', [])}
           review_decision = pr.get('reviewDecision')
           merge_state = pr.get('mergeStateStatus')
           checks = Path('automation/audit-output/required-checks.txt').read_text()
           checks_pass = not any(x in checks.lower() for x in ('fail', 'cancel', 'timed out'))
           explicit_merge = 'elo/approve-merge' in labels
+          canonical_clear = (
+              reconciliation['reuse_analysis_complete']
+              and reconciliation['duplicate_or_parallel'] is False
+              and reconciliation['source_of_truth'] is not None
+          )
           approved = (
               explicit_merge
+              and canonical_clear
               and review_decision in (None, 'APPROVED')
               and checks_pass
               and merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')
               and not pr.get('isDraft', False)
           )
 
-          decision = 'APPROVED_FOR_MERGE' if approved else 'READY_FOR_ELO_DECISION'
-          reasons = []
+          if reconciliation['duplicate_or_parallel'] is True:
+              decision = 'BLOCKED'
+          elif not canonical_clear:
+              decision = 'WAITING_FOR_EVIDENCE'
+          elif approved:
+              decision = 'APPROVED_FOR_MERGE'
+          else:
+              decision = 'READY_FOR_ELO_DECISION'
+
+          reasons = list(reconciliation['reasons'])
           if not explicit_merge:
               reasons.append('explicit label elo/approve-merge is required')
           if review_decision not in (None, 'APPROVED'):
@@ -104,9 +158,10 @@ jobs:
           payload = {
               'pr': pr['number'],
               'decision': decision,
-              'reasons': reasons,
-              'explicit_elo_authorization': explicit_merge,
+              'reasons': list(dict.fromkeys(reasons)),
+              'canonical_reconciliation': reconciliation,
               'contract': 'automation/ELO_MAINTENANCE_COORDINATOR.md',
+              'merge_action': 'NONE',
           }
           Path('automation/audit-output/decision.json').write_text(json.dumps(payload, indent=2) + '\n')
           print(json.dumps(payload, indent=2))
@@ -114,10 +169,11 @@ jobs:
 
           DECISION=$(python -c "import json; print(json.load(open('automation/audit-output/decision.json'))['decision'])")
           if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. All configured evidence gates pass and explicit \`elo/approve-merge\` authorization is present. Repository protections remain authoritative."
-            gh pr merge "${PR_NUMBER}" --repo "${REPOSITORY}" --auto --squash
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge."
+          elif [ "${DECISION}" = "BLOCKED" ]; then
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **BLOCKED**. Canonical reconciliation found an existing or parallel capability. Reuse/strengthen/refactor must be resolved before a new authority can proceed."
           else
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **READY_FOR_ELO_DECISION**. The coordinator audited the event but will not merge. Review \`automation/audit-output/decision.json\` in the workflow artifact and satisfy the listed gates."
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **${DECISION}**. Canonical reconciliation evidence is recorded in the workflow artifact; satisfy the listed gates before governed merge."
           fi
 
       - name: Upload audit evidence
