@@ -48,15 +48,20 @@ def _text_files(root: Path) -> Iterable[Path]:
                 continue
 
 
-def _tokens(text: str) -> set[str]:
-    return {t.lower() for t in re.findall(r"[A-Za-z0-9_./-]{3,}", text)}
+def _normalise_terms(terms: Iterable[str]) -> tuple[str, ...]:
+    return tuple(sorted({term.strip().lower() for term in terms if term and term.strip()}))
 
 
-def reconcile_repository(root: str | Path, changed_paths: Iterable[str]) -> ReconciliationEvidence:
+def reconcile_repository(
+    root: str | Path,
+    changed_paths: Iterable[str],
+    concept_terms: Iterable[str] | None = None,
+) -> ReconciliationEvidence:
     """Inspect changed paths and repository references without mutating files.
 
-    The reconciler is intentionally conservative. It does not infer CREATE from
-    absence alone; canonical owner and source-of-truth evidence must be explicit.
+    A same-stem candidate is evidence of a possible parallel implementation,
+    not by itself proof of canonical equivalence. CREATE is admissible only when
+    identity, owner/source-of-truth and duplicate state are all explicit.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -68,9 +73,10 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str]) -> Reco
             decision=None, reasons=("No changed paths supplied",),
         )
 
-    changed_names = {Path(p).name.lower() for p in changed}
     changed_stems = {Path(p).stem.lower().replace("-", "_") for p in changed}
+    terms = _normalise_terms(concept_terms or ())
     all_files = list(_text_files(root))
+    changed_normalised = {p.replace("\\", "/") for p in changed}
 
     candidates: list[str] = []
     references: list[str] = []
@@ -78,24 +84,33 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str]) -> Reco
     reasons: list[str] = []
 
     for path in all_files:
-        if str(path).replace("\\", "/") in {p.replace("\\", "/") for p in changed}:
+        relative = str(path.relative_to(root)).replace("\\", "/")
+        if relative in changed_normalised:
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
         lower = text.lower()
-        path_lower = str(path).lower()
-        if any(stem in lower or stem in path_lower for stem in changed_stems):
-            references.append(str(path.relative_to(root)))
-        if any(word in lower for word in ("canonical owner", "source of truth", "canonical authority")):
-            if any(stem in lower for stem in changed_stems):
-                owners.append(str(path.relative_to(root)))
+        path_lower = relative.lower()
 
-    # Explicitly surface same-name/same-stem implementations.
-    for path in all_files:
-        if path.name.lower() in changed_names or path.stem.lower().replace("-", "_") in changed_stems:
-            candidates.append(str(path.relative_to(root)))
+        stem_hit = any(stem in lower or stem in path_lower for stem in changed_stems)
+        concept_hit = bool(terms) and any(term in lower or term in path_lower for term in terms)
+        if stem_hit or concept_hit:
+            references.append(relative)
+
+        explicit_owner = any(
+            marker in lower
+            for marker in ("canonical owner", "canonical authority", "source of truth")
+        )
+        if explicit_owner and (stem_hit or concept_hit):
+            owners.append(relative)
+
+        # A same-stem implementation is a candidate for reconciliation. It is
+        # deliberately not treated as canonical merely because its filename is
+        # similar.
+        if path.stem.lower().replace("-", "_") in changed_stems:
+            candidates.append(relative)
 
     candidates = sorted(set(candidates))
     references = sorted(set(references))
@@ -105,20 +120,24 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str]) -> Reco
     source_of_truth = None
     duplicate: bool | None = None
 
+    # The changed item is new relative to the scan. Existing candidates or
+    # explicit capability references establish that reconciliation found a
+    # potentially equivalent/parallel implementation.
     if candidates:
         duplicate = True
-        reasons.append("Equivalent or same-stem implementation detected")
-    elif references:
+        reasons.append("Same-stem existing implementation requires canonical reconciliation")
+    elif terms and references:
         duplicate = True
-        reasons.append("Existing repository references indicate related capability")
+        reasons.append("Concept-linked existing references require canonical reconciliation")
     else:
+        # Absence of a textual match is not proof of architectural absence.
         duplicate = None
-        reasons.append("No equivalent proven; absence is not sufficient to authorize CREATE")
+        reasons.append("Duplicate state is not proven; absence is not sufficient to authorize CREATE")
 
-    # Explicit owner/source evidence is required; do not infer it from naming.
     if owners:
         source_of_truth = owners[0]
-        canonical_identity = changed_stems.pop() if len(changed_stems) == 1 else None
+        if len(changed_stems) == 1:
+            canonical_identity = next(iter(changed_stems))
     else:
         reasons.append("Canonical owner/source of truth not explicitly proven")
 
