@@ -8,6 +8,7 @@ from elo.core.assurance import (
     ReplayRecord,
     RetrievalEvaluation,
 )
+from elo.knowledge.rag import GovernedRetriever, RetrievedEvidence
 
 
 def test_a15_retrieval_quality_blocks_stale_hits():
@@ -61,3 +62,19 @@ def test_a19_proceed_requires_no_blocking_condition():
     decision = AbstentionDecision.decide(evidence_count=2)
     assert decision.status == "PROCEED"
     assert decision.reasons == ()
+
+
+def test_a19_retrieval_path_abstains_on_stale_or_conflicting_provenance():
+    stale = RetrievedEvidence("e1", "forge", "m1", "M01", 0.9, {"stale": True})
+    conflicting = RetrievedEvidence("e2", "forge", "m2", "M01", 0.8, {"conflict": True})
+    decision = GovernedRetriever._assure_evidence((stale, conflicting))
+    assert decision.status == "ABSTAIN"
+    assert "STALE_EVIDENCE" in decision.reasons
+    assert "UNRESOLVED_CONFLICT" in decision.reasons
+
+
+def test_a19_retrieval_path_abstains_on_out_of_scope_evidence():
+    evidence = RetrievedEvidence("e1", "forge", "m1", "M01", 0.9, {"out_of_scope": True})
+    decision = GovernedRetriever._assure_evidence((evidence,))
+    assert decision.status == "ABSTAIN"
+    assert decision.reasons == ("OUT_OF_SCOPE",)
