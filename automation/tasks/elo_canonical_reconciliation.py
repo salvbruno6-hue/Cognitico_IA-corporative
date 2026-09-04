@@ -59,10 +59,10 @@ def reconcile_repository(
 ) -> ReconciliationEvidence:
     """Inspect changed paths and repository references without mutating files.
 
-    A same-stem candidate or independent concept-linked reference is evidence
-    requiring reconciliation. Owner/source documentation alone is not proof of
-    a duplicate implementation. CREATE is admissible only when identity,
-    owner/source-of-truth and duplicate state are all explicit.
+    A same-stem candidate or independent concept-linked implementation is
+    evidence requiring reconciliation. Owner/source documentation alone is not
+    proof of a duplicate implementation. CREATE is admissible only when
+    identity, owner/source-of-truth and duplicate state are all explicit.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -110,7 +110,13 @@ def reconcile_repository(
         if (stem_hit or concept_hit) and not explicit_owner:
             independent_references.append(relative)
 
-        if path.stem.lower().replace("-", "_") in changed_stems:
+        # Same-stem or concept-linked source files are candidates for explicit
+        # reconciliation. This is intentionally a candidate signal, not a
+        # final ownership decision.
+        source_suffixes = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
+        if path.stem.lower().replace("-", "_") in changed_stems or (
+            concept_hit and path.suffix.lower() in source_suffixes
+        ):
             candidates.append(relative)
 
     candidates = sorted(set(candidates))
@@ -124,7 +130,7 @@ def reconcile_repository(
 
     if candidates:
         duplicate = True
-        reasons.append("Same-stem existing implementation requires canonical reconciliation")
+        reasons.append("Existing source candidate requires canonical reconciliation")
     elif independent_references:
         duplicate = True
         reasons.append("Independent repository references indicate a related capability")
