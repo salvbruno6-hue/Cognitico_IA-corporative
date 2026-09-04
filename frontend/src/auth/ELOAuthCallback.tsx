@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './ELOGoogleLogin';
+import { establishELOAuthorizationSession, supabase } from './ELOGoogleLogin';
 
 const ELO_BASE_PATH = import.meta.env.BASE_URL;
 const OAUTH_RETURN_KEY = 'elo.oauth.return_to';
@@ -21,7 +21,8 @@ function getSafeReturnPath() {
 
 /**
  * Route component for /auth/callback.
- * Supabase processes the OAuth response and restores the persisted session.
+ * Supabase processes the OAuth response, then ELO reconciles the authenticated
+ * identity with its canonical authorization-session boundary.
  */
 export function ELOAuthCallback() {
   const [message, setMessage] = useState('Finalizando autenticação…');
@@ -29,7 +30,7 @@ export function ELOAuthCallback() {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data, error }) => {
+    void supabase.auth.getSession().then(async ({ data, error }) => {
       if (!active) return;
       if (error) {
         setMessage(`Não foi possível finalizar o login: ${error.message}`);
@@ -37,6 +38,13 @@ export function ELOAuthCallback() {
       }
       if (!data.session) {
         setMessage('Sessão não encontrada. Retorne ao login e tente novamente.');
+        return;
+      }
+
+      try {
+        await establishELOAuthorizationSession();
+      } catch (authorizationError) {
+        setMessage(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
         return;
       }
 

@@ -16,6 +16,27 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 type Props = { children: React.ReactNode };
 
+/**
+ * Reconciles an authenticated Supabase session with the canonical ELO
+ * identity and authorization-session boundary. It does not grant roles or
+ * capabilities; elo-authz remains the authority for protected operations.
+ */
+export async function establishELOAuthorizationSession() {
+  const { error: identityError } = await supabase.rpc('elo_bind_authenticated_identity');
+  if (identityError) throw identityError;
+
+  const { data: sessionId, error: sessionError } = await supabase.rpc('elo_establish_authenticated_session');
+  if (sessionError) throw sessionError;
+  if (!sessionId) throw new Error('ELO authorization session was not established.');
+
+  return sessionId as string;
+}
+
+async function revokeELOAuthorizationSession() {
+  const { error } = await supabase.rpc('elo_revoke_authenticated_session');
+  if (error) throw error;
+}
+
 function GoogleIcon() {
   return (
     <svg className="elo-google-icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -39,22 +60,47 @@ function getPublicOrigin() {
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authorizationReady, setAuthorizationReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [setup, setSetup] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void supabase.auth.getSession().then(({ data, error: sessionError }) => {
+
+    void supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
       if (!active) return;
-      if (sessionError) setError(sessionError.message);
+      if (sessionError) {
+        setError(sessionError.message);
+        setLoading(false);
+        return;
+      }
+
       setSession(data.session);
-      setLoading(false);
+      if (!data.session) {
+        setAuthorizationReady(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        await establishELOAuthorizationSession();
+        if (active) setAuthorizationReady(true);
+      } catch (authorizationError) {
+        if (active) {
+          setAuthorizationReady(false);
+          setError(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
     });
+
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
-      setLoading(false);
+      if (!nextSession) setAuthorizationReady(false);
     });
+
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
@@ -71,8 +117,19 @@ export function ELOGoogleLogin({ children }: Props) {
 
   async function signOut() {
     setError(null);
+    try {
+      if (session) await revokeELOAuthorizationSession();
+    } catch (revokeError) {
+      setError(revokeError instanceof Error ? revokeError.message : 'Não foi possível revogar a sessão de autorização do ELO.');
+      return;
+    }
+
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) setError(signOutError.message);
+    else {
+      setAuthorizationReady(false);
+      setSession(null);
+    }
   }
 
   function continueToChatGPT() {
@@ -81,6 +138,24 @@ export function ELOGoogleLogin({ children }: Props) {
   }
 
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
+
+  if (session && !authorizationReady) {
+    return (
+      <main data-elo-auth="authorization-error" className="elo-setup-page">
+        <section className="elo-login-panel elo-setup-panel">
+          <div className="elo-login-content">
+            <ELOLogo />
+            <span className="elo-setup-kicker">AUTORIZAÇÃO ELO</span>
+            <h1>Acesso não estabelecido</h1>
+            <p className="elo-setup-lead">A autenticação Google/Supabase foi concluída, mas a sessão de autorização do ELO não pôde ser estabelecida.</p>
+            {error && <p className="elo-login-error" role="alert">{error}</p>}
+            <button className="elo-setup-secondary" type="button" onClick={() => window.location.reload()}>Tentar novamente</button>
+            <button className="elo-setup-signout" type="button" onClick={signOut}>Sair</button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (session && !setup) {
     return (

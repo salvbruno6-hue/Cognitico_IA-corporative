@@ -7,6 +7,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const RESOURCE_PATH = "/functions/v1/elo-mcp";
 const RESOURCE_METADATA_PATH = "/functions/v1/elo-mcp/oauth-protected-resource";
+const AUTHZ_PATH = "/functions/v1/elo-authz";
 
 const ALLOWED_TABLES = new Set([
   "taxonomia", "dimensoes", "modelos", "modelo_apresentacao", "kits",
@@ -52,6 +53,9 @@ async function authenticate(req: Request) {
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) return { ok: false as const, reason: "invalid_token" };
 
+  const authorization = await authorizeRead(req, token);
+  if (!authorization.ok) return { ok: false as const, reason: authorization.reason, user: data.user };
+
   const { data: identity, error: identityError } = await supabase
     .from("elo_identity_registry")
     .select("identity_id,auth_user_id,provider,provider_subject,display_name,enterprise_context,active")
@@ -61,18 +65,27 @@ async function authenticate(req: Request) {
   if (identityError) return { ok: false as const, reason: "identity_lookup_failed", user: data.user };
   if (!identity) return { ok: false as const, reason: "operator_binding_missing", user: data.user };
 
-  const { data: roleRows, error: roleError } = await supabase
-    .from("elo_identity_roles")
-    .select("role_id,elo_roles(code,active)")
-    .eq("identity_id", identity.identity_id);
-  if (roleError) return { ok: false as const, reason: "role_lookup_failed", user: data.user };
+  return { ok: true as const, user: data.user, identity, authorization };
+}
 
-  const isAdmin = (roleRows ?? []).some((row: any) =>
-    row.elo_roles?.code === "ELO_ADMIN" && row.elo_roles?.active === true
-  );
-  if (!isAdmin) return { ok: false as const, reason: "elo_admin_required", user: data.user, identity };
+async function authorizeRead(req: Request, token: string) {
+  const requestId = req.headers.get("x-elo-request-id")?.trim() || crypto.randomUUID();
+  const response = await fetch(`${SUPABASE_URL}${AUTHZ_PATH}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "x-elo-request-id": requestId,
+    },
+    body: JSON.stringify({ action: "read", repository: "", capability: "READ" }),
+  });
 
-  return { ok: true as const, user: data.user, identity };
+  let body: any = {};
+  try { body = await response.json(); } catch { return { ok: false as const, reason: "authorization_invalid_response" }; }
+  if (!response.ok || body?.authorized !== true) {
+    return { ok: false as const, reason: String(body?.reason ?? "authorization_denied") };
+  }
+  return { ok: true as const, body };
 }
 
 async function audit(userId: string | null, operation: string, status: string, metadata: Record<string, unknown> = {}) {
@@ -114,7 +127,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "authorization, content-type, mcp-session-id, mcp-protocol-version",
+      "Access-Control-Allow-Headers": "authorization, content-type, mcp-session-id, mcp-protocol-version, x-elo-request-id",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     }});
   }
@@ -162,7 +175,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.1.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Do not infer write authority from this connection.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -181,13 +194,14 @@ Deno.serve(async (req: Request) => {
       await audit(auth.user.id, "elo_status", "success", { identity_id: auth.identity.identity_id });
       return rpc(id, { content: [{ type: "text", text: JSON.stringify({
         authenticated: true,
-        role: "ELO_ADMIN",
+        roles: auth.authorization.body.roles ?? [],
         identity_id: auth.identity.identity_id,
         display_name: auth.identity.display_name,
         provider: auth.identity.provider,
         mode: "read-only",
         writes_enabled: false,
         schema_changes_enabled: false,
+        authorization_authority: "elo-authz",
       }) }] });
     }
 
