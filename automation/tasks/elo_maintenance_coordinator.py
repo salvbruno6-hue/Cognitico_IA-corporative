@@ -4,6 +4,10 @@
 Provider-neutral process logic. It evaluates evidence and produces a governed
 next state; it is not an architectural authority and performs no network
 mutation itself.
+
+Canonical reconciliation is an evidence source for this coordinator. The
+coordinator remains the single decision gate: it does not discover or create a
+second architectural authority.
 """
 
 from __future__ import annotations
@@ -40,6 +44,13 @@ class Event:
     canonical_identity_valid: bool
     architectural_impact: bool
     experience_value: bool
+    # Canonicality facts are populated by repository reconciliation. Defaults
+    # are conservative so legacy callers cannot silently prove unknown facts.
+    canonical_target_resolved: bool = False
+    source_of_truth_resolved: bool = False
+    reuse_analysis_complete: bool = False
+    duplicate_or_parallel_found: bool | None = None
+    contract_conflict: bool | None = None
     provenance_complete: bool = False
     contradiction_free: bool = False
     labels: frozenset[str] = field(default_factory=frozenset)
@@ -65,6 +76,33 @@ def specialist_lane(event_class: str) -> str | None:
     return SPECIALIST_BY_EVENT.get(event_class.lower().strip())
 
 
+def canonicality_gate(event: Event) -> tuple[bool, list[str]]:
+    """Gate architectural admission on explicit canonical reconciliation facts.
+
+    UNKNOWN is never converted into approval. This gate is intentionally
+    deterministic and delegates repository discovery to the reconciliation
+    evidence layer.
+    """
+    blockers: list[str] = []
+    if not event.canonical_identity_valid:
+        blockers.append("canonical_identity_missing_or_invalid")
+    if not event.canonical_target_resolved:
+        blockers.append("canonical_target_unresolved")
+    if not event.source_of_truth_resolved:
+        blockers.append("source_of_truth_unresolved")
+    if not event.reuse_analysis_complete:
+        blockers.append("reuse_analysis_incomplete")
+    if event.duplicate_or_parallel_found is None:
+        blockers.append("duplicate_or_parallel_state_unknown")
+    elif event.duplicate_or_parallel_found:
+        blockers.append("duplicate_or_parallel_capability_found")
+    if event.contract_conflict is None:
+        blockers.append("contract_conflict_state_unknown")
+    elif event.contract_conflict:
+        blockers.append("canonical_contract_conflict")
+    return not blockers, blockers
+
+
 def audit(event: Event) -> tuple[Outcome, list[str]]:
     """Return the next governed state and machine-readable reasons."""
     if event.forbidden_action:
@@ -73,6 +111,16 @@ def audit(event: Event) -> tuple[Outcome, list[str]]:
         return Outcome.WAITING_FOR_EVIDENCE, ["canonical_identity_missing_or_invalid"]
     if not event.evidence_complete:
         return Outcome.WAITING_FOR_EVIDENCE, ["evidence_incomplete"]
+
+    canonical_ok, canonical_reasons = canonicality_gate(event)
+    if not canonical_ok:
+        if any(reason in canonical_reasons for reason in (
+            "duplicate_or_parallel_capability_found",
+            "canonical_contract_conflict",
+        )):
+            return Outcome.BLOCKED, canonical_reasons
+        return Outcome.WAITING_FOR_EVIDENCE, canonical_reasons
+
     if event.specialist_pass is None:
         lane = specialist_lane(event.event_class)
         return Outcome.READY_FOR_SPECIALIST, [f"specialist_consultation_required:{lane or 'domain-review'}"]
@@ -139,6 +187,4 @@ def summarize(events: Iterable[Event]) -> list[dict[str, object]]:
 
 
 if __name__ == "__main__":
-    # Contract smoke mode used by CI. GitHub mutation is handled only by the
-    # workflow adapter, never by this module.
     print("ELO Maintenance Coordinator contract: OK")

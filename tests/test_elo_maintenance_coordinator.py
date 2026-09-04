@@ -17,6 +17,11 @@ def base_event(**overrides):
         canonical_identity_valid=True,
         architectural_impact=True,
         experience_value=False,
+        canonical_target_resolved=True,
+        source_of_truth_resolved=True,
+        reuse_analysis_complete=True,
+        duplicate_or_parallel_found=False,
+        contract_conflict=False,
     )
     data.update(overrides)
     return Event(**data)
@@ -62,3 +67,24 @@ def test_temporal_experience_cannot_bypass_identity_or_provenance():
     outcome, reasons = audit(event)
     assert outcome is Outcome.WAITING_FOR_EVIDENCE
     assert "provenance_incomplete" in reasons
+
+
+def test_unknown_canonical_evidence_blocks_architectural_admission():
+    event = base_event(
+        canonical_target_resolved=False,
+        source_of_truth_resolved=False,
+        reuse_analysis_complete=False,
+        duplicate_or_parallel_found=None,
+        contract_conflict=None,
+    )
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.WAITING_FOR_EVIDENCE
+    assert "canonical_target_unresolved" in reasons
+    assert "duplicate_or_parallel_state_unknown" in reasons
+
+
+def test_parallel_capability_blocks_architectural_admission():
+    event = base_event(duplicate_or_parallel_found=True)
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.BLOCKED
+    assert "duplicate_or_parallel_capability_found" in reasons
