@@ -59,10 +59,10 @@ def reconcile_repository(
 ) -> ReconciliationEvidence:
     """Inspect changed paths and repository references without mutating files.
 
-    A same-stem candidate or independent concept-linked implementation is
-    evidence requiring reconciliation. Owner/source documentation alone is not
-    proof of a duplicate implementation. CREATE is admissible only when
-    identity, owner/source-of-truth and duplicate state are all explicit.
+    A same-stem or concept-linked source is only a *candidate*. It becomes a
+    proven duplicate/parallel capability when explicit canonical owner/source
+    evidence identifies that candidate as the existing source of truth.
+    Otherwise the duplicate state remains UNKNOWN and CREATE is not admitted.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -83,6 +83,7 @@ def reconcile_repository(
     references: list[str] = []
     owners: list[str] = []
     independent_references: list[str] = []
+    owner_targets: list[str] = []
     reasons: list[str] = []
 
     for path in all_files:
@@ -107,12 +108,16 @@ def reconcile_repository(
         )
         if explicit_owner and (stem_hit or concept_hit):
             owners.append(relative)
+            # Explicit owner/source evidence is stronger than a generic
+            # reference, but it only proves duplication when it identifies an
+            # existing candidate path/name.
+            for candidate in changed_stems:
+                if candidate in lower:
+                    owner_targets.append(candidate)
+
         if (stem_hit or concept_hit) and not explicit_owner:
             independent_references.append(relative)
 
-        # Same-stem or concept-linked source files are candidates for explicit
-        # reconciliation. This is intentionally a candidate signal, not a
-        # final ownership decision.
         source_suffixes = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
         if path.stem.lower().replace("-", "_") in changed_stems or (
             concept_hit and path.suffix.lower() in source_suffixes
@@ -123,21 +128,30 @@ def reconcile_repository(
     references = sorted(set(references))
     owners = sorted(set(owners))
     independent_references = sorted(set(independent_references))
+    owner_targets = sorted(set(owner_targets))
+
+    # Candidate discovery is not itself proof of duplication. Explicit owner /
+    # source-of-truth evidence must point at the candidate. Generic references
+    # therefore leave the state UNKNOWN rather than creating a false block.
+    candidate_stems = {
+        Path(candidate).stem.lower().replace("-", "_")
+        for candidate in candidates
+    }
+    duplicate: bool | None
+    if candidate_stems.intersection(owner_targets):
+        duplicate = True
+        reasons.append("Existing candidate is explicitly identified as canonical source of truth")
+    else:
+        duplicate = None
+        if candidates:
+            reasons.append("Existing candidate found, but duplicate/parallel capability is not proven")
+        elif independent_references:
+            reasons.append("Related repository references found, but duplicate/parallel capability is not proven")
+        else:
+            reasons.append("Duplicate state is not proven; absence is not sufficient to authorize CREATE")
 
     canonical_identity = None
     source_of_truth = None
-    duplicate: bool | None = None
-
-    if candidates:
-        duplicate = True
-        reasons.append("Existing source candidate requires canonical reconciliation")
-    elif independent_references:
-        duplicate = True
-        reasons.append("Independent repository references indicate a related capability")
-    else:
-        duplicate = None
-        reasons.append("Duplicate state is not proven; absence is not sufficient to authorize CREATE")
-
     if owners:
         source_of_truth = owners[0]
         if len(changed_stems) == 1:
@@ -145,6 +159,9 @@ def reconcile_repository(
     else:
         reasons.append("Canonical owner/source of truth not explicitly proven")
 
+    # A proven duplicate is sufficient to classify REUSE. For a genuinely new
+    # capability, explicit owner/source plus a proven non-duplicate state would
+    # be required. UNKNOWN must remain incomplete.
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
     decision = None
     if complete:
