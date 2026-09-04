@@ -33,6 +33,24 @@ def test_existing_equivalent_is_not_treated_as_create(tmp_path: Path):
     assert evidence.decision == "REUSE"
 
 
+def test_candidate_without_duplicate_proof_remains_unknown(tmp_path: Path):
+    (tmp_path / "temporal_memory.py").write_text("class TemporalMemory: pass\n", encoding="utf-8")
+    (tmp_path / "references.md").write_text(
+        "The existing temporal_memory capability may be related to the proposed memory change.\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path,
+        ["new_memory.py"],
+        concept_terms=["memory"],
+    )
+    assert "temporal_memory.py" in evidence.candidates
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
+
+
 def test_unknown_owner_does_not_authorize_create(tmp_path: Path):
     (tmp_path / "unrelated.md").write_text("No canonical owner declared.\n", encoding="utf-8")
     evidence = reconcile_repository(tmp_path, ["new_capability.py"])
