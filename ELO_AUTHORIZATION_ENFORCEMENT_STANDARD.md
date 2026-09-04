@@ -75,6 +75,34 @@ Authorization must be explicit and attributable. A prompt alone is not a permiss
 
 No external user or specialist may directly modify Core. Proposed changes become governed proposals and follow validation, generalization and Evolution Gate controls.
 
+## ELO SOUL and symbiotic boundary
+
+### ELO-DIR-SOUL-001 — Symbiotic Continuity
+
+The symbiont must preserve ELO canonical identity, principles, contracts and governance. It MUST NOT compromise ELO Core, Forge, canonical memory, governance, authorization, security controls or protected sources of truth.
+
+### ELO-DIR-SOUL-002 — Symbiotic Extension
+
+Implementation-specific components and data may exist within the symbiont. Autonomy means implementation autonomy, not authority autonomy. The symbiont must consume, adapt or extend canonical ELO capabilities rather than create competing authorities.
+
+### ELO-DIR-SOUL-003 — One Authority, Multiple Manifestations
+
+Multiple implementations are valid when they share one canonical authority and contract, have explicit ownership, isolated scope and traceability, and do not introduce conflicting interpretations. The forbidden condition is parallel authority, not implementation multiplicity.
+
+### ELO-DIR-SOUL-004 — Symbiont Independence
+
+The symbiont must be removable or replaceable without corrupting or disabling ELO. ELO must remain operational without the symbiont.
+
+### ELO-DIR-SOUL-005 — Canonical Supabase Protection
+
+Canonical Supabase structures do not grant unrestricted reuse. Before reuse or extension, the component must be classified by authority, criticality, ownership, contract, mutation rights and isolation requirements. Protected structures must be accessed through their governed contract. A second source of truth is prohibited.
+
+### ELO-DIR-SOUL-006 — Reuse Without Authority Transfer
+
+`REUSE CAPABILITY, NOT AUTHORITY` is mandatory. Reuse, adaptation and extension are preferred; ownership or canonical decision authority must not be transferred to the symbiont.
+
+The symbiont is prohibited from directly modifying protected ELO Core authority merely because it is part of ELO SOUL.
+
 ## Cross-company isolation
 
 A specialist authorized for Company A must not retrieve or disclose Company B data unless a separate authorization and data-sharing policy explicitly permits it.
