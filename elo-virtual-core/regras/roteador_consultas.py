@@ -1,8 +1,9 @@
 """Roteamento determinístico das consultas de dados do ELO.
 
 Este módulo identifica quando uma pergunta depende de dados persistidos no
-Supabase Elo-forge. Ele não acessa o banco por conta própria; devolve a rota
-para a camada de integração executar a consulta.
+Supabase Elo-forge. A rota devolvida agora aponta explicitamente para o
+adaptador de retrieval, evitando que a política de roteamento permaneça
+apenas declarativa.
 """
 
 import json
@@ -18,7 +19,7 @@ def load_routing():
 
 
 def route_query(query: str) -> dict:
-    """Classifica a origem preferencial dos dados para uma consulta."""
+    """Classifica a origem preferencial e o contrato de retrieval."""
     policy = load_routing()
     normalized = query.casefold()
     terms = policy["routing"]["supabase_when_related_to"]
@@ -31,6 +32,8 @@ def route_query(query: str) -> dict:
             "project_ref": source["project_ref"],
             "matched_terms": matches,
             "tables": source["tables"],
+            "adapter": "integracoes.supabase_elo_forge",
+            "retrieval_contract": "read_only_relationship_aware",
             "must_query_source": True,
         }
 
