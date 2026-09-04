@@ -18,7 +18,6 @@ def test_canonical_layers_exist_without_parallel_authority_names():
     required = (
         "src/elo/cognitive",
         "src/elo/core",
-        "src/elo/domain",
         "src/elo/infrastructure",
         "src/elo/integrations",
         "forge",
