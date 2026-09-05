@@ -30,6 +30,7 @@ class EvolutionProposal:
     maturity_score: float = 0.0
     existing_owner: str | None = None
     provenance: Mapping[str, str] = None  # type: ignore[assignment]
+    skill_id: str | None = None
 
     def __post_init__(self) -> None:
         if not all((self.proposal_id, self.tenant_id, self.source_id, self.summary)):
@@ -38,6 +39,9 @@ class EvolutionProposal:
             raise ValueError("maturity_score must be between 0 and 1")
         if self.provenance is None or not self.provenance:
             raise ValueError("provenance is required")
+        provenance_skill = self.provenance.get("skill_id")
+        if self.skill_id and provenance_skill is not None and provenance_skill != self.skill_id:
+            raise ValueError("provenance skill_id must match proposal skill_id")
 
 
 @dataclass(frozen=True)
