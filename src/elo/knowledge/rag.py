@@ -103,8 +103,15 @@ class GovernedRetriever:
 
     @staticmethod
     def prompt_context(context: RAGContext) -> str:
-        """Create bounded provider input with explicit evidence boundaries."""
+        """Create bounded provider input with explicit evidence boundaries.
+
+        Preserve the ELO-007 no-result presentation contract while exposing the
+        stronger A19 decision state on the context object. Other blocking
+        conditions remain explicitly rendered as ABSTAIN reasons.
+        """
         if context.assurance_status == "ABSTAIN":
+            if context.assurance_reasons == ("INSUFFICIENT_EVIDENCE",):
+                return "NO_VERIFIED_EVIDENCE_AVAILABLE"
             return "ABSTAIN: " + ",".join(context.assurance_reasons)
         if not context.evidence:
             return "NO_VERIFIED_EVIDENCE_AVAILABLE"
