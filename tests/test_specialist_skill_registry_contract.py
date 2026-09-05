@@ -74,6 +74,18 @@ def test_registry_skill_contract_requires_governance_and_evidence_fields():
         assert f"    - {field}" in text
 
 
+def test_budgeting_skill_is_registered_as_a_governed_forge_capability():
+    text = registry_text()
+
+    assert "skill_id: FORGE-BUDGETING-001" in text
+    assert "domain_family: BUDGETING" in text
+    assert "maturity: GOVERNED" in text
+    assert "QUANTITY_X_UNIT_COST" in text
+    assert "BudgetVersion" in text
+    assert "may not approve, commit or execute" in text
+    assert "direct_forge_to_core_promotion: false" in text
+
+
 def test_document_preserves_the_forge_to_core_promotion_boundary():
     text = DOCUMENT.read_text(encoding="utf-8")
 
