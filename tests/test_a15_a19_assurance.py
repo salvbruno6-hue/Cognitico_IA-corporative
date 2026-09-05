@@ -21,6 +21,23 @@ def test_a15_retrieval_quality_passes_clean_evidence():
     assert evaluation.quality_gate == "PASS"
 
 
+def test_a15_builds_metrics_from_captured_rankings():
+    evaluation = RetrievalEvaluation.from_rankings(
+        dataset_version="eval-v2",
+        k=2,
+        queries=(
+            {"relevant_ids": ("a",), "ranked_ids": ("a", "b"), "latency_ms": (10.0,)},
+            {"relevant_ids": ("c",), "ranked_ids": ("b", "c"), "latency_ms": (20.0,)},
+        ),
+    )
+    assert evaluation.queries == 2
+    assert evaluation.recall_at_k == 1.0
+    assert evaluation.precision_at_k == 0.5
+    assert evaluation.mrr == 0.75
+    assert evaluation.stale_hit_rate == 0.0
+    assert evaluation.p95_latency_ms == 10.0
+
+
 def test_a16_replay_is_deterministic_and_does_not_execute():
     record = ReplayRecord.build(
         execution_id="exec-1",
@@ -28,27 +45,39 @@ def test_a16_replay_is_deterministic_and_does_not_execute():
         decision_snapshot={"decision": "READ"},
         tool_plan=({"tool": "forge", "operation": "read"},),
         result_snapshot={"rows": 2},
+        world_snapshot={"policy": "v1"},
+        compiler_version="c1",
     )
-    assert record.verify()
+    assert record.verify(expected_world_snapshot={"policy": "v1"}, expected_compiler_version="c1")
+    assert not record.verify(expected_compiler_version="c2")
 
 
-def test_a17_closure_requires_all_required_dimensions():
+def test_a17_closure_requires_all_required_dimensions_and_binds_replay():
     fields = {
         "identity": "id", "scope": "repo", "direction": "read", "authority": "elo-authz",
         "mutation": "none", "protection": "fail-closed", "epistemic_state": "verified",
         "proof": "sha256", "freshness": "current",
     }
-    receipt = CompletionReceipt("exec-1", fields, "digest", ("evidence-1",))
+    replay = ReplayRecord.build(
+        execution_id="exec-1",
+        input_snapshot={"query": "M01"},
+        decision_snapshot={"decision": "READ"},
+        tool_plan=(),
+        result_snapshot={"rows": 2},
+    )
+    receipt = CompletionReceipt("exec-1", fields, replay.trace_digest, ("evidence-1",))
     assert receipt.closed
+    assert receipt.validate_replay(replay)
     with pytest.raises(AssuranceError):
         CompletionReceipt("exec-2", {"identity": "id"}, "digest", ("evidence-1",))
 
 
-def test_a18_custody_is_hash_linked():
+def test_a18_custody_is_hash_linked_and_self_verifying():
     first = CustodyEnvelope.build(sequence=0, kind="INTENT", payload={"query": "M01"})
     second = CustodyEnvelope.build(sequence=1, kind="TOOL", payload={"tool": "forge"}, previous_digest=first.digest)
-    assert first.verify_link(None)
-    assert second.verify_link(first)
+    assert first.verify()
+    assert second.verify(first)
+    assert not CustodyEnvelope(second.sequence, second.kind, second.payload_digest, second.previous_digest, "tampered").verify(first)
 
 
 def test_a19_abstention_is_fail_closed():
