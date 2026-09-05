@@ -36,10 +36,13 @@ def test_200_semantic_discovery_emits_adapter_capability():
 
 def test_201_evolution_gate_never_mutates_canonical_state():
     proposal = EvolutionProposal("p-1", "tenant-a", "src-1", "compatible improvement",
-                                  True, True, True, True, ("e-1",), 0.9, None, {"request_id": "r-1"})
+                                  True, True, True, True, ("e-1",), 0.9, None,
+                                  {"request_id": "r-1", "skill_id": "FORGE-BUDGETING-001"},
+                                  "FORGE-BUDGETING-001")
     result = EvolutionGate().evaluate(proposal)
     assert result.classification == EvolutionClassification.COMPATIBLE
     assert result.canonical_mutation_allowed is False
+    assert proposal.skill_id == "FORGE-BUDGETING-001"
 
 
 def test_202_hybrid_bridge_selects_healthy_provider_and_degrades_without_one():
@@ -69,8 +72,8 @@ def test_206_forge_skill_pack_uses_shared_faculty_without_parallel_core():
 
 def test_207_specialist_feedback_is_append_only_and_scoped():
     registry = SpecialistFeedbackRegistry()
-    feedback = SpecialistFeedback("f-1", "PCP-1", "tenant-a", "PCP", "mt-001", "capacity changed",
-                                   ("e-1",), {"request_id": "r-1"})
+    feedback = SpecialistFeedback("f-1", "PCP-1", "FORGE-PCP-001", "tenant-a", "PCP", "mt-001", "capacity changed",
+                                   ("e-1",), {"request_id": "r-1", "skill_id": "FORGE-PCP-001"})
     registry.ingest(feedback)
     assert registry.list(tenant_id="tenant-a", domain="PCP") == (feedback,)
     assert registry.list(tenant_id="tenant-b", domain="PCP") == ()
@@ -80,3 +83,13 @@ def test_207_specialist_feedback_is_append_only_and_scoped():
         pass
     else:
         raise AssertionError("historical feedback must be immutable")
+
+
+def test_208_specialist_feedback_rejects_mismatched_skill_provenance():
+    try:
+        SpecialistFeedback("f-2", "PCP-1", "FORGE-PCP-001", "tenant-a", "PCP", "mt-002", "capacity changed",
+                           ("e-2",), {"skill_id": "FORGE-BUDGETING-001"})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("feedback skill provenance must match skill_id")
