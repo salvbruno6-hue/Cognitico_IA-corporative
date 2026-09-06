@@ -14,7 +14,7 @@ CRITICAL_ACTIONS = (
 )
 
 
-def _consultation_request(action: str) -> AccessRequest:
+def _specialist_request(action: str) -> AccessRequest:
     return AccessRequest(
         principal_id="principal-1",
         role="specialist",
@@ -28,7 +28,7 @@ def _consultation_request(action: str) -> AccessRequest:
 
 def test_cognitive_policy_cannot_grant_canonical_write_authority():
     for action in CRITICAL_ACTIONS:
-        result = authorize(_consultation_request(action))
+        result = authorize(_specialist_request(action))
         assert result.decision is AccessDecision.DENY
         assert result.reason == "action_outside_elo_authority"
 
@@ -40,9 +40,9 @@ def test_canonical_write_actions_remain_declared_in_elo_authz():
         assert f'"{action}"' in source
 
 
-def test_canonical_write_authority_is_not_claimed_by_materialization_layer():
+def test_materialization_layer_explicitly_has_no_mutation_authority():
     materialization = (
         REPOSITORY_ROOT / "src" / "elo" / "core" / "knowledge_materialization.py"
     ).read_text(encoding="utf-8")
-    assert "mutation_authority": False
+    assert '"mutation_authority": False' in materialization
     assert "does not" in materialization
