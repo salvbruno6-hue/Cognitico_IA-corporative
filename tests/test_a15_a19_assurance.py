@@ -31,10 +31,23 @@ def test_a15_retrieval_quality_passes_clean_evidence():
     assert evaluation.quality_gate == "PASS"
 
 
+def test_a15_retrieval_quality_preserves_admissibility_boundary():
+    evaluation = RetrievalEvaluation(
+        "eval-v1", 10, 8, 8, 120.0, True, True,
+        dataset_version="eval-v1", queries=10,
+        recall_at_k=0.9, precision_at_k=0.8, mrr=0.75,
+        stale_hit_rate=0.1, p95_latency_ms=120.0,
+    )
+    assert evaluation.admissible is True
+    assert evaluation.quality_gate == "BLOCKED_STALE"
+
+
 def test_a15_builds_metrics_from_captured_rankings():
     evaluation = RetrievalEvaluation.from_rankings(
         dataset_version="eval-v2",
         k=2,
+        tenant_isolation_ok=True,
+        provenance_ok=True,
         queries=(
             {"relevant_ids": ("a",), "ranked_ids": ("a", "b"), "latency_ms": (10.0,)},
             {"relevant_ids": ("c",), "ranked_ids": ("b", "c"), "latency_ms": (20.0,)},
@@ -46,6 +59,16 @@ def test_a15_builds_metrics_from_captured_rankings():
     assert evaluation.mrr == 0.75
     assert evaluation.stale_hit_rate == 0.0
     assert evaluation.p95_latency_ms == 10.0
+    assert evaluation.quality_gate == "PASS"
+
+
+def test_a15_rankings_do_not_assume_security_or_provenance():
+    evaluation = RetrievalEvaluation.from_rankings(
+        dataset_version="eval-v3",
+        queries=({"relevant_ids": ("a",), "ranked_ids": ("a",)},),
+    )
+    assert evaluation.admissible is False
+    assert evaluation.quality_gate == "BLOCKED_GOVERNANCE"
 
 
 def test_a16_replay_is_deterministic_and_does_not_execute():
