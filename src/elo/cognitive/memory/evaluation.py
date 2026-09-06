@@ -54,13 +54,16 @@ class RetrievalEvaluation:
 
     @property
     def admissible(self) -> bool:
-        return self.tenant_isolation_ok and self.provenance_ok and self.stale_hit_rate == 0.0
+        """Preserve the original admissibility boundary: isolation + provenance."""
+        return self.tenant_isolation_ok and self.provenance_ok
 
     @property
     def quality_gate(self) -> str:
-        """Fail closed on stale evidence or insufficient ranking quality."""
-        if not self.admissible or self.stale_hit_rate > 0.0:
+        """Fail closed on stale evidence, governance failures, or weak quality."""
+        if self.stale_hit_rate > 0.0:
             return "BLOCKED_STALE"
+        if not self.admissible:
+            return "BLOCKED_GOVERNANCE"
         if self.queries and min(self.recall_at_k, self.precision_at_k, self.mrr) < 0.5:
             return "INSUFFICIENT_QUALITY"
         return "PASS"
@@ -71,10 +74,14 @@ class RetrievalEvaluation:
         dataset_version: str,
         queries: Sequence[Mapping[str, Any]],
         k: int = 5,
+        tenant_isolation_ok: bool = False,
+        provenance_ok: bool = False,
     ) -> "RetrievalEvaluation":
         """Build the canonical evaluation from already-captured rankings.
 
-        No retriever, provider, tool, or persistence layer is invoked.
+        No retriever, provider, tool, or persistence layer is invoked. Security
+        and provenance assertions must be supplied as explicit evidence; this
+        constructor never assumes them to be true.
         """
         if not dataset_version or k < 1 or not queries:
             raise ValueError("dataset_version, positive k and queries are required")
@@ -104,7 +111,11 @@ class RetrievalEvaluation:
             stale_total += sum(item in stale for item in ranked) / max(len(ranked), 1)
 
         ordered = sorted(latencies)
-        p95 = 0.0 if not ordered else ordered[min(len(ordered) - 1, max(0, int(0.95 * len(ordered)) - 1))]
+        if ordered:
+            rank = max(1, (95 * len(ordered) + 99) // 100)
+            p95 = ordered[rank - 1]
+        else:
+            p95 = 0.0
         count = len(queries)
         evaluation = RetrievalEvaluation(
             query_id=dataset_version,
@@ -112,8 +123,8 @@ class RetrievalEvaluation:
             relevant=relevant_total,
             expected_relevant=expected_total,
             latency_ms=p95,
-            tenant_isolation_ok=True,
-            provenance_ok=True,
+            tenant_isolation_ok=tenant_isolation_ok,
+            provenance_ok=provenance_ok,
             dataset_version=dataset_version,
             queries=count,
             recall_at_k=recall_total / count,
