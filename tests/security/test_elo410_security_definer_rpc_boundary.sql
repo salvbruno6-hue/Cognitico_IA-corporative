@@ -1,0 +1,14 @@
+-- Static executable contract for ELO-410 migration review.
+-- The runtime/database gate should execute the equivalent privilege assertions
+-- against the target Supabase project before merge.
+
+-- Expected state:
+-- has_function_privilege('authenticated', 'public.elo_bind_authenticated_identity()', 'EXECUTE') = false
+-- has_function_privilege('authenticated', 'public.elo_establish_authenticated_session()', 'EXECUTE') = false
+-- has_function_privilege('authenticated', 'public.elo_revoke_authenticated_session()', 'EXECUTE') = false
+-- has_function_privilege('anon', 'public.elo_bind_authenticated_identity()', 'EXECUTE') = false
+-- has_function_privilege('anon', 'public.elo_establish_authenticated_session()', 'EXECUTE') = false
+-- has_function_privilege('anon', 'public.elo_revoke_authenticated_session()', 'EXECUTE') = false
+-- has_function_privilege('public', 'public.elo_bind_authenticated_identity()', 'EXECUTE') = false
+-- has_function_privilege('public', 'public.elo_establish_authenticated_session()', 'EXECUTE') = false
+-- has_function_privilege('public', 'public.elo_revoke_authenticated_session()', 'EXECUTE') = false
