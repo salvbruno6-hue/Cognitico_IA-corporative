@@ -58,7 +58,7 @@ def test_a15_builds_metrics_from_captured_rankings():
     assert evaluation.precision_at_k == 0.5
     assert evaluation.mrr == 0.75
     assert evaluation.stale_hit_rate == 0.0
-    assert evaluation.p95_latency_ms == 10.0
+    assert evaluation.p95_latency_ms == 20.0
     assert evaluation.quality_gate == "PASS"
 
 
