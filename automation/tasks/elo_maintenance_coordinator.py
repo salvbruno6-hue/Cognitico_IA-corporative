@@ -75,12 +75,7 @@ def specialist_lane(event_class: str) -> str | None:
 
 
 def canonicality_gate(event: Event) -> tuple[bool, list[str]]:
-    """Gate architectural admission on explicit canonical reconciliation facts.
-
-    UNKNOWN is never converted into approval. This gate is intentionally
-    deterministic and delegates repository discovery to the reconciliation
-    evidence layer.
-    """
+    """Require explicit canonicality evidence before architectural admission."""
     blockers: list[str] = []
     if not event.canonical_identity_valid:
         blockers.append("canonical_identity_missing_or_invalid")
