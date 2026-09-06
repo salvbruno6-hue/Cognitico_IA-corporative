@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from elo.core.assurance import AbstentionDecision
 from elo.memory.persistent import MemoryRecord, PersistentMemoryStore
 
 
@@ -26,6 +27,8 @@ class RAGContext:
     evidence: tuple[RetrievedEvidence, ...]
     citations: tuple[str, ...]
     sufficient: bool
+    assurance_status: str = "PROCEED"
+    assurance_reasons: tuple[str, ...] = ()
 
 
 class GovernedRetriever:
@@ -57,6 +60,18 @@ class GovernedRetriever:
             )
         ]
 
+    @staticmethod
+    def _assure_evidence(evidence: tuple[RetrievedEvidence, ...]) -> AbstentionDecision:
+        stale = any(item.provenance.get("stale") is True for item in evidence)
+        out_of_scope = any(item.provenance.get("out_of_scope") is True for item in evidence)
+        conflict = any(item.provenance.get("conflict") is True for item in evidence)
+        return AbstentionDecision.decide(
+            evidence_count=len(evidence),
+            stale=stale,
+            out_of_scope=out_of_scope,
+            conflict=conflict,
+        )
+
     def build_context(
         self,
         query: str,
@@ -73,18 +88,31 @@ class GovernedRetriever:
             )
             if item.relevance >= minimum_relevance
         )
+        assurance = self._assure_evidence(evidence)
+        safe_evidence = evidence if assurance.status == "PROCEED" else ()
         return RAGContext(
             query=query,
             tenant_id=tenant_id,
             domain=domain,
-            evidence=evidence,
-            citations=tuple(item.evidence_id for item in evidence),
-            sufficient=bool(evidence),
+            evidence=safe_evidence,
+            citations=tuple(item.evidence_id for item in safe_evidence),
+            sufficient=bool(safe_evidence),
+            assurance_status=assurance.status,
+            assurance_reasons=assurance.reasons,
         )
 
     @staticmethod
     def prompt_context(context: RAGContext) -> str:
-        """Create bounded provider input with explicit evidence boundaries."""
+        """Create bounded provider input with explicit evidence boundaries.
+
+        Preserve the ELO-007 no-result presentation contract while exposing the
+        stronger A19 decision state on the context object. Other blocking
+        conditions remain explicitly rendered as ABSTAIN reasons.
+        """
+        if context.assurance_status == "ABSTAIN":
+            if context.assurance_reasons == ("INSUFFICIENT_EVIDENCE",):
+                return "NO_VERIFIED_EVIDENCE_AVAILABLE"
+            return "ABSTAIN: " + ",".join(context.assurance_reasons)
         if not context.evidence:
             return "NO_VERIFIED_EVIDENCE_AVAILABLE"
         lines = [
