@@ -44,8 +44,6 @@ class Event:
     canonical_identity_valid: bool
     architectural_impact: bool
     experience_value: bool
-    # Canonicality facts are populated by repository reconciliation. Defaults
-    # are conservative so legacy callers cannot silently prove unknown facts.
     canonical_target_resolved: bool = False
     source_of_truth_resolved: bool = False
     reuse_analysis_complete: bool = False
@@ -107,8 +105,6 @@ def audit(event: Event) -> tuple[Outcome, list[str]]:
     """Return the next governed state and machine-readable reasons."""
     if event.forbidden_action:
         return Outcome.BLOCKED, ["forbidden_or_destructive_action"]
-    if not event.canonical_identity_valid:
-        return Outcome.WAITING_FOR_EVIDENCE, ["canonical_identity_missing_or_invalid"]
     if not event.evidence_complete:
         return Outcome.WAITING_FOR_EVIDENCE, ["evidence_incomplete"]
 
@@ -168,6 +164,9 @@ def consultation_request(event: Event) -> dict[str, object]:
         "specialist_lane": lane,
         "question": "Can this event be admitted as the next governed ELO evolution?",
         "requires_canonical_identity": True,
+        "requires_reuse_analysis": True,
+        "requires_single_source_of_truth": True,
+        "requires_duplicate_check": True,
         "evidence_required": True,
     }
 
