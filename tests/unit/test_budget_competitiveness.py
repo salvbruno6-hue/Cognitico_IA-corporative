@@ -1,6 +1,6 @@
-from src.elo.cognitive.orcamento.competitividade import BudgetCompetitivenessAnalyzer
-from src.elo.cognitive.orcamento.competitividade.abc import classify_abc
-from src.elo.cognitive.orcamento.competitividade.models import BudgetItem
+from elo.cognitive.orcamento.competitividade import BudgetCompetitivenessAnalyzer
+from elo.cognitive.orcamento.competitividade.abc import classify_abc
+from elo.cognitive.orcamento.competitividade.models import BudgetItem
 
 
 def test_abc_thresholds_are_deterministic():
