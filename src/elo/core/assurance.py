@@ -4,13 +4,17 @@ This module is deliberately non-authoritative: it does not authorize actions,
 execute tools, persist canonical knowledge, or mutate Core/Forge. It supplies
 small deterministic contracts that existing retrieval, reasoning, execution,
 and Evolution Gate owners can consume.
+
+Retrieval quality itself is owned canonically by
+``elo.cognitive.memory.evaluation.RetrievalEvaluation``. This module must not
+redeclare that authority.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 
 class AssuranceError(ValueError):
@@ -19,86 +23,6 @@ class AssuranceError(ValueError):
 
 def _canonical_json(value: Mapping[str, Any]) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
-@dataclass(frozen=True, slots=True)
-class RetrievalEvaluation:
-    """Deterministic retrieval-quality evidence for a fixed evaluation set."""
-
-    dataset_version: str
-    queries: int
-    recall_at_k: float
-    precision_at_k: float
-    mrr: float
-    stale_hit_rate: float
-    p95_latency_ms: float
-
-    def __post_init__(self) -> None:
-        if not self.dataset_version or self.queries < 1:
-            raise AssuranceError("dataset_version and a positive query count are required")
-        for name in ("recall_at_k", "precision_at_k", "mrr", "stale_hit_rate"):
-            value = getattr(self, name)
-            if not 0.0 <= value <= 1.0:
-                raise AssuranceError(f"{name} must be between 0 and 1")
-        if self.p95_latency_ms < 0:
-            raise AssuranceError("p95_latency_ms cannot be negative")
-
-    @staticmethod
-    def from_rankings(
-        *,
-        dataset_version: str,
-        queries: Sequence[Mapping[str, Any]],
-        k: int = 5,
-    ) -> "RetrievalEvaluation":
-        """Build retrieval metrics from deterministic query fixtures.
-
-        Each query contains ``relevant_ids``, ``ranked_ids``, optional
-        ``stale_ids`` and optional ``latency_ms``. No provider or retriever is
-        invoked; this is an evaluator over already captured evidence.
-        """
-        if k < 1 or not queries:
-            raise AssuranceError("k must be positive and queries cannot be empty")
-
-        recall_total = precision_total = mrr_total = stale_total = 0.0
-        latencies: list[float] = []
-        for query in queries:
-            relevant = set(query.get("relevant_ids", ()))
-            ranked = list(query.get("ranked_ids", ()))[:k]
-            stale = set(query.get("stale_ids", ()))
-            if any(float(v) < 0 for v in query.get("latency_ms", ())):
-                raise AssuranceError("latency_ms cannot contain negative values")
-            latencies.extend(float(v) for v in query.get("latency_ms", ()))
-            if relevant:
-                recall_total += len(set(ranked) & relevant) / len(relevant)
-            precision_total += len(set(ranked) & relevant) / k
-            first_rank = next((i for i, item in enumerate(ranked, 1) if item in relevant), None)
-            mrr_total += 0.0 if first_rank is None else 1.0 / first_rank
-            stale_total += sum(item in stale for item in ranked) / max(len(ranked), 1)
-
-        ordered = sorted(latencies)
-        if not ordered:
-            p95 = 0.0
-        else:
-            index = min(len(ordered) - 1, max(0, int(0.95 * len(ordered)) - 1))
-            p95 = ordered[index]
-        count = len(queries)
-        return RetrievalEvaluation(
-            dataset_version=dataset_version,
-            queries=count,
-            recall_at_k=recall_total / count,
-            precision_at_k=precision_total / count,
-            mrr=mrr_total / count,
-            stale_hit_rate=stale_total / count,
-            p95_latency_ms=p95,
-        )
-
-    @property
-    def quality_gate(self) -> str:
-        if self.stale_hit_rate > 0.0:
-            return "BLOCKED_STALE"
-        if min(self.recall_at_k, self.precision_at_k, self.mrr) < 0.5:
-            return "INSUFFICIENT_QUALITY"
-        return "PASS"
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,7 +62,16 @@ class ReplayRecord:
             "compiler_version": compiler_version,
         }
         digest = hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
-        return ReplayRecord(execution_id, input_snapshot, decision_snapshot, tool_plan, result_snapshot, digest, world, compiler_version)
+        return ReplayRecord(
+            execution_id,
+            input_snapshot,
+            decision_snapshot,
+            tool_plan,
+            result_snapshot,
+            digest,
+            world,
+            compiler_version,
+        )
 
     def verify(
         self,
@@ -188,7 +121,11 @@ class CompletionReceipt:
 
     def validate_replay(self, replay: ReplayRecord) -> bool:
         """Bind closure to the exact immutable replay artifact."""
-        return replay.execution_id == self.execution_id and replay.trace_digest == self.replay_digest and replay.verify()
+        return (
+            replay.execution_id == self.execution_id
+            and replay.trace_digest == self.replay_digest
+            and replay.verify()
+        )
 
     @property
     def closed(self) -> bool:
@@ -206,7 +143,13 @@ class CustodyEnvelope:
     digest: str
 
     @staticmethod
-    def build(*, sequence: int, kind: str, payload: Mapping[str, Any], previous_digest: str = "") -> "CustodyEnvelope":
+    def build(
+        *,
+        sequence: int,
+        kind: str,
+        payload: Mapping[str, Any],
+        previous_digest: str = "",
+    ) -> "CustodyEnvelope":
         if sequence < 0 or not kind:
             raise AssuranceError("sequence and kind are required")
         payload_digest = hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
@@ -234,7 +177,13 @@ class AbstentionDecision:
     reasons: tuple[str, ...]
 
     @staticmethod
-    def decide(*, evidence_count: int, out_of_scope: bool = False, stale: bool = False, conflict: bool = False) -> "AbstentionDecision":
+    def decide(
+        *,
+        evidence_count: int,
+        out_of_scope: bool = False,
+        stale: bool = False,
+        conflict: bool = False,
+    ) -> "AbstentionDecision":
         reasons: list[str] = []
         if evidence_count < 1:
             reasons.append("INSUFFICIENT_EVIDENCE")
