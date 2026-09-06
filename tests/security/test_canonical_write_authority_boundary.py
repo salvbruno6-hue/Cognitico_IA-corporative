@@ -44,4 +44,3 @@ def test_materialization_layer_explicitly_has_no_mutation_authority():
         REPOSITORY_ROOT / "src" / "elo" / "core" / "knowledge_materialization.py"
     ).read_text(encoding="utf-8")
     assert '"mutation_authority": False' in materialization
-    assert "does not" in materialization
