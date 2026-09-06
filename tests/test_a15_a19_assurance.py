@@ -1,23 +1,33 @@
 import pytest
 
+from elo.cognitive.memory.evaluation import RetrievalEvaluation
 from elo.core.assurance import (
     AbstentionDecision,
     AssuranceError,
     CompletionReceipt,
     CustodyEnvelope,
     ReplayRecord,
-    RetrievalEvaluation,
 )
 from elo.knowledge.rag import GovernedRetriever, RetrievedEvidence
 
 
 def test_a15_retrieval_quality_blocks_stale_hits():
-    evaluation = RetrievalEvaluation("eval-v1", 10, 0.9, 0.8, 0.75, 0.1, 120.0)
+    evaluation = RetrievalEvaluation(
+        "eval-v1", 10, 8, 8, 120.0, True, True,
+        dataset_version="eval-v1", queries=10,
+        recall_at_k=0.9, precision_at_k=0.8, mrr=0.75,
+        stale_hit_rate=0.1, p95_latency_ms=120.0,
+    )
     assert evaluation.quality_gate == "BLOCKED_STALE"
 
 
 def test_a15_retrieval_quality_passes_clean_evidence():
-    evaluation = RetrievalEvaluation("eval-v1", 10, 0.9, 0.8, 0.75, 0.0, 120.0)
+    evaluation = RetrievalEvaluation(
+        "eval-v1", 10, 8, 8, 120.0, True, True,
+        dataset_version="eval-v1", queries=10,
+        recall_at_k=0.9, precision_at_k=0.8, mrr=0.75,
+        stale_hit_rate=0.0, p95_latency_ms=120.0,
+    )
     assert evaluation.quality_gate == "PASS"
 
 
