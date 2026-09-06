@@ -1,0 +1,75 @@
+version: "1.0"
+contract_id: ELO-PTS-POS-COMPETITIVIDADE-001
+purpose: "Contrato operacional para análise de competitividade após a composição do orçamento."
+mode: supervised
+authority:
+  elo: "orchestrate_audit_and_recommend"
+  specialist_orcamento: "execute_budget_analysis_and_composition"
+  responsible_decider: "arbitrate_and_decide"
+inputs:
+  - budget
+  - pts_tecnica
+  - master_list
+  - taxonomy
+  - model_compositions
+  - excess_items
+  - calculation_memory
+  - learned_calculations
+  - calculation_evidence
+  - applicable_knowledge
+  - arbitrated_decisions
+  - tender_result
+pipeline:
+  - id: normalize
+    action: normalize_budget_items
+  - id: abc
+    action: calculate_financial_weight_and_abc_class
+  - id: evidence
+    action: assess_provenance_and_evidence
+  - id: value
+    action: analyze_value_quantity_composition_and_history
+  - id: flexibility
+    action: assess_technical_and_commercial_flexibility
+  - id: risk
+    action: assess_change_risk
+  - id: opportunity
+    action: identify_supported_competitiveness_opportunities
+  - id: scenarios
+    action: simulate_base_competitive_and_maximum_scenarios
+  - id: recommendation
+    action: produce_recommendation_without_mutating_canonical_state
+  - id: arbitration
+    action: request_responsible_decision
+  - id: learning
+    action: evaluate_result_for_governed_learning
+abc:
+  thresholds: configurable
+  meaning: "Economic prioritization only; ABC does not authorize price reduction."
+states:
+  knowledge: [FORTE, MEDIO, FRACO, AUSENTE, CONFLITANTE]
+  flexibility: [ALTA, MEDIA, BAIXA, INDETERMINADA]
+  risk: [BAIXO, MEDIO, ALTO, CRITICO]
+  decision: [MANTER, REVISAR, NEGOCIAR, SUBSTITUIR, REESTRUTURAR, CONFIRMAR, NAO_REDUZIR, AGUARDAR_DECISAO]
+scenarios:
+  - BASE
+  - COMPETITIVO
+  - MAXIMO
+guardrails:
+  - "Do not invent prices, quantities, compositions, evidence or technical equivalence."
+  - "Do not treat ABC class as authorization to reduce value."
+  - "Do not alter canonical budget state automatically."
+  - "Do not alter Lista-Mãe, canonical knowledge, Core or Soul automatically."
+  - "Missing evidence means pending analysis, not automatic reduction."
+  - "Conflicting knowledge preserves provenance and requires arbitration."
+  - "External market references must preserve source, conditions, premises and calculation memory."
+  - "Learning remains temporal until governed promotion."
+outputs:
+  - abc_analysis
+  - item_opportunity_matrix
+  - evidence_matrix
+  - risk_matrix
+  - scenario_comparison
+  - recommendations
+  - pending_decisions
+  - provenance
+  - candidate_learning

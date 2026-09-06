@@ -1,6 +1,6 @@
 # PTS Técnica Pós-Orçamento — Estrutura Padrão do ELO
 
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Status:** Oficial  
 **Responsável:** ELO
 
@@ -10,7 +10,7 @@ A PTS Técnica Pós-Orçamento comprova a aderência entre o Termo de Referênci
 
 Seu objetivo principal é garantir rastreabilidade: cada requisito técnico relevante deve ser relacionado ao(s) item(ns) do orçamento que o atende(m), indicando a forma de atendimento, evidência, responsabilidade e eventual solução equivalente.
 
-A PTS Pós não deve repetir simplesmente a PTS pré-orçamento. Ela deve comprovar o que efetivamente foi contemplado na composição final.
+A PTS Pós não deve repetir simplesmente a PTS pré-orçamento. Ela deve comprovar o que efetivamente foi contemplado na composição final e, quando aplicável, analisar a concentração econômica e as oportunidades de revisão de valor sem romper a aderência técnica.
 
 ## 2. Estrutura obrigatória
 
@@ -21,9 +21,11 @@ A PTS Pós-Orçamento deve seguir, quando aplicável, esta sequência:
 3. Escopo Técnico;
 4. Matriz Técnica de Comprovação de Atendimento;
 5. Análise Geral da Composição Orçamentária;
-6. Resumo Executivo;
-7. Parecer Técnico;
-8. Legenda.
+6. Análise de Competitividade;
+7. Resumo Executivo;
+8. Parecer Técnico;
+9. Parecer de Competitividade;
+10. Legenda.
 
 ## 3. Matriz Técnica de Comprovação de Atendimento
 
@@ -87,7 +89,91 @@ Após a matriz, apresentar uma síntese objetiva da solução efetivamente orça
 
 A análise deve destacar as principais soluções equivalentes, adaptações especiais e premissas que tenham impacto técnico ou comercial.
 
-## 8. Resumo Executivo
+## 8. Análise de Competitividade
+
+A camada **ELO.PTS_POS.COMPETITIVIDADE** deve ser executada sobre a composição orçamentária final quando houver dados suficientes para análise.
+
+### 8.1 Curva ABC
+
+Calcular o peso financeiro de cada item:
+
+`peso = valor_item / valor_total_orcamento`
+
+Ordenar os itens por valor decrescente, calcular o acumulado e classificar em **A/B/C** usando os limites parametrizados do contrato operacional. A Curva ABC estabelece prioridade de análise econômica; não autoriza redução automática.
+
+### 8.2 Prioridade de análise
+
+A análise deve priorizar, nesta ordem lógica:
+
+1. concentração financeira;
+2. excedentes e **Nome Material**;
+3. memória de cálculo;
+4. evidência e conhecimento disponível;
+5. flexibilidade técnica/comercial;
+6. risco da alteração;
+7. oportunidade potencial.
+
+### 8.3 Excedentes e Nome Material
+
+Para excedentes, preservar a rastreabilidade:
+
+`EXCEDENTE → CATEGORIA → NOME MATERIAL → QUANTIDADE → VALOR UNITÁRIO → VALOR TOTAL → COMPOSIÇÃO → FONTE → MEMÓRIA DE CÁLCULO`
+
+O **Nome Material** é tratado como camada semântica de análise e rastreabilidade, não como segunda identidade de material.
+
+### 8.4 Estados
+
+**Conhecimento:** `FORTE | MEDIO | FRACO | AUSENTE | CONFLITANTE`
+
+**Flexibilidade:** `ALTA | MEDIA | BAIXA | INDETERMINADA`
+
+**Risco:** `BAIXO | MEDIO | ALTO | CRITICO`
+
+**Recomendação:** `MANTER | REVISAR | NEGOCIAR | SUBSTITUIR | REESTRUTURAR | CONFIRMAR | NAO_REDUZIR | AGUARDAR_DECISAO`
+
+### 8.5 Oportunidade
+
+Uma oportunidade só pode ser apresentada quando houver fundamento verificável. Para cada oportunidade registrar:
+
+- item e classe ABC;
+- peso financeiro;
+- origem do valor;
+- memória de cálculo;
+- conhecimento relacionado;
+- evidências;
+- flexibilidade;
+- impacto econômico;
+- risco;
+- recomendação;
+- responsável pela decisão.
+
+Ausência de evidência não autoriza redução. Conhecimento conflitante exige preservação de proveniência e arbitragem.
+
+### 8.6 Cenários
+
+Quando houver dados suficientes, apresentar:
+
+- **BASE:** composição original;
+- **COMPETITIVO:** somente oportunidades apoiadas por evidência e viabilidade;
+- **MÁXIMO:** limite analítico das oportunidades tecnicamente possíveis, com riscos e premissas explícitos.
+
+Cada cenário deve informar valor total, variação absoluta, variação percentual, itens alterados, premissas alteradas e risco.
+
+### 8.7 Autoridade e governança
+
+O fluxo obrigatório é:
+
+`ANÁLISE → RECOMENDAÇÃO → ARBITRAGEM → DECISÃO`
+
+A camada não altera automaticamente o orçamento, a Lista-Mãe, o conhecimento canônico, o Core ou a Soul.
+
+O ELO analisa, ordena, confronta evidências, identifica riscos e recomenda. O Especialista de Orçamento permanece responsável pela composição técnica. A decisão final permanece com o responsável competente.
+
+### 8.8 Não manipulação
+
+A análise de competitividade é interna. Não fabricar, distorcer ou selecionar artificialmente referências para atingir um preço desejado. Toda referência externa deve preservar fonte, condição de comparação, premissa e memória de cálculo.
+
+## 9. Resumo Executivo
 
 Apresentar quantitativamente:
 
@@ -97,11 +183,14 @@ Apresentar quantitativamente:
 - AP;
 - NA;
 - índice de atendimento ao TR;
-- quando aplicável, itens críticos e pendências.
+- itens Classe A prioritários;
+- oportunidades de competitividade;
+- riscos relevantes;
+- decisões pendentes.
 
 O índice de atendimento só deve ser apresentado como percentual quando a metodologia de contagem estiver claramente definida.
 
-## 9. Parecer Técnico
+## 10. Parecer Técnico
 
 O parecer deve concluir sobre a aderência técnica da composição orçamentária ao TR, considerando a matriz de comprovação.
 
@@ -115,9 +204,19 @@ A conclusão deve distinguir:
 
 Não declarar 100% de atendimento quando existirem requisitos classificados como AP, NA ou equivalências ainda dependentes de aceite.
 
-## 10. Evidência e origem
+## 11. Parecer de Competitividade
 
-A PTS Pós deve preservar a origem das informações utilizadas na comprovação:
+O parecer de competitividade deve responder:
+
+`QUAIS ITENS CONCENTRAM VALOR → QUAIS TÊM FUNDAMENTO PARA REVISÃO → QUAL IMPACTO → QUAL RISCO → QUAL DECISÃO É NECESSÁRIA`
+
+Não converter a análise automaticamente em redução de preço.
+
+As recomendações devem ser classificadas como **MANTER**, **REVISAR**, **NEGOCIAR**, **SUBSTITUIR**, **REESTRUTURAR**, **CONFIRMAR**, **NAO_REDUZIR** ou **AGUARDAR_DECISAO**.
+
+## 12. Evidência e origem
+
+A PTS Pós deve preservar a origem das informações utilizadas na comprovação e na análise:
 
 - TR/SO;
 - projeto/layout;
@@ -126,15 +225,17 @@ A PTS Pós deve preservar a origem das informações utilizadas na comprovação
 - solução de engenharia;
 - fornecedor;
 - vistoria;
-- confirmação do cliente.
+- confirmação do cliente;
+- memória de cálculo;
+- conhecimento aplicável.
 
 Quando a evidência não estiver disponível, registrar a limitação em vez de inventá-la.
 
-## 11. Relação com a PTS Pré-Orçamento
+## 13. Relação com a PTS Pré-Orçamento
 
 A PTS Pós deve permitir comparar:
 
-**o que foi identificado antes do orçamento → o que foi efetivamente orçado → como foi atendido.**
+**o que foi identificado antes do orçamento → o que foi efetivamente orçado → como foi atendido → quais efeitos econômicos foram identificados após a composição.**
 
 Divergências relevantes entre a análise pré e pós devem ser registradas, especialmente:
 
@@ -144,10 +245,19 @@ Divergências relevantes entre a análise pré e pós devem ser registradas, esp
 - substituições;
 - soluções equivalentes;
 - premissas alteradas;
-- itens que permaneceram pendentes.
+- itens que permaneceram pendentes;
+- oportunidades de revisão de valor.
 
-## 12. Regra de governança do ELO
+## 14. Relação com aprendizado
 
-A PTS Pós-Orçamento é documento de comprovação e rastreabilidade. O Especialista de Orçamento executa a análise detalhada; o ELO garante que a estrutura preserve a visão gerencial e que nenhuma conclusão técnica seja apresentada sem evidência suficiente.
+O resultado de uma revisão de competitividade pode gerar evidência para aprendizado somente após avaliação governada.
+
+`ORÇAMENTO → ANÁLISE → DECISÃO → RESULTADO DA LICITAÇÃO → AVALIAÇÃO → LEARNING CANDIDATE → GOVERNED LEARNING`
+
+O ELO não aprende apenas o preço vencedor ou o valor reduzido; aprende a relação entre contexto, premissas, composição, decisão, resultado e evidência.
+
+## 15. Regra de governança do ELO
+
+A PTS Pós-Orçamento é documento de comprovação, rastreabilidade e, quando aplicável, análise econômica de competitividade. O Especialista de Orçamento executa a análise detalhada; o ELO garante que a estrutura preserve a visão gerencial e que nenhuma conclusão técnica ou recomendação econômica seja apresentada sem evidência suficiente.
 
 Novas melhorias identificadas durante análises de SO devem ser propostas ao ELO para classificação como SO-específica, especialista, global ou experimental antes de serem incorporadas permanentemente.
