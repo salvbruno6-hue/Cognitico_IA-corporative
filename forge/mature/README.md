@@ -6,7 +6,7 @@ CANÔNICO COMO CAMADA INTERNA DO FORGE.
 
 ## Regra estrutural
 
-`FORGE.MATURE` não é um pilar, núcleo, autoridade, agente ou arquitetura independente. É uma camada interna do Forge destinada a mecanismos operacionais amadurecidos, recuperados ou estabilizados.
+`FORGE.MATURE` não é um pilar ou autoridade independente. É uma camada interna do Forge destinada a mecanismos operacionais amadurecidos, recuperados ou estabilizados.
 
 A tricotomia do ELO não é alterada por esta camada.
 
