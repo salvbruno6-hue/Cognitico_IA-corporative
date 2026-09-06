@@ -14,6 +14,7 @@ Definir a camada cognitiva da EIP, responsável por contexto, conhecimento, raci
 - agent orchestration
 - retrieval and grounding
 - governed execution routing
+- **Simbionte**, como natureza cognitiva de absorção, aprendizagem, experimentação, generalização e adaptação
 
 ## Ownership canônico
 
@@ -31,6 +32,7 @@ Cada conceito possui um único owner semântico. O nome do arquivo não cria uma
 | contexto | `context/` |
 | conhecimento | `knowledge/` |
 | decisão | `decision/` |
+| natureza Simbionte | conjunto cognitivo existente de `learning/`, `memory/`, `reasoning/`, `knowledge/` e evolução governada; não cria um novo owner estrutural |
 
 ### Regra de nomenclatura
 
@@ -39,6 +41,31 @@ Não criar arquivos ou pastas novos apenas para substituir um nome existente, ne
 Nomes semelhantes são permitidos somente quando representam responsabilidades comprovadamente diferentes. Por exemplo, `execution_loop.py` coordena o ciclo completo; `routing/execution_routing.py` decide a rota de execução. Eles não são autoridades concorrentes.
 
 Tecnologias, frameworks e padrões externos devem ser tratados como referências/adaptações dentro do owner ELO correspondente, nunca como novas autoridades arquiteturais.
+
+## Princípio Simbionte
+
+**Simbionte é uma natureza do ELO Cognitivo. Não é pilar, camada, núcleo, autoridade ou componente arquitetural independente.**
+
+O Cognitive recebe do Forge conhecimento, experiência, mecanismos recuperados e evidências; a natureza Simbionte permite absorver, relacionar, experimentar, aprender, testar e generalizar esse material. A eventual necessidade de evolução é avaliada pelo Cognitive e qualquer alteração estrutural permanece subordinada à governança do Core.
+
+```text
+FORGE
+  ↓ conhecimento / experiência / mecanismos
+COGNITIVE
+  ↓
+SIMBIONTE (natureza)
+  ├── absorver
+  ├── relacionar
+  ├── aprender
+  ├── experimentar
+  ├── testar
+  └── generalizar
+          ↓
+      avaliação cognitiva
+          ↓
+         CORE
+      governança estrutural
+```
 
 ## Princípios
 
@@ -50,6 +77,7 @@ Tecnologias, frameworks e padrões externos devem ser tratados como referências
 - IA como componente integrado, nunca como fonte de verdade isolada
 - experiência verificada pode gerar evidência de aprendizagem, mas não altera o Canon automaticamente
 - evidência específica de tenant permanece isolada do conhecimento canônico
+- aprendizagem não redefine a tricotomia nem suas invariantes estruturais
 
 ## Relação com a EIP
 
@@ -75,6 +103,10 @@ Decision / Verification
 Experience
   ↓
 Learning Candidate
+  ↓
+Simbionte / assimilação cognitiva
+  ↓
+Governed Evolution
 ```
 
 ## Regras
@@ -83,3 +115,5 @@ Learning Candidate
 - qualquer uso de IA externa deve passar por governança e observabilidade
 - resultados cognitivos devem ser rastreáveis a contexto, evidências e origem
 - nenhuma nova estrutura cognitiva deve ser criada sem auditoria de duplicidade e definição explícita de owner
+- o conhecimento recuperado do Forge é alimento para a natureza Simbionte, não autorização estrutural
+- a natureza Simbionte não pode alterar Soul, criar autoridade paralela ou promover mudança estrutural fora do Core
