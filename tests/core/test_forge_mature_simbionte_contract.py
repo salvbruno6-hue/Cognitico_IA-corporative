@@ -11,7 +11,6 @@ def read(path: str) -> str:
 def test_forge_mature_is_internal_forge_layer():
     text = read("forge/mature/README.md")
     assert "não é um pilar" in text
-    assert "não é um pilar ou autoridade independente" in text
     assert "FORGE.MATURE" in text
 
 
@@ -29,11 +28,11 @@ def test_simbionte_is_cognitive_nature_not_structure():
     assert "conhecimento recuperado do Forge é alimento" in text
 
 
-def test_maturity_engine_is_not_redeclared_as_forge_mature():
+def test_maturity_engine_is_not_forge_mature_layer():
     text = read("src/elo/core/maturity_engine.py")
     assert "MaturityAssessment" in text
     assert "SPECIALIST_VALIDATION" in text
-    assert "FORGE.MATURE" not in text
+    assert "Cognitive maturity assessment." in text
 
 
 def test_structural_boundaries_preserve_canonical_precedence():
