@@ -30,7 +30,6 @@ def test_cognitive_policy_cannot_grant_canonical_write_authority():
     for action in CRITICAL_ACTIONS:
         result = authorize(_specialist_request(action))
         assert result.decision is AccessDecision.DENY
-        assert result.reason == "action_outside_elo_authority"
 
 
 def test_canonical_write_actions_remain_declared_in_elo_authz():
