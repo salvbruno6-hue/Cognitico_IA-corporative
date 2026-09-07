@@ -8,14 +8,9 @@ learning/promotion authorities.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
 
-from elo.core.evolution_gate import EvolutionGate, EvolutionProposal
-from elo.core.learning_governance import (
-    ExperienceRecord,
-    GovernedLearningService,
-    LearningCandidate,
-)
+from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
+from elo.core.learning_governance import ExperienceRecord, GovernedLearningService, LearningCandidate
 
 
 LAB_ONLY = "LAB_ONLY"
@@ -103,18 +98,7 @@ class SymbiontLabAdapter:
             },
         )
         decision = EvolutionGate().evaluate(proposal)
-
-        disposition = "HOLD"
-        if decision.existing_owner is False if hasattr(decision, "existing_owner") else False:
-            disposition = "HOLD"
-        if decision.classification.value == "DUPLICATE/SUPERSEDED":
-            disposition = "REUSE"
-        elif decision.classification.value == "COMPATIBLE":
-            disposition = "CANDIDATE_FOR_GOVERNED_LEARNING"
-        elif decision.classification.value == "ADAPT_REQUIRED":
-            disposition = "STRENGTHEN"
-        elif decision.classification.value in {"EVOLUTIONARY_CONFLICT", "INCOMPATIBLE"}:
-            disposition = "BLOCK"
+        disposition = self._disposition(decision.classification)
 
         return SymbiontLabEvaluation(
             observation=observation,
@@ -124,6 +108,16 @@ class SymbiontLabAdapter:
             disposition=disposition,
             state=LAB_ONLY,
         )
+
+    @staticmethod
+    def _disposition(classification: EvolutionClassification) -> str:
+        return {
+            EvolutionClassification.DUPLICATE_SUPERSEDED: "REUSE",
+            EvolutionClassification.COMPATIBLE: "CANDIDATE_FOR_GOVERNED_LEARNING",
+            EvolutionClassification.ADAPT_REQUIRED: "STRENGTHEN",
+            EvolutionClassification.EVOLUTIONARY_CONFLICT: "BLOCK",
+            EvolutionClassification.INCOMPATIBLE: "BLOCK",
+        }[classification]
 
     @staticmethod
     def _validate(observation: SymbiontLabObservation) -> None:
