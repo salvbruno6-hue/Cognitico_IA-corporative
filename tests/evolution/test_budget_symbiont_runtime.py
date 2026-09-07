@@ -49,7 +49,21 @@ def _request_and_inputs():
     return request, [quantity, unit_cost], [BudgetLine("line-1", "test", BudgetLineType.COST, quantity.input_id, unit_cost.input_id)]
 
 
-def _run(runtime):
+def _evidence_impact(*, generalization_supported=True, regression_free=True):
+    return EvolutionImpact(
+        baseline_score=0.60,
+        observed_score=0.75,
+        evidence_confidence=0.90,
+        comparative_runs=3,
+        regression_free=regression_free,
+        generalization_supported=generalization_supported,
+        measurement_evidence_ids=("comparison-evidence",),
+        baseline_ref="baseline:budget-v1",
+        comparison_ref="benchmark:budget-2026-09-07",
+    )
+
+
+def _run(runtime, *, impact=None):
     request, inputs, lines = _request_and_inputs()
     return runtime.run(
         request=request,
@@ -64,7 +78,7 @@ def _run(runtime):
         dataset_version="fixture-v1",
         hypothesis="validated budget execution pattern",
         expected_outcome="useful budget result",
-        evolution_impact=EvolutionImpact(baseline_score=0.60, observed_score=0.75, evidence_confidence=0.90, comparative_runs=3),
+        evolution_impact=impact or _evidence_impact(),
     )
 
 
@@ -80,6 +94,7 @@ def test_budget_runtime_requires_material_evolution_and_routes_through_canonical
     assert result.laboratory.experience is not None
     assert result.laboratory.candidate is not None
     assert learning.captured == 1
+    assert result.laboratory.observation.generalization_status == "CONFIRMED"
 
 
 def test_budget_runtime_rejects_non_material_evolution_before_execution():
@@ -99,8 +114,24 @@ def test_budget_runtime_rejects_non_material_evolution_before_execution():
             dataset_version="fixture-v1",
             hypothesis="weak change",
             expected_outcome="useful budget result",
-            evolution_impact=EvolutionImpact(baseline_score=0.60, observed_score=0.64, evidence_confidence=0.90, comparative_runs=3),
+            evolution_impact=EvolutionImpact(baseline_score=0.60, observed_score=0.64, evidence_confidence=0.90, comparative_runs=3, regression_free=True, measurement_evidence_ids=("evidence",), baseline_ref="baseline", comparison_ref="comparison"),
         )
+    assert learning.captured == 0
+
+
+def test_budget_runtime_requires_regression_evidence():
+    runtime, learning = _runtime()
+    with pytest.raises(ValueError, match="regression"):
+        _run(runtime, impact=_evidence_impact(regression_free=False))
+    assert learning.captured == 0
+
+
+def test_budget_runtime_does_not_infer_generalization_from_score_delta():
+    runtime, learning = _runtime()
+    # A material local improvement can be measured without proving broader generalization.
+    # The laboratory must preserve the observation as unconfirmed rather than laundering it into a candidate.
+    with pytest.raises(ValueError, match="unconfirmed generalization"):
+        _run(runtime, impact=_evidence_impact(generalization_supported=False))
     assert learning.captured == 0
 
 
