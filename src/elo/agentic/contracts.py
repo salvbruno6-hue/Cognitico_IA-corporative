@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Mapping
 
 KnowledgeStatus = Literal[
-    "APPLICABLE", "CANONICAL", "GOVERNED", "REFERENCE", "HISTORICAL",
+    "APPLICABLE", "CANONICAL", "GOVERNED", "CURRENT", "REFERENCE", "HISTORICAL",
     "CONFLICTING", "OUTDATED", "UNVERIFIED", "INSUFFICIENT",
 ]
 
