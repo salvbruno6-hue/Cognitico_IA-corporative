@@ -17,3 +17,10 @@ def test_contract_does_not_claim_supabase_persistence_as_laboratory_authority():
         "Simbionte é fonte de verdade",
     )
     assert not any(marker in text for marker in forbidden)
+
+
+def test_live_budget_learning_gap_is_explicitly_preserved():
+    text = Path("docs/evolution/SIMBIONTE_LAB_INTAKE_2026-09-06.md").read_text(encoding="utf-8")
+    assert "Sem isso, permanece `LAB_ONLY`" in text
+    assert "evidence_refs" in text
+    assert "UNCONFIRMED" in text
