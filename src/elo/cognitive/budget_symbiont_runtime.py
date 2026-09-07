@@ -2,8 +2,7 @@
 
 The runtime is deliberately evolution-oriented: a successful execution is not
 considered an architectural improvement by itself. Each implementation must
-carry a measurable improvement hypothesis and evidence strong enough to
-compare the new configuration with a baseline.
+carry measurable comparative evidence before entering governed learning.
 """
 
 from __future__ import annotations
@@ -39,13 +38,25 @@ class IntelligenceExecution:
 
 @dataclass(frozen=True, slots=True)
 class EvolutionImpact:
-    """Evidence that an implementation produced a material improvement."""
+    """Comparative evidence for a material improvement claim.
+
+    Numeric scores are measurements supplied by the caller; they are never
+    treated as self-authenticating evidence. The measurement must be tied to
+    explicit evidence references, a reproducible comparison, and regression
+    status. Generalization is a separate claim and is never inferred from the
+    score delta alone.
+    """
 
     baseline_score: float
     observed_score: float
     minimum_delta: float = 0.10
     evidence_confidence: float = 0.0
     comparative_runs: int = 0
+    regression_free: bool = False
+    generalization_supported: bool = False
+    measurement_evidence_ids: tuple[str, ...] = ()
+    baseline_ref: str = ""
+    comparison_ref: str = ""
 
     @property
     def delta(self) -> float:
@@ -57,6 +68,10 @@ class EvolutionImpact:
             self.delta >= self.minimum_delta
             and self.evidence_confidence >= 0.70
             and self.comparative_runs >= 2
+            and self.regression_free
+            and bool(self.measurement_evidence_ids)
+            and bool(self.baseline_ref)
+            and bool(self.comparison_ref)
         )
 
     def validate(self) -> None:
@@ -70,6 +85,12 @@ class EvolutionImpact:
             raise ValueError("evidence confidence must be between 0 and 1")
         if self.comparative_runs < 2:
             raise ValueError("material evolution requires comparative runs")
+        if not self.measurement_evidence_ids:
+            raise ValueError("material evolution requires measurement evidence")
+        if not self.baseline_ref or not self.comparison_ref:
+            raise ValueError("material evolution requires reconstructible comparison references")
+        if not self.regression_free:
+            raise ValueError("regression blocks material evolution")
         if not self.material:
             raise ValueError("implementation does not demonstrate material evolution")
 
@@ -123,7 +144,7 @@ class BudgetSymbiontRuntime:
         expected_outcome: str,
         evolution_impact: EvolutionImpact,
     ) -> BudgetSymbiontRun:
-        # An implementation is not accepted as evolutionary merely because it runs.
+        # The runtime accepts only a materially evidenced improvement claim.
         evolution_impact.validate()
 
         budget = self.budgeting.calculate(request, inputs=inputs, lines=lines)
@@ -134,7 +155,7 @@ class BudgetSymbiontRuntime:
         route = self.execution_router.route(capability, models=list(models), tools=list(tools))
         intelligence = self.intelligence_router.execute(route=route, provider=provider, request=request, context=context)
 
-        evidence_ids = tuple(dict.fromkeys((*budget.evidence_ids, *intelligence.provider_result.evidence_ids)))
+        evidence_ids = tuple(dict.fromkeys((*budget.evidence_ids, *intelligence.provider_result.evidence_ids, *evolution_impact.measurement_evidence_ids)))
         provenance = dict(intelligence.provider_result.provenance)
         provenance.update({
             "budget_version": budget.version_id,
@@ -144,6 +165,10 @@ class BudgetSymbiontRuntime:
             "evolution_delta": str(evolution_impact.delta),
             "evolution_evidence_confidence": str(evolution_impact.evidence_confidence),
             "evolution_comparative_runs": str(evolution_impact.comparative_runs),
+            "evolution_regression_free": str(evolution_impact.regression_free),
+            "evolution_generalization_supported": str(evolution_impact.generalization_supported),
+            "evolution_baseline_ref": evolution_impact.baseline_ref,
+            "evolution_comparison_ref": evolution_impact.comparison_ref,
         })
         observed = intelligence.provider_result.result
         observation = SymbiontLabObservation(
@@ -161,11 +186,17 @@ class BudgetSymbiontRuntime:
                 f"confidence={evolution_impact.evidence_confidence:.2f}; "
                 f"comparative_runs={evolution_impact.comparative_runs}"
             ),
-            baseline=f"budget_status={budget.status.value};version={budget.version_id};score={evolution_impact.baseline_score}",
-            experiment=f"capability={capability};model={route.model_id};tool={route.tool_id};observed_score={evolution_impact.observed_score}",
+            baseline=(
+                f"budget_status={budget.status.value};version={budget.version_id};"
+                f"score={evolution_impact.baseline_score};ref={evolution_impact.baseline_ref}"
+            ),
+            experiment=(
+                f"capability={capability};model={route.model_id};tool={route.tool_id};"
+                f"observed_score={evolution_impact.observed_score};ref={evolution_impact.comparison_ref}"
+            ),
             result=observed,
-            regression_status="PASS",
-            generalization_status="CONFIRMED",
+            regression_status="PASS" if evolution_impact.regression_free else "FAIL",
+            generalization_status="CONFIRMED" if evolution_impact.generalization_supported else "UNCONFIRMED",
             risk="LOW",
             existing_owner=None,
             scope=request.domain,
