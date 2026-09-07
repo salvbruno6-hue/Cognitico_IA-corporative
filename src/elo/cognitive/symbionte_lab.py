@@ -42,8 +42,8 @@ class SymbiontLabObservation:
 @dataclass(frozen=True)
 class SymbiontLabEvaluation:
     observation: SymbiontLabObservation
-    experience: ExperienceRecord
-    candidate: LearningCandidate
+    experience: ExperienceRecord | None
+    candidate: LearningCandidate | None
     evolution_classification: str
     disposition: str
     state: str = LAB_ONLY
@@ -63,21 +63,6 @@ class SymbiontLabAdapter:
         dataset_version: str,
     ) -> SymbiontLabEvaluation:
         self._validate(observation)
-
-        experience = self.learning.capture_outcome(
-            tenant_id=observation.tenant_id,
-            domain=observation.domain,
-            principal_id=principal_id,
-            decision_id=observation.decision_id,
-            expected_outcome=observation.expected_outcome,
-            observed_outcome=observation.observed_outcome,
-            evidence_ids=observation.evidence_ids,
-        )
-        candidate = self.learning.propose_candidate(
-            experience,
-            dataset_version=dataset_version,
-            hypothesis=observation.hypothesis,
-        )
         proposal = EvolutionProposal(
             proposal_id=observation.observation_id,
             tenant_id=observation.tenant_id,
@@ -98,12 +83,43 @@ class SymbiontLabAdapter:
             },
         )
         decision = EvolutionGate().evaluate(proposal)
+        disposition = self._disposition(decision.classification)
+
+        # Reuse is an association outcome, not a new learning candidate.
+        # Blocked evolution likewise must not create a parallel candidate.
+        if decision.classification in {
+            EvolutionClassification.DUPLICATE_SUPERSEDED,
+            EvolutionClassification.EVOLUTIONARY_CONFLICT,
+            EvolutionClassification.INCOMPATIBLE,
+        }:
+            return SymbiontLabEvaluation(
+                observation=observation,
+                experience=None,
+                candidate=None,
+                evolution_classification=decision.classification.value,
+                disposition=disposition,
+            )
+
+        experience = self.learning.capture_outcome(
+            tenant_id=observation.tenant_id,
+            domain=observation.domain,
+            principal_id=principal_id,
+            decision_id=observation.decision_id,
+            expected_outcome=observation.expected_outcome,
+            observed_outcome=observation.observed_outcome,
+            evidence_ids=observation.evidence_ids,
+        )
+        candidate = self.learning.propose_candidate(
+            experience,
+            dataset_version=dataset_version,
+            hypothesis=observation.hypothesis,
+        )
         return SymbiontLabEvaluation(
             observation=observation,
             experience=experience,
             candidate=candidate,
             evolution_classification=decision.classification.value,
-            disposition=self._disposition(decision.classification),
+            disposition=disposition,
         )
 
     @staticmethod
