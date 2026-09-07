@@ -43,7 +43,18 @@ function json(data: unknown, status = 200) {
 }
 
 async function audit(identityId: string, sessionId: string | null, action: string, resource: string | null, decision: "ALLOW" | "DENY", reason: string, requestId: string) {
-  await supabase.from("elo_authorization_audit").insert({ identity_id: identityId, session_id: sessionId, action, resource, decision, reason, request_id: requestId });
+  const { error: auditError } = await supabase.from("elo_authorization_audit").insert({
+    identity_id: identityId,
+    session_id: sessionId,
+    action,
+    resource,
+    decision,
+    reason,
+    request_id: requestId,
+  });
+  if (auditError) {
+    throw new Error("authorization_audit_write_failed");
+  }
 }
 
 async function authenticate(req: Request) {
@@ -118,41 +129,51 @@ Deno.serve(async (req: Request) => {
   const capability = ACTION_CAPABILITY[action];
 
   if (!capability || (requestedCapability && requestedCapability !== capability)) {
-    await audit(auth.identity.identity_id, null, action, repository || null, "DENY", "capability_not_canonical_for_action", requestId);
+    try { await audit(auth.identity.identity_id, null, action, repository || null, "DENY", "capability_not_canonical_for_action", requestId); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
     return json({ authorized: false, reason: "capability_not_canonical_for_action", request_id: requestId }, 403);
   }
 
   const session = await resolveActiveSession(auth.identity.identity_id);
   if (!session.ok) {
-    await audit(auth.identity.identity_id, null, action, repository || null, "DENY", session.reason, requestId);
+    try { await audit(auth.identity.identity_id, null, action, repository || null, "DENY", session.reason, requestId); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
     return json({ authorized: false, reason: session.reason, request_id: requestId }, 403);
   }
 
   if (repository) {
     const { data: scopes, error: scopeError } = await supabase.from("elo_identity_scopes").select("elo_scopes(scope_key,active)").eq("identity_id", auth.identity.identity_id);
     if (scopeError) {
-      await audit(auth.identity.identity_id, session.session.session_id, action, repository, "DENY", "scope_lookup_failed", requestId);
+      try { await audit(auth.identity.identity_id, session.session.session_id, action, repository, "DENY", "scope_lookup_failed", requestId); }
+      catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
       return json({ authorized: false, reason: "scope_lookup_failed", request_id: requestId }, 403);
     }
     const allowed = (scopes ?? []).some((row: any) => row.elo_scopes?.active === true && row.elo_scopes?.scope_key === repository);
     if (!allowed) {
-      await audit(auth.identity.identity_id, session.session.session_id, action, repository, "DENY", "repository_out_of_scope", requestId);
+      try { await audit(auth.identity.identity_id, session.session.session_id, action, repository, "DENY", "repository_out_of_scope", requestId); }
+      catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
       return json({ authorized: false, reason: "repository_out_of_scope", request_id: requestId }, 403);
     }
   }
 
   if (CRITICAL_ACTIONS.has(action) && !auth.roles.includes("CANONICAL_ADMIN")) {
-    await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", "canonical_authority_required", requestId);
+    try { await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", "canonical_authority_required", requestId); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
     return json({ authorized: false, reason: "canonical_authority_required", request_id: requestId }, 403);
   }
 
   const capabilityResult = await hasCapability(auth.roleIds, capability);
   if (!capabilityResult.ok || !capabilityResult.granted) {
     const reason = capabilityResult.ok ? "capability_not_granted" : capabilityResult.reason;
-    await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", reason, requestId);
+    try { await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", reason, requestId); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
     return json({ authorized: false, reason, capability, request_id: requestId }, 403);
   }
 
-  await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "ALLOW", "identity_session_scope_and_capability_verified", requestId);
+  try {
+    await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "ALLOW", "identity_session_scope_and_capability_verified", requestId);
+  } catch {
+    return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503);
+  }
   return json({ authorized: true, role: auth.roles[0] ?? null, roles: auth.roles, identity_id: auth.identity.identity_id, session_id: session.session.session_id, display_name: auth.identity.display_name, provider: auth.identity.provider, enterprise_context: auth.identity.enterprise_context, action, capability, repository: repository || null, request_id: requestId, authorization_authority: "elo-authz" });
 });
