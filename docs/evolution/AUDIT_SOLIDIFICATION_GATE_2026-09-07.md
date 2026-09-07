@@ -14,9 +14,10 @@ This document is a validation and remediation contract. It does not create a new
 
 ### Authorization
 
-- Identity, role, capability and scope bindings exist and their foreign-key relationships are valid.
-- At least one active session is stale/expired and remains unreleased. This is a lifecycle hygiene finding, not evidence of new authorization.
-- Authorization audit has no recorded rows yet; absence of audit events is a remaining observability gap.
+- `SESSION → GITHUB IDENTITY → ELO OPERATOR → CAPABILITY → SCOPE` is the required authorization chain.
+- Current live bindings: 1 identity, 1 identity-role binding, 1 role-capability binding and 1 identity-scope binding; foreign keys are valid.
+- All expired sessions are invalid for authorization; current live state has no expired session considered active.
+- Authorization audit has no recorded rows yet; absence of audit events is a remaining observability gap, not proof that no authorization decisions occurred.
 
 ### Learning evidence
 
@@ -71,9 +72,26 @@ Laboratory observations remain `LAB_ONLY` until the existing governed learning a
 
 The audit itself must distinguish structural existence from behavioral proof. Zero audit rows are not interpreted as zero events; they are interpreted as missing operational audit evidence.
 
+### 8. Evidence-gap handling
+
+The 95 calculations without linked evidence are not auto-repaired, inferred, or promoted. They remain an explicit reconciliation backlog until each item receives reconstructible source evidence and targeted validation.
+
 ## Remediation posture
 
 This cycle fixes only objective deficiencies that can be corrected without changing the canonical architecture. It does not mutate Soul or establish parallel ownership. Every change must be followed by targeted tests and a final audit.
+
+## Current gate state
+
+- Authorization chain: **PASS (structural/live binding evidence)**.
+- Session lifecycle: **PASS**.
+- RLS fail-closed internal Core: **PASS**.
+- Baseline evidence gate: **PASS**.
+- Runtime/laboratory separation: **PASS structurally; live behavioral proof remains required**.
+- Learning evidence completeness: **BLOCKED — 95 calculations lack linked evidence**.
+- Authorization audit observability: **BLOCKED — no recorded rows**.
+- Knowledge linkage: **REVIEW — 8 items, 0 links; intent must remain explicit**.
+- Security residual: **EXTERNAL CONFIGURATION GAP — leaked-password protection disabled**.
+- CI: **BLOCKED — current PR #426 head failed the solidification contract because the required authorization-chain phrase was missing from this document**.
 
 ## Final closure criteria
 
