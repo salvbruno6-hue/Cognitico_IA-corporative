@@ -11,22 +11,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from elo.core.context_resolution import (
-    ContextEvidence,
-    ContextQuery,
-    ContextResolutionEngine,
-    ContextSource,
-)
-from elo.core.source_resolver import (
-    SourceResolutionRequest,
-    SourceResolver,
-)
+from elo.core.context_resolution import ContextQuery, ContextResolutionEngine
+from elo.core.source_resolver import SourceResolutionRequest, SourceResolver
 
-from .contracts import (
-    IntentSpec,
-    KnowledgeCandidate,
-    KnowledgeRequirement,
-)
+from .contracts import IntentSpec, KnowledgeCandidate, KnowledgeRequirement
 from .orchestrator import KnowledgeProvider
 
 
@@ -85,9 +73,15 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                     correlation_id=request_context.correlation_id,
                     conversation_id=request_context.conversation_id,
                     authorization_scope=request_context.authorization_scope,
+                    metadata={
+                        "agentic_requirement": requirement.key,
+                        "agentic_intent": intent.intent,
+                    },
                 ),
             )
             for item in resolution.retrieved:
+                metadata = dict(item.metadata)
+                metadata.setdefault("agentic_requirement", requirement.key)
                 candidates.append(
                     KnowledgeCandidate(
                         source_id=item.source_id,
@@ -98,7 +92,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                         confidence=0.0,
                         context_match=0.0,
                         provenance=item.provenance,
-                        metadata=item.metadata,
+                        metadata=metadata,
                     )
                 )
         return tuple(candidates)
@@ -113,4 +107,9 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             entity=intent.entity,
             scope=intent.active_context,
             domain=intent.domain,
+            request_id=intent.metadata.get("request_id"),
+            correlation_id=intent.metadata.get("correlation_id"),
+            session_id=intent.metadata.get("session_id"),
+            tenant_id=intent.metadata.get("tenant_id"),
+            principal_id=intent.metadata.get("principal_id"),
         )
