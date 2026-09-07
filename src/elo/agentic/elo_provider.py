@@ -2,8 +2,8 @@
 
 This module is deliberately outside canonical Core/Cognitive/Forge authority.
 It adapts existing ELO discovery/context/source-resolution components to the
-framework-neutral KnowledgeProvider contract without persisting or promoting
-knowledge.
+framework-neutral KnowledgeProvider contract. Temporal retrieval tracing is
+opt-in; the default agentic path does not append to canonical runtime memory.
 """
 
 from __future__ import annotations
@@ -39,11 +39,13 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         source_resolver: SourceResolver | None = None,
         context_factory: Callable[[IntentSpec, KnowledgeRequirement], ContextQuery] | None = None,
         request_context: ELORequestContext | None = None,
+        allow_temporal_trace: bool = False,
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
         self.source_resolver = source_resolver or SourceResolver()
         self.context_factory = context_factory or self._default_context_query
         self.request_context = request_context
+        self.allow_temporal_trace = allow_temporal_trace
 
     def retrieve(
         self,
@@ -60,8 +62,15 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             return ()
 
         candidates: list[KnowledgeCandidate] = []
+        resolver = self.source_resolver
+        if not self.allow_temporal_trace:
+            resolver = SourceResolver(
+                adapters=tuple(resolver._adapters.values()),
+                temporal_memory=_NullTemporalMemory(),
+            )
+
         for source_candidate in self.context_engine.candidate_sources(pack):
-            resolution = self.source_resolver.resolve(
+            resolution = resolver.resolve(
                 source_candidate,
                 SourceResolutionRequest(
                     query=source_candidate.query,
@@ -113,3 +122,10 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             tenant_id=intent.metadata.get("tenant_id"),
             principal_id=intent.metadata.get("principal_id"),
         )
+
+
+class _NullTemporalMemory:
+    """No-op memory sink for agentic reads that are not explicitly traced."""
+
+    def append(self, **_: object) -> None:
+        return None
