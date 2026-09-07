@@ -16,7 +16,7 @@ Nada neste laboratório pode:
 
 - alterar Soul, Core ou contratos canônicos por inferência;
 - transformar saída externa em conhecimento canônico;
-- promover aprendizado automaticamente;
+- **não promove aprendizado automaticamente**;
 - substituir a autoridade de seleção/execution routing existente;
 - atravessar tenant boundary;
 - converter contexto específico de empresa em regra geral sem generalização comprovada.
