@@ -25,6 +25,7 @@ This document is a validation and remediation contract. It does not create a new
 - 95 calculations currently have no linked row in `elo_orcamento_calculo_evidencias`.
 - `elo_orcamento_memoria`: 18 `VALIDATED_LEARNING`, 0 `LEARNING_CANDIDATE`.
 - Therefore the 102 calculations must not be interpreted as 102 validated learning events.
+- The live database now enforces an evidence guard: a calculation cannot enter a promotable learning status without a formal evidence row. Existing unsupported records are not auto-filled or promoted.
 
 ### Knowledge graph boundary
 
@@ -38,7 +39,7 @@ This document is a validation and remediation contract. It does not create a new
 
 ### Security and performance
 
-Security advisor residual: leaked-password protection is disabled. This is an Auth configuration issue that requires an external project setting change; it is not altered by this audit because the connector exposes no direct Auth configuration mutation here.
+Security advisor residual: leaked-password protection is disabled. This is an Auth configuration issue that requires an external project setting change; it is not altered by this audit because the available connector exposes no direct Auth configuration mutation here.
 
 Performance advisor currently reports only unused-index INFO findings. Unused-index cleanup is deferred until observed workload evidence exists; removal based only on an unused statistic could reduce future readiness.
 
@@ -50,7 +51,7 @@ Expired active sessions must be treated as invalid for authorization decisions. 
 
 ### 2. Evidence integrity
 
-A calculation may remain staged without evidence, but it cannot be promoted, represented as validated learning, or used as proof of generalization without reconstructible evidence.
+A calculation may remain staged without evidence, but it cannot be promoted, represented as validated learning, or used as proof of generalization without reconstructible evidence. The live evidence guard enforces this at status-transition time.
 
 ### 3. Learning separation
 
@@ -87,11 +88,11 @@ This cycle fixes only objective deficiencies that can be corrected without chang
 - RLS fail-closed internal Core: **PASS**.
 - Baseline evidence gate: **PASS**.
 - Runtime/laboratory separation: **PASS structurally; live behavioral proof remains required**.
-- Learning evidence completeness: **BLOCKED — 95 calculations lack linked evidence**.
+- Learning evidence completeness: **BLOCKED — 95 calculations lack linked evidence**; enforcement now prevents further unsupported promotion.
 - Authorization audit observability: **BLOCKED — no recorded rows**.
 - Knowledge linkage: **REVIEW — 8 items, 0 links; intent must remain explicit**.
 - Security residual: **EXTERNAL CONFIGURATION GAP — leaked-password protection disabled**.
-- CI: **BLOCKED — current PR #426 head failed the solidification contract because the required authorization-chain phrase was missing from this document**.
+- CI: **IN PROGRESS** after the contract correction.
 
 ## Final closure criteria
 
