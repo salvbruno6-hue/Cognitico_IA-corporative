@@ -5,7 +5,11 @@ from elo.cognitive.symbionte_lab import SymbiontLabAdapter, SymbiontLabObservati
 
 
 class MemoryStub:
+    def __init__(self):
+        self.calls = []
+
     def remember(self, **kwargs):
+        self.calls.append(kwargs)
         return None
 
 
@@ -34,33 +38,53 @@ def observation(**overrides):
     return SymbiontLabObservation(**values)
 
 
-def test_adapter_records_experience_and_stays_lab_only():
-    service = GovernedLearningService(MemoryStub())
+def test_adapter_reuses_existing_owner_without_creating_parallel_learning():
+    memory = MemoryStub()
+    service = GovernedLearningService(memory)
     result = SymbiontLabAdapter(service).evaluate(
         observation(), principal_id="principal-1", dataset_version="ds-1"
     )
     assert result.state == "LAB_ONLY"
-    assert result.experience.tenant_id == "tenant-a"
-    assert result.candidate.experience_id == result.experience.experience_id
+    assert result.experience is None
+    assert result.candidate is None
     assert result.evolution_classification == "DUPLICATE/SUPERSEDED"
     assert result.disposition == "REUSE"
+    assert memory.calls == []
+
+
+def test_adapter_records_experience_when_no_owner_exists():
+    memory = MemoryStub()
+    service = GovernedLearningService(memory)
+    result = SymbiontLabAdapter(service).evaluate(
+        observation(existing_owner=None), principal_id="principal-1", dataset_version="ds-1"
+    )
+    assert result.state == "LAB_ONLY"
+    assert result.experience is not None
+    assert result.candidate is not None
+    assert result.evolution_classification == "COMPATIBLE"
+    assert result.disposition == "CANDIDATE_FOR_GOVERNED_LEARNING"
+    assert len(memory.calls) == 1
 
 
 def test_adapter_blocks_regression_before_recording_learning():
-    service = GovernedLearningService(MemoryStub())
+    memory = MemoryStub()
+    service = GovernedLearningService(memory)
     with pytest.raises(ValueError, match="regression blocks"):
         SymbiontLabAdapter(service).evaluate(
             observation(regression_status="REGRESSION"),
             principal_id="principal-1",
             dataset_version="ds-1",
         )
+    assert memory.calls == []
 
 
 def test_adapter_keeps_unconfirmed_generalization_lab_only():
-    service = GovernedLearningService(MemoryStub())
+    memory = MemoryStub()
+    service = GovernedLearningService(memory)
     with pytest.raises(ValueError, match="unconfirmed generalization"):
         SymbiontLabAdapter(service).evaluate(
             observation(generalization_status="UNCONFIRMED", existing_owner=None),
             principal_id="principal-1",
             dataset_version="ds-1",
         )
+    assert memory.calls == []
