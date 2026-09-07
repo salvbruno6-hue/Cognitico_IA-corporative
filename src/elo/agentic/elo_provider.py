@@ -2,8 +2,9 @@
 
 This module is deliberately outside canonical Core/Cognitive/Forge authority.
 It adapts existing ELO discovery/context/source-resolution components to the
-framework-neutral KnowledgeProvider contract. Temporal retrieval tracing is
-opt-in; the default agentic path does not append to canonical runtime memory.
+framework-neutral KnowledgeProvider contract. Retrieval tracing is explicit:
+agentic reads never append to canonical temporal memory unless the caller opts
+in with ``allow_temporal_trace=True``.
 """
 
 from __future__ import annotations
@@ -12,7 +13,11 @@ from dataclasses import dataclass
 from typing import Callable
 
 from elo.core.context_resolution import ContextQuery, ContextResolutionEngine
-from elo.core.source_resolver import SourceResolutionRequest, SourceResolver
+from elo.core.source_resolver import (
+    SourceResolutionRequest,
+    SourceResolver,
+    SourceResolverAdapter,
+)
 
 from .contracts import IntentSpec, KnowledgeCandidate, KnowledgeRequirement
 from .orchestrator import KnowledgeProvider
@@ -27,6 +32,13 @@ class ELORequestContext:
     correlation_id: str
     conversation_id: str
     authorization_scope: str
+
+
+class _NullTemporalMemory:
+    """Discard temporal traces for observational agentic reads."""
+
+    def append(self, **_: object) -> None:
+        return None
 
 
 class ELOKnowledgeProvider(KnowledgeProvider):
@@ -61,14 +73,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         if pack.discovery_plan is None:
             return ()
 
+        resolver = self._resolver_for_mode()
         candidates: list[KnowledgeCandidate] = []
-        resolver = self.source_resolver
-        if not self.allow_temporal_trace:
-            resolver = SourceResolver(
-                adapters=tuple(resolver._adapters.values()),
-                temporal_memory=_NullTemporalMemory(),
-            )
-
         for source_candidate in self.context_engine.candidate_sources(pack):
             resolution = resolver.resolve(
                 source_candidate,
@@ -106,6 +112,15 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                 )
         return tuple(candidates)
 
+    def _resolver_for_mode(self) -> SourceResolver:
+        if self.allow_temporal_trace:
+            return self.source_resolver
+
+        adapters: tuple[SourceResolverAdapter, ...] = tuple(
+            self.source_resolver._adapters.values()
+        )
+        return SourceResolver(adapters=adapters, temporal_memory=_NullTemporalMemory())
+
     @staticmethod
     def _default_context_query(
         intent: IntentSpec,
@@ -122,10 +137,3 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             tenant_id=intent.metadata.get("tenant_id"),
             principal_id=intent.metadata.get("principal_id"),
         )
-
-
-class _NullTemporalMemory:
-    """No-op memory sink for agentic reads that are not explicitly traced."""
-
-    def append(self, **_: object) -> None:
-        return None
