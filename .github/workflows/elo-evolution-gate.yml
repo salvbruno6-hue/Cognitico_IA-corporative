@@ -22,8 +22,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - name: Install package and tests
-        run: python -m pip install -e ".[test]"
+      - name: Install package, tests and agentic runtime
+        run: python -m pip install -e ".[test,agentic]"
       - name: Compile source
         run: python -m compileall src
       - name: Run full test suite
@@ -83,6 +83,6 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install package and tests
-        run: python -m pip install -e ".[test]"
+        run: python -m pip install -e ".[test,agentic]"
       - name: Run external access security tests
         run: python -m pytest -q tests/security/test_external_access_contract.py tests/security/test_identity_trust.py tests/test_specialist_consultation_boundary.py
