@@ -4,18 +4,16 @@ from elo.agentic.contracts import IntentSpec, KnowledgeContext
 from elo.agentic.graph import GraphRuntimePolicy, build_agentic_graph
 
 
-class EmptyProvider:
-    def retrieve(self, intent, requirement):
-        return ()
-
-
 class StubOrchestrator:
     def run(self, intent):
         return KnowledgeContext(intent=intent)
 
 
 def test_graph_requires_intent_interpreter_when_question_only():
-    graph = build_agentic_graph(StubOrchestrator(), intent_interpreter=lambda q: IntentSpec(q, "consult"))
+    graph = build_agentic_graph(
+        StubOrchestrator(),
+        intent_interpreter=lambda q: IntentSpec(q, "consult"),
+    )
     result = graph.invoke({"question": "preciso fechar a elétrica externa"})
     assert result["intent"].question == "preciso fechar a elétrica externa"
     assert result["trace"] == ("interpret", "retrieve", "ground")
@@ -35,6 +33,14 @@ def test_graph_rejects_write_capability():
         build_agentic_graph(
             StubOrchestrator(),
             policy=GraphRuntimePolicy(allow_writes=True),
+        )
+
+
+def test_graph_rejects_canonical_mutation():
+    with pytest.raises(ValueError, match="read-only"):
+        build_agentic_graph(
+            StubOrchestrator(),
+            policy=GraphRuntimePolicy(allow_canonical_mutation=True),
         )
 
 
