@@ -40,6 +40,7 @@ from .production_flow import ProductionEvent, ProductionFlow, ProductionStage
 from .scenario_gates import MultiScenarioGate, ScenarioGateResult
 from .source_discovery import CANONICAL_CAPABILITIES, DiscoveryPlan, SourceCandidate, SourceDiscoveryEngine
 from .specialist_feedback import SpecialistFeedback, SpecialistFeedbackRegistry
+from .specialist_skill_resolution import SpecialistSkill, SpecialistSkillResolution, SpecialistSkillResolver, skill_from_registry_record
 from .strategy_recovery import StrategicPath, StrategicRecoveryAssessment, assess_resolution_for_forward_strategy
 from .systemic_primitives import (CausalAssessment, DecisionRecord, OutcomeFeedback, Scenario, SystemicModel,
                                   SystemicRelation, TemporalValidity, UncertaintyAssessment)
@@ -65,8 +66,8 @@ __all__ = [
     "GovernedBudgetingService", "HybridCapabilityBridge", "KnowledgeAdmission", "MATURITY_DIMENSIONS", "MaturityAssessment",
     "MultiScenarioGate", "OutcomeFeedback", "probe_local_tools", "ProductionEvent", "ProductionFlow", "ProductionStage",
     "ProviderSelection", "Scenario", "ScenarioGateResult", "ScenarioMode", "SourceCandidate", "SourceDiscoveryEngine",
-    "SpecialistFeedback", "SpecialistFeedbackRegistry", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel",
-    "SystemicRelation", "TemporalValidity", "TrustDecision", "TrustRequest", "TrustResult", "TrustedIdentityRegistry",
-    "UncertaintyAssessment", "UnknownArtifactError", "assess_resolution_for_forward_strategy", "evaluate_trust",
-    "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
+    "SpecialistFeedback", "SpecialistFeedbackRegistry", "SpecialistSkill", "SpecialistSkillResolution", "SpecialistSkillResolver",
+    "skill_from_registry_record", "StrategicPath", "StrategicRecoveryAssessment", "SystemicModel", "SystemicRelation", "TemporalValidity",
+    "TrustDecision", "TrustRequest", "TrustResult", "TrustedIdentityRegistry", "UncertaintyAssessment", "UnknownArtifactError",
+    "assess_resolution_for_forward_strategy", "evaluate_trust", "SolicitationLearningCandidate", "build_learning_candidate", "classify_candidate",
 ]

@@ -7,6 +7,7 @@ from typing import Mapping
 class SpecialistFeedback:
     feedback_id: str
     specialist_id: str
+    skill_id: str
     tenant_id: str
     domain: str
     source_reference: str
@@ -17,10 +18,13 @@ class SpecialistFeedback:
     valid_to: str | None = None
 
     def __post_init__(self) -> None:
-        if not all((self.feedback_id, self.specialist_id, self.tenant_id, self.domain, self.source_reference, self.observation)):
+        if not all((self.feedback_id, self.specialist_id, self.skill_id, self.tenant_id, self.domain, self.source_reference, self.observation)):
             raise ValueError("feedback identity/context fields are required")
         if not self.evidence_ids or not self.provenance:
             raise ValueError("feedback requires evidence and provenance")
+        provenance_skill = self.provenance.get("skill_id")
+        if provenance_skill is not None and provenance_skill != self.skill_id:
+            raise ValueError("provenance skill_id must match feedback skill_id")
 
 
 class SpecialistFeedbackRegistry:

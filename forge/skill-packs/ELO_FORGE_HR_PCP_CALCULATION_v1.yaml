@@ -7,27 +7,95 @@ skills:
   - skill_id: FORGE-HR-001
     domain_family: HR
     purpose: "people/capacity analysis using authorized labor and staffing evidence"
+    scope: "bounded people and staffing analysis"
     boundaries: "no legal conclusion without authorized source; no employment action execution"
+    prerequisites: [authorized_context, scoped_evidence]
+    authorized_inputs: [people_data, staffing_data, capacity_requirements]
+    authorized_sources: [ELO_MEMORY, DOCUMENTS, authorized_corporate_sources]
+    procedures: [evidence_scoping, capacity_analysis, uncertainty_escalation]
+    calculation_methods: [bounded_capacity_analysis]
     evidence_requirements: [FACT, COMMITTED, AVAILABLE, ASSUMPTION, ESTIMATE, GAP, CONFLICT]
-    provenance_required: true
-    authorization_required: true
+    provenance_requirements: [source_id, provenance, authorization_scope]
+    uncertainty_rules: "GAP or CONFLICT must remain explicit and cannot be silently inferred"
+    escalation_rules: [legal_or_employment_decision, insufficient_evidence]
+    outputs: [analysis, evidence_gaps, recommendation]
+    decision_boundaries: "recommendation only; no employment action or canonical policy mutation"
+    test_references: [tests/test_elo_200_211_integrated_closure.py]
     maturity: STRUCTURED
+    version: "1.0"
+    history: ["initial governed skill pack"]
+    contextual_parameters: [company_staffing_context]
+    learning_candidates: [validated_reusable_patterns]
+    promotion_candidates: [generalizable_validated_learning]
+  - skill_id: FORGE-BUDGETING-001
+    domain_family: BUDGETING
+    purpose: "prepare, calculate, compare and revise governed budgets from evidence-backed inputs"
+    scope: "quotation, cost, revenue, capacity-constraint, scenario and sensitivity analysis within the governed budgeting capability"
+    boundaries: "recommendation is distinct from approval, commit and execution; missing data remains GAP; contextual experience does not redefine Core"
+    prerequisites: [authorized_context, scoped_evidence, governed_budget_inputs]
+    authorized_inputs: [BudgetRequest, BudgetInput, BudgetLine, Assumption, CapacityConstraint, BudgetScenario, BudgetSensitivity]
+    authorized_sources: [ELO_MEMORY, DOCUMENTS, GITHUB, authorized_corporate_sources]
+    procedures: [prepare_budget, calculate_budget, recalculate_version, compare_scenarios, sensitivity_analysis, evidence_validation]
+    calculation_methods: [QUANTITY_X_UNIT_COST]
+    evidence_requirements: [FACT, COMMITTED, AVAILABLE, ASSUMPTION, ESTIMATE, HYPOTHESIS, GAP, CONFLICT]
+    provenance_requirements: [source_id, provenance, evidence_ids, tenant_id]
+    uncertainty_rules: "GAP and CONFLICT inputs block silent completion; unavailable values are never converted to zero"
+    escalation_rules: [insufficient_evidence, conflicting_evidence, capacity_constraint, approval_required, execution_required]
+    outputs: [BudgetVersion, BudgetDecision, BudgetFollowUp, evidence_gaps, recommendation]
+    decision_boundaries: "may prepare, calculate and recommend within supplied authority; may not approve, commit or execute without explicit authority"
+    test_references: [tests/test_elo_200_211_integrated_closure.py]
+    maturity: GOVERNED
+    version: "1.0"
+    history: ["aligned with GovernedBudgetingService"]
+    contextual_parameters: [tenant_id, domain, period, scope, company_budget_context]
+    learning_candidates: [validated_calculation_patterns, validated_budget_precedents]
+    promotion_candidates: [generalizable_validated_budget_logic]
   - skill_id: FORGE-PCP-001
     domain_family: PCP
     purpose: "production planning, capacity, sequencing and schedule analysis"
+    scope: "bounded production planning and control analysis"
     boundaries: "uses Core reasoning; does not execute production changes"
+    prerequisites: [authorized_context, scoped_evidence]
+    authorized_inputs: [production_requirements, capacity_data, schedules, constraints]
+    authorized_sources: [ELO_MEMORY, DOCUMENTS, authorized_corporate_sources]
+    procedures: [capacity_analysis, sequencing_analysis, schedule_analysis, constraint_identification]
+    calculation_methods: [bounded_capacity_analysis]
     evidence_requirements: [FACT, COMMITTED, AVAILABLE, ASSUMPTION, ESTIMATE, GAP, CONFLICT]
-    provenance_required: true
-    authorization_required: true
+    provenance_requirements: [source_id, provenance, authorization_scope]
+    uncertainty_rules: "GAP or CONFLICT must remain explicit and cannot be silently inferred"
+    escalation_rules: [insufficient_evidence, production_change_required]
+    outputs: [planning_analysis, constraints, recommendation]
+    decision_boundaries: "analysis and recommendation only; no direct production execution"
+    test_references: [tests/test_elo_200_211_integrated_closure.py]
     maturity: STRUCTURED
+    version: "1.0"
+    history: ["initial governed skill pack"]
+    contextual_parameters: [company_production_context]
+    learning_candidates: [validated_reusable_patterns]
+    promotion_candidates: [generalizable_validated_learning]
   - skill_id: FORGE-CALC-001
     domain_family: DATA_ANALYSIS
     purpose: "reproducible calculation, simulation and sensitivity analysis"
+    scope: "bounded calculation and simulation supporting governed ELO reasoning"
     boundaries: "calculation is evidence-backed and cannot redefine canonical identity"
+    prerequisites: [authorized_context, scoped_evidence]
+    authorized_inputs: [numeric_inputs, assumptions, formulas, scenarios]
+    authorized_sources: [ELO_MEMORY, DOCUMENTS, authorized_corporate_sources]
+    procedures: [reproducible_calculation, simulation, sensitivity_analysis, result_validation]
+    calculation_methods: [versioned_formula, scenario_comparison]
     evidence_requirements: [FACT, ASSUMPTION, ESTIMATE, HYPOTHESIS, GAP, CONFLICT]
-    provenance_required: true
-    authorization_required: true
+    provenance_requirements: [source_id, provenance, formula_version]
+    uncertainty_rules: "assumptions and estimates remain explicit; GAP and CONFLICT cannot be silently resolved"
+    escalation_rules: [insufficient_evidence, formula_mismatch, canonical_decision_required]
+    outputs: [calculation_result, sensitivity_result, evidence_gaps]
+    decision_boundaries: "provides reproducible analytical evidence; does not define canonical identity or policy"
+    test_references: [tests/test_elo_200_211_integrated_closure.py]
     maturity: STRUCTURED
+    version: "1.0"
+    history: ["initial governed skill pack"]
+    contextual_parameters: [company_calculation_context]
+    learning_candidates: [validated_reusable_patterns]
+    promotion_candidates: [generalizable_validated_learning]
 rules:
   direct_forge_to_core_promotion: false
   company_overlay_is_generalizable_by_default: false

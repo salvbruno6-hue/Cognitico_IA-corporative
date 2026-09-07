@@ -10,6 +10,7 @@ from typing import Literal, Mapping
 
 from .context_resolution import ContextPack
 from .maturity_engine import MaturityAssessment
+from .specialist_skill_resolution import SpecialistSkillResolution
 
 
 HandoffMode = Literal["DISCOVERY_ASSIST", "SPECIALIST_VALIDATION"]
@@ -56,6 +57,7 @@ class GPTDecisionHandoff:
     domain: str | None = None
     principal_id: str | None = None
     request_id: str | None = None
+    skill_id: str | None = None
 
     @classmethod
     def from_maturity(
@@ -91,11 +93,17 @@ class GPTDecisionHandoff:
         elo_analysis: tuple[str, ...] = (),
         decision_required: bool = False,
         correlation_id: str = "",
+        skill_resolution: SpecialistSkillResolution | None = None,
     ) -> "GPTDecisionHandoff":
         if not context.discovery_plan:
             raise ValueError("context discovery must run before GPT handoff")
         if maturity.mode == "SPECIALIST_VALIDATION" and not context.requires_specialist():
             raise ValueError("specialist validation requires scoped evidence")
+        if maturity.mode == "SPECIALIST_VALIDATION":
+            if skill_resolution is None or not skill_resolution.resolved:
+                raise ValueError("specialist validation requires a resolved governed skill")
+            if context.query.domain != skill_resolution.domain_family:
+                raise ValueError("resolved specialist skill domain does not match context domain")
         return cls(
             question=context.query.question,
             objective=objective,
@@ -113,6 +121,7 @@ class GPTDecisionHandoff:
             domain=context.query.domain,
             principal_id=context.query.principal_id,
             request_id=context.query.request_id,
+            skill_id=skill_resolution.skill_id if skill_resolution is not None else None,
         )
 
     def consultation_payload(self) -> Mapping[str, object]:
@@ -133,6 +142,7 @@ class GPTDecisionHandoff:
             "principal_id": self.principal_id,
             "request_id": self.request_id,
             "correlation_id": self.correlation_id,
+            "skill_id": self.skill_id,
             "specialist_instruction": self.specialist_instruction(),
         }
 
