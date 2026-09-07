@@ -16,8 +16,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-      - name: Install package and tests
-        run: python -m pip install -e '.[test]'
+      - name: Install package, tests and agentic runtime
+        run: python -m pip install -e '.[test,agentic]'
       - name: Compile source
         run: python -m compileall src
       - name: Run tests
