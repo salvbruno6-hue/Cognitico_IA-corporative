@@ -4,7 +4,8 @@ from dataclasses import dataclass
 
 from elo.agentic.contracts import IntentSpec, KnowledgeRequirement
 from elo.agentic.elo_provider import ELOKnowledgeProvider, ELORequestContext
-from elo.core.source_resolver import SourceResolutionRequest, SourceResolutionResult
+from elo.core.source_resolver import SourceResolutionRequest, SourceResolver
+from elo.core.temporal_memory import TemporalConversationMemory
 
 
 @dataclass(frozen=True)
@@ -31,17 +32,7 @@ class _Adapter:
         return (_Retrieved(),)
 
 
-class _Resolver:
-    def __init__(self):
-        from elo.core.source_resolver import SourceResolver
-
-        self._inner = SourceResolver(adapters=(_Adapter(),))
-
-    def resolve(self, candidate, request):
-        return self._inner.resolve(candidate, request)
-
-
-def test_provider_preserves_read_only_boundary_and_context() -> None:
+def _provider(*, allow_temporal_trace: bool = False):
     context = ELORequestContext(
         tenant_id="tenant",
         principal_id="principal",
@@ -51,16 +42,33 @@ def test_provider_preserves_read_only_boundary_and_context() -> None:
         conversation_id="conversation",
         authorization_scope="scope.read",
     )
-    provider = ELOKnowledgeProvider(request_context=context, source_resolver=_Resolver())
-    intent = IntentSpec(
-        question="preciso fechar a elétrica externa",
-        intent="close_budget",
-        domain="orçamento",
-        task="fechamento",
-        entity="SO 157.26",
-        active_context="SO 157.26",
+    memory = TemporalConversationMemory()
+    resolver = SourceResolver(adapters=(_Adapter(),), temporal_memory=memory)
+    provider = ELOKnowledgeProvider(
+        request_context=context,
+        source_resolver=resolver,
+        allow_temporal_trace=allow_temporal_trace,
     )
-    req = KnowledgeRequirement("materials", "materials required by task")
+    return provider, memory
+
+
+def _inputs():
+    return (
+        IntentSpec(
+            question="preciso fechar a elétrica externa",
+            intent="close_budget",
+            domain="orçamento",
+            task="fechamento",
+            entity="SO 157.26",
+            active_context="SO 157.26",
+        ),
+        KnowledgeRequirement("materials", "materials required by task"),
+    )
+
+
+def test_provider_preserves_context_and_provenance() -> None:
+    provider, _ = _provider()
+    intent, req = _inputs()
 
     found = provider.retrieve(intent, req)
 
@@ -68,7 +76,7 @@ def test_provider_preserves_read_only_boundary_and_context() -> None:
     assert found[0].source_id == "source-1"
     assert found[0].content == "current governed result"
     assert found[0].provenance["origin"] == "test"
-    assert provider.request_context == context
+    assert found[0].metadata["agentic_requirement"] == "materials"
 
 
 def test_provider_fails_closed_without_request_context() -> None:
@@ -77,3 +85,19 @@ def test_provider_fails_closed_without_request_context() -> None:
     req = KnowledgeRequirement("requirements", "requirements")
 
     assert provider.retrieve(intent, req) == ()
+
+
+def test_provider_does_not_write_temporal_memory_by_default() -> None:
+    provider, memory = _provider()
+    intent, req = _inputs()
+
+    assert provider.retrieve(intent, req)
+    assert memory.records() == ()
+
+
+def test_provider_can_explicitly_enable_temporal_trace() -> None:
+    provider, memory = _provider(allow_temporal_trace=True)
+    intent, req = _inputs()
+
+    assert provider.retrieve(intent, req)
+    assert len(memory.records()) == 1
