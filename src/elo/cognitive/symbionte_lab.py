@@ -1,8 +1,8 @@
 """Executable bridge from laboratory observations into governed learning.
 
-This adapter is intentionally thin: the laboratory remains candidate-only,
-while GovernedLearningService and EvolutionGate remain the canonical
-learning/promotion authorities.
+The adapter validates the laboratory evidence boundary first, then records an
+experience/candidate through the existing governed learning service and asks
+the canonical Evolution Gate for classification. It never promotes anything.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
 from elo.core.learning_governance import ExperienceRecord, GovernedLearningService, LearningCandidate
-
 
 LAB_ONLY = "LAB_ONLY"
 
@@ -49,7 +48,7 @@ class SymbiontLabEvaluation:
 
 
 class SymbiontLabAdapter:
-    """Bridge laboratory observations to existing governed learning APIs."""
+    """Thin adapter; no ownership of memory, routing or promotion."""
 
     def __init__(self, learning: GovernedLearningService) -> None:
         self.learning = learning
@@ -77,7 +76,6 @@ class SymbiontLabAdapter:
             dataset_version=dataset_version,
             hypothesis=observation.hypothesis,
         )
-
         proposal = EvolutionProposal(
             proposal_id=observation.observation_id,
             tenant_id=observation.tenant_id,
@@ -98,15 +96,12 @@ class SymbiontLabAdapter:
             },
         )
         decision = EvolutionGate().evaluate(proposal)
-        disposition = self._disposition(decision.classification)
-
         return SymbiontLabEvaluation(
             observation=observation,
             experience=experience,
             candidate=candidate,
             evolution_classification=decision.classification.value,
-            disposition=disposition,
-            state=LAB_ONLY,
+            disposition=self._disposition(decision.classification),
         )
 
     @staticmethod
@@ -138,20 +133,20 @@ class SymbiontLabAdapter:
             raise ValueError("laboratory observation requires identity, provenance, experiment and scope")
         if not observation.evidence_ids:
             raise ValueError("laboratory observation requires evidence")
-        if observation.regression_status == "REGRESSION":
+        if observation.regression_status.upper() in {"REGRESSION", "FAIL"}:
             raise ValueError("regression blocks laboratory evaluation")
-        if observation.generalization_status == "UNCONFIRMED":
+        if observation.generalization_status.upper() == "UNCONFIRMED":
             raise ValueError("unconfirmed generalization remains LAB_ONLY")
+        if observation.risk.upper() in {"CRITICAL", "CRITICO"}:
+            raise ValueError("critical risk blocks laboratory evaluation")
 
     @staticmethod
     def _maturity_score(observation: SymbiontLabObservation) -> float:
-        status = observation.generalization_status.upper()
-        risk = observation.risk.upper()
         score = {
             "CONFIRMED": 0.9,
             "PARTIAL": 0.6,
             "UNCONFIRMED": 0.3,
-        }.get(status, 0.3)
-        if risk in {"HIGH", "CRITICAL", "ALTO", "CRITICO"}:
+        }.get(observation.generalization_status.upper(), 0.3)
+        if observation.risk.upper() in {"HIGH", "CRITICAL", "ALTO", "CRITICO"}:
             score = min(score, 0.4)
         return score
