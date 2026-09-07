@@ -29,3 +29,11 @@ def test_knowledge_links_are_not_auto_created_by_runtime() -> None:
     assert "existing_owner" in text
     assert "DUPLICATE_SUPERSEDED" in text
     assert "LAB_ONLY" in text
+
+
+def test_material_evolution_gate_is_explicit() -> None:
+    text = Path("docs/evolution/ELO_MATERIAL_EVOLUTION_GATE_2026-09-07.md").read_text(encoding="utf-8")
+    assert "delta >= 0.10" in text
+    assert "confiança da evidência `>= 0.70`" in text
+    assert "pelo menos `2` execuções comparáveis" in text
+    assert "LAB_ONLY" in text
