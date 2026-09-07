@@ -37,57 +37,96 @@ class KnowledgeNeedPlanner:
             ("gaps", "missing inputs needed to close the task"),
         ),
         "engineering": (
-            ("requirements", "technical requirements"), ("specifications", "applicable specifications"),
-            ("standards", "applicable governed standards and references"), ("constraints", "constraints and interfaces"),
-            ("calculations", "relevant calculations and assumptions"), ("conflicts", "technical conflicts"),
+            ("requirements", "technical requirements"),
+            ("specifications", "applicable specifications"),
+            ("standards", "applicable governed standards and references"),
+            ("constraints", "constraints and interfaces"),
+            ("calculations", "relevant calculations and assumptions"),
+            ("conflicts", "technical conflicts"),
             ("gaps", "missing technical inputs"),
         ),
         "purchasing": (
-            ("item", "required item or material"), ("specification", "technical specification"),
-            ("supplier_reference", "relevant supplier/manufacturer reference"), ("price", "current applicable price basis"),
-            ("lead_time", "relevant lead time"), ("alternatives", "governed alternatives, when applicable"),
+            ("item", "required item or material"),
+            ("specification", "technical specification"),
+            ("supplier_reference", "relevant supplier/manufacturer reference"),
+            ("price", "current applicable price basis"),
+            ("lead_time", "relevant lead time"),
+            ("alternatives", "governed alternatives, when applicable"),
             ("gaps", "missing purchasing inputs"),
         ),
         "planning": (
-            ("scope", "scope of the task"), ("dependencies", "preceding and dependent work"),
-            ("resources", "required resources/capacity"), ("duration", "relevant duration or planning basis"),
-            ("constraints", "planning constraints"), ("gaps", "missing planning inputs"),
+            ("scope", "scope of the task"),
+            ("dependencies", "preceding and dependent work"),
+            ("resources", "required resources/capacity"),
+            ("duration", "relevant duration or planning basis"),
+            ("constraints", "planning constraints"),
+            ("gaps", "missing planning inputs"),
         ),
     }
 
     def plan(self, intent: IntentSpec, limits: OrchestrationLimits) -> tuple[KnowledgeRequirement, ...]:
         key = (intent.domain or "").casefold()
         family = "budget" if "orç" in key or "budget" in key else key
-        if "engen" in key: family = "engineering"
-        elif "compr" in key or "purchase" in key: family = "purchasing"
-        elif "planej" in key or "planning" in key: family = "planning"
+        if "engen" in key:
+            family = "engineering"
+        elif "compr" in key or "purchase" in key:
+            family = "purchasing"
+        elif "planej" in key or "planning" in key:
+            family = "planning"
         templates = self.DEFAULT_REQUIREMENTS.get(family, ())
         if intent.required_knowledge:
             templates = tuple((k, k) for k in intent.required_knowledge) + templates
-        seen: set[str] = set(); requirements: list[KnowledgeRequirement] = []
+        seen: set[str] = set()
+        requirements: list[KnowledgeRequirement] = []
         for priority, (key_name, purpose) in enumerate(templates, start=1):
-            if key_name in seen: continue
-            seen.add(key_name); requirements.append(KnowledgeRequirement(key_name, purpose, priority=priority))
-            if len(requirements) >= limits.max_requirements: break
+            if key_name in seen:
+                continue
+            seen.add(key_name)
+            requirements.append(KnowledgeRequirement(key_name, purpose, priority=priority))
+            if len(requirements) >= limits.max_requirements:
+                break
         return tuple(requirements)
 
 
 class KnowledgeOrchestrator:
     """Coordinate discovery/curation without owning canonical ELO truth."""
     def __init__(self, provider: KnowledgeProvider, limits: OrchestrationLimits | None = None) -> None:
-        self.provider = provider; self.limits = limits or OrchestrationLimits(); self.planner = KnowledgeNeedPlanner()
+        self.provider = provider
+        self.limits = limits or OrchestrationLimits()
+        self.planner = KnowledgeNeedPlanner()
 
     def run(self, intent: IntentSpec) -> KnowledgeContext:
         requirements = self.planner.plan(intent, self.limits)
-        candidates: list[KnowledgeCandidate] = []; gaps: list[KnowledgeGap] = []; conflicts: list[KnowledgeConflict] = []
+        candidates: list[KnowledgeCandidate] = []
+        gaps: list[KnowledgeGap] = []
+        conflicts: list[KnowledgeConflict] = []
         for requirement in requirements:
             found = self.provider.retrieve(intent, requirement)
             if not found and requirement.required:
-                gaps.append(KnowledgeGap(key=requirement.key, reason=f"no governed knowledge returned for requirement: {requirement.key}", blocks_decision=requirement.key not in {"conflicts", "gaps"}))
+                gaps.append(
+                    KnowledgeGap(
+                        key=requirement.key,
+                        reason=f"no governed knowledge returned for requirement: {requirement.key}",
+                        blocks_decision=requirement.key not in {"conflicts", "gaps"},
+                    )
+                )
             candidates.extend(found)
-        curated = curate(tuple(candidates), self.limits.max_candidates)
+
+        curated = curate(tuple(candidates), self.limits.max_candidates, intent=intent)
         for item in curated:
             if item.status == "CONFLICTING":
-                conflicts.append(KnowledgeConflict(subject=item.source_id, sources=(item.source_id,), description="candidate marked as conflicting by the governed source"))
+                conflicts.append(
+                    KnowledgeConflict(
+                        subject=item.source_id,
+                        sources=(item.source_id,),
+                        description="candidate marked as conflicting by the governed source",
+                    )
+                )
         provenance = {item.source_id: item.provenance for item in curated if item.provenance}
-        return KnowledgeContext(intent=intent, candidates=curated, gaps=tuple(gaps), conflicts=tuple(conflicts), provenance=provenance)
+        return KnowledgeContext(
+            intent=intent,
+            candidates=curated,
+            gaps=tuple(gaps),
+            conflicts=tuple(conflicts),
+            provenance=provenance,
+        )
