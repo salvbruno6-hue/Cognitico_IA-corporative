@@ -1,8 +1,8 @@
 """Executable bridge from laboratory observations into governed learning.
 
-The adapter validates the laboratory evidence boundary first, then records an
-experience/candidate through the existing governed learning service and asks
-the canonical Evolution Gate for classification. It never promotes anything.
+The adapter validates the laboratory evidence boundary before recording any
+experience. It preserves the canonical learning and evolution authorities and
+never performs promotion itself.
 """
 
 from __future__ import annotations
@@ -35,6 +35,8 @@ class SymbiontLabObservation:
     risk: str
     existing_owner: str | None
     scope: str
+    tenant_scope: str | None = None
+    source_kind: str | None = None
 
 
 @dataclass(frozen=True)
@@ -91,7 +93,7 @@ class SymbiontLabAdapter:
             provenance={
                 "source_ref": observation.source_ref,
                 "source_commit": observation.source_commit,
-                "tenant_scope": observation.tenant_id,
+                "tenant_scope": observation.tenant_scope or observation.tenant_id,
                 "scope": observation.scope,
             },
         )
@@ -133,6 +135,12 @@ class SymbiontLabAdapter:
             raise ValueError("laboratory observation requires identity, provenance, experiment and scope")
         if not observation.evidence_ids:
             raise ValueError("laboratory observation requires evidence")
+        if observation.tenant_scope and observation.tenant_scope != observation.tenant_id:
+            raise ValueError("tenant scope does not match tenant identity")
+        if observation.source_kind and observation.source_kind.strip().lower() not in {
+            "repository", "zip", "pr", "issue", "experience", "runtime", "benchmark", "human",
+        }:
+            raise ValueError("unsupported laboratory source kind")
         if observation.regression_status.upper() in {"REGRESSION", "FAIL"}:
             raise ValueError("regression blocks laboratory evaluation")
         if observation.generalization_status.upper() == "UNCONFIRMED":
