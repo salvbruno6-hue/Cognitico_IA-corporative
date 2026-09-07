@@ -92,7 +92,7 @@ def test_provider_does_not_write_temporal_memory_by_default() -> None:
     intent, req = _inputs()
 
     assert provider.retrieve(intent, req)
-    assert memory.records() == ()
+    assert memory.list("conversation") == ()
 
 
 def test_provider_can_explicitly_enable_temporal_trace() -> None:
@@ -100,4 +100,4 @@ def test_provider_can_explicitly_enable_temporal_trace() -> None:
     intent, req = _inputs()
 
     assert provider.retrieve(intent, req)
-    assert len(memory.records()) == 1
+    assert len(memory.list("conversation")) == 1
