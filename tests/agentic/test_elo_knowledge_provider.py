@@ -13,8 +13,8 @@ class _Retrieved:
     source_id: str = "source-1"
     source_type: str = "ELO_MEMORY"
     content: str = "current governed result"
-    provenance: dict[str, str] = None  # type: ignore[assignment]
-    metadata: dict[str, str] = None  # type: ignore[assignment]
+    provenance: dict[str, str] | None = None
+    metadata: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "provenance", self.provenance or {"origin": "test"})
@@ -29,7 +29,7 @@ class _Adapter:
         return True
 
     def retrieve(self, candidate, request: SourceResolutionRequest):
-        return (_Retrieved(),)
+        return (_Retrieved(metadata={"cod_produt": "3300900009"}),)
 
 
 def _provider(*, allow_temporal_trace: bool = False):
@@ -66,7 +66,7 @@ def _inputs():
     )
 
 
-def test_provider_preserves_context_and_provenance() -> None:
+def test_provider_preserves_context_provenance_and_product_code() -> None:
     provider, _ = _provider()
     intent, req = _inputs()
 
@@ -77,6 +77,7 @@ def test_provider_preserves_context_and_provenance() -> None:
     assert found[0].content == "current governed result"
     assert found[0].provenance["origin"] == "test"
     assert found[0].metadata["agentic_requirement"] == "materials"
+    assert found[0].product_code == "3300900009"
 
 
 def test_provider_fails_closed_without_request_context() -> None:
