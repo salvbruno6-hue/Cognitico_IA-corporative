@@ -53,6 +53,24 @@ def test_result_is_evidence_not_canonical_decision():
     assert "canonical_knowledge" not in payload
 
 
+def test_learning_candidate_cannot_promote_itself():
+    with pytest.raises(ValueError, match="invalid learning candidate"):
+        HermesExecutionResult(
+            request_id="req-4",
+            status="completed",
+            learning_candidate={"promotion_state": "promoted"},
+        )
+
+
+def test_learning_candidate_cannot_contain_canonical_fields():
+    with pytest.raises(ValueError, match="canonical decision/knowledge"):
+        HermesExecutionResult(
+            request_id="req-5",
+            status="completed",
+            learning_candidate={"canonical_knowledge": True},
+        )
+
+
 def test_result_rejects_infrastructure_identifiers():
     with pytest.raises(ValueError, match="infrastructure field"):
         HermesExecutionResult(
