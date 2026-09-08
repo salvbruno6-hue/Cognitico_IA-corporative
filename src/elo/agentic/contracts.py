@@ -43,6 +43,7 @@ class KnowledgeCandidate:
     confidence: float
     context_match: float
     authority: str | None = None
+    product_code: str | None = None
     provenance: Mapping[str, str] = field(default_factory=dict)
     metadata: Mapping[str, str] = field(default_factory=dict)
 
