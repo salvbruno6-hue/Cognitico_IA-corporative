@@ -15,6 +15,7 @@ _FORBIDDEN_INFRASTRUCTURE_KEYS = frozenset(
     {"project_id", "project_ref", "supabase_project", "database_url"}
 )
 _ALLOWED_RESULT_STATUS = frozenset({"completed", "partial", "blocked", "failed"})
+_ALLOWED_PROMOTION_STATES = frozenset({"candidate_only", "pending", "rejected"})
 
 
 def _reject_infrastructure_leaks(value: Any, path: str = "payload") -> None:
@@ -27,6 +28,17 @@ def _reject_infrastructure_leaks(value: Any, path: str = "payload") -> None:
     elif isinstance(value, (list, tuple)):
         for index, child in enumerate(value):
             _reject_infrastructure_leaks(child, f"{path}[{index}]")
+
+
+def _validate_learning_candidate(value: Mapping[str, Any] | None) -> None:
+    """Keep Hermes learning output explicitly outside canonical promotion."""
+    if value is None:
+        return
+    if "decision" in value or "canonical_knowledge" in value:
+        raise ValueError("learning_candidate cannot contain canonical decision/knowledge")
+    promotion_state = value.get("promotion_state", "candidate_only")
+    if promotion_state not in _ALLOWED_PROMOTION_STATES:
+        raise ValueError(f"invalid learning candidate promotion_state: {promotion_state}")
 
 
 @dataclass(frozen=True)
@@ -101,6 +113,7 @@ class HermesExecutionResult:
             ("learning_candidate", self.learning_candidate),
         ):
             _reject_infrastructure_leaks(value, name)
+        _validate_learning_candidate(self.learning_candidate)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
