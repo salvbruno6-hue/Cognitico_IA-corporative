@@ -21,6 +21,7 @@ from elo.core.source_resolver import (
 
 from .contracts import IntentSpec, KnowledgeCandidate, KnowledgeRequirement
 from .orchestrator import KnowledgeProvider
+from .runtime_context import ELORuntimeContext, resolve_runtime_context
 
 
 @dataclass(frozen=True)
@@ -51,12 +52,14 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         source_resolver: SourceResolver | None = None,
         context_factory: Callable[[IntentSpec, KnowledgeRequirement], ContextQuery] | None = None,
         request_context: ELORequestContext | None = None,
+        runtime_context: ELORuntimeContext | None = None,
         allow_temporal_trace: bool = False,
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
         self.source_resolver = source_resolver or SourceResolver()
         self.context_factory = context_factory or self._default_context_query
         self.request_context = request_context
+        self.runtime_context = runtime_context or resolve_runtime_context()
         self.allow_temporal_trace = allow_temporal_trace
 
     def retrieve(
@@ -91,6 +94,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                     metadata={
                         "agentic_requirement": requirement.key,
                         "agentic_intent": intent.intent,
+                        "elo_forge_project_ref": self.runtime_context.project_ref,
+                        "elo_forge_source": self.runtime_context.source_name,
                     },
                 ),
             )
