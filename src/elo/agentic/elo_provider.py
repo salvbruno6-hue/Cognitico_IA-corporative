@@ -97,6 +97,11 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             for item in resolution.retrieved:
                 metadata = dict(item.metadata)
                 metadata.setdefault("agentic_requirement", requirement.key)
+                product_code = (
+                    metadata.get("cod_produt")
+                    or metadata.get("produto_codigo")
+                    or metadata.get("product_code")
+                )
                 candidates.append(
                     KnowledgeCandidate(
                         source_id=item.source_id,
@@ -106,6 +111,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                         relevance=0.0,
                         confidence=0.0,
                         context_match=0.0,
+                        product_code=product_code,
                         provenance=item.provenance,
                         metadata=metadata,
                     )
