@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from elo.agentic.contracts import IntentSpec, KnowledgeRequirement
 from elo.agentic.elo_provider import ELOKnowledgeProvider, ELORequestContext
+from elo.agentic.runtime_context import ELORuntimeContext
 from elo.core.source_resolver import SourceResolutionRequest, SourceResolver
 from elo.core.temporal_memory import TemporalConversationMemory
 
@@ -48,6 +49,10 @@ def _provider(*, allow_temporal_trace: bool = False):
         request_context=context,
         source_resolver=resolver,
         allow_temporal_trace=allow_temporal_trace,
+        runtime_context=ELORuntimeContext(
+            project_ref="fxbpevjrkwhbicpmecow",
+            supabase_url="https://fxbpevjrkwhbicpmecow.supabase.co",
+        ),
     )
     return provider, memory
 
@@ -78,6 +83,16 @@ def test_provider_preserves_context_provenance_and_product_code() -> None:
     assert found[0].provenance["origin"] == "test"
     assert found[0].metadata["agentic_requirement"] == "materials"
     assert found[0].product_code == "3300900009"
+
+
+def test_provider_binds_resolved_forge_context_to_read_request() -> None:
+    provider, _ = _provider()
+    intent, req = _inputs()
+    found = provider.retrieve(intent, req)
+
+    assert provider.runtime_context.project_ref == "fxbpevjrkwhbicpmecow"
+    assert provider.runtime_context.read_only is True
+    assert found
 
 
 def test_provider_fails_closed_without_request_context() -> None:
