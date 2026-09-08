@@ -1,7 +1,7 @@
 """Read-only bridge between ELO knowledge routing and Supabase Elo-forge.
 
-The adapter is deliberately infrastructure-only: it does not learn, promote,
-write, migrate, or decide. It retrieves current Forge records and follows the
+This adapter is infrastructure-only: it does not learn, promote, write,
+migrate, or decide. It retrieves current Forge records and follows the
 canonical relational chain needed by ELO's cognitive layer.
 
 Required runtime environment:
@@ -131,6 +131,45 @@ class SupabaseEloForge:
             )
         return rows[0]
 
+    @staticmethod
+    def present_kit_item(
+        kit_item: dict[str, Any], lista_mae: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        """Return the stable specialist-facing kit columns without inventing data.
+
+        Product code is resolved from the canonical Lista Mãe relationship first,
+        then from the kit item when present. A missing value remains None so the
+        cognitive layer can explicitly report the catalog gap.
+        """
+        lista = lista_mae or {}
+        quantidade = kit_item.get("quantidade")
+        if quantidade is None:
+            quantidade = kit_item.get("qtd_uni")
+        if quantidade is None:
+            quantidade = kit_item.get("quant_total")
+
+        valor_unitario = lista.get("valor_unitario")
+        if valor_unitario is None:
+            valor_unitario = kit_item.get("valor_unitario")
+
+        valor_total = kit_item.get("valor_total")
+        if valor_total is None and valor_unitario is not None and quantidade is not None:
+            try:
+                valor_total = float(valor_unitario) * float(quantidade)
+            except (TypeError, ValueError):
+                valor_total = None
+
+        return {
+            "codigo_item": kit_item.get("cod_item"),
+            "cod_produto": lista.get("cod_produt") or kit_item.get("cod_produt"),
+            "descricao": lista.get("descricao_oficial") or kit_item.get("descricao_oficial"),
+            "un": lista.get("un") or kit_item.get("un"),
+            "qtd": quantidade,
+            "valor_unitario": valor_unitario,
+            "valor_total": valor_total,
+            "lista_mae_id": kit_item.get("lista_mae_id"),
+        }
+
     def model_context(self, reference: str) -> dict[str, Any]:
         """Retrieve the canonical model and its existing Forge relationships."""
         model = self.resolve_model(reference)
@@ -138,7 +177,6 @@ class SupabaseEloForge:
 
         result: dict[str, Any] = {
             "source": "supabase_elo_forge",
-            "project_ref": self.config.project_ref,
             "entity": {
                 "requested_reference": reference,
                 "canonical_code": model["codigo"],
@@ -170,6 +208,7 @@ class SupabaseEloForge:
 
         kit_items: list[dict[str, Any]] = []
         lista_mae: list[dict[str, Any]] = []
+        kit_composition: list[dict[str, Any]] = []
         for kit in kits:
             items = self.read_table(
                 "kit_itens", filters={"kit_id": f"eq.{kit['id']}"}
@@ -177,14 +216,18 @@ class SupabaseEloForge:
             kit_items.extend(items)
             for item in items:
                 lista_id = item.get("lista_mae_id")
+                lista_item = None
                 if lista_id:
-                    lista_mae.extend(
-                        self.read_table(
-                            "lista_mae", filters={"id": f"eq.{lista_id}"}, limit=1
-                        )
+                    rows = self.read_table(
+                        "lista_mae", filters={"id": f"eq.{lista_id}"}, limit=1
                     )
+                    if rows:
+                        lista_item = rows[0]
+                        lista_mae.extend(rows)
+                kit_composition.append(self.present_kit_item(item, lista_item))
         result["relationships"]["kit_itens"] = kit_items
         result["relationships"]["lista_mae"] = lista_mae
+        result["kit_composition"] = kit_composition
 
         structures = self.read_table(
             "estrutura_modular", filters={"modelo_id": f"eq.{model_id}"}
