@@ -1,6 +1,7 @@
 import pytest
 
 from regras.roteador_consultas import route_query
+from integracoes.supabase_elo_forge import SupabaseEloForge
 
 
 def test_taxonomia_routes_to_supabase():
@@ -39,3 +40,56 @@ def test_unrelated_query_uses_local_fallback():
 def test_empty_query_fails_closed():
     with pytest.raises(ValueError, match="query is required"):
         route_query("   ")
+
+
+def test_kit_presentation_contains_required_columns_and_values():
+    presented = SupabaseEloForge.present_kit_item(
+        {
+            "cod_item": "ELE024",
+            "cod_produt": None,
+            "descricao_oficial": "descrição do kit",
+            "un": "PÇ",
+            "quantidade": 1,
+            "valor_unitario": 999,
+            "valor_total": 999,
+            "lista_mae_id": "lm-1",
+        },
+        {
+            "cod_produt": "3300300024",
+            "descricao_oficial": "Barramento bifásico 80A 440V",
+            "un": "PÇ",
+            "valor_unitario": "10.28",
+        },
+    )
+    assert presented["codigo_item"] == "ELE024"
+    assert presented["cod_produto"] == "3300300024"
+    assert presented["descricao"] == "Barramento bifásico 80A 440V"
+    assert presented["un"] == "PÇ"
+    assert presented["qtd"] == 1
+    assert presented["valor_unitario"] == "10.28"
+    assert presented["valor_total"] == 999
+
+
+def test_missing_product_code_is_preserved_as_null():
+    presented = SupabaseEloForge.present_kit_item(
+        {
+            "cod_item": "ELE085",
+            "cod_produt": None,
+            "descricao_oficial": "Disjuntor monopolar 16A",
+            "un": "un",
+            "quantidade": 1,
+            "valor_total": 8.44,
+        },
+        {
+            "cod_produt": None,
+            "descricao_oficial": "Disjuntor monopolar 16A",
+            "un": "un",
+            "valor_unitario": "8.44",
+        },
+    )
+    assert presented["codigo_item"] == "ELE085"
+    assert presented["cod_produto"] is None
+    assert presented["descricao"] == "Disjuntor monopolar 16A"
+    assert presented["qtd"] == 1
+    assert presented["valor_unitario"] == "8.44"
+    assert presented["valor_total"] == 8.44
