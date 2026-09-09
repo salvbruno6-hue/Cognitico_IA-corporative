@@ -6,6 +6,7 @@ import { ProcessNavigation } from "@/components/process-navigation";
 import { sectors, type SectorKey } from "@/lib/sectors";
 
 const navItems = ["Missões", "Projetos", "Processos", "Análises", "Conectores", "Governança"];
+const operationalSectorKeys = new Set<SectorKey>(["producao", "almoxarifado", "compras", "qualidade", "expedicao"]);
 
 function MiniChart({ values, accent }: { values: number[]; accent: string }) {
   const max = Math.max(...values);
@@ -24,6 +25,7 @@ export function EloDashboard() {
   const [sectorKey, setSectorKey] = useState<SectorKey>("planejamento");
   const [showProcesses, setShowProcesses] = useState(true);
   const sector = useMemo(() => sectors.find((item) => item.key === sectorKey) ?? sectors[0], [sectorKey]);
+  const isOperationalSector = operationalSectorKeys.has(sectorKey);
 
   return (
     <main className="min-h-screen bg-[var(--elo-bg)] text-[var(--elo-ink)]">
@@ -92,7 +94,7 @@ export function EloDashboard() {
             </div>
 
             {showProcesses && sectorKey === "planejamento" && <ProcessNavigation accent={sector.accent} />}
-            {sectorKey === "planejamento" && <OperationalSectorNavigation accent={sector.accent} />}
+            {(sectorKey === "planejamento" || isOperationalSector) && <OperationalSectorNavigation accent={sector.accent} />}
 
             <section aria-label="Indicadores principais" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {sector.metrics.map((metric) => (
