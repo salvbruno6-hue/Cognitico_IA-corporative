@@ -133,7 +133,7 @@ def test_src_elo_uses_repository_canonical_map_as_runtime_ownership(tmp_path: Pa
     assert not evidence.waiting_for_evidence
 
 
-def test_src_elo_still_blocks_when_explicit_parallel_owner_exists(tmp_path: Path):
+def test_src_elo_does_not_override_explicit_parallel_owner(tmp_path: Path):
     structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
     structure_map.parent.mkdir(parents=True, exist_ok=True)
     structure_map.write_text(
@@ -158,7 +158,7 @@ def test_src_elo_still_blocks_when_explicit_parallel_owner_exists(tmp_path: Path
         concept_terms=["hermes_runtime"],
     )
 
-    assert "parallel_runtime.py" in evidence.candidates
-    assert evidence.duplicate_or_parallel is True
-    assert evidence.reuse_analysis_complete is True
-    assert evidence.decision == "REUSE"
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
