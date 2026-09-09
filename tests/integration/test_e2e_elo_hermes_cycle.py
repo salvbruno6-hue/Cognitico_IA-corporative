@@ -33,8 +33,11 @@ def test_e2e_elo_hermes_cycle_closes_with_evidence_and_gate():
         outcome_id="e2e-outcome-001",
         expected="governed test action completes",
         observed="governed test action completed",
+        assessment="success",
+        evidence_ids=tuple(execution["artifacts"]),
     )
     assert outcome.decision_id == decision.id
+    assert outcome.evidence_ids == tuple(execution["artifacts"])
 
     proposal = EvolutionProposal(
         proposal_id="e2e-evolution-001",
