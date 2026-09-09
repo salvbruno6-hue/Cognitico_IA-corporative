@@ -9,6 +9,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@supabase/ssr": "0.7.0",
+    "@supabase/supabase-js": "2.57.4",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -20,7 +22,7 @@
     "@types/react-dom": "latest",
     "eslint": "latest",
     "eslint-config-next": "16.3.4",
-    "postcss": "latest",
+    "postcss": "4.1.4",
     "tailwindcss": "4.3.3",
     "typescript": "latest"
   },
