@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { OperationalSectorNavigation } from "@/components/operational-sector-navigation";
 import { ProcessNavigation } from "@/components/process-navigation";
 import { sectors, type SectorKey } from "@/lib/sectors";
 
@@ -12,11 +13,7 @@ function MiniChart({ values, accent }: { values: number[]; accent: string }) {
     <div className="flex h-36 items-end gap-2" aria-label="Gráfico de indicadores">
       {values.map((value, index) => (
         <div key={`${value}-${index}`} className="flex flex-1 items-end justify-center">
-          <div
-            className="w-full rounded-t-md opacity-80 transition-all"
-            style={{ height: `${Math.max(12, (value / max) * 100)}%`, backgroundColor: accent }}
-            title={`${value}`}
-          />
+          <div className="w-full rounded-t-md opacity-80 transition-all" style={{ height: `${Math.max(12, (value / max) * 100)}%`, backgroundColor: accent }} title={`${value}`} />
         </div>
       ))}
     </div>
@@ -43,12 +40,7 @@ export function EloDashboard() {
           <nav aria-label="Navegação principal" className="space-y-1">
             <button className="w-full rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-medium">⌂ Início</button>
             {navItems.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => item === "Processos" && setShowProcesses(true)}
-                className={`w-full rounded-xl px-4 py-3 text-left text-sm transition ${item === "Processos" && showProcesses ? "bg-white/10 font-medium text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-              >
+              <button key={item} type="button" onClick={() => item === "Processos" && setShowProcesses(true)} className={`w-full rounded-xl px-4 py-3 text-left text-sm transition ${item === "Processos" && showProcesses ? "bg-white/10 font-medium text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>
                 {item}
               </button>
             ))}
@@ -56,12 +48,7 @@ export function EloDashboard() {
 
           <div className="mt-10 border-t border-white/10 pt-5">
             <label htmlFor="sector" className="mb-2 block px-2 text-xs font-medium uppercase tracking-wider text-white/40">Setor atual</label>
-            <select
-              id="sector"
-              value={sectorKey}
-              onChange={(event) => setSectorKey(event.target.value as SectorKey)}
-              className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-white/30"
-            >
+            <select id="sector" value={sectorKey} onChange={(event) => setSectorKey(event.target.value as SectorKey)} className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-white/30">
               {sectors.map((item) => <option key={item.key} value={item.key} className="text-slate-900">{item.label}</option>)}
             </select>
           </div>
@@ -105,6 +92,7 @@ export function EloDashboard() {
             </div>
 
             {showProcesses && sectorKey === "planejamento" && <ProcessNavigation accent={sector.accent} />}
+            {sectorKey === "planejamento" && <OperationalSectorNavigation accent={sector.accent} />}
 
             <section aria-label="Indicadores principais" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {sector.metrics.map((metric) => (
@@ -120,33 +108,17 @@ export function EloDashboard() {
 
             <section className="grid gap-4 xl:grid-cols-[1.5fr_0.8fr]">
               <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">{sector.chartTitle}</h3>
-                    <p className="text-xs text-slate-400">Visão operacional do setor</p>
-                  </div>
-                  <span className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">Últimos 7 períodos</span>
-                </div>
+                <div className="mb-5 flex items-center justify-between"><div><h3 className="font-semibold">{sector.chartTitle}</h3><p className="text-xs text-slate-400">Visão operacional do setor</p></div><span className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">Últimos 7 períodos</span></div>
                 <MiniChart values={sector.chartValues} accent={sector.accent} />
               </article>
 
               <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h3 className="font-semibold">Ações rápidas</h3>
-                <div className="mt-4 space-y-2">
-                  {sector.quickActions.map((action) => (
-                    <button key={action} className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-left text-sm transition hover:bg-slate-50">
-                      <span>{action}</span>
-                      <span className="text-slate-400">→</span>
-                    </button>
-                  ))}
-                </div>
+                <div className="mt-4 space-y-2">{sector.quickActions.map((action) => <button key={action} className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-left text-sm transition hover:bg-slate-50"><span>{action}</span><span className="text-slate-400">→</span></button>)}</div>
               </article>
             </section>
 
-            <footer className="flex flex-col gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <span>ELO • Inteligência para um futuro melhor.</span>
-              <span>Governança · Segurança · Simbionte · Hermes · Conectores · Múltiplas IAs</span>
-            </footer>
+            <footer className="flex flex-col gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>ELO • Inteligência para um futuro melhor.</span><span>Governança · Segurança · Simbionte · Hermes · Conectores · Múltiplas IAs</span></footer>
           </div>
         </section>
       </div>
