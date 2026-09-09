@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "dependencies": {
     "next": "16.3.4",
@@ -22,7 +23,8 @@
     "eslint-config-next": "16.3.4",
     "postcss": "latest",
     "tailwindcss": "4.3.3",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "latest"
   },
   "engines": {
     "node": ">=20.9.0"
