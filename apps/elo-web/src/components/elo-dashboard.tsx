@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ProcessNavigation } from "@/components/process-navigation";
 import { sectors, type SectorKey } from "@/lib/sectors";
 
-const navItems = ["Missões", "Projetos", "Análises", "Conectores", "Governança"];
+const navItems = ["Missões", "Projetos", "Processos", "Análises", "Conectores", "Governança"];
 
 function MiniChart({ values, accent }: { values: number[]; accent: string }) {
   const max = Math.max(...values);
@@ -24,6 +25,7 @@ function MiniChart({ values, accent }: { values: number[]; accent: string }) {
 
 export function EloDashboard() {
   const [sectorKey, setSectorKey] = useState<SectorKey>("planejamento");
+  const [showProcesses, setShowProcesses] = useState(true);
   const sector = useMemo(() => sectors.find((item) => item.key === sectorKey) ?? sectors[0], [sectorKey]);
 
   return (
@@ -41,7 +43,12 @@ export function EloDashboard() {
           <nav aria-label="Navegação principal" className="space-y-1">
             <button className="w-full rounded-xl bg-white/10 px-4 py-3 text-left text-sm font-medium">⌂ Início</button>
             {navItems.map((item) => (
-              <button key={item} className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/70 transition hover:bg-white/10 hover:text-white">
+              <button
+                key={item}
+                type="button"
+                onClick={() => item === "Processos" && setShowProcesses(true)}
+                className={`w-full rounded-xl px-4 py-3 text-left text-sm transition ${item === "Processos" && showProcesses ? "bg-white/10 font-medium text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+              >
                 {item}
               </button>
             ))}
@@ -96,6 +103,8 @@ export function EloDashboard() {
                 </div>
               </section>
             </div>
+
+            {showProcesses && sectorKey === "planejamento" && <ProcessNavigation accent={sector.accent} />}
 
             <section aria-label="Indicadores principais" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {sector.metrics.map((metric) => (
