@@ -18,11 +18,35 @@ The browser is not an authority for governance, canonical knowledge, infrastruct
 
 - Shared ELO shell.
 - Sector selector.
-- Sector-specific dashboard model for Planning, Commercial, Finance, HR, Operations, PCP, and IT.
+- Sector-specific workspace model for Planning, Commercial, Finance, HR, Operations, PCP, and IT.
 - Mission input surface.
 - KPI cards, chart surface, quick actions, and governance footer.
+- Process navigation for the Planning workspace, grounded in the canonical Multiteiner process reference.
 - Tailwind CSS v4.
 - Next.js App Router.
+
+## Process navigation principle
+
+The frontend does not create a parallel business-process architecture. It presents the existing ELO process knowledge as an experience/navigation layer.
+
+The first supported navigation is:
+
+```text
+ELO
+  -> Planejamento
+     -> Fluxo de Demanda
+     -> Fluxo Modular
+```
+
+The process representation preserves the distinction between documented/reference structure and current operational state. Current state, evidence, deviation, and live metrics must come from governed ELO API contracts when that integration is implemented.
+
+Canonical process source:
+
+`ELO-PROC-MULTITEINER-001`
+
+Ingestion and retrieval protocol:
+
+`docs/ELO-012_MULTITEINER_FLOW_MODULAR_PROTOCOL.md`
 
 ## Vercel project settings
 
@@ -44,7 +68,8 @@ Vercel Preview deployments should be used for every feature branch before produc
 
 1. Replace static sector metrics with governed ELO API contracts.
 2. Add authentication and role/sector authorization.
-3. Add mission lifecycle states and evidence panels.
-4. Add reusable ELO design-system primitives.
-5. Connect Hermes through the ELO server boundary; never directly from the browser.
-6. Add Playwright coverage for the shared shell and critical missions.
+3. Connect process navigation to governed ELO process/view contracts instead of the current reference projection.
+4. Add mission lifecycle states and evidence panels.
+5. Add reusable ELO design-system primitives.
+6. Connect Hermes through the ELO server boundary; never directly from the browser.
+7. Add Playwright coverage for the shared shell, process navigation, and critical missions.
