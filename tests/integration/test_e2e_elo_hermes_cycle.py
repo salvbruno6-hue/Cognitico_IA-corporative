@@ -17,7 +17,6 @@ def test_e2e_elo_hermes_cycle_closes_with_evidence_and_gate():
         rationale="validate ELO to Hermes boundary",
     )
 
-    # Deterministic stand-in for the Hermes execution boundary.
     execution = {
         "status": "completed",
         "execution_id": "e2e-execution-001",
@@ -34,16 +33,24 @@ def test_e2e_elo_hermes_cycle_closes_with_evidence_and_gate():
         expected="governed test action completes",
         observed="governed test action completed",
         assessment="success",
-        evidence_ids=tuple(execution["artifacts"]),
+        evidence_ids=(execution["artifacts"][0],),
     )
     assert outcome.decision_id == decision.id
-    assert outcome.evidence_ids == tuple(execution["artifacts"])
+    assert outcome.evidence_ids == (execution["artifacts"][0],)
 
     proposal = EvolutionProposal(
         proposal_id="e2e-evolution-001",
-        description="record successful ELO/Hermes cycle",
-        classification_hint=EvolutionClassification.COMPATIBLE,
+        tenant_id="e2e-tenant",
+        source_id="e2e-test",
+        summary="record successful ELO/Hermes cycle",
+        purpose_alignment=True,
+        identity_compatible=True,
+        architecture_compatible=True,
+        governance_compatible=True,
         evidence_ids=(execution["artifacts"][0], outcome.outcome_id),
+        maturity_score=0.9,
+        provenance={"test": "e2e-elo-hermes-cycle"},
     )
     gate = EvolutionGate().evaluate(proposal)
     assert gate.classification == EvolutionClassification.COMPATIBLE
+    assert gate.canonical_mutation_allowed is False
