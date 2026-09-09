@@ -1,5 +1,5 @@
-import { EloDashboard } from "@/components/elo-dashboard";
+import { ELOWebAuthBoundary } from "@/auth/ELOWebAuthBoundary";
 
 export default function HomePage() {
-  return <EloDashboard />;
+  return <ELOWebAuthBoundary />;
 }
