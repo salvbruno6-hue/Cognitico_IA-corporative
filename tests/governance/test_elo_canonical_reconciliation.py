@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from automation.tasks.elo_canonical_reconciliation import (
+    CANONICAL_STRUCTURE_MAP,
     event_facts,
     reconcile_repository,
 )
@@ -107,3 +108,57 @@ def test_reconciliation_blocks_parallel_memory_before_merge(tmp_path: Path):
     outcome, reasons = audit(event)
     assert outcome is Outcome.BLOCKED
     assert "duplicate_or_parallel_capability_found" in reasons
+
+
+def test_src_elo_uses_repository_canonical_map_as_runtime_ownership(tmp_path: Path):
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "# ELO Repository Canonical Structure Map\n\n"
+        "`src/elo/` | Executable ELO | current implementation core | canonical executable root\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["src/elo/cognitive/agents/hermes_runtime.py"],
+        concept_terms=["hermes_runtime"],
+    )
+
+    assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
+    assert evidence.canonical_identity == "src/elo"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "CREATE"
+    assert not evidence.waiting_for_evidence
+
+
+def test_src_elo_still_blocks_when_explicit_parallel_owner_exists(tmp_path: Path):
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "# ELO Repository Canonical Structure Map\n\n"
+        "`src/elo/` | Executable ELO | current implementation core | canonical executable root\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "parallel_runtime.py").write_text(
+        "class ParallelRuntime: pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "owner.md").write_text(
+        "canonical owner: parallel_runtime.py\n"
+        "source of truth: parallel_runtime.py\n"
+        "hermes_runtime capability is implemented here.\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["src/elo/cognitive/agents/hermes_runtime.py"],
+        concept_terms=["hermes_runtime"],
+    )
+
+    assert "parallel_runtime.py" in evidence.candidates
+    assert evidence.duplicate_or_parallel is True
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "REUSE"
