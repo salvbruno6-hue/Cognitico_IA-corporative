@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --elo-bg: #f4f7fb;
+  --elo-ink: #132238;
+  --elo-sidebar: #0d1b2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--elo-bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--elo-bg);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+::selection {
+  background: #cbd5e1;
+}
