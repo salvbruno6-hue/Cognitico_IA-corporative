@@ -16,6 +16,7 @@ from typing import Iterable
 
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
+CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,11 @@ def reconcile_repository(
     proven duplicate/parallel capability only when explicit canonical
     owner/source evidence identifies that existing candidate. Candidate
     discovery alone therefore remains UNKNOWN.
+
+    For changes inside the canonical executable ELO root, the repository's
+    canonical structure map is authoritative evidence for the executable
+    owner. This avoids requiring every implementation file to repeat an
+    ownership declaration while preserving the conservative duplicate check.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -134,9 +140,6 @@ def reconcile_repository(
         if stem in text
     }
 
-    # Candidate discovery is not itself proof of duplication. Explicit owner /
-    # source-of-truth evidence must identify the candidate. Generic references
-    # therefore leave the state UNKNOWN rather than creating a false block.
     duplicate: bool | None
     if candidate_stems.intersection(owner_targets):
         duplicate = True
@@ -158,6 +161,20 @@ def reconcile_repository(
             canonical_identity = next(iter(changed_stems))
     else:
         reasons.append("Canonical owner/source of truth not explicitly proven")
+
+    # The canonical repository map establishes that src/elo is the executable
+    # canonical root. Use that repository-level evidence for runtime changes;
+    # it does not override an explicit duplicate candidate discovered above.
+    structure_map = root / CANONICAL_STRUCTURE_MAP
+    executable_changed = any(
+        path.replace("\\", "/").startswith("src/elo/") for path in changed
+    )
+    if not owners and executable_changed and structure_map.is_file():
+        source_of_truth = CANONICAL_STRUCTURE_MAP
+        canonical_identity = "src/elo"
+        if duplicate is None and not candidates:
+            duplicate = False
+            reasons.append("Canonical structure map resolves src/elo as the executable ELO owner")
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
     decision = None
