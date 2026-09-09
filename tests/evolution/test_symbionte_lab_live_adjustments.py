@@ -1,7 +1,5 @@
-import pytest
-
 from elo.cognitive.symbionte_lab import SymbiontLabAdapter, SymbiontLabObservation
-from elo.core.evolution_gate import EvolutionGate
+from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
 from elo.core.learning_governance import GovernedLearningService, PromotionPackage
 
 
@@ -40,6 +38,23 @@ def make_observation(**overrides):
     return SymbiontLabObservation(**values)
 
 
+def make_compatible_decision():
+    proposal = EvolutionProposal(
+        proposal_id="lab-adjust-001",
+        tenant_id="tenant-a",
+        source_id="pr:lab-adjustments",
+        summary="ajuste governado melhora resultado",
+        purpose_alignment=True,
+        identity_compatible=True,
+        architecture_compatible=True,
+        governance_compatible=True,
+        evidence_ids=("e-1", "e-2"),
+        maturity_score=0.9,
+        provenance={"source": "lab"},
+    )
+    return EvolutionGate().evaluate(proposal)
+
+
 def test_lab_evaluation_keeps_learning_candidate_non_canonical():
     memory = MemoryStub()
     result = SymbiontLabAdapter(GovernedLearningService(memory)).evaluate(
@@ -55,22 +70,7 @@ def test_lab_evaluation_keeps_learning_candidate_non_canonical():
 
 
 def test_promotion_package_requires_gate_decision_and_never_grants_mutation_authority():
-    gate = EvolutionGate()
-    result = gate.evaluate(
-        __import__("elo.core.evolution_gate", fromlist=["EvolutionProposal"]).EvolutionProposal(
-            proposal_id="lab-adjust-001",
-            tenant_id="tenant-a",
-            source_id="pr:lab-adjustments",
-            summary="ajuste governado melhora resultado",
-            purpose_alignment=True,
-            identity_compatible=True,
-            architecture_compatible=True,
-            governance_compatible=True,
-            evidence_ids=("e-1", "e-2"),
-            maturity_score=0.9,
-            provenance={"source": "lab"},
-        )
-    )
+    decision = make_compatible_decision()
 
     package = GovernedLearningService.prepare_knowledge_promotion(
         learning_id="learning-1",
@@ -81,13 +81,14 @@ def test_promotion_package_requires_gate_decision_and_never_grants_mutation_auth
         scope="tenant-a",
         evidence_refs=("e-1", "e-2"),
         confidence=0.9,
-        evolution_decision=result,
+        evolution_decision=decision,
     )
 
     assert isinstance(package, PromotionPackage)
     assert package.status == "PROMOTABLE_KNOWLEDGE"
     assert package.payload["promotion"] == "VALIDATED_LEARNING_TO_REUSABLE_KNOWLEDGE"
-    assert result.canonical_mutation_allowed is False
+    assert decision.classification is EvolutionClassification.COMPATIBLE
+    assert decision.canonical_mutation_allowed is False
 
 
 def test_promotion_package_fails_closed_without_evidence_or_gate():
