@@ -22,6 +22,13 @@ SELF_AUDIT_PATHS = {
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
     "automation/tasks/elo_maintenance_coordinator.py",
 }
+AUDIT_INFRA_PREFIXES = (
+    ".github/",
+    "automation/",
+    "docs/",
+    "tests/",
+)
+SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,12 @@ def _normalise_terms(terms: Iterable[str]) -> tuple[str, ...]:
     return tuple(sorted({term.strip().lower() for term in terms if term and term.strip()}))
 
 
+def _is_audit_infrastructure(relative: str) -> bool:
+    """Governance/audit artifacts are evidence about capabilities, not capabilities."""
+    normalized = relative.replace("\\", "/")
+    return normalized.startswith(AUDIT_INFRA_PREFIXES)
+
+
 def reconcile_repository(
     root: str | Path,
     changed_paths: Iterable[str],
@@ -69,9 +82,9 @@ def reconcile_repository(
     owner/source evidence identifies that existing candidate. Candidate
     discovery alone therefore remains UNKNOWN.
 
-    Maintenance/governance files are self-audit infrastructure. They may
-    reference their own contracts and tests, but those references must not be
-    interpreted as a parallel runtime capability.
+    Governance, test, documentation and automation artifacts are evidence
+    about the canonical runtime; they are not themselves runtime capabilities
+    and must not be promoted to duplicate/parallel candidates.
     """
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -106,27 +119,36 @@ def reconcile_repository(
         path_lower = relative.lower()
 
         self_audit_reference = relative in SELF_AUDIT_PATHS
+        audit_infrastructure = _is_audit_infrastructure(relative)
         stem_hit = any(stem in lower or stem in path_lower for stem in changed_stems)
         concept_hit = bool(terms) and any(term in lower or term in path_lower for term in terms)
-        if (stem_hit or concept_hit) and not self_audit_reference:
+        if (stem_hit or concept_hit) and not self_audit_reference and not audit_infrastructure:
             references.append(relative)
 
         explicit_owner = any(
             marker in lower
             for marker in ("canonical owner", "canonical authority", "source of truth")
         )
-        if explicit_owner and (stem_hit or concept_hit) and not self_audit_reference:
+        if explicit_owner and (stem_hit or concept_hit) and not self_audit_reference and not audit_infrastructure:
             owners.append(relative)
             owner_evidence.append((relative, lower))
 
-        if (stem_hit or concept_hit) and not explicit_owner and not self_audit_reference:
+        if (stem_hit or concept_hit) and not explicit_owner and not self_audit_reference and not audit_infrastructure:
             independent_references.append(relative)
 
-        source_suffixes = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
-        if not self_audit_reference and (
-            path.stem.lower().replace("-", "_") in changed_stems
-            or (concept_hit and path.suffix.lower() in source_suffixes)
-        ):
+        # Only executable/application source can be a competing capability.
+        # Tests, docs, workflows and maintenance automation are supporting
+        # evidence and are deliberately excluded from candidate discovery.
+        source_candidate = (
+            not self_audit_reference
+            and not audit_infrastructure
+            and path.suffix.lower() in SOURCE_SUFFIXES
+            and (
+                path.stem.lower().replace("-", "_") in changed_stems
+                or (concept_hit and path.parts and path.parts[0] == "src")
+            )
+        )
+        if source_candidate:
             candidates.append(relative)
 
     candidates = sorted(set(candidates))
@@ -151,9 +173,9 @@ def reconcile_repository(
     else:
         duplicate = None
         if candidates:
-            reasons = ["Existing candidate found, but duplicate/parallel capability is not proven"]
+            reasons = ["Existing executable candidate found, but duplicate/parallel capability is not proven"]
         elif independent_references:
-            reasons = ["Related repository references found, but duplicate/parallel capability is not proven"]
+            reasons = ["Related runtime references found, but duplicate/parallel capability is not proven"]
         else:
             reasons = ["Duplicate state is not proven; absence is not sufficient to authorize CREATE"]
 
@@ -180,9 +202,6 @@ def reconcile_repository(
             duplicate = False
             reasons.append("Canonical structure map resolves src/elo as the executable ELO owner")
 
-    # Changes to governance/maintenance infrastructure remain canonical to
-    # their existing contracts rather than being classified as a second ELO
-    # runtime capability merely because the files reference one another.
     maintenance_changed = all(path.replace("\\", "/") in SELF_AUDIT_PATHS for path in changed)
     if maintenance_changed and structure_map.is_file():
         source_of_truth = CANONICAL_STRUCTURE_MAP
