@@ -20,9 +20,11 @@ permissions:
   checks: read
   actions: read
 
+# Maintenance audits are evidence-producing governance runs. A later PR event
+# must not cancel an earlier audit before its evidence is published.
 concurrency:
   group: elo-maintenance-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   audit:
