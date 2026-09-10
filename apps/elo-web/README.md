@@ -8,21 +8,24 @@ Next.js frontend for the ELO experience layer.
 Browser
   -> ELO Web (Vercel / Next.js)
   -> ELO Cognitive API
+  -> Simbionte
   -> governed Hermes execution boundary
   -> Hermes runtime
+  -> Evidence / Outcome
+  -> Governed Learning / Evolution Gate
 ```
 
-The browser is not an authority for governance, canonical knowledge, infrastructure credentials, or Hermes execution.
+The browser is not an authority for governance, canonical knowledge, infrastructure credentials, or Hermes execution. Hermes remains an external execution runtime; ELO Cognitive owns authorization, routing, provenance and learning governance.
 
-## Current scaffold
+## Current implementation
 
-- Shared ELO shell.
-- Sector selector.
-- Sector-specific dashboard model for Planning, Commercial, Finance, HR, Operations, PCP, and IT.
-- Mission input surface.
-- KPI cards, chart surface, quick actions, and governance footer.
-- Tailwind CSS v4.
-- Next.js App Router.
+- Shared ELO shell with sector navigation.
+- Existing ELO/Supabase authentication boundary.
+- Configurações for dark mode, sound and connector preferences.
+- Mission input and sector actions routed to the ELO Cognitive API through the Next.js server boundary.
+- Evidence/provenance surface for cognitive responses.
+- Static KPI values removed where no governed telemetry exists.
+- No browser exposure of Hermes/Supabase infrastructure secrets.
 
 ## Vercel project settings
 
@@ -36,15 +39,22 @@ Build command: default (`next build`).
 
 Install command: default package-manager detection.
 
-Production should receive only server-side ELO API configuration through project-scoped environment variables. Public values use the `NEXT_PUBLIC_` prefix only when intentionally exposed to the browser.
+Required server-side environment variable:
+
+`ELO_COGNITIVE_API_URL=https://<governed-elo-cognitive-endpoint>`
+
+Optional public tenant identifier:
+
+`NEXT_PUBLIC_ELO_TENANT_ID=multiteiner`
+
+Public Supabase values remain limited to the existing authentication/session boundary. Hermes credentials must remain server-side and are not accepted by the browser.
 
 Vercel Preview deployments should be used for every feature branch before production merge.
 
-## Next implementation stages
+## Hermes integration rule
 
-1. Replace static sector metrics with governed ELO API contracts.
-2. Add authentication and role/sector authorization.
-3. Add mission lifecycle states and evidence panels.
-4. Add reusable ELO design-system primitives.
-5. Connect Hermes through the ELO server boundary; never directly from the browser.
-6. Add Playwright coverage for the shared shell and critical missions.
+The Web layer must never call Hermes directly. The supported path is:
+
+`GPT → ELO Cognitive → Simbionte Contract → Hermes → Evidence → Governed Learning → Evolution Gate`
+
+The canonical Hermes contract explicitly keeps Hermes as an execution/orchestration provider and prevents it from becoming ELO Core, Memory, Router, authority, or Evolution Gate.
