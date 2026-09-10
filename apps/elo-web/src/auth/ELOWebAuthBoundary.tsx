@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { EloDashboard } from "@/components/elo-dashboard";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+}
 
-if (!supabaseUrl || !supabaseAnonKey) throw new Error("ELO Web Auth: configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).");
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-
-async function establishELOAuthorizationSession() {
+async function establishELOAuthorizationSession(supabase: ReturnType<typeof createClient>) {
   const { error: identityError } = await supabase.rpc("elo_bind_authenticated_identity");
   if (identityError) throw identityError;
   const { data: sessionId, error: sessionError } = await supabase.rpc("elo_establish_authenticated_session");
@@ -20,7 +20,7 @@ async function establishELOAuthorizationSession() {
   return sessionId as string;
 }
 
-async function revokeELOAuthorizationSession() {
+async function revokeELOAuthorizationSession(supabase: ReturnType<typeof createClient>) {
   const { error } = await supabase.rpc("elo_revoke_authenticated_session");
   if (error) throw error;
 }
@@ -35,22 +35,32 @@ export function ELOWebAuthBoundary() {
 
   useEffect(() => {
     let active = true;
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
+      setLoading(false);
+      return () => { active = false; };
+    }
+
     void supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
       if (!active) return;
       if (sessionError) { setError(sessionError.message); setLoading(false); return; }
       setSession(data.session);
       if (!data.session) { setAuthorized(false); setLoading(false); return; }
-      try { await establishELOAuthorizationSession(); if (active) setAuthorized(true); }
+      try { await establishELOAuthorizationSession(supabase); if (active) setAuthorized(true); }
       catch (authorizationError) { if (active) { setAuthorized(false); setError(authorizationError instanceof Error ? authorizationError.message : "Não foi possível estabelecer a sessão de autorização do ELO."); } }
       finally { if (active) setLoading(false); }
     });
+
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { if (!active) return; setSession(nextSession); if (!nextSession) setAuthorized(false); });
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
   async function signOut() {
     setError(null);
-    try { if (session) await revokeELOAuthorizationSession(); }
+    const supabase = getSupabaseClient();
+    if (!supabase) { setError("Cliente de autenticação do ELO não está configurado."); return; }
+    try { if (session) await revokeELOAuthorizationSession(supabase); }
     catch (revokeError) { setError(revokeError instanceof Error ? revokeError.message : "Não foi possível revogar a sessão do ELO."); return; }
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) { setError(signOutError.message); return; }
@@ -59,5 +69,5 @@ export function ELOWebAuthBoundary() {
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] text-[var(--elo-ink)]">Verificando sessão…</main>;
   if (!session || !authorized) return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] p-6 text-[var(--elo-ink)]"><section className="w-full max-w-lg rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-8 text-center shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">ELO · Acesso protegido</p><h1 className="mt-3 text-3xl font-semibold tracking-tight">Entre pela página oficial do ELO</h1><p className="mt-3 text-sm leading-6 text-slate-500">O ELO Web reutiliza a identidade Google/Supabase e a sessão de autorização já estabelecidas pelo ELO. Não existe cadastro ou login paralelo nesta aplicação.</p>{error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}<a href={getELOLoginUrl()} className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Continuar para o login do ELO</a></section></main>;
-  return <EloDashboard onSignOut={() => void signOut()} />;
+  return <EloDashboard accessToken={session.access_token} onSignOut={() => void signOut()} />;
 }
