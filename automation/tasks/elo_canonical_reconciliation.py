@@ -145,7 +145,7 @@ def reconcile_repository(
             and path.suffix.lower() in SOURCE_SUFFIXES
             and (
                 path.stem.lower().replace("-", "_") in changed_stems
-                or (concept_hit and path.parts and path.parts[0] == "src")
+                or concept_hit
             )
         )
         if source_candidate:
