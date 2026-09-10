@@ -1,11 +1,30 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { ELOCognitiveError, executeCognitiveMission } from "@/lib/elo-cognitive";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function getBearerToken(request: Request) {
+  const header = request.headers.get("authorization") ?? "";
+  return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+}
+
 export async function POST(request: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const supabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
+    const accessToken = getBearerToken(request);
+    if (!supabaseUrl || !supabaseKey || !accessToken) {
+      return NextResponse.json({ code: "UNAUTHORIZED", message: "Sessão autenticada do ELO não foi apresentada." }, { status: 401 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+    if (userError || !userData.user) {
+      return NextResponse.json({ code: "UNAUTHORIZED", message: "Sessão Supabase inválida ou expirada." }, { status: 401 });
+    }
+
     const body = await request.json() as {
       message?: unknown;
       tenant_id?: unknown;
@@ -26,8 +45,8 @@ export async function POST(request: Request) {
     const result = await executeCognitiveMission({
       message,
       tenantId,
-      principalId: typeof body.principal_id === "string" ? body.principal_id : undefined,
-      userId: typeof body.user_id === "string" ? body.user_id : undefined,
+      principalId: typeof body.principal_id === "string" ? body.principal_id : userData.user.id,
+      userId: userData.user.id,
       domain,
       sessionId: typeof body.session_id === "string" ? body.session_id : undefined,
       context: body.context && typeof body.context === "object" && !Array.isArray(body.context) ? body.context as Record<string, unknown> : {},
