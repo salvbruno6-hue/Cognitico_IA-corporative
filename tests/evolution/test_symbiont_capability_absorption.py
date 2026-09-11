@@ -1,8 +1,11 @@
+from dataclasses import replace
+
 from elo.cognitive.symbiont_capability_absorption import (
     ExternalCapabilityObservation,
     SymbiontCapabilityAbsorber,
 )
 from elo.cognitive.symbiont_pattern_intake import ExternalPatternInput, SymbiontPatternIntake
+from elo.core.evolution_gate import EvolutionClassification
 
 
 def _inputs():
@@ -31,11 +34,11 @@ def _inputs():
         tenant_id="multiteiner",
         domain="research",
     )
-    return pattern, decision, observation
+    return decision, observation
 
 
 def test_absorbs_external_capability_as_noncanonical_candidate():
-    _, decision, observation = _inputs()
+    decision, observation = _inputs()
     candidate = SymbiontCapabilityAbsorber.absorb(
         observation,
         decision,
@@ -50,13 +53,12 @@ def test_absorbs_external_capability_as_noncanonical_candidate():
 
 
 def test_does_not_absorb_noncompatible_external_capability():
-    _, decision, observation = _inputs()
-    blocked = decision.__class__(
-        pattern=decision.pattern,
-        classification=decision.classification.ADAPT_REQUIRED,
+    decision, observation = _inputs()
+    blocked = replace(
+        decision,
+        classification=EvolutionClassification.ADAPT_REQUIRED,
         disposition="LAB_EXPERIMENT",
         rationale="insufficient maturity",
-        proposal=decision.proposal,
     )
 
     assert SymbiontCapabilityAbsorber.absorb(
@@ -67,10 +69,8 @@ def test_does_not_absorb_noncompatible_external_capability():
 
 
 def test_rejects_cross_source_capability():
-    _, decision, observation = _inputs()
-    mismatched = ExternalCapabilityObservation(
-        **{**observation.__dict__, "source_commit": "different"}
-    )
+    decision, observation = _inputs()
+    mismatched = replace(observation, source_commit="different")
 
     try:
         SymbiontCapabilityAbsorber.absorb(
