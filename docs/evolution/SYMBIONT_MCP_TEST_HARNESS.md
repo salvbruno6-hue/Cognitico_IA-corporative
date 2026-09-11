@@ -2,37 +2,51 @@
 
 ## Purpose
 
-The harness is the first executable experimental layer after the MCP contracts. It turns a governed `MCPCapabilityDescriptor` + `MCPCapabilityTestCase` + already-authorized `HermesExecutionRequest` into a traceable `MCPCapabilityBenchmarkResult`.
+The harness is the first executable experimental layer after the MCP contracts. It is an experimental capability of the Symbiont boundary, **not a replacement for the Symbiont capability and not an MCP authority**. It turns a governed `MCPCapabilityDescriptor` + `MCPCapabilityTestCase` + already-authorized `HermesExecutionRequest` into a traceable `MCPCapabilityBenchmarkResult`.
+
+MCP is the external protocol/mechanism exercised by Hermes. The harness does not turn MCP into an ELO-native capability.
 
 It does not install MCP servers, manage credentials, authorize missions, mutate Core, or decide promotion.
 
 ## Execution boundary
 
 ```text
-MCPCapabilityDescriptor
-        +
-MCPCapabilityTestCase
-        +
-ELO-authorized HermesExecutionRequest
-        |
-        v
-SymbiontMCPTestHarness
-        |
-        v
+ELO Cognitive
+      |
+      v
+   Symbiont
+      |
+      +--> analyzes/experiments external capability
+      |
+      v
+MCP test harness
+      |
+      v
 SymbiontHermesBridge
-        |
-        v
+      |
+      v
 Hermes runtime
-        |
-        v
-MCP tool
-        |
-        v
-HermesExecutionResult
-        |
-        v
+      |
+      v
+MCP tool (optional mechanism)
+      |
+      v
+External capability
+      |
+      v
+Evidence + Outcome
+      |
+      v
 MCPCapabilityBenchmarkResult (candidate_only)
 ```
+
+## Responsibility split
+
+- **Symbiont:** cognitive capability responsible for observation, interpretation, experimentation, translation and capability absorption.
+- **Harness:** bounded experimental executor used by the Symbiont boundary to benchmark an MCP-exposed capability.
+- **Hermes:** external execution runtime.
+- **MCP:** external protocol/mechanism used by Hermes to invoke an external capability.
+- **Evolution Gate:** canonical evolution authority.
 
 ## Harness invariants
 
@@ -46,6 +60,8 @@ MCPCapabilityBenchmarkResult (candidate_only)
 8. Scores are normalized to `[0, 1]` and are descriptive only.
 9. A successful benchmark becomes `LAB_CANDIDATE`, never Core knowledge.
 10. The existing SymbiontHermesBridge remains the only transport boundary.
+11. Successful MCP execution does not itself grant an ELO-native capability.
+12. MCP does not replace, redefine or absorb the Symbiont capability.
 
 ## Initial experimental matrix
 
@@ -63,6 +79,10 @@ The matrix is intentionally small. Capability breadth is expanded only after the
 
 A benchmark result is an experimental observation. The result must subsequently enter the existing ELO learning/evolution governance and Evolution Gate. The harness never invokes a second gate and never promotes a candidate automatically.
 
+If a capability is eventually considered for ELO-native absorption, the existing `SymbiontCapabilityAbsorber` remains the absorption boundary. MCP is not the absorption authority.
+
 ## Runtime note
 
 For local tests, the harness accepts an injected transport. This permits deterministic integration tests without requiring a live Hermes or MCP server. The production path uses the configured Hermes endpoint through the existing runtime client.
+
+A future ELO-facing MCP option is possible, but must be introduced as a separate governed capability. It must not replace the Symbiont boundary.
