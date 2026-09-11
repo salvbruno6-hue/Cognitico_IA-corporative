@@ -11,6 +11,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from .agents.hermes_contract import HermesExecutionRequest
+from .agents.hermes_runtime import Transport
 from .symbiont_hermes_bridge import SymbiontExecutionReceipt, SymbiontHermesBridge
 from .symbiont_mcp_contracts import (
     MCPCapabilityBenchmarkResult,
@@ -19,8 +21,6 @@ from .symbiont_mcp_contracts import (
     MCPRecommendation,
     MCPTestDisposition,
 )
-from .agents.hermes_contract import HermesExecutionRequest
-from .agents.hermes_runtime import Transport
 
 
 @dataclass(frozen=True)
@@ -56,6 +56,7 @@ class SymbiontMCPTestHarness:
             endpoint=endpoint,
             transport=transport,
         )
+        self._validate_execution_budget(test_case, receipt)
         benchmark = self._benchmark(descriptor, test_case, receipt)
         return MCPHarnessRun(descriptor, test_case, receipt, benchmark)
 
@@ -71,10 +72,20 @@ class SymbiontMCPTestHarness:
             raise ValueError("MCP experiment tenant scope does not match ELO request")
         if descriptor.capability_id not in request.authorized_capabilities:
             raise ValueError("MCP capability is not authorized by ELO request")
+        if not set(test_case.evidence_requirements).issubset(request.evidence_requirements):
+            raise ValueError("MCP test evidence requirements exceed ELO request")
         if test_case.max_tool_calls < 1:
             raise ValueError("MCP test must allow at least one tool call")
         if not test_case.non_destructive and not test_case.constraints.get("explicit_review"):
             raise ValueError("destructive MCP tests require explicit_review")
+
+    @staticmethod
+    def _validate_execution_budget(
+        test_case: MCPCapabilityTestCase,
+        receipt: SymbiontExecutionReceipt,
+    ) -> None:
+        if len(receipt.result.tool_usage) > test_case.max_tool_calls:
+            raise ValueError("Hermes execution exceeded MCP test max_tool_calls")
 
     @staticmethod
     def _benchmark(
@@ -92,9 +103,9 @@ class SymbiontMCPTestHarness:
             "quality_score": SymbiontMCPTestHarness._metric(metrics, "quality_score"),
             "latency_score": SymbiontMCPTestHarness._metric(metrics, "latency_score"),
         }
-        evidence_ids = tuple(str(item) for item in result.evidence.keys()) if isinstance(result.evidence, Mapping) else ()
+        evidence_ids = SymbiontMCPTestHarness._evidence_ids(result.evidence)
         if not evidence_ids:
-            evidence_ids = tuple(str(item) for item in test_case.evidence_requirements)
+            raise ValueError("Hermes result did not provide traceable evidence IDs")
 
         disposition = {
             "completed": MCPTestDisposition.PASS,
@@ -102,7 +113,11 @@ class SymbiontMCPTestHarness:
             "failed": MCPTestDisposition.FAIL,
             "blocked": MCPTestDisposition.BLOCKED,
         }[result.status]
-        recommendation = MCPRecommendation.LAB_CANDIDATE if disposition is MCPTestDisposition.PASS else MCPRecommendation.ADAPT
+        recommendation = (
+            MCPRecommendation.LAB_CANDIDATE
+            if disposition is MCPTestDisposition.PASS
+            else MCPRecommendation.ADAPT
+        )
 
         return MCPCapabilityBenchmarkResult(
             test_id=test_case.test_id,
@@ -119,6 +134,16 @@ class SymbiontMCPTestHarness:
             candidate_only=True,
             **scores,
         )
+
+    @staticmethod
+    def _evidence_ids(evidence: Any) -> tuple[str, ...]:
+        if not isinstance(evidence, (tuple, list)):
+            return ()
+        ids: list[str] = []
+        for item in evidence:
+            if isinstance(item, Mapping) and item.get("id"):
+                ids.append(str(item["id"]))
+        return tuple(ids)
 
     @staticmethod
     def _metric(metrics: Mapping[str, Any], name: str) -> float:
