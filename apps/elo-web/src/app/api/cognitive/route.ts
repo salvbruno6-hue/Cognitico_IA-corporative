@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 import { ELOCognitiveError, executeCognitiveMission } from "@/lib/elo-cognitive";
+import { createCognitiveSessionId, ELO_COGNITIVE_SESSION_COOKIE, isValidCognitiveSessionId } from "@/lib/elo-cognitive-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,17 +44,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ code: "INVALID_REQUEST", message: "message, tenant_id e domain são obrigatórios." }, { status: 400 });
     }
 
+    const requestCookies = await cookies();
+    const suppliedSessionId = typeof body.session_id === "string" ? body.session_id.trim() : "";
+    const cookieSessionId = requestCookies.get(ELO_COGNITIVE_SESSION_COOKIE)?.value;
+    const sessionId = isValidCognitiveSessionId(suppliedSessionId)
+      ? suppliedSessionId
+      : isValidCognitiveSessionId(cookieSessionId)
+        ? cookieSessionId!
+        : createCognitiveSessionId();
+
     const result = await executeCognitiveMission({
       message,
       tenantId,
       principalId: typeof body.principal_id === "string" ? body.principal_id : userData.user.id,
       userId: userData.user.id,
       domain,
-      sessionId: typeof body.session_id === "string" ? body.session_id : undefined,
+      sessionId,
       context: body.context && typeof body.context === "object" && !Array.isArray(body.context) ? body.context as Record<string, unknown> : {},
     });
 
-    return NextResponse.json(result, { status: 200 });
+    const response = NextResponse.json(result, { status: 200 });
+    response.cookies.set({
+      name: ELO_COGNITIVE_SESSION_COOKIE,
+      value: sessionId,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 8,
+    });
+    return response;
   } catch (error) {
     if (error instanceof ELOCognitiveError) return NextResponse.json({ code: error.code, message: error.message }, { status: error.status });
     return NextResponse.json({ code: "COGNITIVE_PROCESSING_FAILED", message: "Falha ao processar a missão cognitiva." }, { status: 500 });
