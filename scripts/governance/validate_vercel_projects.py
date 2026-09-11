@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Validate repository-side invariants for applications deployed to Vercel.
-
-This does not pretend to inspect Vercel's remote project settings. It validates
-what can be enforced from GitHub and emits explicit remediation for settings
-that must match in the Vercel project.
-"""
+"""Validate repository-side invariants for applications deployed to Vercel."""
 from __future__ import annotations
 
 import json
@@ -27,7 +22,7 @@ def version_is_floating(value: object) -> bool:
     if not isinstance(value, str):
         return False
     normalized = value.strip().lower()
-    return normalized in FORBIDDEN_FLOATING or normalized.startswith("latest@")} 
+    return normalized in FORBIDDEN_FLOATING or normalized.startswith("latest@")
 
 
 def main() -> int:
@@ -76,8 +71,6 @@ def main() -> int:
         elif not re.search(r"20|21|22|23|24", node):
             errors.append(f"{rel}: unsupported/unclear Node engine declaration: {node!r}")
 
-        # A Vercel project must use the directory containing this package.json
-        # as its Root Directory (or an explicitly documented parent contract).
         print(f"  expected Vercel Root Directory: {rel.parent}")
         print("  expected framework: Next.js")
         print(f"  declared build command: {scripts.get('build')}")
