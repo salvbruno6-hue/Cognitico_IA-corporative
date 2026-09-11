@@ -1,7 +1,11 @@
 """Controlled MCP capability test harness.
 
-The harness composes existing ELO contracts and the governed Symbiont -> Hermes
-bridge. It provides repeatable experimental execution without installing MCP
+The harness is an experimental capability of the Symbiont boundary, not the
+Symbiont capability itself and not an MCP authority. It composes existing ELO
+contracts and the governed Symbiont -> Hermes bridge. MCP is only the external
+protocol/mechanism exercised by Hermes during a controlled experiment.
+
+The harness provides repeatable experimental execution without installing MCP
 servers or creating another authorization/evolution authority.
 """
 
