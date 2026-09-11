@@ -1,0 +1,41 @@
+name: Vercel Project Governance
+
+on:
+  pull_request:
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/pnpm-lock.yaml'
+      - '**/yarn.lock'
+      - '**/vercel.json'
+      - 'apps/**'
+      - 'scripts/governance/validate_vercel_projects.py'
+      - 'docs/governance/VERCEL_DEPLOYMENT_CONTRACT.md'
+      - '.github/workflows/vercel-project-governance.yml'
+  push:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - '**/package-lock.json'
+      - '**/pnpm-lock.yaml'
+      - '**/yarn.lock'
+      - '**/vercel.json'
+      - 'apps/**'
+      - 'scripts/governance/validate_vercel_projects.py'
+      - 'docs/governance/VERCEL_DEPLOYMENT_CONTRACT.md'
+      - '.github/workflows/vercel-project-governance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-vercel-projects:
+    name: Validate Vercel project invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate repository-side contract
+        run: python3 scripts/governance/validate_vercel_projects.py
