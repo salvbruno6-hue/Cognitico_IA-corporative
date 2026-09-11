@@ -122,5 +122,11 @@ class SymbiontCapabilityAbsorber:
             raise ValueError("capability source does not match pattern intake")
         if observation.source_commit != intake.pattern.source_commit:
             raise ValueError("capability source commit does not match pattern intake")
+        if intake.proposal.existing_owner:
+            raise ValueError("existing canonical owner must be reused; absorption is not allowed")
+        if intake.proposal.source_id != observation.source_ref:
+            raise ValueError("capability source does not match evolution proposal")
+        if intake.proposal.evidence_ids != observation.evidence_ids:
+            raise ValueError("capability evidence does not match evolution proposal")
         if observation.risk.upper() in {"CRITICAL", "CRITICO"}:
             raise ValueError("critical-risk capability cannot enter absorption")
