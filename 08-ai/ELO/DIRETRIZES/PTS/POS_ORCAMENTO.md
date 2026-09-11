@@ -1,16 +1,16 @@
 # PTS Técnica Pós-Orçamento — Estrutura Padrão do ELO
 
-**Versão:** 1.1  
-**Status:** Oficial  
+**Versão:** 2.0  
+**Status:** Proposta para incorporação como padrão oficial  
 **Responsável:** ELO
 
 ## 1. Finalidade
 
 A PTS Técnica Pós-Orçamento comprova a aderência entre o Termo de Referência, demais documentos da solicitação e a composição orçamentária efetivamente elaborada.
 
-Seu objetivo principal é garantir rastreabilidade: cada requisito técnico relevante deve ser relacionado ao(s) item(ns) do orçamento que o atende(m), indicando a forma de atendimento, evidência, responsabilidade e eventual solução equivalente.
+Seu objetivo é permitir reconstruir o raciocínio técnico e econômico utilizado no orçamento, preservando rastreabilidade entre requisito, interpretação, solução, quantitativo, composição, orçamento, premissa, justificativa, risco, pendência e validação.
 
-A PTS Pós não deve repetir simplesmente a PTS pré-orçamento. Ela deve comprovar o que efetivamente foi contemplado na composição final e, quando aplicável, analisar a concentração econômica e as oportunidades de revisão de valor sem romper a aderência técnica.
+A PTS Pós não deve apenas repetir a PTS Técnica. Ela deve demonstrar o que efetivamente foi precificado, confrontar a previsão técnica com a composição final e identificar divergências, ausências, contradições, equivalências, excedentes e oportunidades de revisão quando houver evidência suficiente.
 
 ## 2. Estrutura obrigatória
 
@@ -19,109 +19,209 @@ A PTS Pós-Orçamento deve seguir, quando aplicável, esta sequência:
 1. Identificação da Solicitação;
 2. Objetivo;
 3. Escopo Técnico;
-4. Matriz Técnica de Comprovação de Atendimento;
-5. Análise Geral da Composição Orçamentária;
-6. Análise de Competitividade;
-7. Resumo Executivo;
-8. Parecer Técnico;
-9. Parecer de Competitividade;
-10. Legenda.
+4. Matriz de Rastreabilidade Técnica e Orçamentária;
+5. Memórias de Cálculo;
+6. Análise Geral da Composição Orçamentária;
+7. Comparação entre Orçamentos e Composições;
+8. Análise de Contradições, Ausências e Divergências;
+9. Análise de Competitividade;
+10. Resumo Executivo;
+11. Parecer Técnico;
+12. Parecer de Competitividade;
+13. Legenda e Critérios de Classificação;
+14. Registro de Aprendizado.
 
-## 3. Matriz Técnica de Comprovação de Atendimento
+## 3. Matriz de Rastreabilidade Técnica e Orçamentária
 
 A matriz deve conter, no mínimo:
 
 | Campo | Finalidade |
 |---|---|
-| Item TR | Identificar o requisito de origem |
-| Trecho do TR | Registrar a referência documental |
-| Exigência Técnica | Descrever o que deve ser atendido |
-| Item(s) do Orçamento | Rastrear a composição correspondente |
-| Atendimento | AI, AE, AP ou NA |
-| Evidência Técnica | Explicar como o orçamento atende |
-| Responsabilidade | Indicar responsável pela execução/fornecimento |
+| Nº | Identificação sequencial do item analisado |
+| Tópico / Item | Sistema, serviço, material ou requisito analisado |
+| REFERÊNCIA TR / DOCUMENTO | Origem exata da exigência: TR, página, anexo, figura, esclarecimento, SO, layout ou resposta |
+| Requisito / Descrição da SO | O que efetivamente deve ser atendido |
+| Solução Técnica Proposta | Solução utilizada na composição |
+| Quantitativo | Quantidade adotada |
+| Unid. | Unidade de medição |
+| Composição / Escopo | Materiais, serviços e mão de obra envolvidos |
+| Premissa / Critério | Hipótese, método ou critério utilizado para chegar ao quantitativo/custo |
+| Referência do Orçamento | Item, código ou seção da planilha onde o requisito foi precificado |
+| Valor | Valor correspondente, quando aplicável |
+| Inclusão no Orçamento | Sim / Não / Parcial |
+| Atendimento | AI / AE / AP / NA |
+| Observação / Pendência | Divergência, risco, validação ou condição |
 
-Quando necessário, podem ser acrescentados campos de quantidade, unidade, premissa, observação, documento de evidência ou risco.
+A referência da exigência e a referência do orçamento devem permanecer separadas. Isso permite detectar quando um requisito existe na documentação, mas não possui correspondente na planilha.
 
-## 4. Classificação de atendimento
+## 4. Raciocínio obrigatório de cada item
 
-- **AI — Atendido Integralmente:** requisito plenamente contemplado na composição.
-- **AE — Atendido por Solução Equivalente:** requisito atendido por solução tecnicamente equivalente, devendo a equivalência estar justificada.
-- **AP — Atendido Parcialmente:** requisito contemplado somente em parte ou dependente de complementação.
-- **NA — Não Atendido:** requisito não contemplado na composição.
+Cada item relevante deve permitir reconstruir:
 
-A classificação não deve ser utilizada para mascarar ausência de item. Quando houver dúvida sobre equivalência ou aceite contratual, registrar a condição explicitamente.
+**REQUISITO → INTERPRETAÇÃO → SOLUÇÃO → QUANTITATIVO → COMPOSIÇÃO → ORÇAMENTO → PREMISSA → JUSTIFICATIVA → RISCO/PENDÊNCIA → VALIDAÇÃO**
 
-## 5. Rastreabilidade do orçamento
+Quando alguma etapa não estiver comprovada, registrar explicitamente a ausência de evidência.
 
-O Especialista deve identificar o(s) item(ns) da planilha que comprovam o atendimento de cada requisito relevante.
+Não preencher lacunas por inferência silenciosa.
 
-Não é suficiente afirmar que um sistema está contemplado por uma verba global quando a composição disponível não permite demonstrar esse atendimento.
+## 5. Memórias de Cálculo
 
-Quando uma verba global for utilizada como evidência, a PTS deve explicar o conteúdo técnico abrangido por ela.
+Toda memória de cálculo relevante utilizada na formação do orçamento deve ser registrada individualmente.
 
-## 6. Soluções equivalentes
+### 5.1 Tabela padrão de memória de cálculo
 
-Toda solução equivalente deve informar:
+| ID MC | Tópico / Item | Referência TR / Documento | Premissa | Fórmula / Desenvolvimento | Quantidade Calculada | Unidade | Material / Serviço | Quantidade Orçada | Valor Unitário | Valor Parcial | Fonte | Composição | Justificativa | Divergência | Status |
+|---|---|---|---|---|---:|---|---|---:|---:|---:|---|---|---|---|---|
 
-- requisito original;
-- solução adotada;
-- justificativa técnica;
-- desempenho/funcionalidade preservados;
-- eventual necessidade de aprovação do cliente.
+### 5.2 Desenvolvimento da memória
 
-A classificação **AE** não significa automaticamente que o cliente aceitou a solução. Quando o aceite for necessário, registrar essa condição.
+A memória deve apresentar, quando aplicável:
+
+- dimensões de referência;
+- geometria;
+- perímetro;
+- área;
+- volume;
+- quantidade de peças;
+- comprimento por peça;
+- fator de perda;
+- consumo unitário;
+- produtividade;
+- número de profissionais;
+- dias ou horas de execução;
+- materiais auxiliares;
+- consumíveis;
+- equipamentos;
+- transporte/logística;
+- fórmula utilizada;
+- resultado matemático;
+- quantidade efetivamente levada ao orçamento.
+
+### 5.3 Controle da memória
+
+A memória deve distinguir:
+
+- **quantidade calculada**;
+- **quantidade adotada**;
+- **quantidade orçada**.
+
+Se forem diferentes, a diferença deve ser explicada.
+
+## 6. Classificação de atendimento
+
+- **AI — Atendido Integralmente:** requisito plenamente contemplado.
+- **AE — Atendido por Solução Equivalente:** solução diferente da referência original, mas tecnicamente equivalente, com justificativa.
+- **AP — Atendido Parcialmente:** somente parte do requisito foi contemplada ou existe complementação pendente.
+- **NA — Não Atendido:** requisito sem correspondente suficiente no orçamento.
+
+A classificação não pode mascarar ausência de item.
 
 ## 7. Análise Geral da Composição Orçamentária
 
-Após a matriz, apresentar uma síntese objetiva da solução efetivamente orçada, incluindo:
+Após a matriz, consolidar a solução efetivamente orçada:
 
-- módulo/equipamento base;
+- produto/módulo base;
 - adaptações;
-- sistemas;
-- infraestrutura;
-- instalações;
+- estrutura;
+- arquitetura e acabamentos;
+- elétrica;
+- SPDA/aterramento;
+- climatização;
+- hidrossanitário;
+- drenagem;
+- dados;
+- mobiliário;
+- mão de obra;
 - logística;
 - projetos;
 - documentação;
 - comissionamento;
 - demais componentes relevantes.
 
-A análise deve destacar as principais soluções equivalentes, adaptações especiais e premissas que tenham impacto técnico ou comercial.
+## 8. Comparação entre Orçamentos e Composições
 
-## 8. Análise de Competitividade
+Quando existirem dois ou mais orçamentos, versões, fornecedores ou composições para o mesmo escopo, executar comparação estruturada.
 
-A camada **ELO.PTS_POS.COMPETITIVIDADE** deve ser executada sobre a composição orçamentária final quando houver dados suficientes para análise.
+### 8.1 Matriz de comparação
 
-### 8.1 Curva ABC
+| Item / Sistema | Orçamento A | Orçamento B | Diferença de Quantidade | Diferença de Preço | Diferença de Composição | Contradição | Item Ausente | Explicação | Conclusão |
+|---|---|---|---:|---:|---|---|---|---|---|
 
-Calcular o peso financeiro de cada item:
+A comparação deve verificar:
+
+1. mesmos requisitos;
+2. mesmos quantitativos;
+3. mesmas unidades;
+4. mesmos materiais;
+5. mesma solução técnica;
+6. componentes auxiliares;
+7. mão de obra;
+8. logística;
+9. impostos/encargos quando comparáveis;
+10. exclusões;
+11. itens incorporados em verbas globais;
+12. itens presentes em um orçamento e ausentes em outro.
+
+Diferença de preço, isoladamente, não deve ser tratada como erro.
+
+## 9. Análise de Contradições, Ausências e Divergências
+
+Executar varredura específica procurando:
+
+- requisito da TR sem item no orçamento;
+- item do orçamento sem requisito identificável;
+- quantitativo calculado diferente do orçado;
+- unidade incompatível;
+- composição incompleta;
+- item duplicado;
+- item necessário implicitamente para executar outro item, mas não identificado;
+- preço sem fonte;
+- composição com preço zerado;
+- premissa incompatível com a geometria;
+- conflito entre versões de orçamento;
+- divergência entre PTS Técnica e orçamento;
+- divergência entre orçamento e memória de cálculo;
+- divergência entre fornecedores;
+- solução equivalente sem justificativa;
+- verba global sem conteúdo demonstrável.
+
+### 9.1 Tabela de divergências
+
+| ID | Origem | Item | Tipo de Divergência | Evidência | Impacto Técnico | Impacto Econômico | Risco | Tratamento | Status |
+|---|---|---|---|---|---|---|---|---|---|
+
+## 10. Rastreabilidade de excedentes
+
+Para cada excedente identificado, preservar:
+
+**EXCEDENTE → CATEGORIA → NOME MATERIAL → QUANTIDADE → VALOR UNITÁRIO → VALOR TOTAL → COMPOSIÇÃO → FONTE → MEMÓRIA DE CÁLCULO**
+
+O Nome Material deve ser tratado como camada semântica para análise e rastreabilidade, sem criar uma segunda identidade material.
+
+## 11. Análise de Competitividade
+
+Quando houver dados suficientes, aplicar análise econômica à composição final.
+
+### 11.1 Curva ABC
 
 `peso = valor_item / valor_total_orcamento`
 
-Ordenar os itens por valor decrescente, calcular o acumulado e classificar em **A/B/C** usando os limites parametrizados do contrato operacional. A Curva ABC estabelece prioridade de análise econômica; não autoriza redução automática.
+Ordenar os itens por valor decrescente, calcular acumulado e classificar A/B/C conforme os limites parametrizados.
 
-### 8.2 Prioridade de análise
+A Curva ABC define prioridade de investigação econômica; não autoriza redução automática.
 
-A análise deve priorizar, nesta ordem lógica:
+### 11.2 Ordem de investigação
 
 1. concentração financeira;
-2. excedentes e **Nome Material**;
-3. memória de cálculo;
-4. evidência e conhecimento disponível;
-5. flexibilidade técnica/comercial;
-6. risco da alteração;
-7. oportunidade potencial.
+2. excedentes;
+3. Nome Material;
+4. memória de cálculo;
+5. evidência e conhecimento disponível;
+6. flexibilidade técnica/comercial;
+7. risco;
+8. oportunidade.
 
-### 8.3 Excedentes e Nome Material
-
-Para excedentes, preservar a rastreabilidade:
-
-`EXCEDENTE → CATEGORIA → NOME MATERIAL → QUANTIDADE → VALOR UNITÁRIO → VALOR TOTAL → COMPOSIÇÃO → FONTE → MEMÓRIA DE CÁLCULO`
-
-O **Nome Material** é tratado como camada semântica de análise e rastreabilidade, não como segunda identidade de material.
-
-### 8.4 Estados
+### 11.3 Estados
 
 **Conhecimento:** `FORTE | MEDIO | FRACO | AUSENTE | CONFLITANTE`
 
@@ -131,9 +231,9 @@ O **Nome Material** é tratado como camada semântica de análise e rastreabilid
 
 **Recomendação:** `MANTER | REVISAR | NEGOCIAR | SUBSTITUIR | REESTRUTURAR | CONFIRMAR | NAO_REDUZIR | AGUARDAR_DECISAO`
 
-### 8.5 Oportunidade
+### 11.4 Oportunidade
 
-Uma oportunidade só pode ser apresentada quando houver fundamento verificável. Para cada oportunidade registrar:
+Só registrar oportunidade quando houver fundamento verificável:
 
 - item e classe ABC;
 - peso financeiro;
@@ -147,33 +247,36 @@ Uma oportunidade só pode ser apresentada quando houver fundamento verificável.
 - recomendação;
 - responsável pela decisão.
 
-Ausência de evidência não autoriza redução. Conhecimento conflitante exige preservação de proveniência e arbitragem.
+Ausência de evidência não autoriza redução.
 
-### 8.6 Cenários
+## 12. Cenários econômicos
 
-Quando houver dados suficientes, apresentar:
+Quando houver dados suficientes:
 
 - **BASE:** composição original;
-- **COMPETITIVO:** somente oportunidades apoiadas por evidência e viabilidade;
+- **COMPETITIVO:** oportunidades apoiadas por evidência e viabilidade;
 - **MÁXIMO:** limite analítico das oportunidades tecnicamente possíveis, com riscos e premissas explícitos.
 
-Cada cenário deve informar valor total, variação absoluta, variação percentual, itens alterados, premissas alteradas e risco.
+Cada cenário deve apresentar:
 
-### 8.7 Autoridade e governança
+- valor total;
+- variação absoluta;
+- variação percentual;
+- itens alterados;
+- premissas alteradas;
+- risco.
 
-O fluxo obrigatório é:
+## 13. Autoridade e governança
 
-`ANÁLISE → RECOMENDAÇÃO → ARBITRAGEM → DECISÃO`
+Fluxo obrigatório:
 
-A camada não altera automaticamente o orçamento, a Lista-Mãe, o conhecimento canônico, o Core ou a Soul.
+**ANÁLISE → RECOMENDAÇÃO → ARBITRAGEM → DECISÃO**
 
-O ELO analisa, ordena, confronta evidências, identifica riscos e recomenda. O Especialista de Orçamento permanece responsável pela composição técnica. A decisão final permanece com o responsável competente.
+O ELO não deve alterar automaticamente orçamento, Lista-Mãe, conhecimento canônico, Core ou Soul.
 
-### 8.8 Não manipulação
+O Especialista de Orçamento permanece responsável pela composição técnica. A decisão final permanece com o responsável competente.
 
-A análise de competitividade é interna. Não fabricar, distorcer ou selecionar artificialmente referências para atingir um preço desejado. Toda referência externa deve preservar fonte, condição de comparação, premissa e memória de cálculo.
-
-## 9. Resumo Executivo
+## 14. Resumo Executivo
 
 Apresentar quantitativamente:
 
@@ -182,82 +285,117 @@ Apresentar quantitativamente:
 - AE;
 - AP;
 - NA;
-- índice de atendimento ao TR;
-- itens Classe A prioritários;
+- índice de atendimento, somente quando a metodologia estiver definida;
+- memórias de cálculo identificadas;
+- memórias com divergência;
+- itens Classe A;
+- itens ausentes;
+- contradições identificadas;
 - oportunidades de competitividade;
 - riscos relevantes;
 - decisões pendentes.
 
-O índice de atendimento só deve ser apresentado como percentual quando a metodologia de contagem estiver claramente definida.
+## 15. Parecer Técnico
 
-## 10. Parecer Técnico
-
-O parecer deve concluir sobre a aderência técnica da composição orçamentária ao TR, considerando a matriz de comprovação.
-
-A conclusão deve distinguir:
+Concluir sobre a aderência da composição ao TR, distinguindo:
 
 - atendimento integral;
-- atendimento por equivalência;
+- equivalência;
 - atendimento parcial;
 - não atendimento;
-- pendências que impeçam afirmar conformidade plena.
+- pendências impeditivas;
+- divergências de quantitativo/composição;
+- limitações de evidência.
 
-Não declarar 100% de atendimento quando existirem requisitos classificados como AP, NA ou equivalências ainda dependentes de aceite.
+Não declarar 100% de atendimento quando existirem AP, NA ou equivalências ainda dependentes de aceite.
 
-## 11. Parecer de Competitividade
+## 16. Parecer de Competitividade
 
-O parecer de competitividade deve responder:
+Responder objetivamente:
 
-`QUAIS ITENS CONCENTRAM VALOR → QUAIS TÊM FUNDAMENTO PARA REVISÃO → QUAL IMPACTO → QUAL RISCO → QUAL DECISÃO É NECESSÁRIA`
+**QUAIS ITENS CONCENTRAM VALOR → QUAIS TÊM FUNDAMENTO PARA REVISÃO → QUAL IMPACTO → QUAL RISCO → QUAL DECISÃO É NECESSÁRIA**
 
-Não converter a análise automaticamente em redução de preço.
+Não transformar automaticamente a análise em redução de preço.
 
-As recomendações devem ser classificadas como **MANTER**, **REVISAR**, **NEGOCIAR**, **SUBSTITUIR**, **REESTRUTURAR**, **CONFIRMAR**, **NAO_REDUZIR** ou **AGUARDAR_DECISAO**.
+## 17. Evidência e origem
 
-## 12. Evidência e origem
-
-A PTS Pós deve preservar a origem das informações utilizadas na comprovação e na análise:
+Toda conclusão deve preservar a origem:
 
 - TR/SO;
 - projeto/layout;
-- composição orçamentária;
+- orçamento;
+- composição;
+- memória de cálculo;
 - premissa interna;
 - solução de engenharia;
 - fornecedor;
 - vistoria;
 - confirmação do cliente;
-- memória de cálculo;
 - conhecimento aplicável.
 
-Quando a evidência não estiver disponível, registrar a limitação em vez de inventá-la.
+Quando a evidência não existir, registrar a limitação.
 
-## 13. Relação com a PTS Pré-Orçamento
+## 18. Relação com a PTS Técnica
 
-A PTS Pós deve permitir comparar:
+A PTS Pós deve comparar:
 
-**o que foi identificado antes do orçamento → o que foi efetivamente orçado → como foi atendido → quais efeitos econômicos foram identificados após a composição.**
+**O QUE FOI IDENTIFICADO → O QUE FOI CALCULADO → O QUE FOI ORÇADO → COMO FOI ATENDIDO → O QUE DIVERGIU → POR QUE DIVERGIU → QUAL É O EFEITO.**
 
-Divergências relevantes entre a análise pré e pós devem ser registradas, especialmente:
+Registrar especialmente:
 
 - itens excluídos;
 - itens acrescentados;
 - alterações de quantitativo;
 - substituições;
-- soluções equivalentes;
+- equivalências;
 - premissas alteradas;
-- itens que permaneceram pendentes;
-- oportunidades de revisão de valor.
+- pendências mantidas;
+- oportunidades de revisão.
 
-## 14. Relação com aprendizado
+## 19. Registro de Aprendizado
 
-O resultado de uma revisão de competitividade pode gerar evidência para aprendizado somente após avaliação governada.
+A PTS Pós deve transformar análises concluídas em conhecimento estruturado somente após avaliação governada.
 
-`ORÇAMENTO → ANÁLISE → DECISÃO → RESULTADO DA LICITAÇÃO → AVALIAÇÃO → LEARNING CANDIDATE → GOVERNED LEARNING`
+O aprendizado deve preservar:
 
-O ELO não aprende apenas o preço vencedor ou o valor reduzido; aprende a relação entre contexto, premissas, composição, decisão, resultado e evidência.
+**CONTEXTO → PROBLEMA → PREMISSA → CÁLCULO → SOLUÇÃO → DECISÃO → RESULTADO → EVIDÊNCIA → CONDIÇÃO DE APLICAÇÃO → LIMITAÇÃO**
 
-## 15. Regra de governança do ELO
+Não memorizar somente preço ou quantidade. O parâmetro reutilizável deve registrar como o resultado foi obtido e em quais condições pode ser aplicado novamente.
 
-A PTS Pós-Orçamento é documento de comprovação, rastreabilidade e, quando aplicável, análise econômica de competitividade. O Especialista de Orçamento executa a análise detalhada; o ELO garante que a estrutura preserve a visão gerencial e que nenhuma conclusão técnica ou recomendação econômica seja apresentada sem evidência suficiente.
+## 20. Regra de reutilização das memórias de cálculo
 
-Novas melhorias identificadas durante análises de SO devem ser propostas ao ELO para classificação como SO-específica, especialista, global ou experimental antes de serem incorporadas permanentemente.
+Uma memória de cálculo pode tornar-se parâmetro consultável somente quando houver:
+
+- origem identificada;
+- desenvolvimento verificável;
+- unidade definida;
+- premissas conhecidas;
+- resultado conferido;
+- limitações registradas;
+- ausência de contradição não resolvida.
+
+Memórias com inconsistência devem permanecer disponíveis como **parâmetros com alerta**, nunca como padrão automático.
+
+## 21. Governança do aprendizado
+
+Fluxo:
+
+**ORÇAMENTO → PTS PÓS → VARREDURA → ANÁLISE → DECISÃO → RESULTADO → AVALIAÇÃO → LEARNING CANDIDATE → GOVERNED LEARNING**
+
+O ELO deve distinguir conhecimento forte de conhecimento derivado de uma única solicitação.
+
+Aprendizado específico de uma SO não deve ser promovido automaticamente a regra global.
+
+## 22. Regra final
+
+A PTS Pós-Orçamento é simultaneamente:
+
+1. documento de comprovação técnica;
+2. instrumento de rastreabilidade orçamentária;
+3. registro das memórias de cálculo;
+4. mecanismo de comparação entre composições;
+5. detector de contradições e ausências;
+6. base para análise de competitividade;
+7. fonte estruturada para aprendizado governado.
+
+O padrão deve privilegiar **evidência, rastreabilidade, reconstrução do raciocínio e identificação explícita das incertezas**, sem completar lacunas por suposição.
