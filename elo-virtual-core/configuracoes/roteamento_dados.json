@@ -1,11 +1,14 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "default_source": "local",
   "sources": {
     "supabase_elo_forge": {
       "type": "supabase",
       "project_ref": "fxbpevjrkwhbicpmecow",
-      "purpose": "consulta operacional e relacionamentos persistidos do ELO Forge",
+      "canonical_layer": "forge",
+      "authority": "supabase",
+      "architectural_parent": "ELO Cognitivo",
+      "purpose": "consulta persistida da camada Forge interna do ELO Cognitivo; não representa repositório externo nem autoridade arquitetural independente",
       "tables": [
         "taxonomia",
         "dimensoes",
@@ -15,7 +18,13 @@
         "kits",
         "kit_itens",
         "estrutura_modular",
-        "estrutura_modular_itens"
+        "estrutura_modular_itens",
+        "elo_orcamento_memoria",
+        "elo_orcamento_calculos_aprendidos",
+        "elo_orcamento_calculo_evidencias",
+        "elo_orcamento_calculo_varreduras",
+        "elo_orcamento_associacoes",
+        "elo_orcamento_decisoes"
       ]
     }
   },
@@ -24,11 +33,14 @@
       "taxonomia", "MLT", "modulo", "módulo", "container", "contêiner",
       "dimensao", "dimensão", "modelo", "M01", "M02", "kit",
       "lista mae", "lista mãe", "material", "produto", "estrutura modular",
-      "estrutura_modular"
+      "estrutura_modular", "memória de cálculo", "cálculo aprendido",
+      "evidência de cálculo", "varredura de cálculo", "associação de orçamento",
+      "decisão arbitrada", "governança de orçamento"
     ],
     "prefer_supabase_for": [
       "dados atuais", "consulta de registros", "relacionamentos entre entidades",
-      "composição de modelos", "itens de kits", "dados da Lista Mãe", "estrutura modular"
+      "composição de modelos", "itens de kits", "dados da Lista Mãe", "estrutura modular",
+      "memória quantitativa", "evidências", "associações de orçamento", "decisões arbitradas"
     ],
     "fallback": "local",
     "never_guess_data": true
