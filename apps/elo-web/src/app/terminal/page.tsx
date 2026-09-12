@@ -4,19 +4,28 @@ import { useEffect, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { GovernedHermesTerminal } from "@/components/governed-hermes-terminal";
 
-function getSupabaseClient() {
+type BridgeResponse = { ok?: boolean; reason?: string; message?: string };
+
+function getSupabaseClient(): SupabaseClient<any> | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 }
 
+function bridgeError(payload: unknown, fallback: string) {
+  if (typeof payload === "object" && payload !== null && "reason" in payload && typeof (payload as BridgeResponse).reason === "string") return (payload as BridgeResponse).reason;
+  if (typeof payload === "object" && payload !== null && "message" in payload && typeof (payload as BridgeResponse).message === "string") return (payload as BridgeResponse).message;
+  return fallback;
+}
+
 async function establishAuthorization(supabase: SupabaseClient<any>) {
-  const { error: identityError } = await supabase.rpc("elo_bind_authenticated_identity");
-  if (identityError) throw identityError;
-  const { data, error } = await supabase.rpc("elo_establish_authenticated_session");
-  if (error) throw error;
-  if (!data) throw new Error("ELO authorization session was not established.");
+  const { data, error } = await supabase.functions.invoke<BridgeResponse>("elo-session-bridge", {
+    headers: { "x-elo-request-id": crypto.randomUUID() },
+    body: { operation: "establish" },
+  });
+  if (error) throw new Error(error.message || "Falha no ELO Session Bridge.");
+  if (!data?.ok) throw new Error(bridgeError(data, "ELO Session Bridge negou o acesso."));
 }
 
 export default function HermesTerminalPage() {
@@ -67,7 +76,7 @@ export default function HermesTerminalPage() {
         <section className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">ELO · Terminal Governado</p>
           <h1 className="mt-3 text-2xl font-semibold">Acesso protegido</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-400">O terminal Hermes reutiliza a mesma identidade Google/Supabase e a mesma sessão de autorização do ELO. Abra o ELO principal e autentique-se antes de usar o terminal.</p>
+          <p className="mt-3 text-sm leading-6 text-slate-400">O terminal Hermes reutiliza a mesma identidade Google/Supabase e o Session Bridge server-side do ELO. Abra o ELO principal e autentique-se antes de usar o terminal.</p>
           {error && <p className="mt-4 rounded-xl bg-rose-500/10 p-3 text-sm text-rose-300" role="alert">{error}</p>}
           <a href="/" className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950">Abrir ELO</a>
         </section>
