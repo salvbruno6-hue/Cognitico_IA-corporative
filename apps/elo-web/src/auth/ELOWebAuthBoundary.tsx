@@ -5,6 +5,7 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
 import { EloWebCommandCenter } from "@/components/elo-web-command-center";
 
 type AuthClient = SupabaseClient<any>;
+type BridgeResponse = { ok?: boolean; reason?: string; message?: string };
 
 function getSupabaseClient(): AuthClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -13,17 +14,33 @@ function getSupabaseClient(): AuthClient | null {
   return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 }
 
+function bridgeError(payload: unknown, fallback: string) {
+  if (typeof payload === "object" && payload !== null && "reason" in payload && typeof (payload as BridgeResponse).reason === "string") {
+    return (payload as BridgeResponse).reason;
+  }
+  if (typeof payload === "object" && payload !== null && "message" in payload && typeof (payload as BridgeResponse).message === "string") {
+    return (payload as BridgeResponse).message;
+  }
+  return fallback;
+}
+
+async function callSessionBridge(supabase: AuthClient, operation: "establish" | "revoke") {
+  const requestId = crypto.randomUUID();
+  const { data, error } = await supabase.functions.invoke<BridgeResponse>("elo-session-bridge", {
+    headers: { "x-elo-request-id": requestId },
+    body: { operation },
+  });
+  if (error) throw new Error(error.message || `Falha no ELO Session Bridge (${operation}).`);
+  if (!data?.ok) throw new Error(bridgeError(data, `ELO Session Bridge negou a operação ${operation}.`));
+  return data;
+}
+
 async function establishAuthorization(supabase: AuthClient) {
-  const { error: identityError } = await supabase.rpc("elo_bind_authenticated_identity");
-  if (identityError) throw identityError;
-  const { data, error } = await supabase.rpc("elo_establish_authenticated_session");
-  if (error) throw error;
-  if (!data) throw new Error("ELO authorization session was not established.");
+  await callSessionBridge(supabase, "establish");
 }
 
 async function revokeAuthorization(supabase: AuthClient) {
-  const { error } = await supabase.rpc("elo_revoke_authenticated_session");
-  if (error) throw error;
+  await callSessionBridge(supabase, "revoke");
 }
 
 export function ELOWebAuthBoundary() {
