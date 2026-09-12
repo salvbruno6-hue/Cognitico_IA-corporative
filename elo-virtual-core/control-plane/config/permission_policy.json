@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "default_decision": "deny",
   "principals": {
     "gpt_interface": {
@@ -23,13 +23,18 @@
   "sources": {
     "supabase_elo_forge": {
       "project_ref": "fxbpevjrkwhbicpmecow",
-      "allowed_operation": ["read"],
-      "write_requires_explicit_policy": true
-    },
-    "github_elo_forge": {
+      "canonical_layer": "forge",
+      "architectural_parent": "ELO Cognitivo",
+      "authority": "supabase",
       "allowed_operation": ["read"],
       "write_requires_explicit_policy": true,
-      "merge_requires_explicit_approval": true
+      "note": "Identificador técnico legado preservado por compatibilidade; refere-se à camada Forge interna, não ao repositório externo ELO-Forge, que não é autoridade."
+    },
+    "github_elo_cognitivo": {
+      "allowed_operation": ["read"],
+      "write_requires_explicit_policy": true,
+      "merge_requires_explicit_approval": true,
+      "note": "GitHub do Cognitico é a autoridade operacional/canônica do código e das diretrizes."
     }
   },
   "security": {

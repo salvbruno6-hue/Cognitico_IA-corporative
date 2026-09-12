@@ -1,12 +1,13 @@
 """Runtime do ELO Control Plane.
 
 O ELO é o orquestrador; interfaces periféricas apenas submetem solicitações.
-Sem credenciais embutidas: integrações recebem segredos por ambiente.
+A camada Forge é interna ao ELO Cognitivo e não constitui autoridade
+arquitetural independente. Sem credenciais embutidas: integrações recebem
+segredos por ambiente.
 """
 from __future__ import annotations
 
 import json
-import os
 import uuid
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -58,7 +59,9 @@ class ELOControlPlane:
         operational = (
             "taxonomia", "mlt", "m01", "m02", "kit", "lista mãe",
             "material", "modelo", "dimensão", "estrutura modular",
-            "estrutura modular", "supabase", "elo-forge"
+            "estrutura modular", "supabase", "elo-forge", "memória de cálculo",
+            "cálculo aprendido", "evidência de cálculo", "varredura de cálculo",
+            "associação de orçamento", "decisão arbitrada", "governança de orçamento"
         )
         return "supabase_elo_forge" if any(t in terms for t in operational) else "local"
 

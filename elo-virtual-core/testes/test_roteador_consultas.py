@@ -7,8 +7,12 @@ from integracoes.supabase_elo_forge import SupabaseEloForge
 def test_taxonomia_routes_to_supabase():
     result = route_query("Quais são os dados da taxonomia MLT.M02?")
     assert result["source"] == "supabase_elo_forge"
+    assert result["layer"] == "forge"
+    assert result["architectural_parent"] == "ELO Cognitivo"
     assert result["must_query_source"] is True
     assert "taxonomia" in result["tables"]
+    assert "elo_orcamento_associacoes" in result["tables"]
+    assert "elo_orcamento_decisoes" in result["tables"]
     assert "project_ref" not in result
     assert "project_id" not in result
 
@@ -16,6 +20,7 @@ def test_taxonomia_routes_to_supabase():
 def test_kit_routes_to_supabase():
     result = route_query("Kit elétrica M01")
     assert result["source"] == "supabase_elo_forge"
+    assert result["layer"] == "forge"
     assert "kits" in result["tables"]
     assert "kit_itens" in result["tables"]
     assert "lista_mae" in result["tables"]
@@ -26,8 +31,18 @@ def test_kit_routes_to_supabase():
 def test_structure_routes_to_supabase():
     result = route_query("Qual é a estrutura modular do M01?")
     assert result["source"] == "supabase_elo_forge"
+    assert result["layer"] == "forge"
     assert "estrutura_modular" in result["tables"]
     assert "project_ref" not in result
+
+
+def test_budget_governance_routes_to_supabase():
+    result = route_query("Consultar decisão arbitrada e associação de orçamento")
+    assert result["source"] == "supabase_elo_forge"
+    assert result["layer"] == "forge"
+    assert "elo_orcamento_associacoes" in result["tables"]
+    assert "elo_orcamento_decisoes" in result["tables"]
+    assert result["retrieval_contract"] == "read_only_relationship_aware"
 
 
 def test_unrelated_query_uses_local_fallback():
@@ -90,6 +105,7 @@ def test_missing_product_code_is_preserved_as_null():
     assert presented["codigo_item"] == "ELE085"
     assert presented["cod_produto"] is None
     assert presented["descricao"] == "Disjuntor monopolar 16A"
+    assert presented["un"] == "un"
     assert presented["qtd"] == 1
     assert presented["valor_unitario"] == "8.44"
     assert presented["valor_total"] == 8.44

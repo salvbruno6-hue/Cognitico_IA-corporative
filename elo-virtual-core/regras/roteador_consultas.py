@@ -1,9 +1,10 @@
 """Roteamento determinístico das consultas de dados do ELO.
 
-Este módulo identifica quando uma pergunta depende de dados persistidos no
-Supabase Elo-forge e devolve apenas o contrato necessário para retrieval.
-Detalhes de infraestrutura (project_ref/project_id) permanecem internos ao
-adaptador e nunca fazem parte da interface destinada ao especialista.
+Este módulo identifica quando uma pergunta depende de dados persistidos na
+camada Forge interna do ELO Cognitivo e devolve apenas o contrato necessário
+para retrieval. Detalhes de infraestrutura (project_ref/project_id)
+permanecem internos ao adaptador e nunca fazem parte da interface destinada
+ao especialista.
 """
 
 import json
@@ -32,9 +33,12 @@ def route_query(query: str) -> dict:
     matches = [term for term in terms if term.casefold() in normalized]
 
     if matches:
-        source = policy["sources"]["supabase_elo_forge"]
+        source_key = "supabase_elo_forge"
+        source = policy["sources"][source_key]
         return {
-            "source": "supabase_elo_forge",
+            "source": source_key,
+            "layer": source.get("canonical_layer", "forge"),
+            "architectural_parent": source.get("architectural_parent", "ELO Cognitivo"),
             "matched_terms": matches,
             "tables": source["tables"],
             "adapter": "integracoes.supabase_elo_forge",
