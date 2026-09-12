@@ -110,3 +110,7 @@ No terminal command may directly call Hermes. No Hermes result may mutate ELO Co
 - ELO `CognitiveCore` Hermes mission path
 - ELO `SymbiontHermesBridge`
 - ELO-Hermes `/elo/v1/execute` runtime boundary
+
+## Validation note
+
+The governed terminal implementation is present on the feature branch. The initial Vercel build reported a stale TypeScript narrowing error in the terminal error payload; the current branch contains the explicit runtime type guard for that response path. A fresh deployment must validate the corrected head before the Evolution Gate/merge decision.
