@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ELO_CANONICAL_SUPABASE_URL, getCanonicalSupabaseConfig } from "@/lib/supabase/config";
 
 const ALLOWED_ACTIONS = new Set(["establish_session", "revoke_session", "read", "consult", "search", "inspect"]);
 
@@ -21,9 +22,13 @@ export async function POST(request: Request) {
     return json({ authorized: false, reason: "missing_bearer" }, 401);
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  if (!supabaseUrl) {
-    return json({ authorized: false, reason: "supabase_url_not_configured" }, 500);
+  try {
+    getCanonicalSupabaseConfig();
+  } catch (error) {
+    return json({
+      authorized: false,
+      reason: error instanceof Error ? error.message : "supabase_canonical_project_mismatch",
+    }, 500);
   }
 
   let body: AuthorizationBody = {};
@@ -38,7 +43,7 @@ export async function POST(request: Request) {
     return json({ authorized: false, reason: "action_not_allowed_at_elo_web_boundary" }, 403);
   }
 
-  const upstream = await fetch(`${supabaseUrl}/functions/v1/elo-authz`, {
+  const upstream = await fetch(`${ELO_CANONICAL_SUPABASE_URL}/functions/v1/elo-authz`, {
     method: "POST",
     headers: {
       Authorization: authorization,
