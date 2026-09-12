@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ELOCognitiveError, executeCognitiveMission } from "@/lib/elo-cognitive";
+import { getCanonicalSupabaseConfig } from "@/lib/supabase/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,10 +49,9 @@ async function establishAuthorizedContext(request: Request, accessToken: string)
 
 export async function POST(request: Request) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const supabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
+    const { url: supabaseUrl, key: supabaseKey } = getCanonicalSupabaseConfig();
     const accessToken = getBearerToken(request);
-    if (!supabaseUrl || !supabaseKey || !accessToken) {
+    if (!accessToken) {
       return NextResponse.json({ code: "UNAUTHORIZED", message: "Sessão autenticada do ELO não foi apresentada." }, { status: 401 });
     }
 
