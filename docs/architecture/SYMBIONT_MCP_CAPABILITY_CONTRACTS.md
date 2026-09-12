@@ -4,6 +4,8 @@
 
 Define the ELO-owned contracts required to discover, test, benchmark and evaluate external capabilities exposed through MCP and executed by Hermes.
 
+**Architectural distinction:** Symbiont is an ELO capability; MCP is an external protocol/mechanism. MCP does not implement, replace or subsume the Symbiont. Hermes may use MCP to invoke external capabilities during an authorized mission.
+
 MCP is an external integration protocol. Hermes remains an external execution runtime. Neither acquires canonical ELO authority.
 
 ## Contract chain
@@ -67,7 +69,7 @@ Required provenance:
 - `source_ref`
 - `source_commit`
 
-The descriptor is observational. It does not authorize execution or create a Core capability.
+The descriptor is observational. It does not authorize execution, create a Core capability, or alter the Symbiont capability itself.
 
 ## 2. Benchmark contract
 
@@ -103,20 +105,23 @@ It requires:
 
 The aggregate score is descriptive only. It is not a promotion decision.
 
-`candidate_only` is mandatory and cannot be disabled. An MCP benchmark therefore cannot directly mutate ELO Core.
+`candidate_only` is mandatory and cannot be disabled. An MCP benchmark therefore cannot directly mutate ELO Core or confer native ELO capability.
 
 ## 4. Security and authority invariants
 
 1. MCP servers are external providers.
 2. Hermes is an execution runtime, not ELO authority.
-3. Symbiont observes, translates, experiments and prepares candidates; it does not promote them.
-4. ELO Cognitive remains responsible for authorization and routing.
-5. Evolution Gate remains the only canonical evolution classification boundary.
-6. Benchmark evidence must be traceable to the tested capability and request.
-7. Infrastructure identifiers and secrets must not cross these contracts.
-8. A benchmark result is never canonical knowledge.
-9. A high score does not bypass governance.
-10. Existing canonical owners must be reused rather than duplicated.
+3. Symbiont is an ELO capability for observation, interpretation, experimentation, translation and capability absorption.
+4. MCP is only an external mechanism/protocol available to Hermes; it is not the Symbiont capability.
+5. ELO Cognitive remains responsible for authorization and routing.
+6. Evolution Gate remains the only canonical evolution classification boundary.
+7. Benchmark evidence must be traceable to the tested capability and request.
+8. Infrastructure identifiers and secrets must not cross these contracts.
+9. A benchmark result is never canonical knowledge.
+10. A high score does not bypass governance.
+11. Existing canonical owners must be reused rather than duplicated.
+12. Successful use of an MCP tool does not automatically grant an ELO-native capability.
+13. Any future ELO-facing MCP option must be introduced as a separate governed capability and must not dismantle or replace the Symbiont boundary.
 
 ## 5. Initial benchmark families
 
@@ -151,7 +156,7 @@ DISCOVERED
 
 `CANDIDATE` means that evidence supports further laboratory work. It does not mean that the capability has entered Core.
 
-The existing `SymbiontCapabilityAbsorber` remains the absorption boundary. This contract set supplies it with a more rigorous external-capability observation and benchmark trail.
+The existing `SymbiontCapabilityAbsorber` remains the absorption boundary. This contract set supplies it with a more rigorous external-capability observation and benchmark trail. MCP remains the access mechanism used during experimentation, not the absorption authority.
 
 ## Non-goals
 
@@ -164,4 +169,5 @@ This contract does not:
 - allow browser-to-Hermes direct calls;
 - automatically promote MCP capabilities;
 - copy Hermes internals into ELO Core;
-- make an external MCP server a source of canonical truth.
+- make an external MCP server a source of canonical truth;
+- replace the Symbiont capability with MCP.
