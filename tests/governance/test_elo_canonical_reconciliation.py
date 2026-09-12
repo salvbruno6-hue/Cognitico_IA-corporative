@@ -162,3 +162,29 @@ def test_src_elo_does_not_override_explicit_parallel_owner(tmp_path: Path):
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert evidence.waiting_for_evidence
+
+
+def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Path):
+    """A generic package.json stem must not match unrelated canonical owners."""
+    (tmp_path / "legacy_runtime.py").write_text(
+        "# package metadata only; not related to the proposed sandbox runtime\n"
+        "class LegacyRuntime: pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "owner.md").write_text(
+        "canonical owner: legacy_runtime.py\n"
+        "source of truth: legacy_runtime.py\n"
+        "package metadata is maintained here.\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["apps/elo-web/package.json", "apps/elo-web/src/lib/elo-hermes-sandbox.ts"],
+        concept_terms=["package", "elo_hermes_sandbox"],
+    )
+
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert "legacy_runtime.py" not in evidence.candidates
