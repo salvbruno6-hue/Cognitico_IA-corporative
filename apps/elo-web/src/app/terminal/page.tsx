@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { createClient, type Session } from "@supabase/supabase-js";
 import { GovernedHermesTerminal } from "@/components/governed-hermes-terminal";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
+import { getCanonicalSupabaseConfig } from "@/lib/supabase/config";
 
 function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  try {
+    const { url, key } = getCanonicalSupabaseConfig();
+    return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  } catch {
+    return null;
+  }
 }
 
 export default function HermesTerminalPage() {
@@ -22,7 +25,7 @@ export default function HermesTerminalPage() {
     let active = true;
     const supabase = getSupabaseClient();
     if (!supabase) {
-      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
+      setError("ELO Web está apontando para um projeto Supabase diferente do projeto canônico.");
       setLoading(false);
       return () => { active = false; };
     }
