@@ -1,3 +1,4 @@
+import pytest
 from dataclasses import replace
 
 from elo.cognitive.symbiont_capability_absorption import (
@@ -46,6 +47,7 @@ def test_absorbs_external_capability_as_noncanonical_candidate():
     )
 
     assert candidate is not None
+    assert candidate.state is not None
     assert candidate.state.value == "CANDIDATE"
     assert candidate.portable_principle == observation.mechanism
     assert candidate.provenance["provider"] == "hermes"
@@ -72,13 +74,49 @@ def test_rejects_cross_source_capability():
     decision, observation = _inputs()
     mismatched = replace(observation, source_commit="different")
 
-    try:
+    with pytest.raises(ValueError, match="source commit"):
         SymbiontCapabilityAbsorber.absorb(
             mismatched,
             decision,
             validation_contract="benchmark against baseline",
         )
-    except ValueError as exc:
-        assert "source commit" in str(exc)
-    else:
-        raise AssertionError("cross-source capability must be rejected")
+
+
+def test_rejects_existing_canonical_owner_even_if_decision_is_tampered():
+    decision, observation = _inputs()
+    tampered = replace(
+        decision,
+        classification=EvolutionClassification.COMPATIBLE,
+        proposal=replace(decision.proposal, existing_owner="elo.core.canonical_capability"),
+    )
+
+    with pytest.raises(ValueError, match="existing canonical owner"):
+        SymbiontCapabilityAbsorber.absorb(
+            observation,
+            tampered,
+            validation_contract="benchmark against baseline",
+        )
+
+
+def test_rejects_evidence_mismatch_against_evolution_proposal():
+    decision, observation = _inputs()
+    mismatched = replace(observation, evidence_ids=("ev-other",))
+
+    with pytest.raises(ValueError, match="evidence"):
+        SymbiontCapabilityAbsorber.absorb(
+            mismatched,
+            decision,
+            validation_contract="benchmark against baseline",
+        )
+
+
+def test_rejects_critical_risk():
+    decision, observation = _inputs()
+    critical = replace(observation, risk="CRITICAL")
+
+    with pytest.raises(ValueError, match="critical-risk"):
+        SymbiontCapabilityAbsorber.absorb(
+            critical,
+            decision,
+            validation_contract="benchmark against baseline",
+        )
