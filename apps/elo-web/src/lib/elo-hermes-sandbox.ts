@@ -1,40 +1,54 @@
 import { Sandbox } from "@vercel/sandbox";
 
-export type HermesSandboxRequest = {
-  correlationId: string;
-  missionId: string;
-  command: string;
-  args?: string[];
-  timeoutMs?: number;
+export type HermesExecutionRequest = {
+  request_id: string;
+  intent: string;
+  context: Record<string, unknown>;
+  tenant_scope: string;
+  mission_class: string;
+  authorized_capabilities: string[];
+  method?: string | null;
+  constraints?: Record<string, unknown>;
+  evidence_requirements?: string[];
+  execution_policy?: Record<string, unknown>;
+  contract_version?: string;
 };
 
-export type HermesSandboxReceipt = {
-  missionId: string;
-  correlationId: string;
-  executor: "hermes";
-  runtime: "vercel-sandbox";
-  status: "SUCCEEDED" | "FAILED";
-  stdout: string;
-  stderr: string;
-  exitCode: number;
+export type HermesExecutionResult = {
+  request_id: string;
+  status: "completed" | "partial" | "blocked" | "failed";
+  execution: Record<string, unknown>;
+  artifacts: Array<Record<string, unknown>>;
+  evidence: Array<Record<string, unknown>>;
+  tool_usage: Array<Record<string, unknown>>;
+  skills_used: string[];
+  outcome: Record<string, unknown>;
+  gaps: string[];
+  conflicts: string[];
+  metrics: Record<string, unknown>;
+  learning_candidate: Record<string, unknown> | null;
+  contract_version: "1.0";
 };
 
-function requireGitToken() {
-  const token = process.env.ELO_HERMES_GIT_TOKEN?.trim();
-  if (!token) {
-    throw new Error("ELO_HERMES_GIT_TOKEN is required to clone the private governed Hermes repository.");
-  }
-  return token;
+function requireEnv(name: string) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} is required for the governed Hermes runtime boundary.`);
+  return value;
 }
 
-/**
- * Server-only governed execution primitive.
- * Browser code must never import or invoke this module directly.
- * Authorization and mission policy remain owned by ELO Cognitive/Symbiont.
- */
-export async function executeHermesInVercelSandbox(input: HermesSandboxRequest): Promise<HermesSandboxReceipt> {
-  const gitToken = requireGitToken();
-  const timeoutMs = Math.min(Math.max(input.timeoutMs ?? 5 * 60 * 1000, 10_000), 45 * 60 * 1000);
+function missionCommand(request: HermesExecutionRequest): { cmd: string; args: string[] } {
+  if (request.mission_class === "runtime_probe" && request.authorized_capabilities.includes("hermes.runtime.probe")) {
+    return { cmd: "python", args: ["-m", "hermes_cli.main", "--version"] };
+  }
+  throw new Error("Mission is not an allowed Vercel Hermes sandbox operation.");
+}
+
+/** Server-only. The browser cannot invoke this module or select an arbitrary command. */
+export async function executeHermesInVercelSandbox(request: HermesExecutionRequest): Promise<HermesExecutionResult> {
+  const gitToken = requireEnv("ELO_HERMES_GIT_TOKEN");
+  const runtimeSecret = requireEnv("ELO_HERMES_RUNTIME_TOKEN");
+  const command = missionCommand(request);
+  const timeoutMs = Math.min(Math.max(Number(request.execution_policy?.timeout_ms ?? 5 * 60 * 1000), 10_000), 45 * 60 * 1000);
 
   const sandbox = await Sandbox.create({
     persistent: false,
@@ -46,28 +60,29 @@ export async function executeHermesInVercelSandbox(input: HermesSandboxRequest):
       username: "x-access-token",
       password: gitToken,
     },
-    networkPolicy: {
-      allow: ["api.openai.com", "github.com", "raw.githubusercontent.com"],
-    },
+    env: { ELO_HERMES_RUNTIME_TOKEN: runtimeSecret },
+    networkPolicy: { allow: ["api.openai.com", "github.com", "raw.githubusercontent.com"] },
   });
 
   try {
-    const result = await sandbox.runCommand({
-      cmd: input.command,
-      args: input.args ?? [],
-    });
-
+    const result = await sandbox.runCommand(command);
     const stdout = (await result.stdout()).trim();
     const stderr = (await result.stderr()).trim();
+    const succeeded = result.exitCode === 0;
     return {
-      missionId: input.missionId,
-      correlationId: input.correlationId,
-      executor: "hermes",
-      runtime: "vercel-sandbox",
-      status: result.exitCode === 0 ? "SUCCEEDED" : "FAILED",
-      stdout,
-      stderr,
-      exitCode: result.exitCode,
+      request_id: request.request_id,
+      status: succeeded ? "completed" : "failed",
+      execution: { runtime: "vercel-sandbox", executor: "hermes", exit_code: result.exitCode },
+      artifacts: [],
+      evidence: [{ type: "execution", source: "vercel-sandbox", stdout, stderr, exit_code: result.exitCode }],
+      tool_usage: [],
+      skills_used: [],
+      outcome: { completed: succeeded, mission_class: request.mission_class },
+      gaps: succeeded ? [] : ["hermes_runtime_probe_failed"],
+      conflicts: [],
+      metrics: { stdout_length: stdout.length, stderr_length: stderr.length },
+      learning_candidate: null,
+      contract_version: "1.0",
     };
   } finally {
     await sandbox.stop();
