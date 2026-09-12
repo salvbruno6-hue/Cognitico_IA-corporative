@@ -20,8 +20,12 @@ function getBearerToken(request: Request) {
 }
 
 function authorizationMessage(payload: unknown) {
-  if (typeof payload === "object" && payload !== null && "reason" in payload && typeof (payload as AuthorizationResponse).reason === "string") return (payload as AuthorizationResponse).reason;
-  if (typeof payload === "object" && payload !== null && "message" in payload && typeof (payload as AuthorizationResponse).message === "string") return (payload as AuthorizationResponse).message;
+  if (typeof payload === "object" && payload !== null) {
+    const reason = (payload as AuthorizationResponse).reason;
+    if (typeof reason === "string") return reason;
+    const message = (payload as AuthorizationResponse).message;
+    if (typeof message === "string") return message;
+  }
   return "ELO Authorization recusou a missão.";
 }
 
@@ -41,7 +45,7 @@ async function establishAuthorizedContext(request: Request, accessToken: string)
     throw new ELOCognitiveError(authorizationMessage(payload), response.status >= 400 ? response.status : 403, "AUTHORIZATION_DENIED");
   }
   const authorization = payload as AuthorizationResponse;
-  if (!authorization.session_id || authorization.authorization_authority !== "elo-authz") {
+  if (typeof authorization.session_id !== "string" || authorization.authorization_authority !== "elo-authz") {
     throw new ELOCognitiveError("A sessão autorizada do ELO não foi confirmada pela autoridade elo-authz.", 403, "AUTHORIZATION_CONTEXT_INVALID");
   }
   return authorization;
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
     }
 
     const authorization = await establishAuthorizedContext(request, accessToken);
-    const sessionId = authorization.session_id!;
+    const sessionId = authorization.session_id;
 
     const result = await executeCognitiveMission({
       message,
