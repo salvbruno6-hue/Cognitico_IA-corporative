@@ -28,15 +28,12 @@ async function revokeELOAuthorizationSession(supabase: SupabaseClient<any>) {
   if (error) throw error;
 }
 
-function getELOLoginUrl() {
-  return process.env.NEXT_PUBLIC_ELO_LOGIN_URL?.trim() || "/";
-}
-
 export function ELOWebAuthBoundary() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -94,6 +91,28 @@ export function ELOWebAuthBoundary() {
     };
   }, []);
 
+  async function signInWithGoogle() {
+    setError(null);
+    setSigningIn(true);
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setError("Cliente de autenticação do ELO não está configurado.");
+      setSigningIn(false);
+      return;
+    }
+
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setSigningIn(false);
+    }
+  }
+
   async function signOut() {
     setError(null);
     const supabase = getSupabaseClient();
@@ -121,7 +140,7 @@ export function ELOWebAuthBoundary() {
 
     setAuthorized(false);
     setSession(null);
-    window.location.assign(getELOLoginUrl());
+    window.location.assign("/");
   }
 
   if (loading) {
@@ -147,12 +166,14 @@ export function ELOWebAuthBoundary() {
               {error}
             </p>
           )}
-          <a
-            href={getELOLoginUrl()}
-            className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
+          <button
+            type="button"
+            onClick={() => void signInWithGoogle()}
+            disabled={signingIn}
+            className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
           >
-            Continuar para o login do ELO
-          </a>
+            {signingIn ? "Abrindo login do Google…" : "Continuar com Google"}
+          </button>
         </section>
       </main>
     );
