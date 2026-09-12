@@ -11,6 +11,8 @@ type HistoryEntry = {
   status: "ok" | "error";
 };
 
+type CognitiveErrorPayload = { message?: unknown };
+
 const CAPABILITIES = [
   { name: "terminal + process", mode: "execution", governance: "requires explicit mission" },
   { name: "files + patch", mode: "workspace", governance: "bounded by mission" },
@@ -31,6 +33,10 @@ const HELP = [
   "/probe — executa o primeiro runtime_probe real permitido pelo ELO",
   "/clear — limpa o histórico visual",
 ];
+
+function isCognitiveErrorPayload(value: unknown): value is CognitiveErrorPayload {
+  return typeof value === "object" && value !== null && "message" in value;
+}
 
 export function GovernedHermesTerminal({ accessToken, domain = "planejamento" }: Props) {
   const [command, setCommand] = useState("");
@@ -110,11 +116,20 @@ export function GovernedHermesTerminal({ accessToken, domain = "planejamento" }:
           },
         }),
       });
-      const payload = (await response.json().catch(() => null)) as CognitiveResponse | { message?: string } | null;
-      if (!response.ok) throw new Error(typeof payload?.message === "string" ? payload.message : "O ELO bloqueou a missão Hermes.");
+
+      const payload: unknown = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message = isCognitiveErrorPayload(payload) && typeof payload.message === "string"
+          ? payload.message
+          : "O ELO bloqueou a missão Hermes.";
+        throw new Error(message);
+      }
+
       const result = payload as CognitiveResponse;
       const evidence = result.provenance?.evidence_refs?.length ?? 0;
       const hermesStatus = typeof result.response?.status === "string" ? result.response.status : "retorno recebido";
+
       setHistory((items) => [
         ...items,
         {
