@@ -1,22 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type Session } from "@supabase/supabase-js";
 import { GovernedHermesTerminal } from "@/components/governed-hermes-terminal";
+import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-}
-
-async function establishAuthorization(supabase: SupabaseClient<any>) {
-  const { error: identityError } = await supabase.rpc("elo_bind_authenticated_identity");
-  if (identityError) throw identityError;
-  const { data, error } = await supabase.rpc("elo_establish_authenticated_session");
-  if (error) throw error;
-  if (!data) throw new Error("ELO authorization session was not established.");
 }
 
 export default function HermesTerminalPage() {
@@ -47,7 +40,7 @@ export default function HermesTerminalPage() {
         return;
       }
       try {
-        await establishAuthorization(supabase);
+        await callELOAuthorization(data.session.access_token, "establish_session");
         if (active) setAuthorized(true);
       } catch (authorizationError) {
         if (active) setError(authorizationError instanceof Error ? authorizationError.message : "Não foi possível autorizar o terminal ELO.");

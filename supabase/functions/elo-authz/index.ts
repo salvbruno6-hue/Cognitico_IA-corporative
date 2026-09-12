@@ -52,9 +52,7 @@ async function audit(identityId: string, sessionId: string | null, action: strin
     reason,
     request_id: requestId,
   });
-  if (auditError) {
-    throw new Error("authorization_audit_write_failed");
-  }
+  if (auditError) throw new Error("authorization_audit_write_failed");
 }
 
 async function authenticate(req: Request) {
@@ -80,8 +78,18 @@ async function authenticate(req: Request) {
     .eq("identity_id", identity.identity_id);
   if (roleError) return { ok: false as const, reason: "role_lookup_failed" };
 
-  const roles = (roleRows ?? []).map((row: any) => row.elo_roles).filter((role: any) => role?.active === true).map((role: any) => String(role.code));
-  return { ok: true as const, user: data.user, identity, roles, roleIds: (roleRows ?? []).map((row: any) => row.role_id).filter(Boolean) };
+  const roles = (roleRows ?? [])
+    .map((row: any) => row.elo_roles)
+    .filter((role: any) => role?.active === true)
+    .map((role: any) => String(role.code));
+
+  return {
+    ok: true as const,
+    user: data.user,
+    identity,
+    roles,
+    roleIds: (roleRows ?? []).map((row: any) => row.role_id).filter(Boolean),
+  };
 }
 
 async function resolveActiveSession(identityId: string) {
@@ -104,9 +112,53 @@ async function resolveActiveSession(identityId: string) {
   return { ok: true as const, session };
 }
 
+async function establishSession(identityId: string) {
+  const existing = await resolveActiveSession(identityId);
+  if (existing.ok) {
+    const { error } = await supabase
+      .from("elo_identity_sessions")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("session_id", existing.session.session_id);
+    if (error) return { ok: false as const, reason: "session_refresh_failed" };
+    return { ok: true as const, session: { ...existing.session, last_seen_at: new Date().toISOString() }, reused: true };
+  }
+
+  if (existing.reason !== "active_elo_session_required") return existing;
+
+  const now = new Date();
+  const expires = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const { data, error } = await supabase
+    .from("elo_identity_sessions")
+    .insert({
+      identity_id: identityId,
+      issued_at: now.toISOString(),
+      expires_at: expires.toISOString(),
+      revoked_at: null,
+      last_seen_at: now.toISOString(),
+    })
+    .select("session_id,issued_at,expires_at,revoked_at,last_seen_at")
+    .single();
+  if (error || !data) return { ok: false as const, reason: "session_create_failed" };
+  return { ok: true as const, session: data, reused: false };
+}
+
+async function revokeSession(identityId: string) {
+  const { data, error } = await supabase
+    .from("elo_identity_sessions")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("identity_id", identityId)
+    .is("revoked_at", null)
+    .select("session_id");
+  if (error) return { ok: false as const, reason: "session_revoke_failed" };
+  return { ok: true as const, revoked: data?.length ?? 0 };
+}
+
 async function hasCapability(roleIds: string[], capabilityCode: string) {
   if (!roleIds.length) return { ok: true as const, granted: false };
-  const { data, error } = await supabase.from("elo_role_capabilities").select("capability_id,elo_capabilities(code,active)").in("role_id", roleIds);
+  const { data, error } = await supabase
+    .from("elo_role_capabilities")
+    .select("capability_id,elo_capabilities(code,active)")
+    .in("role_id", roleIds);
   if (error) return { ok: false as const, reason: "capability_lookup_failed" };
   const granted = (data ?? []).some((row: any) => row.elo_capabilities?.active === true && row.elo_capabilities?.code === capabilityCode);
   return { ok: true as const, granted };
@@ -125,6 +177,31 @@ Deno.serve(async (req: Request) => {
 
   const action = typeof body.action === "string" && body.action.trim() ? body.action.trim() : "read";
   const repository = typeof body.repository === "string" ? body.repository.trim() : "";
+
+  if (action === "establish_session") {
+    const established = await establishSession(auth.identity.identity_id);
+    if (!established.ok) {
+      try { await audit(auth.identity.identity_id, null, action, null, "DENY", established.reason, requestId); }
+      catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
+      return json({ authorized: false, reason: established.reason, request_id: requestId }, 403);
+    }
+    try { await audit(auth.identity.identity_id, established.session.session_id, action, null, "ALLOW", "authenticated_identity_session_established", requestId); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
+    return json({ authorized: true, action, identity_id: auth.identity.identity_id, session_id: established.session.session_id, reused: established.reused, display_name: auth.identity.display_name, provider: auth.identity.provider, request_id: requestId, authorization_authority: "elo-authz" });
+  }
+
+  if (action === "revoke_session") {
+    const revoked = await revokeSession(auth.identity.identity_id);
+    if (!revoked.ok) {
+      try { await audit(auth.identity.identity_id, null, action, null, "DENY", revoked.reason, requestId); }
+      catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
+      return json({ authorized: false, reason: revoked.reason, request_id: requestId }, 503);
+    }
+    try { await audit(auth.identity.identity_id, null, action, null, "ALLOW", "authenticated_identity_sessions_revoked", requestId); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
+    return json({ authorized: true, action, revoked: revoked.revoked, identity_id: auth.identity.identity_id, request_id: requestId, authorization_authority: "elo-authz" });
+  }
+
   const requestedCapability = typeof body.capability === "string" ? body.capability.trim() : "";
   const capability = ACTION_CAPABILITY[action];
 
@@ -142,7 +219,10 @@ Deno.serve(async (req: Request) => {
   }
 
   if (repository) {
-    const { data: scopes, error: scopeError } = await supabase.from("elo_identity_scopes").select("elo_scopes(scope_key,active)").eq("identity_id", auth.identity.identity_id);
+    const { data: scopes, error: scopeError } = await supabase
+      .from("elo_identity_scopes")
+      .select("elo_scopes(scope_key,active)")
+      .eq("identity_id", auth.identity.identity_id);
     if (scopeError) {
       try { await audit(auth.identity.identity_id, session.session.session_id, action, repository, "DENY", "scope_lookup_failed", requestId); }
       catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { EloWebCommandCenter } from "@/components/elo-web-command-center";
+import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 type AuthClient = SupabaseClient<any>;
 
@@ -11,19 +12,6 @@ function getSupabaseClient(): AuthClient | null {
   const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-}
-
-async function establishAuthorization(supabase: AuthClient) {
-  const { error: identityError } = await supabase.rpc("elo_bind_authenticated_identity");
-  if (identityError) throw identityError;
-  const { data, error } = await supabase.rpc("elo_establish_authenticated_session");
-  if (error) throw error;
-  if (!data) throw new Error("ELO authorization session was not established.");
-}
-
-async function revokeAuthorization(supabase: AuthClient) {
-  const { error } = await supabase.rpc("elo_revoke_authenticated_session");
-  if (error) throw error;
 }
 
 export function ELOWebAuthBoundary() {
@@ -36,39 +24,82 @@ export function ELOWebAuthBoundary() {
   useEffect(() => {
     let active = true;
     const supabase = getSupabaseClient();
-    if (!supabase) { setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente."); setLoading(false); return () => { active = false; }; }
+    if (!supabase) {
+      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
+      setLoading(false);
+      return () => { active = false; };
+    }
 
     void supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
       if (!active) return;
-      if (sessionError) { setError(sessionError.message); setLoading(false); return; }
+      if (sessionError) {
+        setError(sessionError.message);
+        setLoading(false);
+        return;
+      }
       setSession(data.session);
-      if (!data.session) { setLoading(false); return; }
-      try { await establishAuthorization(supabase); if (active) setAuthorized(true); }
-      catch (authorizationError) { if (active) setError(authorizationError instanceof Error ? authorizationError.message : "Não foi possível autorizar o ELO."); }
-      finally { if (active) setLoading(false); }
+      if (!data.session) {
+        setLoading(false);
+        return;
+      }
+      try {
+        await callELOAuthorization(data.session.access_token, "establish_session");
+        if (active) setAuthorized(true);
+      } catch (authorizationError) {
+        if (active) setError(authorizationError instanceof Error ? authorizationError.message : "Não foi possível autorizar o ELO.");
+      } finally {
+        if (active) setLoading(false);
+      }
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { if (!active) return; setSession(nextSession); if (!nextSession) setAuthorized(false); });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
+      setSession(nextSession);
+      if (!nextSession) setAuthorized(false);
+    });
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
   async function signInWithGoogle() {
-    setError(null); setSigningIn(true);
+    setError(null);
+    setSigningIn(true);
     const supabase = getSupabaseClient();
-    if (!supabase) { setError("Cliente de autenticação do ELO não está configurado."); setSigningIn(false); return; }
-    const { error: authError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } });
-    if (authError) { setError(authError.message); setSigningIn(false); }
+    if (!supabase) {
+      setError("Cliente de autenticação do ELO não está configurado.");
+      setSigningIn(false);
+      return;
+    }
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (authError) {
+      setError(authError.message);
+      setSigningIn(false);
+    }
   }
 
   async function signOut() {
     setError(null);
     const supabase = getSupabaseClient();
-    if (!supabase) { setError("Cliente de autenticação do ELO não está configurado."); return; }
-    try { if (session) await revokeAuthorization(supabase); }
-    catch (revokeError) { setError(revokeError instanceof Error ? revokeError.message : "Não foi possível revogar a sessão do ELO."); return; }
+    if (!supabase) {
+      setError("Cliente de autenticação do ELO não está configurado.");
+      return;
+    }
+    try {
+      if (session) await callELOAuthorization(session.access_token, "revoke_session");
+    } catch (revokeError) {
+      setError(revokeError instanceof Error ? revokeError.message : "Não foi possível revogar a sessão do ELO.");
+      return;
+    }
     const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) { setError(signOutError.message); return; }
-    setAuthorized(false); setSession(null); window.location.assign("/");
+    if (signOutError) {
+      setError(signOutError.message);
+      return;
+    }
+    setAuthorized(false);
+    setSession(null);
+    window.location.assign("/");
   }
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] text-[var(--elo-ink)]"><div className="text-sm text-slate-500">Inicializando ELO Cognitivo…</div></main>;
