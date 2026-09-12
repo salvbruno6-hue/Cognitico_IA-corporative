@@ -1,15 +1,49 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 import { ELOCognitiveError, executeCognitiveMission } from "@/lib/elo-cognitive";
-import { createCognitiveSessionId, ELO_COGNITIVE_SESSION_COOKIE, isValidCognitiveSessionId } from "@/lib/elo-cognitive-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type AuthorizationResponse = {
+  authorized?: boolean;
+  reason?: string;
+  message?: string;
+  session_id?: string;
+  authorization_authority?: string;
+};
+
 function getBearerToken(request: Request) {
   const header = request.headers.get("authorization") ?? "";
   return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+}
+
+function authorizationMessage(payload: unknown) {
+  if (typeof payload === "object" && payload !== null && "reason" in payload && typeof (payload as AuthorizationResponse).reason === "string") return (payload as AuthorizationResponse).reason;
+  if (typeof payload === "object" && payload !== null && "message" in payload && typeof (payload as AuthorizationResponse).message === "string") return (payload as AuthorizationResponse).message;
+  return "ELO Authorization recusou a missão.";
+}
+
+async function establishAuthorizedContext(request: Request, accessToken: string) {
+  const response = await fetch(new URL("/api/authorization", request.url), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "x-elo-request-id": request.headers.get("x-elo-request-id")?.trim() || crypto.randomUUID(),
+    },
+    body: JSON.stringify({ action: "consult" }),
+    cache: "no-store",
+  });
+  const payload: unknown = await response.json().catch(() => null);
+  if (!response.ok || typeof payload !== "object" || payload === null || (payload as AuthorizationResponse).authorized !== true) {
+    throw new ELOCognitiveError(authorizationMessage(payload), response.status >= 400 ? response.status : 403, "AUTHORIZATION_DENIED");
+  }
+  const authorization = payload as AuthorizationResponse;
+  if (!authorization.session_id || authorization.authorization_authority !== "elo-authz") {
+    throw new ELOCognitiveError("A sessão autorizada do ELO não foi confirmada pela autoridade elo-authz.", 403, "AUTHORIZATION_CONTEXT_INVALID");
+  }
+  return authorization;
 }
 
 export async function POST(request: Request) {
@@ -33,7 +67,6 @@ export async function POST(request: Request) {
       principal_id?: unknown;
       user_id?: unknown;
       domain?: unknown;
-      session_id?: unknown;
       context?: unknown;
     };
 
@@ -44,25 +77,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ code: "INVALID_REQUEST", message: "message, tenant_id e domain são obrigatórios." }, { status: 400 });
     }
 
-    // The authenticated Supabase identity is the canonical principal. Never allow
-    // a browser payload to impersonate another principal in the cognitive layer.
     if (typeof body.principal_id === "string" && body.principal_id.trim() && body.principal_id.trim() !== userData.user.id) {
       return NextResponse.json({ code: "FORBIDDEN", message: "principal_id não corresponde à identidade autenticada do ELO." }, { status: 403 });
     }
 
-    const requestCookies = await cookies();
-    const suppliedSessionId = typeof body.session_id === "string" ? body.session_id.trim() : "";
-    const cookieSessionId = requestCookies.get(ELO_COGNITIVE_SESSION_COOKIE)?.value;
-    const sessionId = isValidCognitiveSessionId(suppliedSessionId)
-      ? suppliedSessionId
-      : isValidCognitiveSessionId(cookieSessionId)
-        ? cookieSessionId!
-        : createCognitiveSessionId();
+    const authorization = await establishAuthorizedContext(request, accessToken);
+    const sessionId = authorization.session_id!;
 
     const result = await executeCognitiveMission({
       message,
       tenantId,
-      // Identity comes from the verified Supabase access token, not from the client body.
       principalId: userData.user.id,
       userId: userData.user.id,
       domain,
@@ -70,17 +94,7 @@ export async function POST(request: Request) {
       context: body.context && typeof body.context === "object" && !Array.isArray(body.context) ? body.context as Record<string, unknown> : {},
     });
 
-    const response = NextResponse.json(result, { status: 200 });
-    response.cookies.set({
-      name: ELO_COGNITIVE_SESSION_COOKIE,
-      value: sessionId,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 8,
-    });
-    return response;
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
     if (error instanceof ELOCognitiveError) return NextResponse.json({ code: error.code, message: error.message }, { status: error.status });
     return NextResponse.json({ code: "COGNITIVE_PROCESSING_FAILED", message: "Falha ao processar a missão cognitiva." }, { status: 500 });
