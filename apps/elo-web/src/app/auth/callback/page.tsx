@@ -2,22 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { getCanonicalSupabaseConfig } from "@/lib/supabase/config";
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
-
-    if (!url || !key) {
-      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      const { url, key } = getCanonicalSupabaseConfig();
+      supabase = createClient(url, key, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      });
+    } catch (configurationError) {
+      setError(configurationError instanceof Error ? configurationError.message : "Configuração Supabase inválida.");
       return;
     }
-
-    const supabase = createClient(url, key, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-    });
 
     void supabase.auth.getSession().then(({ error: sessionError }) => {
       if (sessionError) {
