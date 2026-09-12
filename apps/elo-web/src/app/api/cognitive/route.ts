@@ -44,6 +44,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ code: "INVALID_REQUEST", message: "message, tenant_id e domain são obrigatórios." }, { status: 400 });
     }
 
+    // The authenticated Supabase identity is the canonical principal. Never allow
+    // a browser payload to impersonate another principal in the cognitive layer.
+    if (typeof body.principal_id === "string" && body.principal_id.trim() && body.principal_id.trim() !== userData.user.id) {
+      return NextResponse.json({ code: "FORBIDDEN", message: "principal_id não corresponde à identidade autenticada do ELO." }, { status: 403 });
+    }
+
     const requestCookies = await cookies();
     const suppliedSessionId = typeof body.session_id === "string" ? body.session_id.trim() : "";
     const cookieSessionId = requestCookies.get(ELO_COGNITIVE_SESSION_COOKIE)?.value;
@@ -56,7 +62,8 @@ export async function POST(request: Request) {
     const result = await executeCognitiveMission({
       message,
       tenantId,
-      principalId: typeof body.principal_id === "string" ? body.principal_id : userData.user.id,
+      // Identity comes from the verified Supabase access token, not from the client body.
+      principalId: userData.user.id,
       userId: userData.user.id,
       domain,
       sessionId,
