@@ -115,12 +115,13 @@ async function resolveActiveSession(identityId: string) {
 async function establishSession(identityId: string) {
   const existing = await resolveActiveSession(identityId);
   if (existing.ok) {
+    const refreshedAt = new Date().toISOString();
     const { error } = await supabase
       .from("elo_identity_sessions")
-      .update({ last_seen_at: new Date().toISOString() })
+      .update({ last_seen_at: refreshedAt })
       .eq("session_id", existing.session.session_id);
     if (error) return { ok: false as const, reason: "session_refresh_failed" };
-    return { ok: true as const, session: { ...existing.session, last_seen_at: new Date().toISOString() }, reused: true };
+    return { ok: true as const, session: { ...existing.session, last_seen_at: refreshedAt }, reused: true };
   }
 
   if (existing.reason !== "active_elo_session_required") return existing;
@@ -238,7 +239,7 @@ Deno.serve(async (req: Request) => {
 
   if (CRITICAL_ACTIONS.has(action) && !auth.roles.includes("CANONICAL_ADMIN")) {
     try { await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", "canonical_authority_required", requestId); }
-    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 403); }
     return json({ authorized: false, reason: "canonical_authority_required", request_id: requestId }, 403);
   }
 
