@@ -239,7 +239,7 @@ Deno.serve(async (req: Request) => {
 
   if (CRITICAL_ACTIONS.has(action) && !auth.roles.includes("CANONICAL_ADMIN")) {
     try { await audit(auth.identity.identity_id, session.session.session_id, action, repository || null, "DENY", "canonical_authority_required", requestId); }
-    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 403); }
+    catch { return json({ authorized: false, reason: "authorization_audit_write_failed", request_id: requestId }, 503); }
     return json({ authorized: false, reason: "canonical_authority_required", request_id: requestId }, 403);
   }
 
