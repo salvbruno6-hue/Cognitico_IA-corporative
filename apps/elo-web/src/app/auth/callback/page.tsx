@@ -7,25 +7,64 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
     const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
 
     if (!url || !key) {
       setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
-      return;
+      return () => {
+        active = false;
+      };
     }
 
     const supabase = createClient(url, key, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
 
-    void supabase.auth.getSession().then(({ error: sessionError }) => {
-      if (sessionError) {
-        setError(sessionError.message);
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error_description") ?? params.get("error");
+    const code = params.get("code");
+
+    if (oauthError) {
+      setError(decodeURIComponent(oauthError.replace(/\+/g, " ")));
+      return () => {
+        active = false;
+      };
+    }
+
+    if (!code) {
+      void supabase.auth.getSession().then(({ data, error: sessionError }) => {
+        if (!active) return;
+        if (sessionError) {
+          setError(sessionError.message);
+          return;
+        }
+        if (data.session) {
+          window.location.replace("/");
+        } else {
+          setError("O retorno do Google não trouxe um código de autenticação válido.");
+        }
+      });
+
+      return () => {
+        active = false;
+      };
+    }
+
+    void supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
+      if (!active) return;
+      if (exchangeError) {
+        setError(exchangeError.message);
         return;
       }
       window.location.replace("/");
     });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
