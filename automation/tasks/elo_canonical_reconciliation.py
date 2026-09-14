@@ -29,6 +29,17 @@ AUDIT_INFRA_PREFIXES = (
     "tests/",
 )
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
+GENERIC_CONCEPT_TERMS = {
+    "package",
+    "index",
+    "config",
+    "configuration",
+    "readme",
+    "test",
+    "tests",
+    "utils",
+    "types",
+}
 
 
 @dataclass(frozen=True)
@@ -61,7 +72,15 @@ def _text_files(root: Path) -> Iterable[Path]:
 
 
 def _normalise_terms(terms: Iterable[str]) -> tuple[str, ...]:
-    return tuple(sorted({term.strip().lower() for term in terms if term and term.strip()}))
+    return tuple(
+        sorted(
+            {
+                term.strip().lower()
+                for term in terms
+                if term and term.strip() and term.strip().lower() not in GENERIC_CONCEPT_TERMS
+            }
+        )
+    )
 
 
 def _is_audit_infrastructure(relative: str) -> bool:
@@ -136,9 +155,6 @@ def reconcile_repository(
         if (stem_hit or concept_hit) and not explicit_owner and not self_audit_reference and not audit_infrastructure:
             independent_references.append(relative)
 
-        # Only executable/application source can be a competing capability.
-        # Tests, docs, workflows and maintenance automation are supporting
-        # evidence and are deliberately excluded from candidate discovery.
         source_candidate = (
             not self_audit_reference
             and not audit_infrastructure
