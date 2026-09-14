@@ -93,7 +93,10 @@ def to_external_pattern(
         problem=pattern.purpose,
         mechanism=pattern.mechanism,
         evidence_ids=tuple(f"hermes:{path}" for path in pattern.evidence_paths),
-        existing_owner="Hermes",
+        # Hermes is the evidence/provider origin, not a canonical ELO owner.
+        # Leaving this unset prevents the Evolution Gate from interpreting the
+        # external runtime as an existing canonical implementation.
+        existing_owner=None,
         scope="symbiont-hermes-capability-absorption",
         source_kind="repository",
         risk=pattern.risk,
