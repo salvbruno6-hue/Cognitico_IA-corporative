@@ -16,25 +16,51 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 type Props = { children: React.ReactNode };
 
+type AuthzResponse = {
+  authorized?: boolean;
+  session_id?: string;
+  reason?: string;
+  display_name?: string | null;
+};
+
 /**
  * Reconciles an authenticated Supabase session with the canonical ELO
- * identity and authorization-session boundary. It does not grant roles or
- * capabilities; elo-authz remains the authority for protected operations.
+ * identity/session boundary through the server-side elo-authz function.
+ * The browser never executes the privileged identity/session RPCs directly.
  */
-export async function establishELOAuthorizationSession() {
-  const { error: identityError } = await supabase.rpc('elo_bind_authenticated_identity');
-  if (identityError) throw identityError;
+async function callELOAuthz(session: Session, action: 'establish_session' | 'revoke_session') {
+  const response = await fetch(`${supabaseUrl}/functions/v1/elo-authz`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+      'x-elo-request-id': crypto.randomUUID(),
+    },
+    body: JSON.stringify({ action }),
+  });
 
-  const { data: sessionId, error: sessionError } = await supabase.rpc('elo_establish_authenticated_session');
-  if (sessionError) throw sessionError;
-  if (!sessionId) throw new Error('ELO authorization session was not established.');
+  let payload: AuthzResponse = {};
+  try {
+    payload = await response.json() as AuthzResponse;
+  } catch {
+    throw new Error(`ELO authorization boundary returned HTTP ${response.status}.`);
+  }
 
-  return sessionId as string;
+  if (!response.ok || payload.authorized !== true) {
+    throw new Error(payload.reason || `ELO authorization boundary returned HTTP ${response.status}.`);
+  }
+
+  return payload;
 }
 
-async function revokeELOAuthorizationSession() {
-  const { error } = await supabase.rpc('elo_revoke_authenticated_session');
-  if (error) throw error;
+export async function establishELOAuthorizationSession(session: Session) {
+  const result = await callELOAuthz(session, 'establish_session');
+  if (!result.session_id) throw new Error('ELO authorization session was not established.');
+  return result.session_id;
+}
+
+async function revokeELOAuthorizationSession(session: Session) {
+  await callELOAuthz(session, 'revoke_session');
 }
 
 function GoogleIcon() {
@@ -83,7 +109,7 @@ export function ELOGoogleLogin({ children }: Props) {
       }
 
       try {
-        await establishELOAuthorizationSession();
+        await establishELOAuthorizationSession(data.session);
         if (active) setAuthorizationReady(true);
       } catch (authorizationError) {
         if (active) {
@@ -118,7 +144,7 @@ export function ELOGoogleLogin({ children }: Props) {
   async function signOut() {
     setError(null);
     try {
-      if (session) await revokeELOAuthorizationSession();
+      if (session) await revokeELOAuthorizationSession(session);
     } catch (revokeError) {
       setError(revokeError instanceof Error ? revokeError.message : 'Não foi possível revogar a sessão de autorização do ELO.');
       return;
