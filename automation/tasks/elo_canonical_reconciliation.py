@@ -39,6 +39,8 @@ GENERIC_CONCEPT_TERMS = {
     "tests",
     "utils",
     "types",
+    "app",
+    "css",
 }
 
 
@@ -224,6 +226,17 @@ def reconcile_repository(
         canonical_identity = "elo-maintenance-governance"
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
+
+    # Existing canonical frontend files are a REUSE evolution, not a new
+    # executable authority. Once generic stem discovery finds no executable
+    # candidate, explicit repository owner evidence is sufficient to classify
+    # this bounded frontend modification as an existing runtime surface.
+    frontend_changed = any(path.replace("\\", "/").startswith("frontend/") for path in changed)
+    if frontend_changed and owners and not candidates and not maintenance_changed:
+        source_of_truth = owners[0]
+        canonical_identity = "frontend"
+        duplicate = False
+        reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
     decision = None
