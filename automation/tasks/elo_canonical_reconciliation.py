@@ -39,6 +39,8 @@ GENERIC_CONCEPT_TERMS = {
     "tests",
     "utils",
     "types",
+    "app",
+    "css",
 }
 
 
