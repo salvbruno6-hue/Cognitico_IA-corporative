@@ -1,13 +1,7 @@
 import pytest
 
-from elo.cognitive.hermes_autonomous_observation import (
-    HermesAutonomousIntake,
-    HermesAutonomousObservation,
-)
-from elo.cognitive.hermes_domain_intelligence import (
-    DomainIntelligenceObservation,
-    HermesDomainIntelligence,
-)
+from elo.cognitive.autonomous_reasoning import AutonomousExecutionPlan, AutonomousReasoning
+from elo.cognitive.domain_intelligence import DomainIntelligence, DomainIntelligenceObservation
 
 
 def domain(**overrides):
@@ -15,11 +9,11 @@ def domain(**overrides):
         observation_id="domain-001",
         tenant_id="multiteiner",
         target="example.test",
-        source_ref="salvbruno6-hue/ELO-Hermes-Agent",
-        source_commit="b774519a1e6396f741e13fb6e81894044d66755e",
+        source_ref="external-evidence/domain-intel",
+        source_commit="source-commit-001",
         evidence_ids=("ev-domain-001",),
         observations=("passive source observed",),
-        limitations=("network availability may vary",),
+        limitations=("acquisition availability may vary",),
     )
     values.update(overrides)
     return DomainIntelligenceObservation(**values)
@@ -27,28 +21,27 @@ def domain(**overrides):
 
 def autonomous(**overrides):
     values = dict(
-        observation_id="autonomy-001",
+        plan_id="autonomy-001",
         tenant_id="multiteiner",
-        agent_skill="hermes-agent",
-        source_ref="salvbruno6-hue/ELO-Hermes-Agent",
-        source_commit="b774519a1e6396f741e13fb6e81894044d66755e",
         objective="evaluate a bounded maintenance hypothesis",
         planned_actions=("inspect evidence", "run isolated validation"),
-        observed_outcome="candidate evidence collected",
+        expected_outcome="candidate evidence collected",
         evidence_ids=("ev-autonomy-001",),
         constraints=("no canonical writes", "bounded execution"),
-        limitations=("provider execution not reproduced in this unit test",),
+        limitations=("execution provider is not part of the native contract",),
+        source_ref="external-evidence/autonomous-plan",
+        source_commit="source-commit-001",
     )
     values.update(overrides)
-    return HermesAutonomousObservation(**values)
+    return AutonomousExecutionPlan(**values)
 
 
-def test_domain_intelligence_reaches_existing_evolution_spine():
-    decision = HermesDomainIntelligence().classify(domain())
+def test_domain_intelligence_is_native_and_provider_neutral():
+    decision = DomainIntelligence().classify(domain())
     assert decision.disposition == "LAB_CANDIDATE"
     assert decision.candidate_creation_allowed
-    assert decision.pattern.scope == "symbiont-hermes-domain-intelligence"
-    assert decision.proposal.provenance["source_commit"]
+    assert decision.pattern.scope == "elo-domain-intelligence"
+    assert decision.pattern.source_kind == "external_evidence"
 
 
 def test_domain_intelligence_rejects_missing_uncertainty():
@@ -61,12 +54,12 @@ def test_domain_intelligence_rejects_credentials():
         domain(metadata={"authorization": "secret"})
 
 
-def test_autonomous_experience_reaches_gate_as_candidate_only():
-    decision = HermesAutonomousIntake().classify(autonomous())
+def test_autonomous_reasoning_is_native_and_bounded():
+    decision = AutonomousReasoning().classify(autonomous(), "candidate evidence collected")
     assert decision.disposition == "LAB_CANDIDATE"
     assert decision.candidate_creation_allowed
-    assert decision.pattern.scope == "symbiont-hermes-autonomous-agents"
-    assert decision.proposal.provenance["source_kind"] == "hermes_autonomous_agent"
+    assert decision.pattern.scope == "elo-autonomous-reasoning"
+    assert decision.pattern.source_kind == "external_evidence"
 
 
 def test_autonomous_requires_bounds_and_evidence():
@@ -79,3 +72,8 @@ def test_autonomous_requires_bounds_and_evidence():
 def test_autonomous_requires_limits_to_prevent_false_certainty():
     with pytest.raises(ValueError, match="requires limitations"):
         autonomous(limitations=())
+
+
+def test_autonomous_requires_observed_outcome():
+    with pytest.raises(ValueError, match="observed_outcome is required"):
+        AutonomousReasoning().classify(autonomous(), "")
