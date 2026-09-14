@@ -88,3 +88,18 @@ def test_parallel_capability_blocks_architectural_admission():
     outcome, reasons = audit(event)
     assert outcome is Outcome.BLOCKED
     assert "duplicate_or_parallel_capability_found" in reasons
+
+
+def test_unknown_contract_conflict_blocks_admission_until_evidence_exists():
+    event = base_event(contract_conflict=None)
+    outcome, reasons = audit(event)
+    assert outcome is Outcome.WAITING_FOR_EVIDENCE
+    assert "contract_conflict_state_unknown" in reasons
+
+
+def test_consultation_requests_reuse_and_single_source_checks():
+    from automation.tasks.elo_maintenance_coordinator import consultation_request
+    request = consultation_request(base_event())
+    assert request["requires_reuse_analysis"] is True
+    assert request["requires_single_source_of_truth"] is True
+    assert request["requires_duplicate_check"] is True
