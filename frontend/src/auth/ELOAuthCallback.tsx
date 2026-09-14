@@ -36,13 +36,14 @@ export function ELOAuthCallback() {
         setMessage(`Não foi possível finalizar o login: ${error.message}`);
         return;
       }
-      if (!data.session) {
-        setMessage('Sessão não encontrada. Retorne ao login e tente novamente.');
+      const session = data.session;
+      if (!session?.access_token) {
+        setMessage('Sessão não encontrada ou sem access token. Retorne ao login e tente novamente.');
         return;
       }
 
       try {
-        await establishELOAuthorizationSession();
+        await establishELOAuthorizationSession(session);
       } catch (authorizationError) {
         setMessage(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
         return;
