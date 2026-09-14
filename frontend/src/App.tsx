@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { ELOAuthCallback } from './auth/ELOAuthCallback';
 import { ELOGoogleLogin } from './auth/ELOGoogleLogin';
 import { ELOOAuthConsent } from './auth/ELOOAuthConsent';
+import { ELOHermesFrontendSkillTest } from './pages/ELOHermesFrontendSkillTest';
 import { playELOSound, setELOSoundEnabled, setELOSoundVolume } from './eloSound';
 
 type Area = 'memoria' | 'processamento' | 'decisao' | 'historico' | 'configuracoes' | 'ajuda' | null;
@@ -46,5 +47,5 @@ function ELOCore() {
 }
 function Login() { return <ELOGoogleLogin><ELOCore /></ELOGoogleLogin>; }
 export default function App() {
-  return <Routes><Route path="/" element={<Login />} /><Route path="/login" element={<Login />} /><Route path="/auth/callback" element={<ELOAuthCallback />} /><Route path="/oauth/consent" element={<ELOOAuthConsent />} /><Route path="/app/*" element={<Login />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes>;
+  return <Routes><Route path="/" element={<Login />} /><Route path="/login" element={<Login />} /><Route path="/auth/callback" element={<ELOAuthCallback />} /><Route path="/oauth/consent" element={<ELOOAuthConsent />} /><Route path="/app/*" element={<Login />} /><Route path="/hermes-skill-test" element={<ELOHermesFrontendSkillTest />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes>;
 }
