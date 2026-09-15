@@ -3,13 +3,13 @@
 ## 1. Regra de acionamento
 
 - Quando o usuário disser **"relatório"**, o Especialista de Qualidade deve produzir **RELATÓRIO em DOCX**, usando o padrão documental de referência fornecido pelo usuário (`PTS_DOC (1).docx`) como base visual/institucional quando aplicável.
-- Quando o usuário disser **"apresentação"**, o Especialista de Qualidade deve produzir **PowerPoint com 5 páginas/slides**, seguindo as regras deste documento.
+- Quando o usuário disser **"apresentação"**, o Especialista de Qualidade deve produzir **PowerPoint com exatamente 5 páginas/slides**, seguindo as regras visuais e estruturais deste documento.
 
 ## 2. Regra de fonte
 
 Os arquivos fornecidos pelo usuário são fontes de formato e conteúdo para o artefato solicitado. O especialista não deve inventar dados que a fonte não sustente.
 
-O arquivo `PTS_DOC (1).docx` recebido nesta regra é uma referência institucional de uma página, com identidade visual Multiteiner: logotipo no canto superior esquerdo, linha horizontal azul superior e composição gráfica em branco/cinza com faixa inferior azul/amarela. O conteúdo textual do DOCX não pôde ser extraído; portanto, a referência disponível é principalmente visual.
+O arquivo `PTS_DOC (1).docx` recebido como referência possui identidade visual Multiteiner, com logotipo no canto superior esquerdo, linha horizontal azul superior e composição gráfica em branco/cinza com faixa inferior azul/amarela. O conteúdo textual do DOCX não pôde ser extraído; portanto, a referência disponível é principalmente visual.
 
 ## 3. Relatório
 
@@ -29,18 +29,21 @@ Quando solicitado **relatório**:
 Quando solicitado **apresentação**:
 
 - Formato: PowerPoint (`.pptx`).
-- Extensão: **5 slides/páginas**.
+- Extensão: **exatamente 5 slides/páginas**.
 - Deve ser executiva, visual e objetiva.
+- Regra visual: **aproximadamente 70% visual e 30% textual**.
+- Priorizar gráficos, indicadores, tabelas resumidas, elementos visuais e hierarquia de informação.
+- Evitar transformar os slides em páginas de relatório com excesso de texto.
 - Usar gráficos/tabelas somente quando derivados dos dados reais.
 - O slide final deve apresentar conclusão e pontos de atenção, sem extrapolar a evidência.
 
 Estrutura padrão de 5 slides:
 
-1. **Visão executiva** — contexto, escopo, período e principais números.
-2. **Perfil da base** — distribuição relevante por tipo, categoria ou configuração.
-3. **Comportamento temporal** — entradas, ocorrências ou concentração por período.
-4. **Cruzamentos relevantes** — relações entre período, tipo, status ou outras dimensões pertinentes.
-5. **Conclusão e pontos de atenção** — o que os dados permitem afirmar, pendências e limitações.
+1. **Visão executiva** — contexto, escopo, período e principais números, com forte destaque visual.
+2. **Perfil da base** — distribuição relevante por tipo, categoria ou configuração, preferencialmente em gráfico.
+3. **Comportamento temporal** — entradas, ocorrências ou concentração por período, representadas graficamente.
+4. **Cruzamentos relevantes** — relações entre período, tipo, status ou outras dimensões pertinentes, preferencialmente em gráfico ou matriz visual.
+5. **Conclusão e pontos de atenção** — o que os dados permitem afirmar, pendências e limitações, com síntese visual.
 
 ## 5. Integração com ELO / GitHub / Supabase
 
@@ -48,7 +51,7 @@ Estrutura padrão de 5 slides:
 - **Supabase** mantém o estado operacional e os dados efetivamente registrados.
 - O especialista deve consultar o fluxo ponta a ponta do ELO antes de interpretar registros isolados.
 - Não criar uma nova estrutura de dados quando já existir uma estrutura canônica adequada.
-- Relações entre tabelas devem ser usadas no relatório quando forem pertinentes ao contexto solicitado.
+- Relações entre tabelas devem ser usadas no relatório ou apresentação quando forem pertinentes ao contexto solicitado.
 - Mudanças de configuração/modificação expressas por um registro de reparo devem aparecer como **evento de reparo relacionado ao número do módulo**, conforme regra operacional vigente.
 
 ## 6. Regra de evidência
@@ -61,6 +64,17 @@ O especialista deve separar:
 - **PENDÊNCIA** — informação necessária que não está disponível.
 - **CONCLUSÃO** — síntese limitada ao que a evidência suporta.
 
-## 7. Regra de entrega
+## 7. Regra de entrega e validação
 
-Ao concluir um relatório ou apresentação, o artefato deve ser validado antes de ser considerado concluído. A referência canônica da regra permanece no GitHub Cognitivo, enquanto os dados utilizados devem ser provenientes das fontes operacionais autorizadas.
+Ao concluir um relatório ou apresentação, o artefato deve ser validado antes de ser considerado concluído.
+
+Para apresentações, validar obrigatoriamente:
+
+1. exatamente 5 slides;
+2. proporção visual aproximada de 70% / textual de 30%;
+3. gráficos e números coerentes com a fonte;
+4. números conferidos;
+5. ausência de extrapolações;
+6. conclusão compatível com a evidência.
+
+A referência canônica da regra permanece no GitHub Cognitivo, enquanto os dados utilizados devem ser provenientes das fontes operacionais autorizadas.
