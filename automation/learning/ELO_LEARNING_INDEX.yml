@@ -1,0 +1,27 @@
+schema: ELO-LEARNING-001
+version: 1
+owner: ELO
+authority: ELO
+storage_role: governed_learning_index
+promotion_policy: explicit_evidence_only
+
+# Records are appended/reconciled by the governed ELO learning cycle.
+# Codex may read and propose records but cannot authorize promotion.
+records: []
+
+active_cursor:
+  correction_id: null
+  problem_fingerprint: null
+  state: DIAGNOSTICO
+  next_action: null
+  cycle: 0
+  blocker: null
+
+rules:
+  - retrieve_before_create
+  - preserve_failed_attempts
+  - separate_problem_learning_from_method_learning
+  - require_merge_and_post_merge_regression_for_validated_learning
+  - record_supersession_instead_of_duplicate_learning
+  - never_promote_hypothesis_automatically
+  - never_treat_codex_output_as_authorization
