@@ -44,7 +44,15 @@ Expected:
 - recommendation is absent;
 - execution remains impossible.
 
+## Operational execution
+
+This cycle deliberately uses GitHub Actions as the evidence authority. The repository's ELO Evolution Gate is configured for `push` to `main` and `feat/**`, pull requests to `main`, and manual dispatch. Its canonical validation executes `python -m pytest -q` after installing the test/agentic package, so RUN-01 is exercised as part of the real repository test suite rather than by a simulated result.
+
+A dedicated evidence branch/PR is used to cause a fresh GitHub Actions execution tied to a concrete commit. PASS will only be recorded after the corresponding workflow run is completed successfully and its SHA is verified against the tested commit.
+
 ## Result classification
+
+Current state: **EXECUTION_REQUESTED — awaiting GitHub Actions evidence**.
 
 The repository contains executable tests for all three cases. Final PASS is only recorded after the corresponding CI workflow execution is successful and tied to the commit containing this test.
 
@@ -54,9 +62,9 @@ If CI passes, RUN-01 changes from `DEFINED` to `PASS` in the critical matrix. It
 
 ## Required evidence record
 
-- commit SHA: recorded by PR/CI;
+- commit SHA: to be recorded from the executed PR commit;
 - environment: GitHub Actions runtime;
-- command: `python -m pytest -q tests/integration/test_core_critical_run01.py`;
-- workflow/run identifier: to be recorded by CI;
-- observed result: to be recorded only from CI;
+- command: `python -m pytest -q tests/integration/test_core_critical_run01.py` and repository canonical full suite;
+- workflow/run identifier: to be recorded from GitHub Actions;
+- observed result: to be recorded only from GitHub Actions;
 - residual risk: end-to-end production/external-provider behavior remains separate from this repository-local test.
