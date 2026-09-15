@@ -4,41 +4,49 @@
 
 Timeout/retry/degradation/recovery behavior is proven end-to-end without creating a second execution authority.
 
-## Evidence rule
+## Operational implementation
 
-Documentation is not PASS evidence. PASS requires a GitHub Actions execution tied to the tested commit, with the RUN-06 integration test and canonical validation succeeding.
-
-## Operational path
-
-The test now uses a **real localhost HTTP transport harness** on the GitHub Actions runner. It deliberately produces transport-level outcomes and records each attempt before composing the canonical ELO Core loop:
+RUN-06 uses a **real localhost HTTP transport harness** on the GitHub Actions runner. It deliberately produces a socket-level timeout, HTTP `503` unavailability and successful recovery, while preserving each attempt's provenance and historical identity before composing the canonical ELO Core loop.
 
 `localhost HTTP event → bounded retry state → historical/provenance evidence → Core context/evidence → governed reasoning → recommendation/handoff`
 
-The harness is test-only: it introduces no production provider, credential, external server, second executor, persistence authority or Core authority.
+The harness is test-only. It introduces no production provider, credential, external server, second executor, persistence authority or Core authority.
 
-## Required cases
+## Published GitHub evidence
 
-1. `TIMEOUT → SUCCESS` uses a real socket timeout followed by a real HTTP success, with attempts 1 and 2 preserved.
-2. `UNAVAILABLE → UNAVAILABLE → UNAVAILABLE` uses real HTTP `503` responses, reaches the retry bound, and remains `DEGRADED`.
-3. `TIMEOUT → UNAVAILABLE → SUCCESS` combines real transport timeout and HTTP failure before real recovery on attempt 3.
-4. Repeating the same local sequence produces the same evidence status, attempt sequence, provenance and historical identity.
+Tested commit: `6bc26fa4f0065a634ad6bf2682d6036aa0986b69`
 
-## Current status
+PR: `#520`
 
-`EXECUTION_REQUESTED — awaiting GitHub Actions evidence for the real transport harness`
+PR validation:
 
-## Required published evidence
+- ELO Behavioral Validation run `34920488550`: PASS; compile, tests and evidence upload completed.
+- ELO PR1 Validation run `34920488515`: PASS; compile and tests completed.
+- ELO Evolution Gate run `34920488523`: PASS; canonical validation, full suite, external access contract and decision handoff completed successfully.
+- ELO Maintenance Coordinator run `34920488520`: PASS.
 
-- tested commit SHA;
-- GitHub Actions workflow/run identifier;
-- exact command or test target;
-- environment;
-- observed transport results and attempt counts;
-- canonical/full-suite result;
-- residual risk.
+The PR was merged by squash as `79ed019903179cf9d4e03f2b7ff4c4f67bda3a80`, and `main` now points exactly to that SHA.
 
-Only after those fields are backed by completed GitHub Actions results may RUN-06 be reclassified from `DEFINED` to `PASS`.
+## Required cases and observed behavior
+
+1. `TIMEOUT → SUCCESS`: real socket timeout followed by real HTTP success; attempts `[1, 2]` preserved.
+2. `UNAVAILABLE → UNAVAILABLE → UNAVAILABLE`: real HTTP `503` on three attempts; retry bound reached; final state `DEGRADED`, never synthetic success.
+3. `TIMEOUT → UNAVAILABLE → SUCCESS`: real timeout, real `503`, then real HTTP success on attempt 3.
+4. Repeated identical local sequence: identical status sequence, attempt sequence, provenance and historical identity.
+
+## Post-merge regression evidence
+
+Main SHA: `79ed019903179cf9d4e03f2b7ff4c4f67bda3a80`
+
+- ELO Behavioral Validation push run `34920608456`: PASS; compile, tests and test-evidence upload completed successfully.
+- ELO PR1 Validation push run `34920608475`: PASS; compile and tests completed successfully.
+- ELO Evolution Gate push run `34920608466`: PASS; canonical validation/full suite, external access contract and decision handoff completed successfully.
+- ELO GitHub Pages push run `34920608431`: PASS; frontend build, artifact upload and deployment completed successfully.
+
+## Status
+
+`PASS — REAL / MERGED / ON_MAIN / POST_MERGE_REGRESSION_PASS`
 
 ## Residual boundary
 
-This closes the evidence gap between an internally simulated retry sequence and an actual transport event on the CI runner. It does **not** claim live external-provider or production health; that remains a separate maturity criterion.
+This evidence closes the gap between an internally simulated retry sequence and actual transport behavior on the CI runner. It does **not** claim live external-provider or production health; that remains a separate maturity criterion (OPS-03).
