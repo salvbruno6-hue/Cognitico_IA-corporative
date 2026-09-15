@@ -72,6 +72,12 @@ class PersistentMemoryStore:
             raise MemoryAdmissionError("tenant_id, domain and principal_id are required")
         if not record.source_id or not record.provenance:
             raise MemoryAdmissionError("source_id and provenance are required")
+        if record.kind == "historical":
+            existing = self._connection.execute(
+                "SELECT memory_id FROM memories WHERE memory_id=?", (record.memory_id,)
+            ).fetchone()
+            if existing:
+                raise MemoryAdmissionError("historical record is immutable")
         self._connection.execute(
             """
             INSERT INTO memories
@@ -132,6 +138,54 @@ class PersistentMemoryStore:
         ).fetchone()
         return self._row_to_record(row) if row else None
 
+    def append_follow_up(
+        self,
+        historical: MemoryRecord,
+        *,
+        content: str,
+        source_id: str,
+        provenance: dict[str, Any],
+    ) -> MemoryRecord:
+        """Append a new record linked to history without changing the original."""
+        if historical.kind != "historical":
+            raise MemoryAdmissionError("follow-up requires a historical record")
+        follow_up = MemoryRecord(
+            memory_id=str(uuid.uuid4()),
+            tenant_id=historical.tenant_id,
+            domain=historical.domain,
+            principal_id=historical.principal_id,
+            content=content,
+            source_id=source_id,
+            provenance={**provenance, "follows_memory_id": historical.memory_id},
+            created_at=time.time(),
+            kind="historical_follow_up",
+        )
+        return self.admit(follow_up)
+
+    def replay_history(self, memory_id: str, *, tenant_id: str, domain: str) -> tuple[MemoryRecord, ...]:
+        """Reconstruct an immutable record followed by its append-only descendants."""
+        root = self.get(memory_id, tenant_id=tenant_id, domain=domain)
+        if root is None or root.kind != "historical":
+            return ()
+        rows = self._connection.execute(
+            "SELECT * FROM memories WHERE tenant_id=? AND domain=? AND memory_id<>? ORDER BY created_at ASC, memory_id ASC",
+            (tenant_id, domain, memory_id),
+        ).fetchall()
+        chain = [root]
+        parent = memory_id
+        remaining = [self._row_to_record(row) for row in rows]
+        while True:
+            next_record = next(
+                (record for record in remaining if record.provenance.get("follows_memory_id") == parent),
+                None,
+            )
+            if next_record is None:
+                break
+            chain.append(next_record)
+            remaining.remove(next_record)
+            parent = next_record.memory_id
+        return tuple(chain)
+
     def search(
         self,
         query: str,
@@ -168,11 +222,11 @@ class PersistentMemoryStore:
         now = time.time()
         if tenant_id is None:
             cursor = self._connection.execute(
-                "DELETE FROM memories WHERE expires_at IS NOT NULL AND expires_at <= ?", (now,)
+                "DELETE FROM memories WHERE expires_at IS NOT NULL AND expires_at <= ? AND kind <> 'historical'", (now,)
             )
         else:
             cursor = self._connection.execute(
-                "DELETE FROM memories WHERE tenant_id=? AND expires_at IS NOT NULL AND expires_at <= ?",
+                "DELETE FROM memories WHERE tenant_id=? AND expires_at IS NOT NULL AND expires_at <= ? AND kind <> 'historical'",
                 (tenant_id, now),
             )
         self._connection.commit()
