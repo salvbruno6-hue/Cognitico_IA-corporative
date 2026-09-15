@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
-from typing import Iterable, Mapping, Protocol
+from typing import Callable, Iterable, Mapping, Protocol
 
 CANDIDATE = "candidate"
 VALIDATED = "validated"
@@ -49,14 +49,31 @@ class LearningCandidate:
     evidence: tuple[str, ...]
     provenance: Mapping[str, str]
     promotion_requirements: tuple[str, ...]
+    variant: int = 0
+    validation_notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ConsistencyIteration:
+    iteration: int
+    candidate_id: str
+    variant: int
+    consistent: bool
+    test_passed: bool
+    issues: tuple[str, ...]
 
 
 class SnapshotSource(Protocol):
     def read(self) -> HermesSnapshot: ...
 
 
+Evaluator = Callable[[LearningCandidate], tuple[bool, tuple[str, ...]]]
+Adjuster = Callable[[LearningCandidate, tuple[str, ...], int], LearningCandidate]
+Tester = Callable[[LearningCandidate], bool]
+
+
 class HermesKnowledgeLoop:
-    """Deterministic discovery → evidence → validation → promotion loop."""
+    """Deterministic discovery → variation → consistency → validation loop."""
 
     def discover(self, snapshot: HermesSnapshot) -> tuple[LearningCandidate, ...]:
         mechanism_ids = [m.mechanism_id for m in snapshot.mechanisms]
@@ -93,6 +110,60 @@ class HermesKnowledgeLoop:
         return tuple(candidates)
 
     @staticmethod
+    def iterate_until_consistent(
+        candidate: LearningCandidate,
+        *,
+        evaluate: Evaluator,
+        adjust: Adjuster,
+        test: Tester,
+        max_iterations: int = 5,
+    ) -> tuple[LearningCandidate, tuple[ConsistencyIteration, ...]]:
+        """Evaluate, adjust and test a candidate until consistent or bounded out.
+
+        This is deliberately bounded. A candidate that remains inconsistent is
+        returned as CANDIDATE with its history; it is never silently promoted.
+        Each adjustment creates a new immutable variant and provenance is copied
+        forward unchanged unless the caller explicitly rejects it in validation.
+        """
+        if max_iterations < 1:
+            raise ValueError("max_iterations must be >= 1")
+
+        current = candidate
+        history: list[ConsistencyIteration] = []
+        for iteration in range(1, max_iterations + 1):
+            consistent, issues = evaluate(current)
+            test_passed = test(current) if consistent else False
+            history.append(
+                ConsistencyIteration(
+                    iteration=iteration,
+                    candidate_id=current.candidate_id,
+                    variant=current.variant,
+                    consistent=consistent,
+                    test_passed=test_passed,
+                    issues=tuple(issues),
+                )
+            )
+            if consistent and test_passed:
+                return current, tuple(history)
+
+            failure_reasons = tuple(issues) or (
+                "implementation test failed",
+            )
+            current = adjust(current, failure_reasons, iteration)
+            if current.candidate_id != candidate.candidate_id:
+                raise ValueError("adjustment cannot change candidate identity")
+            if current.provenance != candidate.provenance:
+                raise ValueError("adjustment cannot change candidate provenance")
+            current = replace(
+                current,
+                status=CANDIDATE,
+                variant=max(current.variant, candidate.variant) + 1,
+                validation_notes=current.validation_notes + failure_reasons,
+            )
+
+        return current, tuple(history)
+
+    @staticmethod
     def validate(
         candidate: LearningCandidate,
         *,
@@ -121,8 +192,8 @@ class HermesKnowledgeLoop:
     ) -> str:
         rows = [
             f"- `{candidate.candidate_id}` — `{candidate.status}` — "
-            f"mechanism `{candidate.mechanism_id}`; source `{snapshot.source}` "
-            f"revision `{snapshot.revision}`."
+            f"variant `{candidate.variant}` — mechanism `{candidate.mechanism_id}`; "
+            f"source `{snapshot.source}` revision `{snapshot.revision}`."
             for candidate in candidates
         ]
         body = "\n".join(rows) or "- No mechanisms discovered."
@@ -146,7 +217,7 @@ class HermesKnowledgeLoop:
             f"{body}\n\n"
             "## Admission rule\n\n"
             "Discovery never equals learning. A candidate becomes validated only\n"
-            "after implementation tests, provenance checks and ELO Evolution Gate\n"
+            "after consistency, implementation tests, provenance checks and ELO Evolution Gate\n"
             "approval. Git merge is separate from cognitive promotion.\n"
         )
 
