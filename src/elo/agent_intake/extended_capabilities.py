@@ -93,8 +93,8 @@ def measure_evolution(
 ) -> EvolutionMeasurement:
     """Evaluate measured improvement against the existing ELO capability baseline.
 
-    Higher-is-better metrics are assumed. A result is positive only when there is
-    at least one measurable gain, no regression, and repeatability is demonstrated.
+    Higher-is-better metrics are assumed. Gains are normalized to a stable decimal
+    precision so deterministic tests do not depend on binary floating-point artifacts.
     The function never changes canonical state or promotion status.
     """
     if not extension_is_eligible_for_test(extension):
@@ -109,7 +109,7 @@ def measure_evolution(
         )
 
     gain = {
-        key: adapted[key] - baseline[key]
+        key: round(adapted[key] - baseline[key], 10)
         for key in baseline.keys() & adapted.keys()
         if adapted[key] - baseline[key] > 0
     }
