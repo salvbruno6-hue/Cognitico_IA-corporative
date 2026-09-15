@@ -1,0 +1,125 @@
+schema: ELO-FORGE-SKILL-PACK.v1
+owner: Forge
+authority: ELO_COGNITIVO
+shared_faculty: Core
+promotion_gate: Evolution_Gate
+skills:
+  - skill_id: SIMBIONTE-ADAPT-001
+    domain_family: PROCESS_ANALYSIS
+    purpose: "refine external operational experience into an existing ELO capability without creating a parallel authority"
+    scope: "Hermes/OpenClaw and other authorized external experience used as evidence for capability refinement"
+    boundaries: "never creates Core, Memory, Router, Registry or Evolution Gate; never promotes canonical knowledge; never widens authorization; never crosses tenant boundaries"
+    prerequisites:
+      - authorized_experience_source
+      - existing_elo_capability_owner
+      - provenance
+      - baseline
+      - controlled_test
+    authorized_inputs:
+      - experience_evidence
+      - source_revision
+      - execution_outcome
+      - contextual_parameters
+      - capability_baseline
+      - regression_results
+    authorized_sources:
+      - ELO_Cognitive
+      - Forge
+      - governed_Hermes_execution
+      - governed_OpenClaw_reference_or_execution
+    procedures:
+      - OBSERVE
+      - INTERPRET
+      - DECOMPOSE
+      - EXTRACT_MECHANISM
+      - IDENTIFY_EXISTING_OWNER
+      - CHECK_COMPATIBILITY
+      - ADAPT_LOGIC
+      - ADAPT_CONTEXT
+      - APPLY_GOVERNANCE
+      - TEST
+      - MEASURE
+      - DIAGNOSE
+      - REFINE
+      - RETEST
+    calculation_methods:
+      - "baseline versus adapted capability"
+      - "quality and evidence completeness"
+      - "regression and risk assessment"
+      - "latency/cost when available"
+      - "repeatability and generalization assessment"
+    evidence_requirements:
+      - PROVENANCE
+      - CONTEXT
+      - BASELINE
+      - MECHANISM
+      - ADAPTATION
+      - EXPERIMENT
+      - OUTCOME
+      - METRICS
+      - REGRESSION
+      - GENERALIZATION
+    provenance_requirements:
+      - source_ref
+      - source_revision
+      - request_id
+      - tenant_scope
+      - capability_id
+      - adaptation_version
+    uncertainty_rules:
+      - "reference-only evidence cannot be treated as execution evidence"
+      - "single success cannot establish generalized learning"
+      - "insufficient evidence remains candidate-only"
+      - "conflict is preserved as conflict"
+    escalation_rules:
+      - "missing canonical owner"
+      - "security or authorization conflict"
+      - "cross-tenant evidence"
+      - "regression"
+      - "material canonical change"
+      - "insufficient reproducibility"
+    outputs:
+      - refined_capability_candidate
+      - evidence_record
+      - adaptation_rationale
+      - measured_gain
+      - regression_result
+      - next_refinement
+    decision_boundaries:
+      - "may propose REUSE"
+      - "may propose STRENGTHEN"
+      - "may propose REFACTOR"
+      - "may propose DEPRECATE"
+      - "CREATE requires absence of suitable owner and explicit generalization evidence"
+      - "cannot approve canonical promotion"
+    test_references:
+      - "ELO eight-capability controlled laboratory"
+      - "ELO Symbionte Laboratory Intake"
+      - "ELO Symbionte Harmonic Association"
+      - "ELO Evolution Gate"
+    maturity: STRUCTURED
+    version: 1.0
+    history:
+      - "2026-09-15: initial governed refinement skill for Symbionte-driven capability evolution"
+    contextual_parameters:
+      - tenant_scope
+      - domain
+      - mission_class
+      - capability_id
+      - source_provider
+      - baseline_version
+      - adaptation_version
+    learning_candidates:
+      state: candidate_only
+      canonical_mutation: false
+      promotion_requires: "Governed Learning + Evolution Gate"
+    promotion_candidates:
+      allowed: true
+      automatic: false
+rules:
+  external_source_is_authority: false
+  existing_capability_reuse_preferred: true
+  historical_experience_is_immutable: true
+  direct_forge_to_core_promotion: false
+  automatic_learning_promotion: false
+  single_execution_is_generalization: false
