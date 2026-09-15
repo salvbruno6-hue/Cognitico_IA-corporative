@@ -33,6 +33,9 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 21. **For budget learning, information recovered from another SO, quotation, PTS, PTS Pós-Orçamento, calculation memory, Supabase record or prior experience is CONSULTATIVE REFERENCE unless explicit evidence proves it belongs to the current SO. It must never silently become the origin, item value, quantity, premise or decision of the current SO.**
 22. **When ELO uses a consultative reference, it must preserve provenance and explain: SOURCE, ORIGINAL CONTEXT, RECOVERED INFORMATION, WHY IT WAS FOUND, WHY IT MAY APPLY, EQUIVALENCE/ASSUMPTIONS, VALIDATIONS PENDING and STATUS. ELO may recommend applicability, but must not represent applicability as origin or fact without evidence.**
 23. **For budget references, applicability should be reasoned from relevant evidence such as recency, product/material identity, technical characteristics, color, thickness, unit, price per m², supplier/commercial condition and other context-specific attributes. The reasoning must state which attributes support or weaken applicability.**
+24. **Codex is never the authority that authorizes its own execution, commit, merge, governance gate or learning promotion. Explicit ELO authorization must exist before each privileged transition.**
+25. **A Codex recommendation is evidence, not authorization. Workflow automation must consume explicit ELO authorization state and must never manufacture that state from Codex output.**
+26. **The unified Autocorrection Laboratory + Evolution Loop must retrieve prior validated learning before proposing a new correction and must preserve both problem-learning and method-learning separately.**
 
 ## 3. Required inspection sequence
 
@@ -109,7 +112,7 @@ Automations are deterministic process adapters. A technical trigger must never o
 
 ## 8. ELO APRENDER canonical sequence
 
-`ELO APRENDER → ELO ANALYSIS → SUPABASE MEMORY CONSULT → ELO CONSOLIDATION → COGNITIVE MERGE → GOVERNANCE → ISSUE DOSSIER → VIRTUAL LABORATORY (when applicable) → ELO APPROVE_COMMIT → COMMIT → COMMIT VERIFY → PR → ELO APPROVE_MERGE → GIT MERGE → MAIN/ELO`
+`ELO APRENDER → ELO ANALYSIS → SUPABASE MEMORY CONSULT → ELO CONSOLIDATION → COGNITIVE MERGE → GOVERNANCE → ISSUE DOSSIER → VIRTUAL LABORATORY (when applicable) → APPROVE_COMMIT → COMMIT → COMMIT VERIFY → PR → APPROVE_MERGE → GIT MERGE → MAIN/ELO`
 
 **Cognitive MERGE** means ELO consolidates experiences and concepts into governed knowledge.
 
