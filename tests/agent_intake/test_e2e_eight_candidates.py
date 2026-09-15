@@ -34,14 +34,13 @@ OPENCLAW_IMPLEMENTATIONS = {
     "HERMES-CONTEXT": "src/agents/harness/context-engine-lifecycle.ts",
     "HERMES-DELEGATION": "src/agents/subagent-spawn.ts",
     "HERMES-AUTOMATION": "src/cron/schedule.ts",
-    "HERMES-MCP": "src/gateway/mcp-*.ts",
+    "HERMES-MCP": "src/mcp/tools-stdio-server.ts",
     "HERMES-CHECKPOINT": "src/agents/session-file-repair.ts",
 }
 
-
 # The OpenClaw source snapshot used by this laboratory is the dedicated
-# repository's current reference tree. Source evidence is not treated as a
-# live execution result and therefore cannot promote a candidate.
+# repository's reference tree. Source evidence is not treated as a live
+# execution result and therefore cannot promote a candidate.
 OPENCLAW_REFERENCE = "salvbruno6-hue/https-github.com-salvbruno6-hue-openclaw-dedicated"
 
 
