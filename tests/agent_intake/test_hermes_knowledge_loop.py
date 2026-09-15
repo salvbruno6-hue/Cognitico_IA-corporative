@@ -70,3 +70,30 @@ def test_memory_markdown_keeps_reference_boundary():
     assert "authority: reference" in memory
     assert "Discovery never equals learning" in memory
     assert "ELO Evolution Gate" in memory
+
+
+def test_duplicate_mechanism_ids_are_rejected():
+    base = snapshot()
+    duplicate = HermesSnapshot(
+        source=base.source,
+        revision=base.revision,
+        captured_at=base.captured_at,
+        mechanisms=base.mechanisms + (base.mechanisms[0],),
+    )
+    try:
+        HermesKnowledgeLoop().discover(duplicate)
+    except ValueError as exc:
+        assert "duplicate mechanism_id" in str(exc)
+    else:
+        raise AssertionError("duplicate mechanism IDs must be rejected")
+
+
+def test_missing_source_provenance_is_rejected():
+    base = snapshot()
+    invalid = HermesSnapshot("", base.revision, base.captured_at, base.mechanisms)
+    try:
+        HermesKnowledgeLoop().discover(invalid)
+    except ValueError as exc:
+        assert "source and revision provenance" in str(exc)
+    else:
+        raise AssertionError("missing source provenance must be rejected")
