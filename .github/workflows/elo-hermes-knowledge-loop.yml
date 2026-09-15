@@ -1,6 +1,14 @@
 name: ELO Hermes Knowledge Loop
 
 on:
+  push:
+    branches:
+      - 'codex/hermes-knowledge-loop'
+    paths:
+      - 'src/elo/agent_intake/hermes_knowledge_loop.py'
+      - 'tests/agent_intake/test_hermes_knowledge_loop.py'
+      - '06-knowledge-engineering/hermes/MEMORY.md'
+      - '.github/workflows/elo-hermes-knowledge-loop.yml'
   pull_request:
     paths:
       - 'src/elo/agent_intake/hermes_knowledge_loop.py'
