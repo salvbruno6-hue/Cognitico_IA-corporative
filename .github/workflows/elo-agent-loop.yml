@@ -2,7 +2,7 @@ name: ELO Agent Loop
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -32,7 +32,9 @@ jobs:
   execute-review-correct-pr:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' && github.event.label.name == 'codex-ready')
+      (github.event_name == 'issues' &&
+       (github.event.label.name == 'codex-ready' ||
+        (github.event.action == 'opened' && contains(join(github.event.issue.labels.*.name, ','), 'codex-ready'))))
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
