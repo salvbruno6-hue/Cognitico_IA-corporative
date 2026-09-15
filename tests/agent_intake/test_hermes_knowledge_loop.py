@@ -97,3 +97,79 @@ def test_missing_source_provenance_is_rejected():
         assert "source and revision provenance" in str(exc)
     else:
         raise AssertionError("missing source provenance must be rejected")
+
+
+def test_consistency_loop_creates_variations_until_test_passes():
+    candidate = HermesKnowledgeLoop().discover(snapshot())[0]
+    attempts = []
+
+    def evaluate(current):
+        attempts.append(current.variant)
+        if current.variant < 2:
+            return False, (f"inconsistency-{current.variant}",)
+        return True, ()
+
+    def adjust(current, issues, iteration):
+        return current
+
+    final, history = HermesKnowledgeLoop.iterate_until_consistent(
+        candidate,
+        evaluate=evaluate,
+        adjust=adjust,
+        test=lambda current: True,
+        max_iterations=5,
+    )
+
+    assert final.status == CANDIDATE
+    assert final.variant == 2
+    assert attempts == [0, 1, 2]
+    assert len(history) == 3
+    assert history[-1].consistent is True
+    assert history[-1].test_passed is True
+    assert "inconsistency-0" in final.validation_notes
+    assert "inconsistency-1" in final.validation_notes
+
+
+def test_consistency_loop_is_bounded_and_never_promotes():
+    candidate = HermesKnowledgeLoop().discover(snapshot())[0]
+
+    def evaluate(_current):
+        return False, ("persistent inconsistency",)
+
+    final, history = HermesKnowledgeLoop.iterate_until_consistent(
+        candidate,
+        evaluate=evaluate,
+        adjust=lambda current, _issues, _iteration: current,
+        test=lambda _current: False,
+        max_iterations=3,
+    )
+
+    assert final.status == CANDIDATE
+    assert final.variant == 3
+    assert len(history) == 3
+    assert all(not item.consistent for item in history)
+    assert HermesKnowledgeLoop.promote([final]) == ()
+
+
+def test_consistency_loop_cannot_change_candidate_identity_or_provenance():
+    candidate = HermesKnowledgeLoop().discover(snapshot())[0]
+
+    try:
+        HermesKnowledgeLoop.iterate_until_consistent(
+            candidate,
+            evaluate=lambda _current: (False, ("bad",)),
+            adjust=lambda current, _issues, _iteration: type(current)(
+                candidate_id="OTHER",
+                mechanism_id=current.mechanism_id,
+                status=current.status,
+                evidence=current.evidence,
+                provenance=current.provenance,
+                promotion_requirements=current.promotion_requirements,
+            ),
+            test=lambda _current: False,
+            max_iterations=1,
+        )
+    except ValueError as exc:
+        assert "candidate identity" in str(exc)
+    else:
+        raise AssertionError("candidate identity must remain immutable")
