@@ -1,8 +1,10 @@
-"""E2E laboratory for the eight ELO capability candidates.
+"""Integrated E2E laboratory for the implemented ELO capability set.
 
-The scenario is deliberately inert: it validates operation, evidence, tenant
-isolation, duplicate/authority boundaries, and learning safety without calling
-Hermes, changing canonical knowledge, or performing business operations.
+The laboratory keeps one canonical ELO capability identity per capability and
+records Hermes/OpenClaw as provider implementations/evidence for that identity.
+It deliberately does not create a second OpenClaw capability registry, call
+external infrastructure, mutate canonical knowledge, or perform business
+operations.
 """
 
 from elo.agent_intake.native_capabilities import CAPABILITY_IDS, NativeELORuntime, execute_candidate
@@ -22,8 +24,28 @@ EXPECTED_OPERATIONS = {
     "HERMES-CHECKPOINT": "restored",
 }
 
+# OpenClaw evidence is reference-only. These are existing implementation
+# surfaces, not new ELO implementations. The same capability identity is
+# intentionally reused to prevent duplicate ELO authorities.
+OPENCLAW_IMPLEMENTATIONS = {
+    "HERMES-MEMORY": "extensions/memory-core/index.ts",
+    "HERMES-SKILLS": "src/agents/skills/plugin-skills.ts",
+    "HERMES-TOOLSETS": "src/agents/tool-policy.ts",
+    "HERMES-CONTEXT": "src/agents/harness/context-engine-lifecycle.ts",
+    "HERMES-DELEGATION": "src/agents/subagent-spawn.ts",
+    "HERMES-AUTOMATION": "src/cron/schedule.ts",
+    "HERMES-MCP": "src/gateway/mcp-*.ts",
+    "HERMES-CHECKPOINT": "src/agents/session-file-repair.ts",
+}
 
-def test_e2e_eight_candidates_complete_the_controlled_scenario():
+
+# The OpenClaw source snapshot used by this laboratory is the dedicated
+# repository's current reference tree. Source evidence is not treated as a
+# live execution result and therefore cannot promote a candidate.
+OPENCLAW_REFERENCE = "salvbruno6-hue/https-github.com-salvbruno6-hue-openclaw-dedicated"
+
+
+def test_e2e_all_implemented_capabilities_complete_the_controlled_scenario():
     results = [
         execute_candidate(candidate, request_id=f"{SCENARIO}-{index:02d}", tenant_scope=TENANT)
         for index, candidate in enumerate(CAPABILITY_IDS, 1)
@@ -40,6 +62,13 @@ def test_e2e_eight_candidates_complete_the_controlled_scenario():
             "promotion_state": "candidate_only",
             "canonical_mutation": False,
         }
+
+
+def test_e2e_each_capability_has_openclaw_and_elo_implementations_without_duplicate_ids():
+    assert set(OPENCLAW_IMPLEMENTATIONS) == set(CAPABILITY_IDS)
+    assert len(OPENCLAW_IMPLEMENTATIONS) == len(CAPABILITY_IDS) == 8
+    assert len(set(OPENCLAW_IMPLEMENTATIONS)) == 8
+    assert OPENCLAW_REFERENCE.endswith("openclaw-dedicated")
 
 
 def test_e2e_eight_candidates_prove_the_expected_operation_for_each_candidate():
