@@ -4,6 +4,7 @@ from elo.agent_intake.extended_capabilities import (
     EXTENSIONS,
     extend_capability,
     extension_is_eligible_for_test,
+    measure_evolution,
 )
 
 EXPECTED_OWNERS = {
@@ -72,3 +73,65 @@ def test_only_measured_outcomes_can_enter_refinement_test():
     )
     assert live.evidence_quality == "execution_verified"
     assert extension_is_eligible_for_test(live) is True
+
+
+def test_positive_evolution_requires_gain_and_repeatability_without_regression():
+    candidate = extend_capability(
+        "EXT-MEM-HERMES",
+        {"controlled_test": True, "outcome": {"retrieval": True}},
+    )
+    measurement = measure_evolution(
+        candidate,
+        {"retrieval_accuracy": 0.70, "context_recall": 0.60},
+        {"retrieval_accuracy": 0.82, "context_recall": 0.66},
+        repeatable=True,
+    )
+    assert measurement.result == "STRENGTHEN"
+    assert measurement.measured_gain == {
+        "retrieval_accuracy": 0.12,
+        "context_recall": 0.06,
+    }
+    assert candidate.promotion_state == "candidate_only"
+    assert candidate.canonical_mutation is False
+
+
+def test_regression_rejects_even_when_another_metric_improves():
+    candidate = extend_capability(
+        "EXT-MEM-OPENCLAW",
+        {"controlled_test": True, "outcome": {"retrieval": True}},
+    )
+    measurement = measure_evolution(
+        candidate,
+        {"relevance": 0.70, "cost_efficiency": 0.80},
+        {"relevance": 0.90, "cost_efficiency": 0.75},
+        regressions=("cost_efficiency",),
+        repeatable=True,
+    )
+    assert measurement.result == "REJECT"
+    assert measurement.measured_gain == {"relevance": 0.20}
+
+
+def test_non_repeatable_gain_requires_retest():
+    candidate = extend_capability(
+        "EXT-SKILL-OPENCLAW",
+        {"controlled_test": True, "outcome": {"execution": True}},
+    )
+    measurement = measure_evolution(
+        candidate,
+        {"execution_success": 0.80},
+        {"execution_success": 0.90},
+        repeatable=False,
+    )
+    assert measurement.result == "RETEST"
+
+
+def test_unverified_reference_cannot_produce_positive_evolution():
+    candidate = extend_capability("EXT-CONTEXT-HERMES", {"source_reference": True})
+    measurement = measure_evolution(
+        candidate,
+        {"context_relevance": 0.70},
+        {"context_relevance": 0.95},
+        repeatable=True,
+    )
+    assert measurement.result == "REJECT"
+    assert measurement.measured_gain == {}
