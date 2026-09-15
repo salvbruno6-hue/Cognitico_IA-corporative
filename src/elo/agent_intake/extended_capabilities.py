@@ -43,6 +43,16 @@ class ExtendedCapability:
     canonical_mutation: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class EvolutionMeasurement:
+    extension_id: str
+    baseline: Mapping[str, float]
+    adapted: Mapping[str, float]
+    regressions: tuple[str, ...]
+    repeatable: bool
+    result: str
+    measured_gain: Mapping[str, float]
+
 
 def _quality(evidence: Mapping[str, Any]) -> str:
     if evidence.get("live_execution") is True and evidence.get("outcome"):
@@ -73,4 +83,58 @@ def extension_is_eligible_for_test(extension: ExtendedCapability) -> bool:
     return extension.evidence_quality in {"controlled_verified", "execution_verified"}
 
 
-__all__ = ["EXTENSIONS", "ExtendedCapability", "extend_capability", "extension_is_eligible_for_test"]
+def measure_evolution(
+    extension: ExtendedCapability,
+    baseline: Mapping[str, float],
+    adapted: Mapping[str, float],
+    *,
+    regressions: tuple[str, ...] = (),
+    repeatable: bool = False,
+) -> EvolutionMeasurement:
+    """Evaluate measured improvement against the existing ELO capability baseline.
+
+    Higher-is-better metrics are assumed. A result is positive only when there is
+    at least one measurable gain, no regression, and repeatability is demonstrated.
+    The function never changes canonical state or promotion status.
+    """
+    if not extension_is_eligible_for_test(extension):
+        return EvolutionMeasurement(
+            extension.extension_id,
+            baseline,
+            adapted,
+            regressions,
+            repeatable,
+            "REJECT",
+            {},
+        )
+
+    gain = {
+        key: adapted[key] - baseline[key]
+        for key in baseline.keys() & adapted.keys()
+        if adapted[key] - baseline[key] > 0
+    }
+    if regressions:
+        result = "REJECT"
+    elif not gain or not repeatable:
+        result = "RETEST"
+    else:
+        result = "STRENGTHEN"
+    return EvolutionMeasurement(
+        extension.extension_id,
+        baseline,
+        adapted,
+        regressions,
+        repeatable,
+        result,
+        gain,
+    )
+
+
+__all__ = [
+    "EXTENSIONS",
+    "EvolutionMeasurement",
+    "ExtendedCapability",
+    "extend_capability",
+    "extension_is_eligible_for_test",
+    "measure_evolution",
+]
