@@ -33,6 +33,12 @@ These rules complement, but do not replace, the canonical architecture, ADRs, go
 21. **For budget learning, information recovered from another SO, quotation, PTS, PTS Pós-Orçamento, calculation memory, Supabase record or prior experience is CONSULTATIVE REFERENCE unless explicit evidence proves it belongs to the current SO. It must never silently become the origin, item value, quantity, premise or decision of the current SO.**
 22. **When ELO uses a consultative reference, it must preserve provenance and explain: SOURCE, ORIGINAL CONTEXT, RECOVERED INFORMATION, WHY IT WAS FOUND, WHY IT MAY APPLY, EQUIVALENCE/ASSUMPTIONS, VALIDATIONS PENDING and STATUS. ELO may recommend applicability, but must not represent applicability as origin or fact without evidence.**
 23. **For budget references, applicability should be reasoned from relevant evidence such as recency, product/material identity, technical characteristics, color, thickness, unit, price per m², supplier/commercial condition and other context-specific attributes. The reasoning must state which attributes support or weaken applicability.**
+24. **ELO must never create duplicate concepts, implementations, schemas, memories, rules, workflows, agents, routers, services, documents, or directories when an equivalent canonical capability already exists. Semantic equivalence counts as duplication even when names, code, locations, or interfaces differ.**
+25. **Before creating anything, ELO must search for equivalent meaning, not only identical names. It must compare purpose, inputs, outputs, responsibility, authority, lifecycle, persistence, dependencies, and behavior, then reuse, extend, consolidate, rename, or deprecate the existing canonical artifact as appropriate.**
+26. **Different names for the same responsibility are treated as semantic duplicates. ELO must not preserve parallel terminology merely to avoid refactoring; it must establish one canonical term and explicitly map legacy terms to it when migration is required.**
+27. **New folders/directories created by ELO must use clear Portuguese names that describe their canonical responsibility. Existing established technical paths are not renamed merely for language consistency; a rename requires evidence, migration impact analysis, and a governed change.**
+28. **ELO must not create a new folder to represent a concept that already has a canonical folder elsewhere. If a location is wrong or ambiguous, ELO must consolidate or migrate rather than create a parallel directory.**
+29. **Duplicate detection is a mandatory gate before CREATE: search repository, canonical documents, contracts, schemas, tests, workflows, memory models, and related paths; record the canonical owner and the reason creation is indispensable.**
 
 ## 3. Required inspection sequence
 
@@ -42,11 +48,13 @@ Before any implementation task:
 2. Read `ELO_REPOSITORY_NAVIGATION_RULES.md`.
 3. Read `ELO_ARTIFACT_METADATA_STANDARD.md` when adding or relocating artifacts.
 4. Inspect the target directory.
-5. Search for an existing concept, contract, class, schema, test, ADR, or document.
+5. Search for an existing concept, contract, class, schema, test, ADR, document, workflow, memory, router, or folder with equivalent meaning.
 6. Identify the canonical owner of the concept.
-7. Check the current implementation state and tests.
-8. Check relevant ADRs and governance constraints.
-9. Define the smallest change that satisfies the task.
+7. Compare semantic responsibility and behavior, not only names or paths.
+8. Check the current implementation state and tests.
+9. Check relevant ADRs and governance constraints.
+10. Define the smallest change that satisfies the task.
+11. If creation remains necessary, document why reuse, extension, consolidation, migration, or deprecation was insufficient.
 
 ## 4. Change classification
 
@@ -159,6 +167,8 @@ For implementation work:
 
 For budget-learning validation, tests must include at least one provenance-separation case and one applicability-reasoning case where the changed behavior supports them.
 
+For governance changes that affect artifact creation, tests/evidence must demonstrate that equivalent existing artifacts are detected before creation where the repository provides a suitable test harness; otherwise the inspection result must be recorded in the PR evidence.
+
 ## 13. Git discipline
 
 Preferred flow for governed learning and architecture changes:
@@ -181,7 +191,7 @@ Automatic merge is allowed only when ELO emits `APPROVE_MERGE`, required special
 
 ## 15. Stop conditions
 
-Stop and request an architectural decision when two canonical contracts conflict, a change would break a public contract without migration, a new persistent data model is required but unspecified, a component would bypass an established governance boundary, evidence is insufficient, required capabilities are unavailable, or correction cycles are exhausted.
+Stop and request an architectural decision when two canonical contracts conflict, a change would break a public contract without migration, a new persistent data model is required but unspecified, a component would bypass an established governance boundary, evidence is insufficient, required capabilities are unavailable, correction cycles are exhausted, or an apparently new artifact is semantically equivalent to an existing artifact and the canonical owner cannot be established safely.
 
 ## 16. Definition of done for AI work
 
@@ -190,6 +200,8 @@ DONE requires:
 - scope satisfied;
 - canonical contracts reused;
 - no known duplicate implementation introduced;
+- no semantic duplicate introduced under a different name;
+- new folders, when genuinely indispensable, use clear Portuguese names;
 - tests/evidence produced when applicable;
 - documentation updated when behavior or contract changed;
 - git status clean except for intentional changes;
