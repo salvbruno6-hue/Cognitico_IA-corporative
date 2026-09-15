@@ -7,21 +7,19 @@ Authority: implementation
 Related: ELO_HERMES_CAPABILITY_SCAN_20260912.md, ELO_ARTIFACT_METADATA_STANDARD.md
 Depends_on: ELO governance gates, Hermes exported capability evidence
 
-This module never calls Hermes and never mutates Hermes. It transforms an
-externally supplied, read-only Hermes snapshot into evidence-backed learning
-candidates. Promotion is explicit and requires validation evidence.
+The loop consumes explicitly supplied Hermes evidence. It never calls Hermes,
+never mutates Hermes, never executes business operations and never promotes a
+candidate without all declared gates.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Iterable, Mapping, Protocol
 
-
-VALIDATED = "validated"
 CANDIDATE = "candidate"
-REJECTED = "rejected"
+VALIDATED = "validated"
 
 
 @dataclass(frozen=True)
@@ -61,26 +59,30 @@ class HermesKnowledgeLoop:
     """Deterministic discovery → evidence → validation → promotion loop."""
 
     def discover(self, snapshot: HermesSnapshot) -> tuple[LearningCandidate, ...]:
+        mechanism_ids = [m.mechanism_id for m in snapshot.mechanisms]
+        if len(mechanism_ids) != len(set(mechanism_ids)):
+            raise ValueError("Hermes snapshot contains duplicate mechanism_id values")
+        if not snapshot.source or not snapshot.revision:
+            raise ValueError("Hermes snapshot requires source and revision provenance")
+
         candidates: list[LearningCandidate] = []
         for mechanism in snapshot.mechanisms:
-            evidence = (
-                f"source={snapshot.source}",
-                f"revision={snapshot.revision}",
-                f"captured_at={snapshot.captured_at}",
-                f"interface={mechanism.interface}",
-            )
-            provenance = {
-                "source": snapshot.source,
-                "source_revision": snapshot.revision,
-                "mechanism": mechanism.mechanism_id,
-            }
             candidates.append(
                 LearningCandidate(
                     candidate_id=f"HERMES-{mechanism.mechanism_id}",
                     mechanism_id=mechanism.mechanism_id,
                     status=CANDIDATE,
-                    evidence=evidence,
-                    provenance=provenance,
+                    evidence=(
+                        f"source={snapshot.source}",
+                        f"revision={snapshot.revision}",
+                        f"captured_at={snapshot.captured_at}",
+                        f"interface={mechanism.interface}",
+                    ),
+                    provenance={
+                        "source": snapshot.source,
+                        "source_revision": snapshot.revision,
+                        "mechanism": mechanism.mechanism_id,
+                    },
                     promotion_requirements=(
                         "implementation test passes",
                         "provenance remains intact",
@@ -98,19 +100,18 @@ class HermesKnowledgeLoop:
         provenance_passed: bool,
         evolution_gate_approved: bool,
     ) -> LearningCandidate:
-        if not (implementation_passed and provenance_passed and evolution_gate_approved):
-            return LearningCandidate(
-                **{**candidate.__dict__, "status": CANDIDATE}
-            )
-        return LearningCandidate(
-            **{**candidate.__dict__, "status": VALIDATED}
+        approved = (
+            implementation_passed
+            and provenance_passed
+            and evolution_gate_approved
         )
+        return replace(candidate, status=VALIDATED if approved else CANDIDATE)
 
     @staticmethod
     def promote(
         candidates: Iterable[LearningCandidate],
     ) -> tuple[LearningCandidate, ...]:
-        """Return only candidates that already passed every promotion gate."""
+        """Return only candidates already approved by every promotion gate."""
         return tuple(c for c in candidates if c.status == VALIDATED)
 
     @staticmethod
@@ -118,13 +119,12 @@ class HermesKnowledgeLoop:
         snapshot: HermesSnapshot,
         candidates: Iterable[LearningCandidate],
     ) -> str:
-        rows = []
-        for candidate in candidates:
-            rows.append(
-                f"- `{candidate.candidate_id}` — `{candidate.status}` — "
-                f"mechanism `{candidate.mechanism_id}`; source `{snapshot.source}` "
-                f"revision `{snapshot.revision}`."
-            )
+        rows = [
+            f"- `{candidate.candidate_id}` — `{candidate.status}` — "
+            f"mechanism `{candidate.mechanism_id}`; source `{snapshot.source}` "
+            f"revision `{snapshot.revision}`."
+            for candidate in candidates
+        ]
         body = "\n".join(rows) or "- No mechanisms discovered."
         return (
             "# ELO — Hermes Knowledge Memory\n\n"
