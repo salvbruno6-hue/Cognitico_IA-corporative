@@ -31,10 +31,11 @@ class SemanticRecallEvidence:
 @dataclass(frozen=True, slots=True)
 class SemanticRecallEvaluation:
     capability_id: str
+    target_id: str
     baseline_matches: tuple[str, ...]
     adapted_matches: tuple[str, ...]
-    baseline_count: int
-    adapted_count: int
+    baseline_target_hit: bool
+    adapted_target_hit: bool
     gain: int
     repeatable: bool
     regression: bool
@@ -89,25 +90,28 @@ def semantic_recall(*, request_id: str, tenant_scope: str, query: str, records: 
     )
 
 
-def evaluate_semantic_recall_adaptation(*, tenant_scope: str, query: str, records: tuple[dict[str, Any], ...], top_k: int = 3) -> SemanticRecallEvaluation:
+def evaluate_semantic_recall_adaptation(*, tenant_scope: str, query: str, records: tuple[dict[str, Any], ...], target_id: str, top_k: int = 3) -> SemanticRecallEvaluation:
     """Compare baseline lexical retrieval with a bounded, deterministic adaptation."""
-    if not tenant_scope.strip() or not query.strip():
-        raise ValueError("tenant_scope and query are required")
+    if not tenant_scope.strip() or not query.strip() or not target_id.strip():
+        raise ValueError("tenant_scope, query and target_id are required")
     if top_k < 1:
         raise ValueError("top_k must be positive")
 
     baseline = _rank(tenant_scope=tenant_scope, query=query, records=records, adapted=False, top_k=top_k)
     adapted = _rank(tenant_scope=tenant_scope, query=query, records=records, adapted=True, top_k=top_k)
     repeat = _rank(tenant_scope=tenant_scope, query=query, records=records, adapted=True, top_k=top_k)
+    baseline_hit = target_id in baseline
+    adapted_hit = target_id in adapted
     return SemanticRecallEvaluation(
         capability_id=CAPABILITY_ID,
+        target_id=target_id,
         baseline_matches=baseline,
         adapted_matches=adapted,
-        baseline_count=len(baseline),
-        adapted_count=len(adapted),
-        gain=len(adapted) - len(baseline),
+        baseline_target_hit=baseline_hit,
+        adapted_target_hit=adapted_hit,
+        gain=int(adapted_hit) - int(baseline_hit),
         repeatable=adapted == repeat,
-        regression=not set(baseline).issubset(set(adapted)),
+        regression=baseline_hit and not adapted_hit,
         learning_candidate={"promotion_state": "candidate_only", "canonical_mutation": False},
     )
 
