@@ -44,7 +44,6 @@ MEMORY_TABLES: tuple[MemoryTableSpec, ...] = (
 
 _TABLE_BY_NAME = {item.table: item for item in MEMORY_TABLES}
 
-# Requirement keys are intentionally explicit. Unknown keys are not guessed.
 _REQUIREMENT_TABLES: Mapping[str, tuple[str, ...]] = {
     "calculation_memory": ("elo_orcament_calculation_memory", "elo_orcament_run"),
     "current_requirements": ("elo_orcament_run", "elo_experience_record"),
@@ -88,11 +87,10 @@ class SupabaseLearningMemoryAdapter:
             for row in self._rows.get(table, ()):
                 if not self._scope_matches(row, intent):
                     continue
-                content = self._content(row, spec)
                 candidates.append(
                     KnowledgeCandidate(
                         source_id=f"supabase:{table}:{self._row_id(row)}",
-                        content=content,
+                        content=self._content(row, spec),
                         source_type=f"supabase:{spec.role}",
                         status=self._status(row),
                         relevance=self._relevance(spec.domain, requested_domain),
@@ -114,9 +112,12 @@ class SupabaseLearningMemoryAdapter:
 
     @staticmethod
     def _scope_matches(row: Mapping[str, Any], intent: IntentSpec) -> bool:
-        scope = row.get("scope")
         requested_scope = intent.metadata.get("scope")
-        return requested_scope is None or scope is None or str(scope) == requested_scope
+        if requested_scope is None:
+            return True
+        # A scoped request must never silently accept a row with no scope field.
+        scope = row.get("scope")
+        return scope is not None and str(scope) == requested_scope
 
     @staticmethod
     def _content(row: Mapping[str, Any], spec: MemoryTableSpec) -> str:
@@ -129,8 +130,8 @@ class SupabaseLearningMemoryAdapter:
     @staticmethod
     def _status(row: Mapping[str, Any]) -> str:
         raw = str(row.get("status") or row.get("validation_status") or row.get("promotion_status") or "UNVERIFIED").upper()
-        if raw in {"VALIDATED", "CANONICAL", "INCORPORATED", "CURRENT", "PROVISORIO", "CANDIDATE", "OBSERVED"}:
-            return "GOVERNED" if raw in {"VALIDATED", "INCORPORATED", "CANONICAL"} else "REFERENCE"
+        if raw in {"VALIDATED", "CANONICAL", "INCORPORATED", "CURRENT", "PROVISORIO", "CANDIDATE", "OBSERVED", "VALIDADO"}:
+            return "GOVERNED" if raw in {"VALIDATED", "VALIDADO", "INCORPORATED", "CANONICAL"} else "REFERENCE"
         if raw in {"REJECTED", "DESCARTADO", "OUTDATED"}:
             return "OUTDATED"
         return "UNVERIFIED"
