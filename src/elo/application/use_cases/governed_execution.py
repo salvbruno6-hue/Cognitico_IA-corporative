@@ -6,7 +6,8 @@ an input produced by the canonical authorization boundary; this module does
 not implement policy.
 
 The flow is deliberately one-way:
-    governed request
+    governed web request
+        -> Core cognitive-analysis condition
         -> Core capability decision
         -> orchestration decision
         -> capability selection
@@ -25,8 +26,9 @@ from elo.agent_intake.operational_capability_runtime import (
     OperationalCapabilityRuntime,
     OperationalExecution,
 )
-from elo.core.capability_resolution import CoreCapabilityDecision
+from elo.core.capability_resolution import CoreCapabilityDecision, resolve_capability
 
+from ..web_request_boundary import WebRequest
 from .orchestrator import (
     AuthorizationDecision,
     GovernedOrchestrator,
@@ -104,6 +106,40 @@ class GovernedExecutionUseCase:
             decision=orchestration,
             execution=execution,
         )
+
+    def execute_from_core_analysis(
+        self,
+        *,
+        web_request: WebRequest,
+        analysis_condition: str,
+        authorization: AuthorizationDecision,
+        domain: str = "capability",
+        payload: dict[str, Any] | None = None,
+    ) -> GovernedExecutionResult:
+        """Bridge an accepted web request to Core resolution and governed execution.
+
+        ``analysis_condition`` is explicitly the condition already produced by
+        the cognitive-analysis stage. The application never receives or chooses
+        a capability identifier; Core resolves that identifier from its existing
+        governed conditional-pointer matrix.
+        """
+        core_decision = resolve_capability(
+            request_id=web_request.request_id,
+            tenant_scope=web_request.tenant_id,
+            condition=analysis_condition,
+            analysis_evidence=web_request.evidence_ids,
+        )
+        request = GovernedExecutionRequest(
+            tenant_id=web_request.tenant_id,
+            principal_id=web_request.principal_id,
+            domain=domain,
+            objective=web_request.intent,
+            core_capability_decision=core_decision,
+            evidence_ids=web_request.evidence_ids,
+            authorization=authorization,
+            payload=payload,
+        )
+        return self.execute(request)
 
 
 __all__ = [
