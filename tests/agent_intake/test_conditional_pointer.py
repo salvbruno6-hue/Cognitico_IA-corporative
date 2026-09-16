@@ -12,6 +12,35 @@ def test_conditional_pointer_resolves_information_to_existing_capability():
     assert all(result.learning_candidate["canonical_mutation"] is False for result in results)
 
 
+def test_pointer_matrix_has_no_duplicate_conditions_or_capability_identities():
+    results = validate_pointer_matrix()
+
+    conditions = [result.condition for result in results]
+    capabilities = [result.matched_capability for result in results]
+
+    assert len(conditions) == len(set(conditions))
+    assert len(capabilities) == len(set(capabilities))
+
+
+def test_repeated_resolution_is_idempotent_and_creates_no_state():
+    information = {"condition": "semantic-recall", "source": "controlled-lab"}
+
+    first = resolve_pointer(
+        request_id="pointer-idempotent-01",
+        tenant_scope="multiteiner",
+        information=information,
+    )
+    second = resolve_pointer(
+        request_id="pointer-idempotent-01",
+        tenant_scope="multiteiner",
+        information=information,
+    )
+
+    assert first == second
+    assert information == {"condition": "semantic-recall", "source": "controlled-lab"}
+    assert first.learning_candidate["canonical_mutation"] is False
+
+
 def test_unknown_condition_does_not_guess_a_destination():
     result = resolve_pointer(
         request_id="pointer-unknown-01",

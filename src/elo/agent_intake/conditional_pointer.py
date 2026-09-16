@@ -1,7 +1,8 @@
 """Controlled information-to-capability pointer resolution for ELO.
 
-This is a deterministic laboratory surface only. It does not execute tools,
-mutate canonical knowledge, authorize external actions, or promote learning.
+This is a deterministic laboratory surface only. It does not persist data,
+create capabilities, mutate canonical knowledge, authorize external actions,
+or promote learning. Repeated resolution of the same input is idempotent.
 """
 
 from __future__ import annotations
@@ -36,13 +37,28 @@ _RULES: tuple[tuple[str, str, str, bool], ...] = (
     ("state-recovery", "HERMES-CHECKPOINT", "ELO_STATE_RECOVERY", False),
 )
 
-for _condition, _capability_id, _destination, _policy in _RULES:
-    if _capability_id not in CAPABILITY_IDS:
-        raise ValueError(f"pointer rule references unknown native capability: {_capability_id}")
+
+def _validate_rule_integrity() -> None:
+    """Reject duplicate pointer identities without creating replacement data."""
+    conditions = [condition for condition, *_ in _RULES]
+    capabilities = [capability_id for _condition, capability_id, *_ in _RULES]
+
+    if len(conditions) != len(set(conditions)):
+        raise ValueError("conditional pointer rules contain duplicate conditions")
+    if len(capabilities) != len(set(capabilities)):
+        raise ValueError("conditional pointer rules contain duplicate capability identities")
+    if any(capability_id not in CAPABILITY_IDS for capability_id in capabilities):
+        raise ValueError("pointer rule references unknown native capability")
+
+
+_validate_rule_integrity()
 
 
 def resolve_pointer(*, request_id: str, tenant_scope: str, information: dict[str, Any]) -> ConditionalPointerEvidence:
+    """Resolve an already-known relation without persistence or side effects."""
     condition = str(information.get("condition", "")).strip().lower()
+    received = dict(information)
+
     for rule_condition, capability_id, destination, policy_required in _RULES:
         if condition == rule_condition:
             return ConditionalPointerEvidence(
@@ -54,7 +70,7 @@ def resolve_pointer(*, request_id: str, tenant_scope: str, information: dict[str
                 policy_required=policy_required,
                 status="resolved",
                 evidence=(
-                    {"information_received": dict(information)},
+                    {"information_received": received},
                     {"relation": {"condition": condition, "capability_id": capability_id}},
                     {"destination": destination, "policy_required": policy_required},
                 ),
@@ -69,7 +85,7 @@ def resolve_pointer(*, request_id: str, tenant_scope: str, information: dict[str
         destination=None,
         policy_required=False,
         status="unresolved",
-        evidence=({"information_received": dict(information)},),
+        evidence=({"information_received": received},),
         learning_candidate={"promotion_state": "candidate_only", "canonical_mutation": False},
     )
 

@@ -88,11 +88,17 @@ MECHANISMS: dict[str, tuple[str, str]] = {
 }
 
 
+def _successful_outcome(evidence: Mapping[str, Any]) -> bool:
+    """Return true only when an execution outcome explicitly contains no false result."""
+    outcome = evidence.get("outcome")
+    return isinstance(outcome, Mapping) and bool(outcome) and all(value is True for value in outcome.values())
+
+
 def _quality(evidence: Mapping[str, Any]) -> str:
-    """Classify evidence conservatively; source references alone are not execution proof."""
-    if evidence.get("live_execution") is True and evidence.get("outcome"):
+    """Classify evidence conservatively; failed outcomes are not execution proof."""
+    if evidence.get("live_execution") is True and _successful_outcome(evidence):
         return "execution_verified"
-    if evidence.get("controlled_test") is True and evidence.get("outcome"):
+    if evidence.get("controlled_test") is True and _successful_outcome(evidence):
         return "controlled_verified"
     if evidence.get("source_reference"):
         return "reference_only"
