@@ -1,6 +1,7 @@
 from elo.agent_intake.capability_promotion import activate_operational_capabilities
 from elo.agent_intake.native_capabilities import CAPABILITY_IDS
 from elo.agent_intake.operational_capability_runtime import OperationalCapabilityRuntime
+from elo.cognitive.reasoning.capability_selection import CapabilityRequirement, CapabilitySelector
 from elo.core.capability_registry import CapabilityStatus
 
 
@@ -23,9 +24,7 @@ def test_all_eight_capabilities_are_selectable_and_executable():
     }
 
     for capability_id in CAPABILITY_IDS:
-        decision = __import__("elo.cognitive.reasoning.capability_selection", fromlist=["CapabilityRequirement", "CapabilitySelector"]).CapabilitySelector(registry).select(
-            __import__("elo.cognitive.reasoning.capability_selection", fromlist=["CapabilityRequirement"]).CapabilityRequirement(capability_id)
-        )
+        decision = CapabilitySelector(registry).select(CapabilityRequirement(capability_id))
         assert decision.status == "SELECTED"
         execution = runtime.execute(capability_id, payloads[capability_id])
         assert execution.selected and execution.capability_id == capability_id
