@@ -60,6 +60,28 @@ def test_failed_or_missing_evidence_cannot_become_canonical():
         assert adaptation.canonical_mutation is False
 
 
+def test_failed_controlled_outcome_is_not_verified_or_test_eligible():
+    for capability_id in CAPABILITY_IDS:
+        adaptation = refine_capability(
+            capability_id,
+            {"controlled_test": True, "outcome": {"passed": False}},
+        )
+        assert adaptation.evidence_quality == "insufficient"
+        assert refinement_is_eligible_for_test(adaptation) is False
+        assert adaptation.promotion_state == "candidate_only"
+        assert adaptation.canonical_mutation is False
+
+
+def test_partially_failed_controlled_outcome_is_not_verified_or_test_eligible():
+    adaptation = refine_capability(
+        "HERMES-TOOLSETS",
+        {"controlled_test": True, "outcome": {"allow": True, "deny": False}},
+    )
+
+    assert adaptation.evidence_quality == "insufficient"
+    assert refinement_is_eligible_for_test(adaptation) is False
+
+
 def test_eight_experiences_map_one_to_one_without_new_capability_authority():
     assert set(PROFILES) == set(CAPABILITY_IDS)
     assert set(EXPERIENCE_SOURCES) == set(CAPABILITY_IDS)
