@@ -76,6 +76,54 @@ def test_context_assembly_preserves_scope_boundary() -> None:
     ]
 
 
+def test_budget_run_items_are_available_as_line_level_context() -> None:
+    rows = {
+        "elo_orcament_run_item": [
+            {
+                "budget_run_item_id": "line-1",
+                "description": "porta correr",
+                "quantity": 1,
+                "unit": "UN",
+                "unit_cost": 1800,
+                "total_cost": 1800,
+                "source_reference": "ORC-SRC-1",
+            }
+        ]
+    }
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(question="porta", intent="calculate", domain="orçamento")
+
+    context = ELOContextAssembler(adapter).assemble(intent, ("budget_lines",))
+
+    assert [item.source_id for item in context.candidates] == [
+        "supabase:elo_orcament_run_item:line-1"
+    ]
+    assert context.candidates[0].provenance["source_reference"] == "ORC-SRC-1"
+
+
+def test_budget_template_is_resolved_without_creating_new_memory() -> None:
+    rows = {
+        "elo_orcament_budget_template": [
+            {
+                "budget_template_id": "template-1",
+                "code": "MLT-M01",
+                "name": "Módulo base",
+                "family": "MODULAR",
+                "status": "ATIVA",
+            }
+        ]
+    }
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(question="template", intent="calculate", domain="orçamento")
+
+    context = ELOContextAssembler(adapter).assemble(intent, ("budget_template",))
+
+    assert [item.source_id for item in context.candidates] == [
+        "supabase:elo_orcament_budget_template:template-1"
+    ]
+    assert context.candidates[0].metadata["table"] == "elo_orcament_budget_template"
+
+
 def test_unknown_requirement_does_not_infer_a_source() -> None:
     adapter = SupabaseLearningMemoryAdapter({
         "elo_orcament_calculation_memory": [
