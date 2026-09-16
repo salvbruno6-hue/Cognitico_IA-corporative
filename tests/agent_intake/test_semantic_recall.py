@@ -1,6 +1,6 @@
 """Controlled evaluation of semantic recall attached to ELO Memory."""
 
-from elo.agent_intake.semantic_recall import semantic_recall
+from elo.agent_intake.semantic_recall import evaluate_semantic_recall_adaptation, semantic_recall
 
 
 def test_semantic_recall_ranks_relevant_records_within_tenant():
@@ -48,3 +48,43 @@ def test_no_match_is_not_learning_evidence():
     assert result.status == "no_match"
     assert result.matched_ids == ()
     assert result.learning_candidate["canonical_mutation"] is False
+
+
+def test_adaptation_measures_gain_and_repeatability_without_promotion():
+    records = (
+        {"id": "retention", "tenant_scope": "multiteiner", "text": "context memory retention"},
+        {"id": "other", "tenant_scope": "multiteiner", "text": "production cost note"},
+    )
+    result = evaluate_semantic_recall_adaptation(
+        tenant_scope="multiteiner",
+        query="context memory recall",
+        records=records,
+        top_k=2,
+    )
+    assert result.capability_id == "HERMES-MEMORY"
+    assert result.baseline_matches == ("retention",)
+    assert result.adapted_matches == ("retention",)
+    assert result.baseline_count == 1
+    assert result.adapted_count == 1
+    assert result.gain == 0
+    assert result.repeatable is True
+    assert result.regression is False
+    assert result.learning_candidate == {"promotion_state": "candidate_only", "canonical_mutation": False}
+
+
+def test_adaptation_exposes_retrieval_gain_for_controlled_paraphrase():
+    records = (
+        {"id": "retrieval", "tenant_scope": "multiteiner", "text": "retrieval mechanism"},
+        {"id": "other", "tenant_scope": "multiteiner", "text": "production cost"},
+    )
+    result = evaluate_semantic_recall_adaptation(
+        tenant_scope="multiteiner",
+        query="recall mechanism",
+        records=records,
+        top_k=2,
+    )
+    assert result.baseline_matches == ("retrieval",)
+    assert result.adapted_matches == ("retrieval",)
+    assert result.gain == 0
+    assert result.repeatable is True
+    assert result.regression is False
