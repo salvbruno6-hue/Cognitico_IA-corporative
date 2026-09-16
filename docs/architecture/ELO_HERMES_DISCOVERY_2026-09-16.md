@@ -20,9 +20,9 @@ Hermes now exposes an architectural evolution pipeline that separates read-only 
 
 Hermes exposes rolling per-exchange context compaction with cursor recovery, summary rehydration, defragmentation, failure tracking, telemetry and database synchronization. The implementation explicitly protects user turns and avoids absorbing incomplete turns. It also treats failed summarization as retryable rather than accepting partial summaries.
 
-**ELO disposition:** this is an enhancement of the existing `HERMES-CONTEXT` / `HERMES-MEMORY` candidates, not a ninth capability. ELO should adopt the governed invariants — bounded context, resumable cursor, incomplete-turn protection, failed-summary non-commit, and provenance — while keeping summarization provider-neutral.
+**ELO disposition:** this is an enhancement of the existing `HERMES-CONTEXT` / `HERMES-MEMORY` candidates, not a ninth capability. ELO already contains a deterministic retention laboratory that evaluates continuity, repeatability, regression and tenant scope without persistence or promotion.
 
-**State:** candidate refinement; no production semantic summarizer introduced by this audit.
+**State:** controlled ELO refinement validated; production semantic summarization not introduced.
 
 ### 3. Explicit learning and Symbiont evolution pipeline
 
@@ -45,21 +45,23 @@ Recent Hermes commits created and then reverted a temporary frontend lab marker.
 | Memory | ELO Cognitive Memory | Existing candidate `HERMES-MEMORY` | Passed native deterministic probe | Candidate-only |
 | Skills | ELO Native Skills Registry | Existing candidate `HERMES-SKILLS` | Passed native deterministic probe | Candidate-only |
 | Toolsets | ELO Capability/Tool Registry | Existing candidate `HERMES-TOOLSETS` | Passed native deterministic probe | Candidate-only |
-| Hierarchical Context | ELO Context Engine | Existing candidate `HERMES-CONTEXT` | Passed native deterministic probe; context assembly pilot under validation | Candidate-only |
+| Hierarchical Context | ELO Context Engine | Existing candidate `HERMES-CONTEXT` | Native probe + retention lab passed; context assembly CI passed | Candidate-only / review pending |
 | Delegation/Subagents | ELO Worker/Delegation Engine | Existing candidate `HERMES-DELEGATION` | Passed native deterministic probe | Candidate-only |
 | Automations/Cron | ELO Scheduler/Watchers | Existing candidate `HERMES-AUTOMATION` | Passed native deterministic probe | Candidate-only |
 | MCP/Plugins | ELO External Capability Gateway | Existing candidate `HERMES-MCP` | Passed native deterministic probe | Candidate-only |
 | Checkpoints/Execution | ELO State Recovery Engine | Existing candidate `HERMES-CHECKPOINT` | Passed native deterministic probe | Candidate-only |
-| Micro-compaction | Context + Memory | Refinement, not new candidate | No production semantic summarization proof | Not promoted |
+| Micro-compaction | Context + Memory | Refinement, not new candidate | Deterministic retention laboratory passed | Not promoted to production summarizer |
 | Architecture evolution scanner | Forge/Symbiont governance | Refinement, not new authority | Read-only architecture reference | Not promoted |
 
 ## Validation evidence
 
 The eight native capability probes are deterministic and side-effect free. They verify successful controlled behavior, evidence production, tenant state isolation and the absence of canonical mutation/promotion. The ELO native test suite asserts all eight complete successfully and remain `candidate_only`.
 
-The Supabase memory adapter is also protected by a dedicated CI workflow. The first current run exposed a scope-expectation regression; the test was corrected to enforce the intended explicit scope boundary, and the subsequent workflow completed successfully with 5 tests passing.
+The Supabase memory adapter initially exposed a scope-test regression on the current context-assembly branch. The test was corrected to enforce explicit scope matching. The subsequent CI run completed successfully with 5 tests passing.
 
-The context assembly implementation remains a read-only composition layer over the existing distributed memory fabric. It deduplicates source identities, preserves provenance, rejects unknown requirements, and does not persist or promote knowledge.
+The new Context Assembly workflow then completed successfully for the current branch commit. It executes the context-assembly and Supabase memory adapter test suites together; no external service or business operation is invoked.
+
+The ELO retention laboratory already covers the core safety properties inspired by Hermes micro-compaction: tenant scope, continuity, repeatability, regression detection and candidate-only governance. It intentionally does not claim Hermes-specific LLM summarization or production database synchronization.
 
 ## Governance decision
 
@@ -73,9 +75,11 @@ No ninth capability was created for micro-compaction because the mechanism is st
 
 No new universal learning database was created.
 
+The current Context Assembly implementation is technically validated by CI but remains in a draft PR and therefore is not represented as merged canonical architecture.
+
 ## Pending review
 
-1. Complete the context assembly CI run on the current branch and merge only after all checks pass.
+1. Review/merge PR #547 only after repository governance review; CI is green but the PR remains draft.
 2. Resolve the remaining scope-model gap: records without an explicit scope are currently tolerated by the read-only adapter and require a future uniform scope contract before stronger tenant isolation can be claimed.
 3. Validate the first Orçamento context pilot against the real Supabase schema before adding further domain adapters.
 4. Evaluate micro-compaction only as a provider-neutral context-retention refinement; do not import Hermes-specific LLM/database behavior blindly.
