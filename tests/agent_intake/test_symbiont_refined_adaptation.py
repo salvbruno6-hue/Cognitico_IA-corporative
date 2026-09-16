@@ -65,3 +65,51 @@ def test_eight_experiences_map_one_to_one_without_new_capability_authority():
     assert set(EXPERIENCE_SOURCES) == set(CAPABILITY_IDS)
     assert len(PROFILES) == len(EXPERIENCE_SOURCES) == len(CAPABILITY_IDS) == 8
     assert len({profile.existing_capacity for profile in PROFILES.values()}) == 8
+
+
+def test_repeated_identical_experience_is_idempotent_and_creates_no_second_candidate():
+    evidence = {
+        "controlled_test": True,
+        "outcome": {"passed": True},
+        "source_reference": "controlled-lab:memory-001",
+    }
+
+    first = refine_capability("HERMES-MEMORY", evidence)
+    second = refine_capability("HERMES-MEMORY", evidence)
+
+    assert second == first
+    assert second.capability_id == first.capability_id == "HERMES-MEMORY"
+    assert second.existing_capacity == first.existing_capacity == "ELO Memory"
+    assert second.mechanism == first.mechanism
+    assert second.source_experience == first.source_experience
+    assert second.promotion_state == first.promotion_state == "candidate_only"
+    assert second.canonical_mutation is False
+    assert first.canonical_mutation is False
+
+
+def test_refinement_does_not_mutate_the_input_evidence():
+    evidence = {
+        "controlled_test": True,
+        "outcome": {"passed": True},
+        "source_reference": "controlled-lab:skills-001",
+    }
+    before = evidence.copy()
+
+    refine_capability("HERMES-SKILLS", evidence)
+
+    assert evidence == before
+
+
+def test_same_experience_cannot_fan_out_to_multiple_existing_capabilities():
+    evidence = {
+        "controlled_test": True,
+        "outcome": {"passed": True},
+        "source_reference": "controlled-lab:single-experience-001",
+    }
+
+    adaptations = [refine_capability(capability_id, evidence) for capability_id in CAPABILITY_IDS]
+
+    assert len({adaptation.capability_id for adaptation in adaptations}) == len(CAPABILITY_IDS)
+    assert len({adaptation.existing_capacity for adaptation in adaptations}) == len(CAPABILITY_IDS)
+    assert all(adaptation.promotion_state == "candidate_only" for adaptation in adaptations)
+    assert all(adaptation.canonical_mutation is False for adaptation in adaptations)
