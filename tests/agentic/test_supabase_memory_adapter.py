@@ -61,6 +61,36 @@ def test_scope_mismatch_is_excluded():
     assert [item.source_id for item in result] == ["supabase:elo_orcament_calculation_memory:local"]
 
 
+def test_unscoped_non_global_record_is_excluded_from_scoped_request():
+    adapter = SupabaseLearningMemoryAdapter(
+        {
+            "elo_orcament_run_item": [
+                {"budget_run_item_id": "line-1", "description": "scopeless line"},
+            ]
+        }
+    )
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento", metadata={"scope": "CLIENT-A"})
+
+    result = adapter.retrieve(intent, KnowledgeRequirement("budget_lines", "budget lines"))
+
+    assert result == ()
+
+
+def test_global_calculation_memory_can_be_reused_by_scoped_request():
+    adapter = SupabaseLearningMemoryAdapter(
+        {
+            "elo_orcament_calculation_memory": [
+                {"calculation_memory_id": "global", "scope": "GLOBAL", "premise": "global"},
+            ]
+        }
+    )
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento", metadata={"scope": "CLIENT-A"})
+
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+
+    assert [item.source_id for item in result] == ["supabase:elo_orcament_calculation_memory:global"]
+
+
 def test_adapter_does_not_create_persistence_or_learning_promotion():
     adapter = SupabaseLearningMemoryAdapter({"elo_corporate_learning": [{"learning_id": "l1", "status": "PROVISORIO"}]})
     intent = IntentSpec(question="x", intent="x", domain="x")
