@@ -1,0 +1,25 @@
+name: ELO Semantic Recall Lab
+
+on:
+  pull_request:
+    paths:
+      - 'src/elo/agent_intake/semantic_recall.py'
+      - 'tests/agent_intake/test_semantic_recall.py'
+      - '.github/workflows/elo-semantic-recall-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-recall:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install test dependency
+        run: python -m pip install 'pytest>=8,<9'
+      - name: Validate semantic recall mechanism
+        run: python -m pytest -q tests/agent_intake/test_semantic_recall.py
