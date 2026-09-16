@@ -5,16 +5,23 @@ from elo.application.use_cases.governed_execution import (
 )
 from elo.application.use_cases.orchestrator import AuthorizationDecision
 from elo.core.capability_registry import CapabilityRegistry
+from elo.core.capability_resolution import resolve_capability
 from elo.agent_intake.capability_promotion import activate_operational_capabilities
 
 
-def _request(capability_id: str, *, authorized: bool = True) -> GovernedExecutionRequest:
+def _request(condition: str, *, authorized: bool = True) -> GovernedExecutionRequest:
+    core_decision = resolve_capability(
+        request_id="req-001",
+        tenant_scope="test-tenant",
+        condition=condition,
+        analysis_evidence=("evidence-001",),
+    )
     return GovernedExecutionRequest(
         tenant_id="test-tenant",
         principal_id="test-principal",
         domain="capability",
-        objective=f"execute {capability_id}",
-        capability_id=capability_id,
+        objective=f"execute {condition}",
+        core_capability_decision=core_decision,
         evidence_ids=("evidence-001",),
         authorization=AuthorizationDecision(
             authorized=authorized,
@@ -31,7 +38,7 @@ def test_governed_execution_reaches_active_operational_capability():
     runtime = OperationalCapabilityRuntime(registry)
     use_case = GovernedExecutionUseCase(runtime=runtime)
 
-    result = use_case.execute(_request("HERMES-SKILLS"))
+    result = use_case.execute(_request("skill-execution"))
 
     assert result.decision.status == "AUTHORIZED"
     assert result.decision.stage.value == "EXECUTE"
@@ -41,12 +48,24 @@ def test_governed_execution_reaches_active_operational_capability():
     assert result.execution.result == {"echo": "governed"}
 
 
+def test_governed_execution_stops_before_runtime_when_core_cannot_resolve():
+    registry = activate_operational_capabilities(CapabilityRegistry())
+    runtime = OperationalCapabilityRuntime(registry)
+    use_case = GovernedExecutionUseCase(runtime=runtime)
+
+    result = use_case.execute(_request("unknown-condition"))
+
+    assert result.execution is None
+    assert result.decision.stage.value == "HANDOFF"
+    assert "Core did not resolve" in result.decision.reason
+
+
 def test_governed_execution_stops_before_runtime_when_authorization_is_denied():
     registry = activate_operational_capabilities(CapabilityRegistry())
     runtime = OperationalCapabilityRuntime(registry)
     use_case = GovernedExecutionUseCase(runtime=runtime)
 
-    result = use_case.execute(_request("HERMES-SKILLS", authorized=False))
+    result = use_case.execute(_request("skill-execution", authorized=False))
 
     assert result.execution is None
     assert result.decision.stage.value == "HANDOFF"
