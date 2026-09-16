@@ -62,8 +62,8 @@ class OperationalCapabilityRuntime:
             raise ValueError(f"unknown capability: {capability_id}")
 
         selection = CapabilitySelector(self.registry).select(CapabilityRequirement(capability_id))
-        if selection.status != "AVAILABLE":
-            raise RuntimeError(f"capability is not available: {capability_id}")
+        if selection.status != "SELECTED":
+            raise RuntimeError(f"capability is not selectable: {capability_id}")
 
         data = dict(payload or {})
         if selection.capability_name != capability_id:
