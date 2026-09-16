@@ -36,6 +36,10 @@ _RULES: tuple[tuple[str, str, str, bool], ...] = (
     ("state-recovery", "HERMES-CHECKPOINT", "ELO_STATE_RECOVERY", False),
 )
 
+for _condition, _capability_id, _destination, _policy in _RULES:
+    if _capability_id not in CAPABILITY_IDS:
+        raise ValueError(f"pointer rule references unknown native capability: {_capability_id}")
+
 
 def resolve_pointer(*, request_id: str, tenant_scope: str, information: dict[str, Any]) -> ConditionalPointerEvidence:
     condition = str(information.get("condition", "")).strip().lower()
@@ -77,7 +81,7 @@ def validate_pointer_matrix(*, tenant_scope: str = "multiteiner") -> tuple[Condi
             tenant_scope=tenant_scope,
             information={"condition": condition, "source": "controlled-lab"},
         )
-        for index, (condition, capability_id, _destination, _policy) in enumerate(_RULES, 1)
+        for index, (condition, _capability_id, _destination, _policy) in enumerate(_RULES, 1)
     )
     expected = {capability_id for _condition, capability_id, _destination, _policy in _RULES}
     if {result.matched_capability for result in results} != expected:
