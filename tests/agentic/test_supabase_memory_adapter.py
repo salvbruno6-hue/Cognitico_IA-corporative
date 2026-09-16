@@ -58,7 +58,7 @@ def test_scope_mismatch_is_excluded():
 
     result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
 
-    assert [item.source_id for item in result] == ["supabase:elo_orcament_calculation_memory:global", "supabase:elo_orcament_calculation_memory:local"]
+    assert [item.source_id for item in result] == ["supabase:elo_orcament_calculation_memory:local"]
 
 
 def test_adapter_does_not_create_persistence_or_learning_promotion():
