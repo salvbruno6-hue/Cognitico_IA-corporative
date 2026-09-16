@@ -12,6 +12,7 @@ not promote learning or mutate Core.
 from __future__ import annotations
 
 import json
+import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -92,6 +93,7 @@ class OperationalCapabilityRuntime:
                 "promotion_state": "success",
                 "canonical_mutation": False,
             },
+            created_at=time.time(),
             kind="historical",
         )
         self.evidence_store.admit(record)
