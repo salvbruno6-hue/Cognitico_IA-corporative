@@ -1,0 +1,149 @@
+name: ELO Scan Orchestrator
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+    - cron: '15 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      force_weekly:
+        description: Run weekly missions in addition to daily missions
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: elo-scan-orchestrator
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  SUPABASE_PROJECT_REF: fxbpevjrkwhbicpmecow
+
+jobs:
+  governed-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Run governed scan
+        shell: bash
+        env:
+          FORCE_WEEKLY: ${{ inputs.force_weekly || 'false' }}
+          SCHEDULE_EXPR: ${{ github.event.schedule || 'manual' }}
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?SUPABASE_URL secret is required}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is required}"
+
+          api="${SUPABASE_URL%/}/rest/v1"
+          auth=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
+
+          get_json() {
+            local table="$1"
+            local query="$2"
+            curl -fsS "${auth[@]}" "${api}/${table}?${query}" -H 'Accept: application/json'
+          }
+
+          count_rows() {
+            local table="$1"
+            curl -fsSI "${auth[@]}" "${api}/${table}?select=id&limit=1" -H 'Prefer: count=exact' \
+              | tr -d '\r' | awk -F': ' 'tolower($1)=="content-range" {print $2}' | awk -F'/' '{print $2}'
+          }
+
+          # Verify the canonical project before doing any work.
+          project="$(curl -fsS "${auth[@]}" "${api}/elo_automation_registry?select=id,code,enabled,requires_validation&code=eq.elo_scan_orchestrator&limit=1")"
+          automation_id="$(jq -r '.[0].id // empty' <<<"${project}")"
+          [[ -n "${automation_id}" ]] || { echo 'elo_scan_orchestrator is not registered'; exit 1; }
+          [[ "$(jq -r '.[0].enabled' <<<"${project}")" == 'true' ]] || { echo 'elo_scan_orchestrator is disabled'; exit 1; }
+
+          run="$(curl -fsS -X POST "${auth[@]}" "${api}/elo_automation_runs" \
+            -H 'Content-Type: application/json' -H 'Prefer: return=representation' \
+            --data "$(jq -cn --arg aid "${automation_id}" '{automation_id:$aid, status:"RUNNING", details:{orchestrator:"ELO-SCAN-ORCHESTRATOR", project_ref:"fxbpevjrkwhbicpmecow", schedule:env.SCHEDULE_EXPR}}' )")"
+          run_id="$(jq -r '.[0].id // empty' <<<"${run}")"
+          [[ -n "${run_id}" ]] || { echo 'Could not create automation run'; exit 1; }
+
+          daily=(
+            SCAN-001-source-inventory
+            SCAN-002-new-experiences
+            SCAN-003-errors-corrections
+            SCAN-004-arbitrated-decisions
+            SCAN-005-budget
+          )
+          weekly=(
+            SCAN-006-repeated-patterns
+            SCAN-007-specializations
+            SCAN-008-evolution-gate
+            SCAN-009-unprocessed-sources
+          )
+          run_weekly=false
+          if [[ "${FORCE_WEEKLY}" == 'true' || "${SCHEDULE_EXPR}" == '15 5 * * 1' ]]; then run_weekly=true; fi
+          missions=("${daily[@]}")
+          if [[ "${run_weekly}" == 'true' ]]; then missions+=("${weekly[@]}"); fi
+
+          sources="$(get_json elo_aprendizado_fontes 'select=id,schema_name,table_name,dominio_codigo,extracao_ativa,enabled,extraction_mode,ultima_varredura&order=prioridade.asc,table_name.asc')"
+          source_total="$(jq 'length' <<<"${sources}")"
+          active_sources="$(jq '[.[] | select((.extracao_ativa // true) == true and (.enabled // true) == true)] | length' <<<"${sources}")"
+          stale_sources="$(jq '[.[] | select(.ultima_varredura == null)] | length' <<<"${sources}")"
+
+          extraction_total="$(count_rows elo_aprendizado_extracoes)"
+          experience_total="$(count_rows elo_aprendizado_experiencias)"
+          reasoning_total="$(count_rows elo_aprendizado_padroes_raciocinio)"
+          specialization_total="$(count_rows elo_aprendizado_especializacoes)"
+          evolution_total="$(count_rows elo_evolution_events)"
+          budget_total="$(count_rows elo_orcamentos)"
+          budget_memory_total="$(count_rows elo_orcamento_memoria)"
+          budget_calc_total="$(count_rows elo_orcamento_calculos_aprendidos)"
+          budget_evidence_total="$(count_rows elo_orcamento_calculo_evidencias)"
+          budget_similarity_total="$(count_rows elo_orcamento_calculo_similaridades)"
+          budget_assoc_total="$(count_rows elo_orcamento_associacoes)"
+          budget_decision_total="$(count_rows elo_orcamento_decisoes)"
+
+          observed="$(get_json elo_aprendizado_experiencias 'select=id,status_validacao,origem,origem_referencia,updated_at&status_validacao=eq.OBSERVADA&order=created_at.asc&limit=100')"
+          observed_total="$(jq 'length' <<<"${observed}")"
+
+          report="$(jq -n \
+            --arg scan_id "${GITHUB_RUN_ID}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg schedule "${SCHEDULE_EXPR}" \
+            --argjson weekly "${run_weekly}" \
+            --argjson source_total "${source_total}" \
+            --argjson active_sources "${active_sources}" \
+            --argjson stale_sources "${stale_sources}" \
+            --argjson extraction_total "${extraction_total:-0}" \
+            --argjson experience_total "${experience_total:-0}" \
+            --argjson observed_total "${observed_total:-0}" \
+            --argjson reasoning_total "${reasoning_total:-0}" \
+            --argjson specialization_total "${specialization_total:-0}" \
+            --argjson evolution_total "${evolution_total:-0}" \
+            --argjson budget_total "${budget_total:-0}" \
+            --argjson budget_memory_total "${budget_memory_total:-0}" \
+            --argjson budget_calc_total "${budget_calc_total:-0}" \
+            --argjson budget_evidence_total "${budget_evidence_total:-0}" \
+            --argjson budget_similarity_total "${budget_similarity_total:-0}" \
+            --argjson budget_assoc_total "${budget_assoc_total:-0}" \
+            --argjson budget_decision_total "${budget_decision_total:-0}" \
+            --argjson missions "$(printf '%s\n' "${missions[@]}" | jq -R . | jq -s .)" \
+            '{scan_id:$scan_id,execution_timestamp:$timestamp,project_ref:"fxbpevjrkwhbicpmecow",schedule:$schedule,weekly_missions:$weekly,missions_due:$missions,source_coverage:{registered:$source_total,active:$active_sources,never_scanned:$stale_sources},learning:{extractions:$extraction_total,experiences:$experience_total,observed_experiences:$observed_total,reasoning_patterns:$reasoning_total,specializations:$specialization_total,evolution_events:$evolution_total},budget:{budgets:$budget_total,memory:$budget_memory_total,calculations:$budget_calc_total,evidence:$budget_evidence_total,similarities:$budget_similarity_total,associations:$budget_assoc_total,decisions:$budget_decision_total},governance:{discovery_is_learning:false,canonical_mutation:false,automatic_learning_promotion:false,historical_records_immutable:true,provenance_required:true}}')"
+
+          printf '%s\n' "${report}" | tee scan-report.json
+          cat scan-report.json >> "$GITHUB_STEP_SUMMARY"
+
+          # Route only evidence-supported conditions; never promote learning here.
+          corrections=()
+          [[ "${stale_sources}" -gt 0 ]] && corrections+=(stale_source)
+          [[ "${observed_total}" -gt 0 ]] && corrections+=(extraction_gap)
+          if ((${#corrections[@]} > 0)); then action='CORRECT'; else action='CONTINUE'; fi
+
+          final_details="$(jq -n --argjson report "${report}" --arg action "${action}" --argjson corrections "$(printf '%s\n' "${corrections[@]:-}" | jq -R 'select(length>0)' | jq -s .)" '{orchestrator:"ELO-SCAN-ORCHESTRATOR",report:$report,next_action:$action,corrections:$corrections,learning_promotion:false,canonical_mutation:false}')"
+
+          curl -fsS -X PATCH "${auth[@]}" "${api}/elo_automation_runs?id=eq.${run_id}" \
+            -H 'Content-Type: application/json' -H 'Prefer: return=minimal' \
+            --data "$(jq -cn --arg details "${final_details}" --argjson processed "${source_total}" --arg status "SUCCEEDED" '{finished_at:(now|todateiso8601),status:$status,rows_affected:$processed,details:($details|fromjson)}')" >/dev/null
+
+          echo "ELO_SCAN_ACTION=${action}"
+          echo "ELO_SCAN_RUN_ID=${run_id}"
+          echo "ELO_SCAN_MISSIONS=${#missions[@]}"
