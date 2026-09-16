@@ -6,7 +6,7 @@ best fits a task step. Provider names remain replaceable implementation details.
 from dataclasses import dataclass
 from typing import Mapping
 
-from elo.core.capability_registry import CapabilityRegistry, CapabilityStatus
+from elo.core.capability_registry import CapabilityRegistry, CapabilityStatus, get_operational_registry
 
 
 @dataclass(frozen=True)
@@ -37,8 +37,10 @@ class CapabilityDecision:
 class CapabilitySelector:
     """Select an available registered capability without inventing providers."""
 
-    def __init__(self, registry: CapabilityRegistry) -> None:
-        self._registry = registry
+    def __init__(self, registry: CapabilityRegistry | None = None) -> None:
+        # No registry argument means the normal ELO runtime registry. Explicit
+        # registries remain supported for isolated tests and bounded adapters.
+        self._registry = registry if registry is not None else get_operational_registry()
 
     def select(self, requirement: CapabilityRequirement) -> CapabilityDecision:
         candidates = [item for item in self._registry.snapshot() if item.status == CapabilityStatus.AVAILABLE]
