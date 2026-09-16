@@ -8,9 +8,9 @@ Core rule: insist on the objective, not on the method.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Callable, Iterable
+from typing import Callable
 
 
 class AttemptOutcome(str, Enum):
@@ -64,7 +64,6 @@ class InsistenceRun:
     terminal_action: InsistenceAction
     attempts: tuple[AttemptResult, ...]
     decisions: tuple[InsistenceDecision, ...]
-
 
 
 def decide_next_attempt(
@@ -152,9 +151,7 @@ def run_insistence_experience(
             no_progress_limit=no_progress_limit,
         )
         decisions.append(decision)
-        state = InsistenceState(
-            **{**decision.state.__dict__, "previous_action": decision.action}
-        )
+        state = replace(decision.state, previous_action=decision.action)
 
         if decision.action in (InsistenceAction.STOP, InsistenceAction.HANDOFF):
             return InsistenceRun(
