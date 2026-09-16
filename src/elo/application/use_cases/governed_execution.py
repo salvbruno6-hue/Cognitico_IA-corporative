@@ -1,11 +1,13 @@
 """Governed application entrypoint for ELO operational capability execution.
 
-This use case closes the existing application boundary into the already-gated
-operational capability runtime. Authorization remains an input produced by the
-canonical authorization boundary; this module does not implement policy.
+The application boundary does not select a capability. Core must first emit a
+validated capability decision after cognitive analysis. Authorization remains
+an input produced by the canonical authorization boundary; this module does
+not implement policy.
 
 The flow is deliberately one-way:
-    governed evidence + canonical authorization
+    governed request
+        -> Core capability decision
         -> orchestration decision
         -> capability selection
         -> native operational execution
@@ -23,6 +25,7 @@ from elo.agent_intake.operational_capability_runtime import (
     OperationalCapabilityRuntime,
     OperationalExecution,
 )
+from elo.core.capability_resolution import CoreCapabilityDecision
 
 from .orchestrator import (
     AuthorizationDecision,
@@ -35,13 +38,13 @@ from .orchestrator import (
 
 @dataclass(frozen=True, slots=True)
 class GovernedExecutionRequest:
-    """Application request after the caller has obtained canonical authorization."""
+    """Application request carrying a capability decision produced by Core."""
 
     tenant_id: str
     principal_id: str
     domain: str
     objective: str
-    capability_id: str
+    core_capability_decision: CoreCapabilityDecision
     evidence_ids: tuple[str, ...]
     authorization: AuthorizationDecision
     payload: dict[str, Any] | None = None
@@ -54,7 +57,7 @@ class GovernedExecutionResult:
 
 
 class GovernedExecutionUseCase:
-    """Execute an active ELO capability only after governed authorization."""
+    """Execute an active ELO capability only after Core resolution and authorization."""
 
     def __init__(
         self,
@@ -66,13 +69,27 @@ class GovernedExecutionUseCase:
         self._runtime = runtime or OperationalCapabilityRuntime()
 
     def execute(self, request: GovernedExecutionRequest) -> GovernedExecutionResult:
+        core_decision = request.core_capability_decision
+        if not core_decision.executable:
+            return GovernedExecutionResult(
+                decision=OrchestrationDecision(
+                    stage=OrchestrationStage.HANDOFF,
+                    status="RECOMMENDATION",
+                    reason="Core did not resolve an executable capability",
+                )
+            )
+
         orchestration = self._orchestrator.decide_execution(
             OrchestrationRequest(
                 tenant_id=request.tenant_id,
                 principal_id=request.principal_id,
                 domain=request.domain,
                 objective=request.objective,
-                evidence_ids=request.evidence_ids,
+                evidence_ids=request.evidence_ids + tuple(
+                    str(item.get("source", ""))
+                    for item in core_decision.evidence
+                    if item.get("source")
+                ),
                 authorization=request.authorization,
             )
         )
@@ -80,7 +97,7 @@ class GovernedExecutionUseCase:
             return GovernedExecutionResult(decision=orchestration)
 
         execution = self._runtime.execute(
-            request.capability_id,
+            core_decision.capability_id,
             request.payload,
         )
         return GovernedExecutionResult(
