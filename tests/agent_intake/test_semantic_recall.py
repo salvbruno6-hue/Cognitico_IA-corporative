@@ -50,7 +50,7 @@ def test_no_match_is_not_learning_evidence():
     assert result.learning_candidate["canonical_mutation"] is False
 
 
-def test_adaptation_measures_gain_and_repeatability_without_promotion():
+def test_adaptation_is_repeatable_without_promotion():
     records = (
         {"id": "retention", "tenant_scope": "multiteiner", "text": "context memory retention"},
         {"id": "other", "tenant_scope": "multiteiner", "text": "production cost note"},
@@ -59,32 +59,34 @@ def test_adaptation_measures_gain_and_repeatability_without_promotion():
         tenant_scope="multiteiner",
         query="context memory recall",
         records=records,
+        target_id="retention",
         top_k=2,
     )
     assert result.capability_id == "HERMES-MEMORY"
-    assert result.baseline_matches == ("retention",)
-    assert result.adapted_matches == ("retention",)
-    assert result.baseline_count == 1
-    assert result.adapted_count == 1
+    assert result.baseline_target_hit is True
+    assert result.adapted_target_hit is True
     assert result.gain == 0
     assert result.repeatable is True
     assert result.regression is False
     assert result.learning_candidate == {"promotion_state": "candidate_only", "canonical_mutation": False}
 
 
-def test_adaptation_exposes_retrieval_gain_for_controlled_paraphrase():
+def test_adaptation_exposes_target_retrieval_gain_for_controlled_paraphrase():
     records = (
-        {"id": "retrieval", "tenant_scope": "multiteiner", "text": "retrieval mechanism"},
+        {"id": "retrieval", "tenant_scope": "multiteiner", "text": "retrieval"},
         {"id": "other", "tenant_scope": "multiteiner", "text": "production cost"},
     )
     result = evaluate_semantic_recall_adaptation(
         tenant_scope="multiteiner",
-        query="recall mechanism",
+        query="recall",
         records=records,
-        top_k=2,
+        target_id="retrieval",
+        top_k=1,
     )
-    assert result.baseline_matches == ("retrieval",)
+    assert result.baseline_matches == ()
     assert result.adapted_matches == ("retrieval",)
-    assert result.gain == 0
+    assert result.baseline_target_hit is False
+    assert result.adapted_target_hit is True
+    assert result.gain == 1
     assert result.repeatable is True
     assert result.regression is False
