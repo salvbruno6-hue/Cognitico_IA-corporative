@@ -19,7 +19,7 @@ from typing import Any
 
 from elo.agent_intake.native_capabilities import CAPABILITY_IDS, NativeELORuntime
 from elo.cognitive.reasoning.capability_selection import CapabilityRequirement, CapabilitySelector
-from elo.core.capability_registry import CapabilityRegistry
+from elo.core.capability_registry import CapabilityRegistry, get_operational_registry
 from elo.memory.persistent import MemoryRecord, PersistentMemoryStore
 
 
@@ -36,12 +36,12 @@ class OperationalCapabilityRuntime:
 
     def __init__(
         self,
-        registry: CapabilityRegistry,
+        registry: CapabilityRegistry | None = None,
         *,
         tenant_scope: str = "elo-operational",
         evidence_store: PersistentMemoryStore | None = None,
     ) -> None:
-        self.registry = registry
+        self.registry = registry if registry is not None else get_operational_registry()
         self.tenant_scope = tenant_scope
         self.evidence_store = evidence_store
         self.native = NativeELORuntime()
