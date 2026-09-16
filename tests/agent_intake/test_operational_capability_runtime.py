@@ -22,8 +22,13 @@ def test_all_eight_capabilities_are_selectable_and_executable():
         "HERMES-CHECKPOINT": {"state": {"version": 1}},
     }
 
-    executions = [runtime.execute(capability_id, payloads[capability_id]) for capability_id in CAPABILITY_IDS]
-    assert all(item.selected and item.capability_id in CAPABILITY_IDS for item in executions)
+    for capability_id in CAPABILITY_IDS:
+        decision = __import__("elo.cognitive.reasoning.capability_selection", fromlist=["CapabilityRequirement", "CapabilitySelector"]).CapabilitySelector(registry).select(
+            __import__("elo.cognitive.reasoning.capability_selection", fromlist=["CapabilityRequirement"]).CapabilityRequirement(capability_id)
+        )
+        assert decision.status == "SELECTED"
+        execution = runtime.execute(capability_id, payloads[capability_id])
+        assert execution.selected and execution.capability_id == capability_id
 
 
 def test_registry_remains_discovery_authority_and_runtime_owns_execution():
