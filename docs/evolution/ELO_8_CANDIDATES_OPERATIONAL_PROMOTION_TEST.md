@@ -1,35 +1,40 @@
-# ELO — First Operational Promotion Test
+# ELO — Successful Operational Activation of the 8 Candidates
 
-This change starts the first governed transition of the eight Hermes capability candidates.
+The eight Hermes capability candidates now use `success` as the successful promotion state.
+`ACTIVE_OPERATIONAL` remains a compatibility alias for that state.
 
-## Operational activation
+## Effective operational activation
 
-The eight native probes are executed through `native_capabilities.execute_candidate` and evaluated by `capability_promotion.evaluate_all_candidates`.
+A green native functional proof, intact provenance and complete governance are required.
+After those checks pass, `activate_operational_capabilities()` registers the eight native
+mechanisms in ELO's existing provider-neutral `CapabilityRegistry`.
 
-A candidate reaches `ACTIVE_OPERATIONAL` only when its native functional evidence is green and provenance/governance checks are green.
+The registry is the existing runtime authority for capability availability. Each mechanism
+is registered as `elo-native`, health-probed through its native implementation, and carries
+non-secret metadata indicating `promotion_state=success`.
 
-Operational activation does **not** mean Core canonization.
+The eight active mechanisms are:
 
-## Canonical promotion
+- `HERMES-MEMORY`
+- `HERMES-SKILLS`
+- `HERMES-TOOLSETS`
+- `HERMES-CONTEXT`
+- `HERMES-DELEGATION`
+- `HERMES-AUTOMATION`
+- `HERMES-MCP`
+- `HERMES-CHECKPOINT`
 
-A capability may reach `CANONICAL` only when all of these are true:
+## Core remains protected
 
-- native functional proof is green;
-- provenance is intact;
-- governance metadata is complete;
-- explicit relevance to an ELO Core pillar is established;
-- Evolution Gate approval is established.
+Operational success does not mutate Core. Canonization still requires explicit Core-pillar
+relevance and Evolution Gate approval. The promotion layer does not silently mutate canonical
+knowledge.
 
-The evaluator does not mutate Core knowledge. It returns a promotion decision for the governed transition layer.
+## Validation target
 
-## Current test intent
+The test suite validates both layers:
 
-The first test suite verifies:
-
-1. all eight candidates have a native operational promotion path;
-2. all eight reach `ACTIVE_OPERATIONAL` under the controlled probe;
-3. canonization is not implicit;
-4. a Skill/mechanism can become canonically eligible only after Core-pillar relevance and Evolution Gate approval are both supplied;
-5. without the Evolution Gate, the capability remains operational rather than canonical.
-
-This is the beginning of the promotion test, not a claim that production deployment or Core mutation has already occurred.
+1. all eight candidates reach `success`;
+2. `ACTIVE_OPERATIONAL` remains an alias for `success`;
+3. all eight mechanisms are available through the existing ELO capability registry;
+4. Core canonization remains blocked unless its explicit gates are supplied.
