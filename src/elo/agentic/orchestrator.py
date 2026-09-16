@@ -65,17 +65,22 @@ class KnowledgeNeedPlanner:
     }
 
     def plan(self, intent: IntentSpec, limits: OrchestrationLimits) -> tuple[KnowledgeRequirement, ...]:
-        key = (intent.domain or "").casefold()
-        family = "budget" if "orç" in key or "budget" in key else key
-        if "engen" in key:
-            family = "engineering"
-        elif "compr" in key or "purchase" in key:
-            family = "purchasing"
-        elif "planej" in key or "planning" in key:
-            family = "planning"
-        templates = self.DEFAULT_REQUIREMENTS.get(family, ())
+        # An explicit requirement list is a bounded caller contract. Do not
+        # silently append the domain defaults, because that would defeat callers
+        # that intentionally test one requirement or verify an unresolved key.
         if intent.required_knowledge:
-            templates = tuple((k, k) for k in intent.required_knowledge) + templates
+            templates = tuple((k, k) for k in intent.required_knowledge)
+        else:
+            key = (intent.domain or "").casefold()
+            family = "budget" if "orç" in key or "budget" in key else key
+            if "engen" in key:
+                family = "engineering"
+            elif "compr" in key or "purchase" in key:
+                family = "purchasing"
+            elif "planej" in key or "planning" in key:
+                family = "planning"
+            templates = self.DEFAULT_REQUIREMENTS.get(family, ())
+
         seen: set[str] = set()
         requirements: list[KnowledgeRequirement] = []
         for priority, (key_name, purpose) in enumerate(templates, start=1):
