@@ -39,6 +39,9 @@ MEMORY_TABLES: tuple[MemoryTableSpec, ...] = (
     MemoryTableSpec("elo_orcamento_calculo_similaridades", "orcamento", "budget_similarity", "Similarity links between learned calculations."),
     MemoryTableSpec("elo_orcamento_associacoes", "orcamento", "budget_association", "Budget associations, occurrences, arbitrated decisions and weighting."),
     MemoryTableSpec("elo_orcamento_decisoes", "orcamento", "budget_decision", "Budget decisions and arbitration records."),
+    MemoryTableSpec("excedentes", "orcamento", "excess", "Canonical excess records for material and/or labor composition."),
+    MemoryTableSpec("excedente_itens", "orcamento", "excess_item", "Material/component lines belonging to an excess record and linked to LISTA_MAE by cod_produt."),
+    MemoryTableSpec("excedente_mao_obra", "orcamento", "excess_labor", "Labor lines belonging to an excess record; kept separate from material lines."),
     MemoryTableSpec("elo_audit_log", "governance", "audit", "Immutable operational audit trail with correlation and entity references."),
     MemoryTableSpec("elo_evolution_events", "governance", "evolution", "Governed evolution events sourced from experience/pattern evidence."),
     MemoryTableSpec("elo_automation_registry", "automation", "automation", "Automation definitions and validation requirements."),
@@ -58,7 +61,7 @@ _REQUIREMENT_TABLES: Mapping[str, tuple[str, ...]] = {
     "materials": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
     "labor": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
     "equipment": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
-    "excesses": ("elo_orcamento_associacoes", "elo_orcamento_calculos_aprendidos"),
+    "excesses": ("excedentes", "excedente_itens", "excedente_mao_obra", "elo_orcamento_associacoes", "elo_orcamento_calculos_aprendidos"),
     "requirements": ("elo_aprendizado_experiencias", "elo_aprendizado_conceitos"),
     "specifications": ("elo_aprendizado_experiencias", "elo_aprendizado_conceitos"),
     "standards": ("elo_aprendizado_conceitos", "elo_aprendizado_experiencias"),
@@ -119,7 +122,7 @@ class SupabaseLearningMemoryAdapter:
         for key in (
             "id", "experience_id", "learning_id", "concept_id", "conceito_id", "padrao_id",
             "calculation_memory_id", "memoria_id", "orcamento_id", "associacao_id", "varredura_id",
-            "correlation_id", "source_id",
+            "correlation_id", "source_id", "codigo_excedente",
         ):
             if row.get(key) is not None:
                 return str(row[key])
@@ -138,7 +141,8 @@ class SupabaseLearningMemoryAdapter:
         for key in (
             "finding", "description", "titulo", "nome", "objetivo", "premissa", "assessment", "diagnosis",
             "resultado", "result", "evidencia", "evidencias", "contexto", "context", "formula",
-            "justificativa", "recommendation", "item", "material", "conteudo", "decisao",
+            "justificativa", "recommendation", "item", "material", "conteudo", "decisao", "descricao",
+            "funcao",
         ):
             value = row.get(key)
             if value not in (None, "", [], {}):
@@ -205,6 +209,7 @@ class SupabaseLearningMemoryAdapter:
             for key in (
                 "context", "contexto", "description", "descricao", "finding", "premise", "premissa",
                 "notes", "objetivo", "request_reference", "decision_reference", "origem_so", "orcamento_id",
+                "codigo_excedente", "tipo_instalacao", "funcao",
             )
         )
         return 1.0 if entity.casefold() in haystack.casefold() else 0.0
