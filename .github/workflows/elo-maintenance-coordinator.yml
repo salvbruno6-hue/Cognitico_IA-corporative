@@ -130,7 +130,7 @@ jobs:
           approved = (
               explicit_merge
               and canonical_clear
-              and review_decision in (None, 'APPROVED')
+              and review_decision in (None, '', 'APPROVED')
               and checks_pass
               and merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')
               and not pr.get('isDraft', False)
@@ -148,7 +148,7 @@ jobs:
           reasons = list(reconciliation['reasons'])
           if not explicit_merge:
               reasons.append('explicit label elo/approve-merge is required')
-          if review_decision not in (None, 'APPROVED'):
+          if review_decision not in (None, '', 'APPROVED'):
               reasons.append(f'reviewDecision={review_decision}')
           if not checks_pass:
               reasons.append('required checks are not passing')
