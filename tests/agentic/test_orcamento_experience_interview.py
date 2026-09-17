@@ -1,6 +1,8 @@
 from src.elo.agentic.orcamento_experience_interview import (
     BudgetPhase,
+    BudgetSourceRef,
     build_experience_capture,
+    build_persistence_plan,
     close_interview,
     continue_interview,
     start_interview,
@@ -48,6 +50,50 @@ def test_capture_maps_to_existing_experience_fields_without_promotion():
     assert capture["learning_candidate"] is False
     assert capture["canonical_mutation"] is False
     assert capture["status_validacao"] == "OBSERVADA"
+
+
+def test_persistence_plan_targets_existing_learning_tables_and_preserves_origin():
+    plan = build_persistence_plan(
+        "SO-TEST-001",
+        BudgetPhase.END,
+        {
+            "context_objective": "precificar uma solução modular",
+            "result_final_driver": "modelo + restrição logística",
+            "result_confidence": 0.8,
+            "evidence_final": "planilha revisada",
+        },
+        [
+            BudgetSourceRef(
+                table_name="elo_orcamento_memoria",
+                record_key="memoria:123",
+                source_id="9f631f70-62a8-4e29-b178-a6ce6a33579c",
+            ),
+            BudgetSourceRef(
+                table_name="elo_orcamento_calculos_aprendidos",
+                record_key="learning:456",
+                source_id="49ef14d8-5cd4-4959-b890-3196dd45be01",
+            ),
+        ],
+    )
+    assert plan["target"]["experience_table"] == "elo_aprendizado_experiencias"
+    assert plan["target"]["extraction_table"] == "elo_aprendizado_extracoes"
+    assert plan["target"]["relation_table"] == "elo_aprendizado_relacoes"
+    assert plan["experience"]["origem"] == "elo_orcamento_memoria"
+    assert plan["experience"]["origem_referencia"] == "elo_orcamento_memoria:memoria:123"
+    assert len(plan["extractions"]) == 2
+    assert plan["extractions"][0]["fonte_id"] == "9f631f70-62a8-4e29-b178-a6ce6a33579c"
+    assert plan["relations"][0]["relation_type"] == "derived_from"
+    assert plan["governance"]["learning_candidate"] is False
+    assert plan["governance"]["canonical_mutation"] is False
+
+
+def test_persistence_plan_requires_real_source_identity():
+    try:
+        build_persistence_plan("SO-TEST-001", BudgetPhase.END, {}, [])
+    except ValueError as exc:
+        assert str(exc) == "budget_source_required"
+    else:
+        raise AssertionError("source identity must never be invented")
 
 
 def test_unknown_question_is_rejected():
