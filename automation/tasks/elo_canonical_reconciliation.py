@@ -60,11 +60,7 @@ def _is_audit_infrastructure(relative: str) -> bool:
 
 
 def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
-    """Return candidates explicitly named by an owner/source-of-truth declaration.
-
-    Generic architectural prose such as "orchestrator is canonical" must not
-    be interpreted as ownership of every file whose stem contains that word.
-    """
+    """Return candidates explicitly named by an owner/source-of-truth declaration."""
     targets: set[str] = set()
     for match in EXPLICIT_OWNER_PATTERN.finditer(text):
         declared = match.group(1).strip().strip("'\"")
@@ -118,9 +114,6 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         elif related and not self_audit and not audit_infrastructure:
             independent_references.append(relative)
 
-        # A file inside the canonical src/elo runtime root is part of the same
-        # executable authority. It must not be classified as a parallel
-        # candidate merely because its stem matches another src/elo file.
         same_canonical_runtime = changed_in_runtime and path_lower.startswith("src/elo/")
         source_candidate = (
             not self_audit
@@ -159,7 +152,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     canonical_identity = next(iter(changed_stems)) if owners and len(changed_stems) == 1 else None
     structure_map = root / CANONICAL_STRUCTURE_MAP
 
-    if changed_in_runtime and structure_map.is_file() and not owner_targets:
+    if changed_in_runtime and structure_map.is_file() and not owner_evidence:
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "src/elo"
         duplicate = False
