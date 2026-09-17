@@ -76,6 +76,68 @@ def test_context_assembly_preserves_scope_boundary() -> None:
     ]
 
 
+def test_excess_context_includes_header_items_and_separate_labor() -> None:
+    rows = {
+        "excedentes": [
+            {
+                "id": "ex-1",
+                "codigo_excedente": "EXC-001",
+                "descricao": "Abertura adicional",
+                "tipo_instalacao": "ESQUADRIA",
+                "scope": "GLOBAL",
+            }
+        ],
+        "excedente_itens": [
+            {
+                "id": "item-1",
+                "excedente_id": "ex-1",
+                "cod_produt": "MAT-001",
+                "descricao": "Perfil adicional",
+                "tipo_componente": "MATERIAL",
+                "scope": "GLOBAL",
+            }
+        ],
+        "excedente_mao_obra": [
+            {
+                "id": "labor-1",
+                "excedente_id": "ex-1",
+                "funcao": "Montador",
+                "quantidade": 1,
+                "tempo": 2,
+                "scope": "GLOBAL",
+            }
+        ],
+    }
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(
+        question="excess",
+        intent="assemble",
+        domain="orçamento",
+        metadata={"scope": "GLOBAL"},
+    )
+
+    context = ELOContextAssembler(adapter).assemble(intent, ("excesses",))
+
+    assert [item.source_id for item in context.candidates] == [
+        "supabase:excedentes:ex-1",
+        "supabase:excedente_itens:item-1",
+        "supabase:excedente_mao_obra:labor-1",
+    ]
+    assert {item.metadata["memory_role"] for item in context.candidates} == {
+        "excess",
+        "excess_item",
+        "excess_labor",
+    }
+    assert context.provenance["supabase:excedente_itens:item-1"]["table"] == "excedente_itens"
+    assert context.provenance["supabase:excedente_mao_obra:labor-1"]["table"] == "excedente_mao_obra"
+
+
+def test_excess_inventory_exposes_verified_tables() -> None:
+    inventory = {item.table for item in SupabaseLearningMemoryAdapter.inventory()}
+
+    assert {"excedentes", "excedente_itens", "excedente_mao_obra"}.issubset(inventory)
+
+
 def test_unknown_requirement_does_not_infer_a_source() -> None:
     adapter = SupabaseLearningMemoryAdapter(
         {"elo_orcamento_memoria": [{"memoria_id": "cm-1", "premissa": "known"}]}
