@@ -114,9 +114,24 @@ class SupabaseLearningMemoryAdapter:
 
     @staticmethod
     def _scope_matches(row: Mapping[str, Any], intent: IntentSpec) -> bool:
-        scope = row.get("scope")
-        requested_scope = intent.metadata.get("scope")
-        return requested_scope is None or scope is None or str(scope) == requested_scope
+        """Apply governed scope inheritance without allowing cross-client leakage.
+
+        GLOBAL memory is reusable by a scoped client request. A client-scoped row
+        is reusable only by that same client. An explicitly scoped request never
+        consumes a row with no scope, because its ownership is unresolved.
+        """
+        raw_scope = row.get("scope")
+        row_scope = str(raw_scope).strip() if raw_scope is not None else None
+        requested_raw = intent.metadata.get("scope")
+        requested_scope = str(requested_raw).strip() if requested_raw is not None else None
+
+        if requested_scope is None:
+            return row_scope in (None, "GLOBAL")
+        if row_scope == "GLOBAL":
+            return True
+        if row_scope is None:
+            return False
+        return row_scope == requested_scope
 
     @staticmethod
     def _content(row: Mapping[str, Any], spec: MemoryTableSpec) -> str:
