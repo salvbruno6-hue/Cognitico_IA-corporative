@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
@@ -15,6 +16,10 @@ SELF_AUDIT_PATHS = {
 AUDIT_INFRA_PREFIXES = (".github/", "automation/", "docs/", "tests/")
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
 GENERIC_CONCEPT_TERMS = {"package", "index", "config", "configuration", "readme", "test", "tests", "utils", "types", "app", "css"}
+EXPLICIT_OWNER_PATTERN = re.compile(
+    r"(?:canonical owner|canonical authority|source of truth)\s*:\s*([^\n#`]+)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,21 @@ def _is_audit_infrastructure(relative: str) -> bool:
     return relative.replace("\\", "/").startswith(AUDIT_INFRA_PREFIXES)
 
 
+def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
+    """Return candidates explicitly named by an owner/source-of-truth declaration.
+
+    Generic architectural prose such as "orchestrator is canonical" must not
+    be interpreted as ownership of every file whose stem contains that word.
+    """
+    targets: set[str] = set()
+    for match in EXPLICIT_OWNER_PATTERN.finditer(text):
+        declared = match.group(1).strip().strip("'\"")
+        declared_stem = Path(declared.replace("\\", "/")).stem.lower().replace("-", "_")
+        if declared_stem in candidate_stems:
+            targets.add(declared_stem)
+    return targets
+
+
 def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -91,7 +111,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         if related and not self_audit and not audit_infrastructure:
             references.append(relative)
 
-        explicit_owner = any(marker in lower for marker in ("canonical owner", "canonical authority", "source of truth"))
+        explicit_owner = bool(EXPLICIT_OWNER_PATTERN.search(text))
         if explicit_owner and related and not self_audit and not audit_infrastructure:
             owners.append(relative)
             owner_evidence.append((relative, lower))
@@ -117,7 +137,11 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     owners = sorted(set(owners))
     independent_references = sorted(set(independent_references))
     candidate_stems = {Path(candidate).stem.lower().replace("-", "_") for candidate in candidates}
-    owner_targets = {stem for _, text in owner_evidence for stem in candidate_stems if stem in text}
+    owner_targets = {
+        stem
+        for _, text in owner_evidence
+        for stem in _explicit_owner_targets(text, candidate_stems)
+    }
 
     if candidate_stems.intersection(owner_targets):
         duplicate: bool | None = True
