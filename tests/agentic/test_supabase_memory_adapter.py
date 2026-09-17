@@ -45,7 +45,7 @@ def test_unknown_requirement_is_not_guessed():
     assert adapter.retrieve(intent, KnowledgeRequirement("not_mapped", "unknown")) == ()
 
 
-def test_scope_mismatch_is_excluded():
+def test_global_memory_is_reused_by_scoped_request():
     adapter = SupabaseLearningMemoryAdapter(
         {
             "elo_orcament_calculation_memory": [
@@ -58,7 +58,68 @@ def test_scope_mismatch_is_excluded():
 
     result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
 
-    assert [item.source_id for item in result] == ["supabase:elo_orcament_calculation_memory:global", "supabase:elo_orcament_calculation_memory:local"]
+    assert [item.source_id for item in result] == [
+        "supabase:elo_orcament_calculation_memory:global",
+        "supabase:elo_orcament_calculation_memory:local",
+    ]
+
+
+def test_client_scoped_memory_is_not_reused_across_clients():
+    adapter = SupabaseLearningMemoryAdapter(
+        {
+            "elo_orcament_calculation_memory": [
+                {"calculation_memory_id": "global", "scope": "GLOBAL", "premise": "global"},
+                {"calculation_memory_id": "client-a", "scope": "CLIENT-A", "premise": "client a"},
+                {"calculation_memory_id": "client-b", "scope": "CLIENT-B", "premise": "client b"},
+            ]
+        }
+    )
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento", metadata={"scope": "CLIENT-A"})
+
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+
+    assert [item.source_id for item in result] == [
+        "supabase:elo_orcament_calculation_memory:global",
+        "supabase:elo_orcament_calculation_memory:client-a",
+    ]
+
+
+def test_unscoped_row_is_not_reused_by_scoped_request():
+    adapter = SupabaseLearningMemoryAdapter(
+        {
+            "elo_orcament_calculation_memory": [
+                {"calculation_memory_id": "unscoped", "premise": "unscoped"},
+                {"calculation_memory_id": "global", "scope": "GLOBAL", "premise": "global"},
+            ]
+        }
+    )
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento", metadata={"scope": "CLIENT-A"})
+
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+
+    assert [item.source_id for item in result] == [
+        "supabase:elo_orcament_calculation_memory:global",
+    ]
+
+
+def test_unscoped_request_does_not_pull_client_scoped_memory():
+    adapter = SupabaseLearningMemoryAdapter(
+        {
+            "elo_orcament_calculation_memory": [
+                {"calculation_memory_id": "unscoped", "premise": "unscoped"},
+                {"calculation_memory_id": "global", "scope": "GLOBAL", "premise": "global"},
+                {"calculation_memory_id": "client-a", "scope": "CLIENT-A", "premise": "client a"},
+            ]
+        }
+    )
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento")
+
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+
+    assert [item.source_id for item in result] == [
+        "supabase:elo_orcament_calculation_memory:unscoped",
+        "supabase:elo_orcament_calculation_memory:global",
+    ]
 
 
 def test_adapter_does_not_create_persistence_or_learning_promotion():
