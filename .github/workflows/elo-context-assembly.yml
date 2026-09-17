@@ -7,6 +7,9 @@ on:
       - "src/elo/agentic/supabase_memory_adapter.py"
       - "src/elo/agentic/contracts.py"
       - "tests/agentic/test_context_assembly.py"
+      - "tests/agentic/test_context_assembly_integration.py"
+      - "tests/governance/test_elo_canonical_reconciliation.py"
+      - "automation/tasks/elo_canonical_reconciliation.py"
       - ".github/workflows/elo-context-assembly.yml"
   pull_request:
     paths:
@@ -14,6 +17,9 @@ on:
       - "src/elo/agentic/supabase_memory_adapter.py"
       - "src/elo/agentic/contracts.py"
       - "tests/agentic/test_context_assembly.py"
+      - "tests/agentic/test_context_assembly_integration.py"
+      - "tests/governance/test_elo_canonical_reconciliation.py"
+      - "automation/tasks/elo_canonical_reconciliation.py"
       - ".github/workflows/elo-context-assembly.yml"
 
 permissions:
@@ -29,4 +35,9 @@ jobs:
           python-version: "3.14"
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[test]"
-      - run: pytest tests/agentic/test_context_assembly.py tests/agentic/test_supabase_memory_adapter.py
+      - run: >-
+          pytest
+          tests/agentic/test_context_assembly.py
+          tests/agentic/test_context_assembly_integration.py
+          tests/agentic/test_supabase_memory_adapter.py
+          tests/governance/test_elo_canonical_reconciliation.py
