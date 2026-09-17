@@ -164,6 +164,31 @@ def test_src_elo_does_not_override_explicit_parallel_owner(tmp_path: Path):
     assert evidence.waiting_for_evidence
 
 
+def test_architecture_prose_does_not_create_false_explicit_owner(tmp_path: Path):
+    """A generic canonical phrase must not become ownership evidence."""
+    (tmp_path / "orchestrator.py").write_text(
+        "class Orchestrator: pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "architecture.md").write_text(
+        "The ELO Cognitivo is the canonical authority for orchestration.\n"
+        "The orchestrator capability remains governed by existing architecture.\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["src/elo/agentic/context_assembly.py"],
+        concept_terms=["orchestrator"],
+    )
+
+    assert "orchestrator.py" in evidence.candidates
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
+
+
 def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Path):
     """A generic package.json stem must not match unrelated canonical owners."""
     (tmp_path / "legacy_runtime.py").write_text(

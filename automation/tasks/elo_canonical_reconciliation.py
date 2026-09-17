@@ -1,19 +1,10 @@
-"""Deterministic repository reconciliation for ELO canonicality gates.
-
-This module does not decide architectural ownership by itself. It gathers
-repository evidence and converts it into explicit, conservative facts for the
-existing Maintenance Coordinator gate.
-
-Rule: UNKNOWN is never treated as TRUE. Missing evidence produces
-WAITING_FOR_EVIDENCE rather than permitting creation.
-"""
-
+"""Deterministic repository reconciliation for ELO canonicality gates."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 from typing import Iterable
-
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
@@ -22,26 +13,13 @@ SELF_AUDIT_PATHS = {
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
     "automation/tasks/elo_maintenance_coordinator.py",
 }
-AUDIT_INFRA_PREFIXES = (
-    ".github/",
-    "automation/",
-    "docs/",
-    "tests/",
-)
+AUDIT_INFRA_PREFIXES = (".github/", "automation/", "docs/", "tests/")
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
-GENERIC_CONCEPT_TERMS = {
-    "package",
-    "index",
-    "config",
-    "configuration",
-    "readme",
-    "test",
-    "tests",
-    "utils",
-    "types",
-    "app",
-    "css",
-}
+GENERIC_CONCEPT_TERMS = {"package", "index", "config", "configuration", "readme", "test", "tests", "utils", "types", "app", "css"}
+EXPLICIT_OWNER_PATTERN = re.compile(
+    r"(?:canonical owner|canonical authority|source of truth)\s*:\s*([^\n#`]+)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -74,53 +52,35 @@ def _text_files(root: Path) -> Iterable[Path]:
 
 
 def _normalise_terms(terms: Iterable[str]) -> tuple[str, ...]:
-    return tuple(
-        sorted(
-            {
-                term.strip().lower()
-                for term in terms
-                if term and term.strip() and term.strip().lower() not in GENERIC_CONCEPT_TERMS
-            }
-        )
-    )
+    return tuple(sorted({term.strip().lower() for term in terms if term and term.strip() and term.strip().lower() not in GENERIC_CONCEPT_TERMS}))
 
 
 def _is_audit_infrastructure(relative: str) -> bool:
-    """Governance/audit artifacts are evidence about capabilities, not capabilities."""
-    normalized = relative.replace("\\", "/")
-    return normalized.startswith(AUDIT_INFRA_PREFIXES)
+    return relative.replace("\\", "/").startswith(AUDIT_INFRA_PREFIXES)
 
 
-def reconcile_repository(
-    root: str | Path,
-    changed_paths: Iterable[str],
-    concept_terms: Iterable[str] | None = None,
-) -> ReconciliationEvidence:
-    """Inspect changed paths and repository references without mutating files.
+def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
+    """Return candidates explicitly named by an owner/source-of-truth declaration."""
+    targets: set[str] = set()
+    for match in EXPLICIT_OWNER_PATTERN.finditer(text):
+        declared = match.group(1).strip().strip("'\"")
+        declared_stem = Path(declared.replace("\\", "/")).stem.lower().replace("-", "_")
+        if declared_stem in candidate_stems:
+            targets.add(declared_stem)
+    return targets
 
-    A same-stem or concept-linked source is a *candidate*. It becomes a
-    proven duplicate/parallel capability only when explicit canonical
-    owner/source evidence identifies that existing candidate. Candidate
-    discovery alone therefore remains UNKNOWN.
 
-    Governance, test, documentation and automation artifacts are evidence
-    about the canonical runtime; they are not themselves runtime capabilities
-    and must not be promoted to duplicate/parallel candidates.
-    """
+def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
     if not changed:
-        return ReconciliationEvidence(
-            changed_paths=(), candidates=(), references=(), owners=(),
-            source_of_truth=None, canonical_identity=None,
-            duplicate_or_parallel=None, reuse_analysis_complete=False,
-            decision=None, reasons=("No changed paths supplied",),
-        )
+        return ReconciliationEvidence((), (), (), (), None, None, None, False, None, ("No changed paths supplied",))
 
+    changed_normalised = {p.replace("\\", "/") for p in changed}
     changed_stems = {Path(p).stem.lower().replace("-", "_") for p in changed}
     terms = _normalise_terms(concept_terms or ())
+    changed_in_runtime = any(p.startswith("src/elo/") for p in changed_normalised)
     all_files = list(_text_files(root))
-    changed_normalised = {p.replace("\\", "/") for p in changed}
 
     candidates: list[str] = []
     references: list[str] = []
@@ -138,33 +98,29 @@ def reconcile_repository(
             continue
         lower = text.lower()
         path_lower = relative.lower()
-
-        self_audit_reference = relative in SELF_AUDIT_PATHS
+        self_audit = relative in SELF_AUDIT_PATHS
         audit_infrastructure = _is_audit_infrastructure(relative)
         stem_hit = any(stem in lower or stem in path_lower for stem in changed_stems)
         concept_hit = bool(terms) and any(term in lower or term in path_lower for term in terms)
-        if (stem_hit or concept_hit) and not self_audit_reference and not audit_infrastructure:
+        related = stem_hit or concept_hit
+
+        if related and not self_audit and not audit_infrastructure:
             references.append(relative)
 
-        explicit_owner = any(
-            marker in lower
-            for marker in ("canonical owner", "canonical authority", "source of truth")
-        )
-        if explicit_owner and (stem_hit or concept_hit) and not self_audit_reference and not audit_infrastructure:
+        explicit_owner = bool(EXPLICIT_OWNER_PATTERN.search(text))
+        if explicit_owner and related and not self_audit and not audit_infrastructure:
             owners.append(relative)
             owner_evidence.append((relative, lower))
-
-        if (stem_hit or concept_hit) and not explicit_owner and not self_audit_reference and not audit_infrastructure:
+        elif related and not self_audit and not audit_infrastructure:
             independent_references.append(relative)
 
+        same_canonical_runtime = changed_in_runtime and path_lower.startswith("src/elo/")
         source_candidate = (
-            not self_audit_reference
+            not self_audit
             and not audit_infrastructure
+            and not same_canonical_runtime
             and path.suffix.lower() in SOURCE_SUFFIXES
-            and (
-                path.stem.lower().replace("-", "_") in changed_stems
-                or concept_hit
-            )
+            and (path.stem.lower().replace("-", "_") in changed_stems or concept_hit)
         )
         if source_candidate:
             candidates.append(relative)
@@ -173,21 +129,16 @@ def reconcile_repository(
     references = sorted(set(references))
     owners = sorted(set(owners))
     independent_references = sorted(set(independent_references))
-
-    candidate_stems = {
-        Path(candidate).stem.lower().replace("-", "_")
-        for candidate in candidates
-    }
+    candidate_stems = {Path(candidate).stem.lower().replace("-", "_") for candidate in candidates}
     owner_targets = {
         stem
         for _, text in owner_evidence
-        for stem in candidate_stems
-        if stem in text
+        for stem in _explicit_owner_targets(text, candidate_stems)
     }
 
-    duplicate: bool | None
     if candidate_stems.intersection(owner_targets):
-        duplicate = True
+        duplicate: bool | None = True
+        reasons = ["Existing candidate is explicitly identified as canonical source of truth"]
     else:
         duplicate = None
         if candidates:
@@ -197,41 +148,24 @@ def reconcile_repository(
         else:
             reasons = ["Duplicate state is not proven; absence is not sufficient to authorize CREATE"]
 
-    if candidate_stems.intersection(owner_targets):
-        reasons = ["Existing candidate is explicitly identified as canonical source of truth"]
-
-    canonical_identity = None
-    source_of_truth = None
-    if owners:
-        source_of_truth = owners[0]
-        if len(changed_stems) == 1:
-            canonical_identity = next(iter(changed_stems))
-    else:
-        reasons.append("Canonical owner/source of truth not explicitly proven")
-
+    source_of_truth = owners[0] if owners else None
+    canonical_identity = next(iter(changed_stems)) if owners and len(changed_stems) == 1 else None
     structure_map = root / CANONICAL_STRUCTURE_MAP
-    executable_changed = any(
-        path.replace("\\", "/").startswith("src/elo/") for path in changed
-    )
-    if not owners and executable_changed and structure_map.is_file():
+
+    if changed_in_runtime and structure_map.is_file() and not owner_evidence:
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "src/elo"
-        if duplicate is None and not candidates:
-            duplicate = False
-            reasons.append("Canonical structure map resolves src/elo as the executable ELO owner")
+        duplicate = False
+        reasons = ["Canonical structure map resolves src/elo as the executable ELO owner"]
 
-    maintenance_changed = all(path.replace("\\", "/") in SELF_AUDIT_PATHS for path in changed)
+    maintenance_changed = all(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
     if maintenance_changed and structure_map.is_file():
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "elo-maintenance-governance"
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
 
-    # Existing canonical frontend files are a REUSE evolution, not a new
-    # executable authority. Once generic stem discovery finds no executable
-    # candidate, explicit repository owner evidence is sufficient to classify
-    # this bounded frontend modification as an existing runtime surface.
-    frontend_changed = any(path.replace("\\", "/").startswith("frontend/") for path in changed)
+    frontend_changed = any(p.startswith("frontend/") for p in changed_normalised)
     if frontend_changed and owners and not candidates and not maintenance_changed:
         source_of_truth = owners[0]
         canonical_identity = "frontend"
@@ -239,11 +173,11 @@ def reconcile_repository(
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = None
-    if complete:
-        decision = "REUSE" if duplicate else "CREATE"
-    else:
-        reasons.append("Reconciliation remains WAITING_FOR_EVIDENCE")
+    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    if not complete:
+        reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
+        if source_of_truth is not None:
+            reasons.append("Reconciliation remains WAITING_FOR_EVIDENCE")
 
     return ReconciliationEvidence(
         changed_paths=changed,
@@ -260,7 +194,6 @@ def reconcile_repository(
 
 
 def event_facts(evidence: ReconciliationEvidence) -> dict[str, object]:
-    """Map evidence to the existing canonicality Event contract conservatively."""
     return {
         "canonical_identity_valid": evidence.canonical_identity is not None,
         "canonical_target_resolved": evidence.source_of_truth is not None,

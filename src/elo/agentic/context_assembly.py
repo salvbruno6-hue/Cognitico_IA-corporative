@@ -1,7 +1,8 @@
 """Governed context assembly over ELO's distributed memory fabric.
 
-This module composes already-resolved knowledge. It does not persist, promote,
-authorize, or redefine canonical ELO knowledge.
+This module is the composition boundary over the canonical KnowledgeOrchestrator.
+It does not create a competing planner/retrieval authority and does not persist,
+promote, authorize, or redefine canonical ELO knowledge.
 """
 
 from __future__ import annotations
@@ -9,7 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from .contracts import IntentSpec, KnowledgeCandidate, KnowledgeContext, KnowledgeGap
+from .contracts import IntentSpec, KnowledgeContext
+from .orchestrator import KnowledgeOrchestrator, KnowledgeProvider, OrchestrationLimits
 from .supabase_memory_adapter import SupabaseLearningMemoryAdapter
 
 
@@ -18,69 +20,49 @@ class ContextAssemblyPolicy:
     """Bounded policy for deterministic context composition."""
 
     max_candidates: int = 50
-    required_roles: tuple[str, ...] = ()
+    max_requirements: int = 20
+
+    def orchestration_limits(self) -> OrchestrationLimits:
+        return OrchestrationLimits(
+            max_requirements=self.max_requirements,
+            max_candidates=self.max_candidates,
+        )
 
 
 class ELOContextAssembler:
-    """Assemble scoped context without copying or mutating source memory."""
+    """Compose governed context through ELO's canonical knowledge orchestrator."""
 
     def __init__(
         self,
-        adapter: SupabaseLearningMemoryAdapter,
+        provider: KnowledgeProvider | SupabaseLearningMemoryAdapter,
         policy: ContextAssemblyPolicy | None = None,
+        orchestrator: KnowledgeOrchestrator | None = None,
     ) -> None:
-        self.adapter = adapter
+        self.provider = provider
         self.policy = policy or ContextAssemblyPolicy()
-
-    def assemble(self, intent: IntentSpec, requirements: Iterable[str]) -> KnowledgeContext:
-        candidates: list[KnowledgeCandidate] = []
-        gaps: list[KnowledgeGap] = []
-
-        # Requirement order is preserved: it is part of the context contract.
-        seen: set[str] = set()
-        for key in requirements:
-            if key in seen:
-                continue
-            seen.add(key)
-            requirement = self._requirement(key)
-            found = self.adapter.retrieve(intent, requirement)
-            if not found:
-                gaps.append(
-                    KnowledgeGap(
-                        key=key,
-                        reason=f"no governed knowledge returned for requirement: {key}",
-                        blocks_decision=True,
-                    )
-                )
-                continue
-            candidates.extend(found)
-
-        # Stable de-duplication by source identity prevents the same source row
-        # from being copied into context through multiple requirements.
-        unique: dict[str, KnowledgeCandidate] = {}
-        for candidate in candidates:
-            unique.setdefault(candidate.source_id, candidate)
-
-        ordered = tuple(
-            sorted(
-                unique.values(),
-                key=lambda item: (-item.context_match, -item.relevance, -item.confidence, item.source_id),
-            )[: self.policy.max_candidates]
+        self.orchestrator = orchestrator or KnowledgeOrchestrator(
+            provider, self.policy.orchestration_limits()
         )
 
-        provenance = {item.source_id: item.provenance for item in ordered if item.provenance}
-        return KnowledgeContext(
-            intent=intent,
-            candidates=ordered,
-            gaps=tuple(gaps),
-            provenance=provenance,
+    def assemble(self, intent: IntentSpec, requirements: Iterable[str] | None = None) -> KnowledgeContext:
+        """Assemble context, optionally constraining the orchestrator to explicit requirements."""
+        if requirements is None:
+            return self.orchestrator.run(intent)
+
+        # Preserve the canonical orchestrator as the only retrieval/curation path
+        # while allowing callers such as domain pilots to specify a bounded subset.
+        requested = tuple(dict.fromkeys(requirements))[: self.policy.max_requirements]
+        constrained_intent = IntentSpec(
+            question=intent.question,
+            intent=intent.intent,
+            domain=intent.domain,
+            task=intent.task,
+            entity=intent.entity,
+            active_context=intent.active_context,
+            required_knowledge=requested,
+            metadata=intent.metadata,
         )
-
-    @staticmethod
-    def _requirement(key: str):
-        from .contracts import KnowledgeRequirement
-
-        return KnowledgeRequirement(key=key, purpose=key, priority=0)
+        return self.orchestrator.run(constrained_intent)
 
 
 __all__ = ["ContextAssemblyPolicy", "ELOContextAssembler"]

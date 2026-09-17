@@ -1,7 +1,8 @@
 """Read-only adapter for ELO's existing Supabase learning-memory fabric.
 
-The adapter deliberately consumes already-retrieved rows. It does not connect to
-Supabase, mutate records, promote learning, or create a second memory store.
+The adapter is provider-neutral: Supabase rows are supplied by the caller and
+this layer only maps the verified Elo-forge schema into KnowledgeCandidate.
+It never persists, promotes, authorizes or mutates canonical state.
 """
 
 from __future__ import annotations
@@ -21,53 +22,66 @@ class MemoryTableSpec:
 
 
 MEMORY_TABLES: tuple[MemoryTableSpec, ...] = (
-    MemoryTableSpec("elo_experience_record", "corporate", "experience", "Observed experience, context, decisions, verification, errors and outcomes."),
-    MemoryTableSpec("elo_experience_pattern", "corporate", "pattern", "Reusable patterns extracted from comparable experiences."),
-    MemoryTableSpec("elo_reasoning_pattern", "corporate", "reasoning", "Reusable reasoning approaches, heuristics and decision patterns."),
-    MemoryTableSpec("elo_corporate_learning", "corporate", "learning", "Explicit learning supported by evidence, provenance, scope and governance state."),
-    MemoryTableSpec("elo_specialization_profile", "corporate", "specialization", "Scoped specialized knowledge and context."),
-    MemoryTableSpec("elo_corporate_assessment", "corporate", "assessment", "Corporate assessments combining evidence from multiple domains."),
-    MemoryTableSpec("elo_corporate_advisory", "corporate", "advisory", "Diagnoses and recommendations linked to evidence and learning."),
-    MemoryTableSpec("elo_pts_pos", "corporate", "arbitration", "Governed positions and arbitration states."),
-    MemoryTableSpec("elo_orcament_calculation_memory", "orcamento", "budget_memory", "Reusable budget premises, formulas, results and reuse conditions."),
-    MemoryTableSpec("elo_orcament_run", "orcamento", "budget_run", "Concrete budget runs, inputs, outputs and decision traces."),
-    MemoryTableSpec("elo_orcament_association", "orcamento", "budget_relation", "Relationships among budget entities."),
-    MemoryTableSpec("elo_quality_inspection", "qualidade", "quality_evidence", "Quality inspection evidence."),
-    MemoryTableSpec("elo_quality_nonconformity", "qualidade", "quality_evidence", "Quality nonconformity evidence."),
-    MemoryTableSpec("elo_pcp_demanda", "pcp", "planning", "PCP demand context."),
-    MemoryTableSpec("elo_pcp_ordem_pcp", "pcp", "planning", "PCP order context."),
-    MemoryTableSpec("elo_pcp_planejamento_dia", "pcp", "planning", "Daily PCP planning context."),
-    MemoryTableSpec("elo_pcp_mrp_necessidade", "pcp", "planning", "MRP material requirement context."),
-    MemoryTableSpec("elo_pcp_fluxo_modular", "pcp", "production", "Modular production-flow context."),
-    MemoryTableSpec("elo_pcp_fluxo_paralelo", "pcp", "production", "Parallel-flow context."),
+    MemoryTableSpec("elo_experience_records", "corporate", "experience", "Experiences with context, decomposition, action sequence, decisions, verification, result, errors and corrections."),
+    MemoryTableSpec("elo_reasoning_patterns", "corporate", "reasoning", "Reusable reasoning patterns, triggers, sequence, decision rules and heuristics."),
+    MemoryTableSpec("elo_specializations", "corporate", "specialization", "Scoped specialization with prerequisites, knowledge, reasoning patterns and decision rules."),
+    MemoryTableSpec("elo_aprendizado_experiencias", "learning", "learning_experience", "Learning experiences with input, decomposition, sequence, decisions, verification, result, errors and corrections."),
+    MemoryTableSpec("elo_aprendizado_conceitos", "learning", "concept", "Governed concepts associated with domains and optional specializations."),
+    MemoryTableSpec("elo_aprendizado_padroes_raciocinio", "learning", "learning_reasoning", "Learning reasoning patterns with triggers, sequence, decision rules, heuristics and evidence."),
+    MemoryTableSpec("elo_aprendizado_especializacoes", "learning", "learning_specialization", "Learning specializations with context, prerequisites, guidance, errors and evidence."),
+    MemoryTableSpec("elo_aprendizado_relacoes", "learning", "learning_relation", "Typed weighted relations between learning entities."),
+    MemoryTableSpec("elo_aprendizado_extracoes", "learning", "extraction", "Provenance-preserving extraction links from sources to experiences, concepts and patterns."),
+    MemoryTableSpec("elo_aprendizado_fontes", "learning", "source", "Configured learning sources and extraction rules."),
+    MemoryTableSpec("elo_orcamentos", "orcamento", "budget_run", "Budget identity and current context."),
+    MemoryTableSpec("elo_orcamento_memoria", "orcamento", "budget_memory", "Budget memory with calculation memory, evidence, confidence and governance fields."),
+    MemoryTableSpec("elo_orcamento_calculos_aprendidos", "orcamento", "budget_calculation", "Learned budget calculations, formulas, premises, results, validation and provenance."),
+    MemoryTableSpec("elo_orcamento_calculo_evidencias", "orcamento", "budget_evidence", "Evidence supporting learned budget calculations."),
+    MemoryTableSpec("elo_orcamento_calculo_similaridades", "orcamento", "budget_similarity", "Similarity links between learned calculations."),
+    MemoryTableSpec("elo_orcamento_associacoes", "orcamento", "budget_association", "Budget associations, occurrences, arbitrated decisions and weighting."),
+    MemoryTableSpec("elo_orcamento_decisoes", "orcamento", "budget_decision", "Budget decisions and arbitration records."),
+    MemoryTableSpec("excedentes", "orcamento", "excess", "Canonical excess records for material and/or labor composition."),
+    MemoryTableSpec("excedente_itens", "orcamento", "excess_item", "Material/component lines belonging to an excess record and linked to LISTA_MAE by cod_produt."),
+    MemoryTableSpec("excedente_mao_obra", "orcamento", "excess_labor", "Labor lines belonging to an excess record; kept separate from material lines."),
+    MemoryTableSpec("elo_audit_log", "governance", "audit", "Immutable operational audit trail with correlation and entity references."),
+    MemoryTableSpec("elo_evolution_events", "governance", "evolution", "Governed evolution events sourced from experience/pattern evidence."),
+    MemoryTableSpec("elo_automation_registry", "automation", "automation", "Automation definitions and validation requirements."),
+    MemoryTableSpec("elo_automation_runs", "automation", "automation_run", "Automation execution history."),
+    MemoryTableSpec("elo_aprendizado_automacoes", "automation", "learning_automation", "Learning automation definitions."),
+    MemoryTableSpec("elo_aprendizado_automacao_execucoes", "automation", "learning_automation_run", "Learning automation execution history."),
 )
 
 _TABLE_BY_NAME = {item.table: item for item in MEMORY_TABLES}
 
-# Requirement keys are intentionally explicit. Unknown keys are not guessed.
 _REQUIREMENT_TABLES: Mapping[str, tuple[str, ...]] = {
-    "calculation_memory": ("elo_orcament_calculation_memory", "elo_orcament_run"),
-    "current_requirements": ("elo_orcament_run", "elo_experience_record"),
-    "materials": ("elo_pcp_mrp_necessidade",),
-    "labor": ("elo_experience_record",),
-    "equipment": ("elo_experience_record",),
-    "excesses": ("elo_orcament_association", "elo_orcament_calculation_memory"),
-    "requirements": ("elo_experience_record",),
-    "specifications": ("elo_experience_record",),
-    "standards": ("elo_corporate_learning", "elo_pts_pos"),
-    "constraints": ("elo_corporate_learning", "elo_experience_record"),
-    "scope": ("elo_pcp_demanda", "elo_pcp_ordem_pcp"),
-    "dependencies": ("elo_pcp_ordem_pcp", "elo_pcp_fluxo_modular"),
-    "resources": ("elo_pcp_fluxo_modular", "elo_pcp_fluxo_paralelo"),
-    "duration": ("elo_pcp_planejamento_dia", "elo_experience_record"),
-    "item": ("elo_pcp_mrp_necessidade",),
-    "price": ("elo_orcament_calculation_memory", "elo_orcament_run"),
-    "lead_time": ("elo_pcp_mrp_necessidade",),
+    "calculation_memory": ("elo_orcamento_memoria", "elo_orcamento_calculos_aprendidos"),
+    "budget_template": (),
+    "applicable_composition": ("elo_orcamento_memoria", "elo_orcamento_calculos_aprendidos"),
+    "current_requirements": ("elo_orcamentos", "elo_orcamento_memoria", "elo_aprendizado_experiencias"),
+    "budget_lines": (),
+    "materials": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
+    "labor": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
+    "equipment": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
+    "excesses": ("excedentes", "excedente_itens", "excedente_mao_obra", "elo_orcamento_associacoes", "elo_orcamento_calculos_aprendidos"),
+    "requirements": ("elo_aprendizado_experiencias", "elo_aprendizado_conceitos"),
+    "specifications": ("elo_aprendizado_experiencias", "elo_aprendizado_conceitos"),
+    "standards": ("elo_aprendizado_conceitos", "elo_aprendizado_experiencias"),
+    "constraints": ("elo_aprendizado_conceitos", "elo_aprendizado_experiencias"),
+    "scope": ("elo_orcamentos", "elo_aprendizado_experiencias"),
+    "dependencies": ("elo_aprendizado_experiencias", "elo_aprendizado_padroes_raciocinio"),
+    "resources": ("elo_aprendizado_experiencias", "elo_aprendizado_conceitos"),
+    "duration": ("elo_aprendizado_experiencias",),
+    "item": ("elo_orcamento_memoria", "elo_aprendizado_experiencias"),
+    "price": ("elo_orcamento_memoria", "elo_orcamento_calculos_aprendidos"),
+    "calculations": ("elo_orcamento_calculos_aprendidos", "elo_aprendizado_experiencias"),
+    "conflicts": ("elo_aprendizado_experiencias", "elo_orcamento_decisoes"),
+    "gaps": ("elo_aprendizado_experiencias", "elo_orcamento_decisoes"),
+    "patterns": ("elo_reasoning_patterns", "elo_aprendizado_padroes_raciocinio"),
+    "learning": ("elo_aprendizado_conceitos", "elo_aprendizado_extracoes", "elo_aprendizado_relacoes"),
 }
 
 
 class SupabaseLearningMemoryAdapter:
-    """Resolve requirements against supplied Supabase rows without persistence."""
+    """Resolve requirements against supplied Elo-forge rows without persistence."""
 
     def __init__(self, rows_by_table: Mapping[str, Sequence[Mapping[str, Any]]]) -> None:
         self._rows = {name: tuple(rows) for name, rows in rows_by_table.items()}
@@ -80,7 +94,6 @@ class SupabaseLearningMemoryAdapter:
         tables = _REQUIREMENT_TABLES.get(requirement.key)
         if not tables:
             return ()
-
         candidates: list[KnowledgeCandidate] = []
         requested_domain = (intent.domain or "").casefold()
         for table in tables:
@@ -88,11 +101,10 @@ class SupabaseLearningMemoryAdapter:
             for row in self._rows.get(table, ()):
                 if not self._scope_matches(row, intent):
                     continue
-                content = self._content(row, spec)
                 candidates.append(
                     KnowledgeCandidate(
                         source_id=f"supabase:{table}:{self._row_id(row)}",
-                        content=content,
+                        content=self._content(row, spec),
                         source_type=f"supabase:{spec.role}",
                         status=self._status(row),
                         relevance=self._relevance(spec.domain, requested_domain),
@@ -107,66 +119,78 @@ class SupabaseLearningMemoryAdapter:
 
     @staticmethod
     def _row_id(row: Mapping[str, Any]) -> str:
-        for key in ("experience_id", "learning_id", "reasoning_pattern_id", "experience_pattern_id", "calculation_memory_id", "budget_run_id", "association_id", "inspection_id", "nonconformity_id", "demanda_id", "ordem_pcp_id", "planejamento_dia_id", "mrp_need_id", "fluxo_modular_id", "fluxo_paralelo_id"):
+        for key in (
+            "id", "experience_id", "learning_id", "concept_id", "conceito_id", "padrao_id",
+            "calculation_memory_id", "memoria_id", "orcamento_id", "associacao_id", "varredura_id",
+            "correlation_id", "source_id", "codigo_excedente",
+        ):
             if row.get(key) is not None:
                 return str(row[key])
         return "unidentified"
 
     @staticmethod
     def _scope_matches(row: Mapping[str, Any], intent: IntentSpec) -> bool:
-        """Apply governed scope inheritance without allowing cross-client leakage.
-
-        GLOBAL memory is reusable by a scoped client request. A client-scoped row
-        is reusable only by that same client. An explicitly scoped request never
-        consumes a row with no scope, because its ownership is unresolved.
-        """
-        raw_scope = row.get("scope")
-        row_scope = str(raw_scope).strip() if raw_scope is not None else None
-        requested_raw = intent.metadata.get("scope")
-        requested_scope = str(requested_raw).strip() if requested_raw is not None else None
-
+        requested_scope = intent.metadata.get("scope")
         if requested_scope is None:
-            return row_scope in (None, "GLOBAL")
-        if row_scope == "GLOBAL":
             return True
-        if row_scope is None:
-            return False
-        return row_scope == requested_scope
+        scope = row.get("scope") or row.get("scope_key") or row.get("tenant_scope")
+        return scope is not None and str(scope) == requested_scope
 
     @staticmethod
     def _content(row: Mapping[str, Any], spec: MemoryTableSpec) -> str:
-        for key in ("finding", "description", "premise", "assessment", "diagnosis", "result", "notes", "context"):
+        for key in (
+            "finding", "description", "titulo", "nome", "objetivo", "premissa", "assessment", "diagnosis",
+            "resultado", "result", "evidencia", "evidencias", "contexto", "context", "formula",
+            "justificativa", "recommendation", "item", "material", "conteudo", "decisao", "descricao",
+            "funcao",
+        ):
             value = row.get(key)
-            if value not in (None, ""):
+            if value not in (None, "", [], {}):
                 return f"{spec.table}: {value}"
         return f"{spec.table}: record available"
 
     @staticmethod
     def _status(row: Mapping[str, Any]) -> str:
-        raw = str(row.get("status") or row.get("validation_status") or row.get("promotion_status") or "UNVERIFIED").upper()
-        if raw in {"VALIDATED", "CANONICAL", "INCORPORATED", "CURRENT", "PROVISORIO", "CANDIDATE", "OBSERVED"}:
-            return "GOVERNED" if raw in {"VALIDATED", "INCORPORATED", "CANONICAL"} else "REFERENCE"
-        if raw in {"REJECTED", "DESCARTADO", "OUTDATED"}:
+        raw = str(
+            row.get("status")
+            or row.get("status_validacao")
+            or row.get("validation_status")
+            or row.get("promotion_status")
+            or "UNVERIFIED"
+        ).upper()
+        if raw in {"VALIDATED", "CANONICAL", "INCORPORATED", "CURRENT", "VALIDADO", "APROVADO"}:
+            return "GOVERNED"
+        if raw in {"CANDIDATE", "OBSERVED", "PROVISORIO", "EM_ANALISE", "PENDENTE"}:
+            return "REFERENCE"
+        if raw in {"REJECTED", "DESCARTADO", "OUTDATED", "REPROVADO"}:
             return "OUTDATED"
         return "UNVERIFIED"
 
     @staticmethod
     def _confidence(row: Mapping[str, Any]) -> float:
-        value = row.get("confidence")
-        try:
-            return max(0.0, min(1.0, float(value))) if value is not None else 0.0
-        except (TypeError, ValueError):
-            return 0.0
+        for key in ("confidence", "confianca", "valor_aprendizado"):
+            value = row.get(key)
+            if value is not None:
+                try:
+                    return max(0.0, min(1.0, float(value)))
+                except (TypeError, ValueError):
+                    return 0.0
+        return 0.0
 
     @staticmethod
     def _authority(row: Mapping[str, Any]) -> str | None:
-        return str(row["source_system"]) if row.get("source_system") else None
+        for key in ("source_system", "fonte", "origem", "arbitrado_por"):
+            if row.get(key):
+                return str(row[key])
+        return None
 
     @staticmethod
     def _provenance(table: str, row: Mapping[str, Any]) -> Mapping[str, str]:
-        result = {"storage": "supabase", "table": table}
-        if row.get("source_reference"):
-            result["source_reference"] = str(row["source_reference"])
+        result = {"storage": "supabase", "project": "fxbpevjrkwhbicpmecow", "table": table}
+        for key in ("source_reference", "origem_referencia", "origem_so", "origem_documento", "documento_origem", "referencia_so"):
+            if row.get(key):
+                result["source_reference"] = str(row[key])
+                break
         return result
 
     @staticmethod
@@ -180,7 +204,14 @@ class SupabaseLearningMemoryAdapter:
         entity = intent.entity
         if not entity:
             return 0.5
-        haystack = " ".join(str(row.get(key, "")) for key in ("context", "description", "finding", "premise", "notes"))
+        haystack = " ".join(
+            str(row.get(key, ""))
+            for key in (
+                "context", "contexto", "description", "descricao", "finding", "premise", "premissa",
+                "notes", "objetivo", "request_reference", "decision_reference", "origem_so", "orcamento_id",
+                "codigo_excedente", "tipo_instalacao", "funcao",
+            )
+        )
         return 1.0 if entity.casefold() in haystack.casefold() else 0.0
 
 
