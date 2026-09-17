@@ -5,7 +5,6 @@ from elo.agentic.supabase_memory_adapter import MEMORY_TABLES, SupabaseLearningM
 def test_inventory_is_explicit_and_contains_existing_memory_layers():
     names = {item.table for item in MEMORY_TABLES}
     assert "elo_experience_records" in names
-    assert "elo_corporate_learning" not in names or "elo_corporate_learning" in names
     assert "elo_orcamento_memoria" in names
     assert "elo_reasoning_patterns" in names
     assert "elo_aprendizado_padroes_raciocinio" in names
