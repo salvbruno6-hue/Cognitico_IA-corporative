@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: elo-resource-address-registry
@@ -90,4 +91,5 @@ jobs:
             exit 0
           fi
           git commit -m "chore(elo): refresh resource address registry"
-          git push origin HEAD:elo/resource-registry-refresh\n          gh pr create --base main --head elo/resource-registry-refresh --title "chore(elo): refresh resource address registry" --body "Automated refresh of the governed ELO Resource Address Registry from current GitHub and Supabase inventories." || true
+          git push origin HEAD:elo/resource-registry-refresh
+          gh pr create --base main --head elo/resource-registry-refresh --title "chore(elo): refresh resource address registry" --body "Automated refresh of the governed ELO Resource Address Registry from current GitHub and Supabase inventories." || true
