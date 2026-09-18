@@ -40,7 +40,7 @@ def resolve_fk_edges(
             edges.append({
                 "source": f"{source_table}:{source_id}",
                 "target": f"{target_table}:{target_id}",
-                "relation_type": "requires",
+                "relation_type": "structural",
                 "provenance": f"fk:{provenance}",
                 "tenant_scope": tenant_scope,
             })
