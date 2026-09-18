@@ -29,6 +29,7 @@ class AccessRequest:
     session_mode: SessionMode = SessionMode.READ_ONLY_CONSULTATION
     write_permission: bool = False
     external_action_permission: bool = False
+    vercel_project_authorized: bool = False
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,7 @@ class AccessResult:
 
 _READ_ACTIONS = frozenset({"consult", "search", "inspect_issue", "inspect_pr", "inspect_workflow", "answer"})
 _SPECIALIST_ACTIONS = frozenset({"provide_feedback", "propose_parameter", "propose_change", "validate_domain_result"})
+_VERCEL_CREATION_ACTIONS = frozenset({"create_elo_vercel_project", "deploy_elo_to_unapproved_vercel_project", "copy_elo_to_vercel_project", "reconstruct_elo_in_vercel_project"})
 _ALWAYS_DENIED = frozenset(
     {
         "modify_core",
@@ -67,6 +69,15 @@ def authorize(request: AccessRequest) -> AccessResult:
     )
     if not all(required):
         return AccessResult(AccessDecision.DENY, "missing_identity_or_scope")
+
+    if request.action in _VERCEL_CREATION_ACTIONS:
+        if not request.vercel_project_authorized:
+            return AccessResult(AccessDecision.DENY, "elo_vercel_project_requires_explicit_authorization")
+        if not request.external_action_permission:
+            return AccessResult(AccessDecision.DENY, "vercel_creation_requires_explicit_external_authority")
+        if request.session_mode != SessionMode.AUTHORIZED_SPECIALIST:
+            return AccessResult(AccessDecision.DENY, "vercel_creation_requires_authorized_specialist")
+        return AccessResult(AccessDecision.ALLOW, "authorized_elo_vercel_project_creation")
 
     if request.action in _ALWAYS_DENIED:
         return AccessResult(AccessDecision.DENY, "action_outside_elo_authority")

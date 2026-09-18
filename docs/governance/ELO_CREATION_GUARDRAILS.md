@@ -169,3 +169,14 @@ This document is not permission to create more governance documents for every fe
 The preferred behavior is:
 
 > **Search first. Reuse the canonical owner. Extend only when justified. Put execution behind the established boundary. Add a preventive test when an error class is discovered.**
+
+
+## 11. Vercel creation guard — ELO-VRC-001
+
+Creating or deploying any ELO component into a Vercel project other than the canonical `elo-web` is a governed structural operation. Default state: **DENY**.
+
+It may proceed only with an explicit ELO authorization record identifying target project, purpose, scope, capabilities and evidence. A prompt, branch name, Vercel team membership, GitHub permission or successful build is not authorization.
+
+`REQUEST → CANONICAL RECONCILIATION → EXPLICIT ELO AUTHORIZATION → TARGET/SCOPE BINDING → IMPLEMENT → TEST → EVOLUTION GATE → DEPLOY`
+
+Skipping authorization is a hard governance violation.

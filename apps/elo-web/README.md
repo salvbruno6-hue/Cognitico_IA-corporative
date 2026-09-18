@@ -41,7 +41,7 @@ Install command: default package-manager detection.
 
 Required server-side environment variable:
 
-`ELO_COGNITIVE_API_URL=https://<governed-elo-cognitive-endpoint>`
+O ELO Web não depende de `ELO_COGNITIVE_API_URL`. O Cognitive Core opera dentro da própria fronteira `/api/cognitive`.
 
 Optional public tenant identifier:
 

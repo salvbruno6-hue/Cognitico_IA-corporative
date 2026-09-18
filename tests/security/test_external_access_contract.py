@@ -24,6 +24,10 @@ def test_read_only_boundary_is_fail_closed():
         "access_owner_site",
         "access_secrets",
         "execute_production_action",
+        "create_elo_vercel_project",
+        "deploy_elo_to_unapproved_vercel_project",
+        "copy_elo_to_vercel_project",
+        "reconstruct_elo_in_vercel_project",
     )
     for action in blocked:
         result = authorize(request(action=action))
@@ -49,3 +53,22 @@ def test_specialist_feedback_is_scoped_but_core_promotion_is_not():
 def test_missing_identity_scope_or_domain_fails_closed():
     for field in ("principal_id", "scope", "domain"):
         assert authorize(request(**{field: ""})).decision is AccessDecision.DENY
+
+
+def test_elo_vercel_creation_requires_explicit_target_authorization():
+    request_base = request(
+        role="elo-operator",
+        session_mode=SessionMode.AUTHORIZED_SPECIALIST,
+        action="create_elo_vercel_project",
+        external_action_permission=True,
+    )
+    assert authorize(request_base).decision is AccessDecision.DENY
+
+    approved = request(
+        role="elo-operator",
+        session_mode=SessionMode.AUTHORIZED_SPECIALIST,
+        action="create_elo_vercel_project",
+        external_action_permission=True,
+        vercel_project_authorized=True,
+    )
+    assert authorize(approved).decision is AccessDecision.ALLOW

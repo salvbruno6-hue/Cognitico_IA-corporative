@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "verify:decoupling": "node scripts/verify-no-legacy-dependency.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.7.0",

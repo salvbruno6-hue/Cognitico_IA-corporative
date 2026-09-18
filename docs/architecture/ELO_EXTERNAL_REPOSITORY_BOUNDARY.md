@@ -72,3 +72,17 @@ Decoupling is complete only when dependency/reference audits and runtime tests s
 ## 8. Governance principle
 
 If a capability currently exists only outside `Cognitico_IA-corporative` and is required for ELO cognition, first migrate/generalize the required knowledge, contract or architecture into ELO Cognitivo, validate it, and only then retain an external implementation at the execution edge if necessary.
+
+
+## 9. Vercel project creation boundary — ELO-VRC-001
+
+No ELO implementation, deployment, clone, reconstruction, runtime, API, frontend, backend or cognitive component may be created in another Vercel project without explicit prior authorization from ELO governance.
+
+The official ELO Web production application is `elo-web`. A Vercel project is not an authorized ELO destination merely because it belongs to the same account, team, GitHub organization or developer.
+
+Before creating or deploying ELO into another Vercel project, the request MUST have: (1) canonical owner; (2) documented architectural reason; (3) explicit authorization decision; (4) target Vercel project/environment; (5) scope and capability boundary; (6) provenance linking creation to authorization; and (7) applicable ELO governance/Evolution Gate evidence. Without these elements the operation is BLOCKED.
+
+This rule prevents a second Vercel project from silently becoming an ELO runtime, cognitive authority, application dependency or alternate production surface. An approved exception does not transfer canonical authority and must retain an explicit dependency and rollback/removal path.
+
+Required decision record: `authorization_id → requester → target_project → purpose → scope → capabilities → expiry/review → evidence`.
+
