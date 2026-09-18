@@ -40,11 +40,13 @@ def test_decision_brief_requires_evidence_and_exposes_confidence_gate() -> None:
     with pytest.raises(ValueError, match="evidence"):
         DecisionBrief(
             "req-1", "tenant-a", "problem", (), ("alt",), ("tradeoff",),
-            "recommendation", CONFIDENCE_MINIMUM, ("risk",), "audit-1",
+            "recommendation", CONFIDENCE_MINIMUM, ("risk",), ("risk",),
+            audit={"authorization_decision_id": "auth-1"},
         )
     brief = DecisionBrief(
         "req-1", "tenant-a", "problem", ("e-1",), ("alt",), ("tradeoff",),
-        "recommendation", CONFIDENCE_MINIMUM, ("risk",), "audit-1",
+        "recommendation", CONFIDENCE_MINIMUM, ("risk",), ("risk",),
+        audit={"authorization_decision_id": "auth-1"},
     )
     assert brief.confidence_sufficient is True
 
