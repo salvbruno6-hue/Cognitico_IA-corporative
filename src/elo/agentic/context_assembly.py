@@ -12,7 +12,9 @@ from typing import Iterable
 
 from .contracts import IntentSpec, KnowledgeContext
 from .orchestrator import KnowledgeOrchestrator, KnowledgeProvider, OrchestrationLimits
-from .supabase_memory_adapter import SupabaseLearningMemoryAdapter
+from .supabase_memory_adapter import SupabaseLearningMemoryAdapter\n
+from src.elo.core.resource_locator import ResourceLocator, ResourceResolutionError
+
 
 
 @dataclass(frozen=True)
@@ -27,6 +29,35 @@ class ContextAssemblyPolicy:
             max_requirements=self.max_requirements,
             max_candidates=self.max_candidates,
         )
+
+
+class _AddressAwareProvider:
+    """Resolve registered resource addresses before delegating the governed read."""
+
+    def __init__(self, provider: KnowledgeProvider, locator: ResourceLocator) -> None:
+        self.provider = provider
+        self.locator = locator
+
+    def retrieve(self, intent: IntentSpec, requirement):
+        try:
+            resolution = self.locator.resolve(requirement.key)
+        except ResourceResolutionError:
+            return self.provider.retrieve(intent, requirement)
+
+        metadata = dict(intent.metadata)
+        metadata["resource_address"] = resolution.physical_address
+        metadata["resource_id"] = resolution.record.resource_id
+        resolved_intent = IntentSpec(
+            question=intent.question,
+            intent=intent.intent,
+            domain=intent.domain,
+            task=intent.task,
+            entity=intent.entity,
+            active_context=intent.active_context,
+            required_knowledge=intent.required_knowledge,
+            metadata=metadata,
+        )
+        return self.provider.retrieve(resolved_intent, requirement)
 
 
 class ELOContextAssembler:
