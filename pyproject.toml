@@ -25,4 +25,4 @@ addopts = "-q"
 where = ["src"]
 
 [tool.vercel]
-entrypoint = "elo.interface.api:app"
+entrypoint = "api:app"
