@@ -1,0 +1,14 @@
+{
+  "canonical_project": "elo-web",
+  "canonical_path": "apps/elo-web",
+  "rule": "ELO-VRC-001",
+  "authorized_projects": [],
+  "deprecated_noncanonical_projects": [
+    {
+      "path": "frontend",
+      "status": "DEPRECATED",
+      "reason": "legacy ELO frontend; not an authorized Vercel production target",
+      "replacement": "apps/elo-web"
+    }
+  ]
+}
