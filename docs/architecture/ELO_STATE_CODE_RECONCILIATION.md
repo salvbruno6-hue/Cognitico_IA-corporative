@@ -20,15 +20,15 @@ As classificações usadas aqui são:
 
 | Código/estado do material | Dono canônico | Classificação | Ajuste |
 |---|---|---|---|
-| requires_ack | mandato/MCP | EXTENDER | O ACK é pré-condição de operação; não é nova identidade nem nova autorização. |
-| ack | mandato/MCP | EXTENDER | Associar ao request/session/mandate version e bloquear tools antes do ACK. |
+| requires_ack | mandato/MCP/Symbiont governance contract | EXTENDER | O ACK é pré-condição de operação; não é nova identidade nem nova autorização. Implementado como guarda fail-closed no contrato do Symbiont. |
+| ack | mandato/MCP/Symbiont governance contract | EXTENDER | Associar ao request/session/mandate version e bloquear tools antes do ACK. Envelope governado exige request_id e tenant_scope compatíveis. |
 | decision_brief | Core/decisão | REUTILIZAR | Tratar como formato de saída; não criar novo registro histórico concorrente. |
-| confidence >= 0.70 | governança cognitiva | EXTENDER | Manter o limiar onde já é normativo; não duplicar constantes com semânticas diferentes. |
-| human escalation | governança/autoridade | REUTILIZAR | Encaminhar para autoridade humana existente quando os critérios do contrato forem atingidos. |
+| confidence >= 0.70 | governança cognitiva/Symbiont governance contract | EXTENDER | Contrato do Symbiont consolida o limiar de confiança para seu boundary; não substitui os critérios específicos já existentes. |
+| human escalation | governança/autoridade/Symbiont governance contract | REUTILIZAR | Avaliação consolidada apenas classifica a necessidade; a autoridade de escalonamento permanece existente. |
 | sql_query_readonly | adapter/MCP | EXTENDER | Para fontes externas, usar fonte registrada + operação query; não expor SQL arbitrário. |
 | kpi_calc | Core/cálculo | PENDENTE | Só incorporar após localizar owner canônico e testes; o cálculo deve operar sobre dados já autorizados. |
 | scenario_sim | MultiScenarioGate/Scenario | REUTILIZAR | Reusar Scenario e MultiScenarioGate; não criar segundo motor de cenários. |
-| risk_assess | reasoning/governance | EXTENDER | Integrar avaliação de risco existente; o limiar financeiro deve ser contextual e governado. |
+| risk_assess | reasoning/governance/Symbiont governance contract | EXTENDER | Integrar avaliação de risco existente; o limiar financeiro é contextual e nenhum valor é inventado. |
 | decision_register | DecisionRecord/OutcomeFeedback | BLOQUEADO | Não criar um segundo ledger. |
 | memory/decisions.jsonl | memória/decisão | BLOQUEADO | Não substituir nem concorrer com a memória/DecisionRecord canônica. |
 | memory/mcp_audit.jsonl | auditoria ELO | BLOQUEADO | Preferir elo_audit_log e elo_authorization_audit. |
@@ -78,3 +78,26 @@ Falha em qualquer guarda deve ser fail-closed.
 Esta matriz pode ser alterada quando uma divergência for encontrada. A alteração deve identificar: código afetado, owner canônico, evidência da implementação, testes que comprovam a semântica e impacto sobre contratos existentes.
 
 Nenhum código desta matriz cria por si só uma nova autoridade.
+
+
+## Ajuste implementado — contrato operacional do Symbiont
+
+Foi adicionada uma camada de contrato em
+`src/elo/cognitive/symbiont_governance_contract.py`, sem criar nova autoridade.
+
+Ela consolida quatro guardas que estavam dispersas no desenho:
+- acknowledgement de mandato;
+- formato mínimo de `DecisionBrief`;
+- confiança mínima de 0.70 para esse boundary;
+- avaliação de escalonamento por confiança, risco, conflito canônico, evidência insuficiente, limite financeiro contextual, ação irreversível ou exposição de PII.
+
+O contrato não autoriza, promove, persiste conhecimento nem decide por uma autoridade superior.
+
+O caminho Hermes Skill ganhou um envelope governado que exige ACK compatível com `request_id` e `tenant_scope` antes da execução.
+
+Os testes correspondentes ficam em:
+`tests/evolution/test_symbiont_governance_contract.py`
+e
+`tests/evolution/test_hermes_skill_runtime_governance.py`.
+
+Esses ajustes são preparação de contrato e testes. A validação operacional/CI ainda não foi declarada como concluída.
