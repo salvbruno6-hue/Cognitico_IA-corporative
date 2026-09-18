@@ -69,7 +69,7 @@ export async function executeCognitiveMission(input: {
   const startedAt = performance.now();
 
   try {
-    const result = processLocalCognitiveMission({
+    const result = await processLocalCognitiveMission({
       requestId: crypto.randomUUID(),
       correlationId: crypto.randomUUID(),
       message: input.message,
