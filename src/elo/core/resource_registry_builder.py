@@ -6,7 +6,7 @@ It does not connect to GitHub/Supabase, authorize access, or infer semantics.
 
 from __future__ import annotations
 
-from typing import Iterable, Any
+from typing import Iterable, Mapping, Any
 
 
 # Explicit, governed aliases only. Generic fuzzy matching remains prohibited.
