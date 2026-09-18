@@ -49,7 +49,20 @@ def main() -> int:
         return 0
 
     next_app_dirs = {str(path.parent.relative_to(ROOT)).replace("\\", "/") for path, _ in apps}
-    unauthorized_apps = next_app_dirs - {CANONICAL_ELO_WEB}
+    candidate_apps = set(next_app_dirs)
+    for path in ROOT.rglob("package.json"):
+        if any(part in SKIP for part in path.parts):
+            continue
+        rel = str(path.parent.relative_to(ROOT)).replace("\\", "/")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        name = str(data.get("name", "")).lower()
+        if "elo" in name or rel.lower().startswith("frontend"):
+            candidate_apps.add(rel)
+
+    unauthorized_apps = candidate_apps - {CANONICAL_ELO_WEB}
     if unauthorized_apps:
         authorized = set()
         if AUTHORIZED_EXTERNAL_MANIFEST.exists():
@@ -60,9 +73,14 @@ def main() -> int:
                     for item in manifest.get("authorized_projects", [])
                     if item.get("status") == "AUTHORIZED"
                 }
+                deprecated = {
+                    str(item.get("path", "")).strip().replace("\\", "/")
+                    for item in manifest.get("deprecated_noncanonical_projects", [])
+                    if item.get("status") == "DEPRECATED"
+                }
             except Exception as exc:
                 errors.append(f"{AUTHORIZED_EXTERNAL_MANIFEST.relative_to(ROOT)}: invalid authorization manifest: {exc}")
-        for app_dir in sorted(unauthorized_apps - authorized):
+        for app_dir in sorted(unauthorized_apps - authorized - deprecated):
             errors.append(
                 f"{app_dir}: ELO application outside canonical {CANONICAL_ELO_WEB} requires explicit ELO Vercel authorization"
             )
