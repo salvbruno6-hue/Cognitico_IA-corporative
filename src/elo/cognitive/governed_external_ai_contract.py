@@ -116,13 +116,18 @@ class GovernedExternalAIEnvelope:
     tenant_scope: str
     authorized_capabilities: tuple[str, ...]
     evidence_requirements: tuple[str, ...]
+    authorization_decision_id: str
     constraints: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.tenant_scope != self.mandate.tenant_scope:
             raise ValueError("tenant scope does not match acknowledged mandate")
+        if not self.authorization_decision_id.strip():
+            raise ValueError("authorization_decision_id is required")
         if not self.authorized_capabilities:
             raise ValueError("authorized_capabilities is required")
+        if any(not capability.strip() for capability in self.authorized_capabilities):
+            raise ValueError("authorized_capabilities cannot contain empty values")
         if not self.evidence_requirements:
             raise ValueError("evidence_requirements is required")
         if self.constraints.get("canonical_mutation", False):
