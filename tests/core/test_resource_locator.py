@@ -1,4 +1,4 @@
-from src.elo.core.resource_locator import (
+from elo.core.resource_locator import (
     AmbiguousResourceError,
     ResourceLocator,
     ResourceRecord,
@@ -77,3 +77,16 @@ def test_ambiguous_identity_is_rejected():
         pass
     else:
         raise AssertionError("ambiguous resource names must be rejected")
+
+
+def test_registry_payload_resolves_alias():
+    locator = ResourceLocator.from_registry({"records": [{
+        "resource_id": "ELO.DB.TABLE.EXCEDENTES",
+        "resource_type": "database_table",
+        "provider": "supabase",
+        "logical_name": "excedentes",
+        "physical_address": "public.excedentes",
+        "aliases": ["tabela excedente"],
+    }]})
+
+    assert locator.address("tabela excedente") == "public.excedentes"
