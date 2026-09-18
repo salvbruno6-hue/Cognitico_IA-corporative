@@ -12,9 +12,8 @@ from typing import Iterable
 
 from .contracts import IntentSpec, KnowledgeContext
 from .orchestrator import KnowledgeOrchestrator, KnowledgeProvider, OrchestrationLimits
-from .supabase_memory_adapter import SupabaseLearningMemoryAdapter\n
+from .supabase_memory_adapter import SupabaseLearningMemoryAdapter
 from ..core.resource_locator import ResourceLocator, ResourceResolutionError
-
 
 
 @dataclass(frozen=True)
@@ -68,11 +67,18 @@ class ELOContextAssembler:
         provider: KnowledgeProvider | SupabaseLearningMemoryAdapter,
         policy: ContextAssemblyPolicy | None = None,
         orchestrator: KnowledgeOrchestrator | None = None,
+        resource_locator: ResourceLocator | None = None,
     ) -> None:
         self.provider = provider
         self.policy = policy or ContextAssemblyPolicy()
+        self.resource_locator = resource_locator
+        routed_provider = (
+            _AddressAwareProvider(provider, resource_locator)
+            if resource_locator is not None
+            else provider
+        )
         self.orchestrator = orchestrator or KnowledgeOrchestrator(
-            provider, self.policy.orchestration_limits()
+            routed_provider, self.policy.orchestration_limits()
         )
 
     def assemble(self, intent: IntentSpec, requirements: Iterable[str] | None = None) -> KnowledgeContext:
@@ -80,8 +86,6 @@ class ELOContextAssembler:
         if requirements is None:
             return self.orchestrator.run(intent)
 
-        # Preserve the canonical orchestrator as the only retrieval/curation path
-        # while allowing callers such as domain pilots to specify a bounded subset.
         requested = tuple(dict.fromkeys(requirements))[: self.policy.max_requirements]
         constrained_intent = IntentSpec(
             question=intent.question,
