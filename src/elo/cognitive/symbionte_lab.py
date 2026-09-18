@@ -85,6 +85,17 @@ class SymbiontLabAdapter:
         decision = EvolutionGate().evaluate(proposal)
         disposition = self._disposition(decision.classification)
 
+        # Unconfirmed generalization is retained as laboratory evidence only;
+        # it must not manufacture a learning candidate.
+        if observation.generalization_status.upper() == "UNCONFIRMED":
+            return SymbiontLabEvaluation(
+                observation=observation,
+                experience=None,
+                candidate=None,
+                evolution_classification=decision.classification.value,
+                disposition="LAB_ONLY",
+            )
+
         # Reuse is an association outcome, not a new learning candidate.
         # Blocked evolution likewise must not create a parallel candidate.
         if decision.classification in {
