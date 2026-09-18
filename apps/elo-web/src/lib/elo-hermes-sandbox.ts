@@ -37,7 +37,7 @@ function requireEnv(name: string) {
 }
 
 function missionCommand(request: HermesExecutionRequest): { cmd: string; args: string[] } {
-  if (request.mission_class === "runtime_probe" && request.authorized_capabilities.includes("hermes.runtime.probe")) {
+  if (request.mission_class === "runtime_probe" && request.authorized_capabilities.includes("hermes:runtime_probe")) {
     return { cmd: "python", args: ["-m", "hermes_cli.main", "--version"] };
   }
   throw new Error("Mission is not an allowed Vercel Hermes sandbox operation.");
