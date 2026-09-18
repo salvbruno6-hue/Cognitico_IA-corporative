@@ -37,16 +37,15 @@ jobs:
               "Accept": "application/vnd.github+json",
           })
           data = json.load(urllib.request.urlopen(req))
-          files = sorted(
-              item["path"] for item in data.get("tree", [])
-              if item.get("type") == "blob"
-          )
+          files = sorted(item["path"] for item in data.get("tree", []) if item.get("type") == "blob")
+          if data.get("truncated"):
+              raise SystemExit("Git tree response was truncated; refusing incomplete registry.")
           os.makedirs(".elo-inventory", exist_ok=True)
           with open(".elo-inventory/repository-tree.json", "w", encoding="utf-8") as fh:
               json.dump({"files": files}, fh, ensure_ascii=False, indent=2)
           PY
 
-      - name: Inventory Supabase schema
+      - name: Inventory Supabase schema through approved REST view
         run: |
           test -n "$SUPABASE_URL"
           test -n "$SUPABASE_SERVICE_ROLE_KEY"
@@ -54,29 +53,21 @@ jobs:
           import json, os, urllib.parse, urllib.request
           base = os.environ["SUPABASE_URL"].rstrip("/")
           key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-          query = urllib.parse.quote(
-              "select table_name, table_type from information_schema.tables "
-              "where table_schema='public' and table_type in ('BASE TABLE','VIEW') "
-              "order by table_name;"
-          )
+          params = urllib.parse.urlencode({
+              "select": "table_name,table_type",
+              "order": "table_name.asc",
+          })
           req = urllib.request.Request(
-              f"{base}/rest/v1/rpc/execute_sql?query={query}",
-              headers={"apikey": key, "Authorization": f"Bearer {key}"},
+              f"{base}/rest/v1/elo_scan_schema_inventory?{params}",
+              headers={
+                  "apikey": key,
+                  "Authorization": f"Bearer {key}",
+                  "Accept": "application/json",
+              },
           )
-          # The production project may not expose an execute_sql RPC. In that case
-          # schema inventory must be supplied by the governed DB inventory endpoint.
-          try:
-              data = json.load(urllib.request.urlopen(req))
-          except Exception:
-              data = []
-          tables = sorted(
-              row["table_name"] for row in data
-              if row.get("table_type") == "BASE TABLE"
-          )
-          views = sorted(
-              row["table_name"] for row in data
-              if row.get("table_type") == "VIEW"
-          )
+          data = json.load(urllib.request.urlopen(req))
+          tables = sorted(row["table_name"] for row in data if row.get("table_type") == "BASE TABLE")
+          views = sorted(row["table_name"] for row in data if row.get("table_type") == "VIEW")
           os.makedirs(".elo-inventory", exist_ok=True)
           with open(".elo-inventory/database-schema.json", "w", encoding="utf-8") as fh:
               json.dump({"tables": tables, "views": views}, fh, ensure_ascii=False, indent=2)
