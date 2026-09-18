@@ -80,7 +80,7 @@ jobs:
         run: |
           python -m pytest tests/core/test_resource_registry_builder.py tests/core/test_artifact_resolver.py
 
-      - name: Persist generated registry
+      - name: Publish generated registry through governed PR
         run: |
           git config user.name "ELO Registry Bot"
           git config user.email "elo-registry-bot@users.noreply.github.com"
@@ -90,4 +90,4 @@ jobs:
             exit 0
           fi
           git commit -m "chore(elo): refresh resource address registry"
-          git push origin HEAD:main
+          git push origin HEAD:elo/resource-registry-refresh\n          gh pr create --base main --head elo/resource-registry-refresh --title "chore(elo): refresh resource address registry" --body "Automated refresh of the governed ELO Resource Address Registry from current GitHub and Supabase inventories." || true
