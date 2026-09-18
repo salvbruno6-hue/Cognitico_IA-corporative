@@ -1,3 +1,5 @@
+import { executeHermesInVercelSandbox } from "@/lib/elo-hermes-sandbox";
+
 export type LocalCognitiveRequest = {
   requestId: string;
   correlationId: string;
@@ -36,7 +38,7 @@ function requireTenant(tenantId: string) {
   if (!tenantId.trim()) throw new Error("tenant_id is required");
 }
 
-export function processLocalCognitiveMission(input: LocalCognitiveRequest): LocalCognitiveResult {
+export async function processLocalCognitiveMission(input: LocalCognitiveRequest): Promise<LocalCognitiveResult> {
   requireTenant(input.tenantId);
 
   const mission = input.context?.hermes_mission;
@@ -58,21 +60,32 @@ export function processLocalCognitiveMission(input: LocalCognitiveRequest): Loca
       throw new Error("Hermes runtime probe capability was not authorized by ELO");
     }
 
+    const hermesResult = await executeHermesInVercelSandbox({
+      request_id: input.requestId,
+      intent: input.message,
+      context: { domain: input.domain, mission: RUNTIME_PROBE_MISSION },
+      tenant_scope: input.tenantId,
+      mission_class: RUNTIME_PROBE_MISSION,
+      authorized_capabilities: capabilities,
+      method: "runtime_probe",
+      constraints: { read_only: true, canonical_mutation: false },
+      evidence_requirements: ["execution", "outcome"],
+      execution_policy: {
+        bounded: true,
+        approval_required_for_mutation: true,
+      },
+      contract_version: "1.0",
+    });
+
     return {
       response: {
         type: "hermes_execution",
-        content: "Hermes runtime probe autorizado pela governança do ELO; execução deve ocorrer no runtime privado.",
-        status: "authorized",
+        content: hermesResult.outcome,
+        status: hermesResult.status,
       },
       confidence: 1,
       domain: input.domain,
-      hermes: {
-        mission_class: RUNTIME_PROBE_MISSION,
-        capability: RUNTIME_PROBE_CAPABILITY,
-        constraints: { read_only: true, canonical_mutation: false },
-        execution_policy: { bounded: true, approval_required_for_mutation: true },
-        evidence_requirements: ["execution", "outcome"],
-      },
+      hermes: hermesResult,
       provenance: {
         request_id: input.requestId,
         correlation_id: input.correlationId,
@@ -80,10 +93,10 @@ export function processLocalCognitiveMission(input: LocalCognitiveRequest): Loca
         domain: input.domain,
         principal_id: input.principalId,
         session_id: input.sessionId,
-        provider: "elo-web-local-cognitive-core",
+        provider: "elo-web-local-cognitive-core-via-private-hermes",
         evidence_refs: [input.requestId],
         policy_decision: "ALLOW",
-        validation_status: "governed_runtime_probe",
+        validation_status: "evidence_validated",
       },
     };
   }
