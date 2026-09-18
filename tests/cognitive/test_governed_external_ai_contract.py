@@ -74,12 +74,12 @@ def test_decision_brief_rejects_incomplete_output_and_secret_audit_data():
 def test_external_ai_envelope_blocks_unmasked_pii_and_financial_limit_bypass():
     with pytest.raises(ValueError, match="PII"):
         GovernedExternalAIEnvelope(
-            ack(), "tenant-a", ("read",), ("execution",),
+            ack(), "tenant-a", ("read",), ("execution",), "auth-1",
             constraints={"pii_exposure": True}
         )
     with pytest.raises(ValueError, match="financial impact"):
         GovernedExternalAIEnvelope(
-            ack(), "tenant-a", ("read",), ("execution",),
+            ack(), "tenant-a", ("read",), ("execution",), "auth-1",
             constraints={
                 "financial_impact": 150.0,
                 "financial_limit": 100.0,
@@ -89,7 +89,7 @@ def test_external_ai_envelope_blocks_unmasked_pii_and_financial_limit_bypass():
 
 def test_financial_limit_can_be_explicitly_escalated():
     envelope = GovernedExternalAIEnvelope(
-        ack(), "tenant-a", ("read",), ("execution",),
+        ack(), "tenant-a", ("read",), ("execution",), "auth-1",
         constraints={
             "financial_impact": 150.0,
             "financial_limit": 100.0,
