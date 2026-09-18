@@ -9,6 +9,19 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 MIN_CONFIDENCE = 0.70
+_FORBIDDEN_AUDIT_KEYS = frozenset({"password", "secret", "token", "api_key", "service_role_key", "database_url"})
+
+
+def _reject_sensitive_keys(value: Any, path: str) -> None:
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if str(key).lower() in _FORBIDDEN_AUDIT_KEYS:
+                raise ValueError(f"sensitive field is not allowed: {path}.{key}")
+            _reject_sensitive_keys(child, f"{path}.{key}")
+    elif isinstance(value, (tuple, list)):
+        for index, child in enumerate(value):
+            _reject_sensitive_keys(child, f"{path}[{index}]")
+
 ALLOWED_ESCALATIONS = frozenset({
     "LOW_CONFIDENCE",
     "HIGH_RISK",
@@ -69,10 +82,19 @@ class DecisionBrief:
                 raise ValueError(f"{name} is required")
         if not self.evidence:
             raise ValueError("decision brief requires evidence")
+        if not self.alternatives:
+            raise ValueError("decision brief requires alternatives")
+        if not self.trade_offs:
+            raise ValueError("decision brief requires trade-offs")
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError("confidence must be between 0 and 1")
         if not self.audit:
             raise ValueError("decision brief requires audit metadata")
+        _reject_sensitive_keys(self.audit, "audit")
+        if self.audit.get("request_id") not in {None, self.request_id}:
+            raise ValueError("audit request_id does not match decision brief")
+        if self.audit.get("tenant_scope") not in {None, self.tenant_scope}:
+            raise ValueError("audit tenant_scope does not match decision brief")
         if any(reason not in ALLOWED_ESCALATIONS for reason in self.escalation_reasons):
             raise ValueError("unsupported escalation reason")
         if self.confidence < MIN_CONFIDENCE and "LOW_CONFIDENCE" not in self.escalation_reasons:
@@ -105,5 +127,14 @@ class GovernedExternalAIEnvelope:
             raise ValueError("evidence_requirements is required")
         if self.constraints.get("canonical_mutation", False):
             raise ValueError("external AI envelope cannot grant canonical mutation authority")
+        if self.constraints.get("pii_exposure", False):
+            raise ValueError("external AI envelope cannot authorize unmasked PII exposure")
+        financial_impact = self.constraints.get("financial_impact")
+        financial_limit = self.constraints.get("financial_limit")
+        if financial_impact is not None or financial_limit is not None:
+            if not isinstance(financial_impact, (int, float)) or not isinstance(financial_limit, (int, float)):
+                raise ValueError("financial_impact and financial_limit must be numeric when supplied")
+            if financial_impact > financial_limit and "FINANCIAL_LIMIT" not in self.constraints.get("escalation_reasons", ()):
+                raise ValueError("financial impact above limit requires FINANCIAL_LIMIT escalation")
         if self.constraints.get("read_only") is False and not self.constraints.get("explicit_operation_authorization", False):
             raise ValueError("non-read-only execution requires explicit operation authorization")
