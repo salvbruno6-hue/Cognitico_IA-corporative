@@ -35,7 +35,7 @@ def test_low_confidence_requires_escalation():
     with pytest.raises(ValueError, match="LOW_CONFIDENCE"):
         DecisionBrief(
             "req-1", "tenant-a", "problem", ("ev-1",), ("alt",),
-            ("tradeoff",), "recommendation", 0.60, audit={"source": "elo"}
+            ("tradeoff",), "recommendation", 0.60, audit={"source": "elo", "authorization_decision_id": "auth-1"}
         )
 
 
@@ -44,7 +44,7 @@ def test_decision_brief_marks_human_escalation():
         "req-1", "tenant-a", "problem", ("ev-1",), ("alt",),
         ("tradeoff",), "recommendation", 0.60,
         escalation_reasons=("LOW_CONFIDENCE",),
-        audit={"source": "elo"},
+        audit={"source": "elo", "authorization_decision_id": "auth-1"},
     )
     assert brief.human_escalation_required is True
 
@@ -53,7 +53,7 @@ def test_confident_brief_with_evidence_remains_consultative():
     brief = DecisionBrief(
         "req-1", "tenant-a", "problem", ("ev-1",), ("alt",),
         ("tradeoff",), "recommendation", 0.80,
-        audit={"source": "elo"},
+        audit={"source": "elo", "authorization_decision_id": "auth-1"},
     )
     assert brief.human_escalation_required is False
 
@@ -62,12 +62,12 @@ def test_decision_brief_rejects_incomplete_output_and_secret_audit_data():
     with pytest.raises(ValueError, match="alternatives"):
         DecisionBrief(
             "req-1", "tenant-a", "problem", ("ev-1",), (), ("tradeoff",),
-            "recommendation", 0.80, audit={"source": "elo"}
+            "recommendation", 0.80, audit={"source": "elo", "authorization_decision_id": "auth-1"}
         )
     with pytest.raises(ValueError, match="sensitive field"):
         DecisionBrief(
             "req-1", "tenant-a", "problem", ("ev-1",), ("alt",), ("tradeoff",),
-            "recommendation", 0.80, audit={"api_key": "must-not-cross-boundary"}
+            "recommendation", 0.80, audit={"api_key": "must-not-cross-boundary", "authorization_decision_id": "auth-1"}
         )
 
 
@@ -110,4 +110,12 @@ def test_envelope_rejects_empty_authorized_capability():
     with pytest.raises(ValueError, match="empty values"):
         GovernedExternalAIEnvelope(
             ack(), "tenant-a", ("read", ""), ("execution",), "auth-1",
+        )
+
+
+def test_decision_brief_requires_authorization_provenance():
+    with pytest.raises(ValueError, match="authorization_decision_id"):
+        DecisionBrief(
+            "req-1", "tenant-a", "problem", ("ev-1",), ("alt",),
+            ("tradeoff",), "recommendation", 0.80, audit={"source": "elo"}
         )
