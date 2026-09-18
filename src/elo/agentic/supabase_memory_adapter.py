@@ -95,8 +95,8 @@ class SupabaseLearningMemoryAdapter:
         if not tables:
             return ()
         candidates: list[KnowledgeCandidate] = []
-        requested_domain = (intent.domain or "").casefold()
-        for table in tables:
+        requested_domain = (intent.domain or "").casefold()\n        requested_address = str(intent.metadata.get("resource_address") or "").strip()\n        scoped_tables = None\n        if requested_address.startswith("public."):\n            requested_table = requested_address.removeprefix("public.")\n            scoped_tables = {requested_table}
+        for table in tables:\n            if scoped_tables is not None and table not in scoped_tables:\n                continue
             spec = _TABLE_BY_NAME[table]
             for row in self._rows.get(table, ()):
                 if not self._scope_matches(row, intent):
