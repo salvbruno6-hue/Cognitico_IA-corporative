@@ -1,0 +1,57 @@
+{
+  "secoes_obrigatorias": [
+    "identificacao",
+    "documentos",
+    "matriz_principal",
+    "conferencia_quantitativos",
+    "conferencia_valores",
+    "auditoria_reversa",
+    "itens_premissa",
+    "logistica",
+    "mao_de_obra",
+    "exclusoes",
+    "divergencias",
+    "riscos",
+    "pendencias",
+    "itens_nao_orcados",
+    "checklist",
+    "conclusao",
+    "rastreabilidade"
+  ],
+  "matriz_principal_colunas": [
+    "n",
+    "topico",
+    "ref_tr",
+    "requisito",
+    "q_prev",
+    "q_orc",
+    "ref_orc",
+    "valor",
+    "status",
+    "divergencia"
+  ],
+  "divergencias_colunas": [
+    "n",
+    "item",
+    "tipo",
+    "previsto",
+    "orcado",
+    "motivo",
+    "impacto",
+    "acao"
+  ],
+  "riscos_colunas": [
+    "risco",
+    "tipo",
+    "impacto",
+    "condicao",
+    "tratamento"
+  ],
+  "pendencias_colunas": [
+    "pendencia",
+    "origem",
+    "impacto",
+    "acao",
+    "status"
+  ]
+}
