@@ -44,3 +44,7 @@ The contract boundary now also rejects:
 - financial impact above a declared limit unless FINANCIAL_LIMIT escalation is present.
 
 These checks are preconditions only. They do not replace elo-authz, the canonical risk/financial governance, or the Evolution Gate.
+
+## Consolidation correction
+
+A pre-validation audit found that `symbiont_governance_contract.py` and `governed_external_ai_contract.py` had overlapping mandate and decision-brief definitions. The duplicate definitions were removed from the Symbiont governance module; it now acts as a compatibility facade over the canonical external-AI contract. This prevents two competing Symbiont mandate/decision-brief authorities.
