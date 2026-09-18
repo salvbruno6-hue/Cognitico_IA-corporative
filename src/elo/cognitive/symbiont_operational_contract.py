@@ -93,6 +93,7 @@ class SymbiontRequestGuard:
     authorized: bool
     non_destructive: bool = True
     canonical_mutation_allowed: bool = False
+    pii_present: bool = False
     pii_masked: bool = False
     financial_impact: float | None = None
     owner_financial_limit: float | None = None
@@ -130,7 +131,7 @@ class SymbiontRequestGuard:
             and self.financial_impact > self.owner_financial_limit
         ):
             reasons.append("financial_impact_above_owner_limit")
-        if not self.pii_masked:
+        if self.pii_present and not self.pii_masked:
             reasons.append("pii_masking_not_confirmed")
         return HumanEscalation(bool(reasons), tuple(reasons))
 
