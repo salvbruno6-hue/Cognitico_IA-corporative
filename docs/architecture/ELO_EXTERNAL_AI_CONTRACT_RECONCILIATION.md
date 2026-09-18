@@ -32,3 +32,15 @@ This module is a contract boundary only. It does not authorize identities, choos
 ## Validation boundary
 
 No external connector, external database, MCP server, or production migration is validated merely because these contracts instantiate successfully. Runtime validation remains a separate gate requiring authorization, tenant isolation, credential resolution, provenance, audit integrity and fail-closed behavior.
+
+## Additional pre-validation guards
+
+The contract boundary now also rejects:
+
+- decision briefs without alternatives or trade-offs;
+- secret-bearing audit metadata such as passwords, tokens, API keys or database URLs;
+- audit request/tenant identifiers that disagree with the brief;
+- explicit unmasked PII exposure by an external-AI envelope;
+- financial impact above a declared limit unless FINANCIAL_LIMIT escalation is present.
+
+These checks are preconditions only. They do not replace elo-authz, the canonical risk/financial governance, or the Evolution Gate.
