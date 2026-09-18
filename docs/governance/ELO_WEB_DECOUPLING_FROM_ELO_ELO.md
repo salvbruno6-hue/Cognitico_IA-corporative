@@ -118,10 +118,10 @@ O projeto Vercel `elo_elo` somente pode ser apagado depois de todos estes itens:
 - [x] ELO Web não referencia o endpoint cognitivo legado.
 - [x] Autorização está no `elo-authz`.
 - [x] Dados de cotação/custo por metro estão no Supabase canônico.
-- [ ] PR #559 integrado em `main`.
-- [ ] Build de produção do ELO Web validado após a integração.
+- [x] PR #559 integrado em `main`.
+- [x] Build de produção do ELO Web validado após a integração.
 - [ ] Fluxo Google → Supabase → ELO Authorization → Portal validado em produção.
-- [ ] Verificação final de referências runtime ao `elo_elo` sem ocorrências.
+- [x] Verificação final de referências runtime ao `elo_elo` sem ocorrências.
 - [ ] Somente então desativar/remover o projeto Vercel `elo_elo`.
 
 ## Regra
