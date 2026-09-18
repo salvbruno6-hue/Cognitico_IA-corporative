@@ -50,3 +50,14 @@ def test_vercel_creation_boundary_is_canonical():
     assert "without explicit prior authorization" in text
     assert "elo-web" in text
     assert "target_project" in text
+
+
+def test_canonical_vercel_registry_exists():
+    registry = REPO_ROOT / "docs" / "governance" / "AUTHORIZED_VERCEL_PROJECTS.json"
+    data = __import__("json").loads(registry.read_text(encoding="utf-8"))
+    assert data["canonical_project"] == "elo-web"
+    assert data["canonical_path"] == "apps/elo-web"
+    assert data["rule"] == "ELO-VRC-001"
+    assert not data["authorized_projects"]
+    assert any(item["path"] == "frontend" and item["status"] == "DEPRECATED"
+               for item in data["deprecated_noncanonical_projects"])
