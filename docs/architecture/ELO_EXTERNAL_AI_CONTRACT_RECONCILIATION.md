@@ -19,11 +19,11 @@ The Symbiont already had the underlying controls:
 The new `src/elo/cognitive/governed_external_ai_contract.py` consolidates the missing contract-level pieces without introducing a second authority:
 
 - `ExternalAIMandateAck` makes mandate acknowledgement explicit;
-- `GovernedExternalAIEnvelope` binds the acknowledged mandate to tenant scope, capabilities and evidence requirements;
+- `GovernedExternalAIEnvelope` binds the acknowledged mandate to tenant scope, capabilities and evidence requirements;\n- `authorization_decision_id` is mandatory provenance: capabilities are treated as ELO-issued authorization output, not as self-asserted authority from the external AI;
 - `DecisionBrief` standardizes the consultative output and its audit metadata;
 - confidence below `0.70` requires explicit `LOW_CONFIDENCE` escalation;
 - other escalation reasons are explicit and closed-set;
-- canonical mutation cannot be granted by this external-AI envelope.
+- canonical mutation cannot be granted by this external-AI envelope;\n- empty capabilities and missing authorization provenance are rejected before runtime execution.
 
 ## Authority rule
 
