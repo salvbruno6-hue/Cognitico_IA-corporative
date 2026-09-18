@@ -87,14 +87,6 @@ class SymbiontLabAdapter:
 
         # Unconfirmed generalization is retained as laboratory evidence only;
         # it must not manufacture a learning candidate.
-        if observation.generalization_status.upper() == "UNCONFIRMED":
-            return SymbiontLabEvaluation(
-                observation=observation,
-                experience=None,
-                candidate=None,
-                evolution_classification=decision.classification.value,
-                disposition="LAB_ONLY",
-            )
 
         # Reuse is an association outcome, not a new learning candidate.
         # Blocked evolution likewise must not create a parallel candidate.
@@ -170,7 +162,9 @@ class SymbiontLabAdapter:
             raise ValueError("unsupported laboratory source kind")
         if observation.regression_status.upper() in {"REGRESSION", "FAIL"}:
             raise ValueError("regression blocks laboratory evaluation")
-        if observation.generalization_status.upper() not in {"CONFIRMED", "PARTIAL", "UNCONFIRMED"}:
+        if observation.generalization_status.upper() == "UNCONFIRMED":
+            raise ValueError("unconfirmed generalization blocks learning")
+        if observation.generalization_status.upper() not in {"CONFIRMED", "PARTIAL"}:
             raise ValueError("unsupported generalization status")
         if observation.risk.upper() in {"CRITICAL", "CRITICO"}:
             raise ValueError("critical risk blocks laboratory evaluation")
