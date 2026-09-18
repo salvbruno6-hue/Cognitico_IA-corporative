@@ -1,0 +1,27 @@
+{
+  "so": "",
+  "cliente": "",
+  "objeto": "",
+  "revisao": "0",
+  "documentos": [],
+  "matriz_principal": [],
+  "blocos_quantitativos": [],
+  "conferencia_quantitativos": "",
+  "conferencia_valores": {
+    "Subtotal geral": "",
+    "Taxa administrativa": "",
+    "BDI": "",
+    "Total geral": ""
+  },
+  "auditoria_reversa": [],
+  "itens_premissa": [],
+  "logistica": [],
+  "mao_de_obra": [],
+  "exclusoes": [],
+  "divergencias": [],
+  "riscos": [],
+  "pendencias": [],
+  "itens_nao_orcados": "",
+  "checklist": {},
+  "conclusao": ""
+}
