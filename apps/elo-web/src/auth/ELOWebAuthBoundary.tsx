@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
-import { EloWebCommandCenter } from "@/components/elo-web-command-center";
+import { EloWebOperationalPortal } from "@/components/elo-web-operational-portal";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 type AuthClient = SupabaseClient<any>;
@@ -12,6 +12,10 @@ function getSupabaseClient(): AuthClient | null {
   const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+}
+
+function GoogleIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5"><path fill="#4285F4" d="M21.35 12.23c0-.72-.06-1.25-.2-1.8H12v3.4h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.73-4.33 2.73-7.12Z"/><path fill="#34A853" d="M12 21.99c2.7 0 4.97-.89 6.62-2.42l-3.24-2.5c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.13H3.06v2.58A10 10 0 0 0 12 21.99Z"/><path fill="#FBBC05" d="M6.41 13.9A5.99 5.99 0 0 1 6.1 12c0-.66.11-1.3.31-1.9V7.52H3.06A10 10 0 0 0 2 12c0 1.62.39 3.14 1.06 4.48l3.35-2.58Z"/><path fill="#EA4335" d="M12 5.97c1.48 0 2.8.51 3.84 1.51l2.88-2.88C16.96 2.9 14.7 2 12 2a10 10 0 0 0-8.94 5.52L6.41 10.1C7.2 7.73 9.4 5.97 12 5.97Z"/></svg>;
 }
 
 export function ELOWebAuthBoundary() {
@@ -24,82 +28,37 @@ export function ELOWebAuthBoundary() {
   useEffect(() => {
     let active = true;
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
-      setLoading(false);
-      return () => { active = false; };
-    }
-
+    if (!supabase) { setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente."); setLoading(false); return () => { active = false; }; }
     void supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
       if (!active) return;
-      if (sessionError) {
-        setError(sessionError.message);
-        setLoading(false);
-        return;
-      }
+      if (sessionError) { setError(sessionError.message); setLoading(false); return; }
       setSession(data.session);
-      if (!data.session) {
-        setLoading(false);
-        return;
-      }
-      try {
-        await callELOAuthorization(data.session.access_token, "establish_session");
-        if (active) setAuthorized(true);
-      } catch (authorizationError) {
-        if (active) setError(authorizationError instanceof Error ? authorizationError.message : "Não foi possível autorizar o ELO.");
-      } finally {
-        if (active) setLoading(false);
-      }
+      if (!data.session) { setLoading(false); return; }
+      try { await callELOAuthorization(data.session.access_token, "establish_session"); if (active) setAuthorized(true); }
+      catch (authorizationError) { if (active) setError(authorizationError instanceof Error ? authorizationError.message : "Não foi possível autorizar o ELO."); }
+      finally { if (active) setLoading(false); }
     });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) return;
-      setSession(nextSession);
-      if (!nextSession) setAuthorized(false);
-    });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => { if (!active) return; setSession(nextSession); if (!nextSession) setAuthorized(false); });
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
   async function signInWithGoogle() {
-    setError(null);
-    setSigningIn(true);
+    setError(null); setSigningIn(true);
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setError("Cliente de autenticação do ELO não está configurado.");
-      setSigningIn(false);
-      return;
-    }
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (authError) {
-      setError(authError.message);
-      setSigningIn(false);
-    }
+    if (!supabase) { setError("Cliente de autenticação do ELO não está configurado."); setSigningIn(false); return; }
+    const { error: authError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } });
+    if (authError) { setError(authError.message); setSigningIn(false); }
   }
 
   async function signOut() {
     setError(null);
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setError("Cliente de autenticação do ELO não está configurado.");
-      return;
-    }
-    try {
-      if (session) await callELOAuthorization(session.access_token, "revoke_session");
-    } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "Não foi possível revogar a sessão do ELO.");
-      return;
-    }
+    if (!supabase) { setError("Cliente de autenticação do ELO não está configurado."); return; }
+    try { if (session) await callELOAuthorization(session.access_token, "revoke_session"); }
+    catch (revokeError) { setError(revokeError instanceof Error ? revokeError.message : "Não foi possível revogar a sessão do ELO."); return; }
     const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) {
-      setError(signOutError.message);
-      return;
-    }
-    setAuthorized(false);
-    setSession(null);
-    window.location.assign("/");
+    if (signOutError) { setError(signOutError.message); return; }
+    setAuthorized(false); setSession(null); window.location.assign("/");
   }
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] text-[var(--elo-ink)]"><div className="text-sm text-slate-500">Inicializando ELO Cognitivo…</div></main>;
@@ -110,12 +69,13 @@ export function ELOWebAuthBoundary() {
         <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div>
         <div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-slate-400">ELO · Inteligência corporativa</div>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Acesso protegido</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-500">Use a identidade Google/Supabase do ELO. Não existe autenticação paralela nesta aplicação.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">Entre com sua conta Google. Após a autenticação, o ELO verifica a identidade e as permissões cadastradas para o e-mail.</p>
         {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-left text-sm text-red-700" role="alert">{error}</p>}
-        <button type="button" onClick={() => void signInWithGoogle()} disabled={signingIn} className="mt-6 w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">{signingIn ? "Abrindo Google…" : "Continuar com Google"}</button>
+        <button type="button" onClick={() => void signInWithGoogle()} disabled={signingIn} className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"><GoogleIcon />{signingIn ? "Abrindo Google…" : "Continuar com Google"}</button>
+        <p className="mt-4 text-[11px] leading-5 text-slate-400">O Google valida sua identidade. A autorização de acesso ao ELO é decidida separadamente pelo ELO Authorization.</p>
       </section>
     </main>
   );
 
-  return <EloWebCommandCenter accessToken={session.access_token} onSignOut={() => void signOut()} />;
+  return <EloWebOperationalPortal accessToken={session.access_token} displayName={session.user.user_metadata?.full_name ?? session.user.user_metadata?.name} email={session.user.email} onSignOut={() => void signOut()} />;
 }
