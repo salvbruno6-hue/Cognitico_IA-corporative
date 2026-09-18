@@ -41,3 +41,12 @@ def test_governed_integration_minimum_evidence_is_defined() -> None:
         "non-canonical learning candidate handling",
     ):
         assert required in text
+
+
+def test_vercel_creation_boundary_is_canonical():
+    boundary = REPO_ROOT / "docs" / "architecture" / "ELO_EXTERNAL_REPOSITORY_BOUNDARY.md"
+    text = boundary.read_text(encoding="utf-8")
+    assert "ELO-VRC-001" in text
+    assert "without explicit prior authorization" in text
+    assert "elo-web" in text
+    assert "target_project" in text
