@@ -71,6 +71,12 @@ class DecisionLifecycle:
             raise ValueError(f"invalid decision transition: {self.state.value} -> {to_state.value}")
         if to_state in {DecisionState.EVALUATED, DecisionState.ATTRIBUTED, DecisionState.LEARNED, DecisionState.CLOSED} and not evidence_ids:
             raise ValueError(f"{to_state.value} requires evidence")
+        if to_state is DecisionState.EVALUATED and self.outcome is None:
+            raise ValueError("evaluated state requires an attached outcome")
+        if to_state is DecisionState.ATTRIBUTED and (self.outcome is None or not self.attribution):
+            raise ValueError("attributed state requires outcome and attribution")
+        if to_state is DecisionState.LEARNED and self.learning_candidate is None:
+            raise ValueError("learned state requires a learning candidate")
         event = DecisionTransition(
             decision_id=self.decision.decision_id,
             from_state=self.state,
