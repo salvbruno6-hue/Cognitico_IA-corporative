@@ -334,3 +334,7 @@ Esses documentos orientam navegação, classificação, execução e revisão. N
 O ciclo de consolidação das variantes duplicadas atualmente identificadas foi concluído para as famílias auditadas. A partir deste ponto, qualquer nova duplicidade deve ser tratada pelo **Loop de Conclusão**, sem remoção automática e sem criação de novas variantes.
 
 A próxima evolução arquitetural somente deve começar após a confirmação de que a árvore permanece coerente e que novos artefatos possuem owner canônico explícito.
+
+## Ferramentas
+
+- [`pts-pos-orcamento/`](pts-pos-orcamento/README.md) — gerador replicável de PTS Pós-Orçamento a partir de JSON + Jinja2.

@@ -1,0 +1,139 @@
+# PTS PÓS-ORÇAMENTO — {{ so }}
+
+{{ cliente }} | Revisão {{ revisao | default("0") }} | Auditoria pós-orçamento
+
+## 1. IDENTIFICAÇÃO E OBJETIVO
+
+SO: {{ so }} | Cliente: {{ cliente }} | Objeto: {{ objeto }}
+
+{{ objetivo_texto | default("A PTS Pós-Orçamento realiza a conferência, validação e auditoria do orçamento após sua elaboração. O objetivo é verificar se o orçamento definitivo representa corretamente aquilo que foi identificado na PTS Técnica e nos documentos da solicitação.") }}
+
+A análise segue dois caminhos: DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO; e ORÇAMENTO → ITEM → COMPOSIÇÃO → QUANTIDADE → VALOR → JUSTIFICATIVA → REQUISITO/PREMISSA.
+
+## 2. DOCUMENTOS UTILIZADOS
+
+{% for d in documentos -%}
+• {{ d }}
+{% endfor %}
+
+Quando a documentação não permitir confirmar uma informação, a classificação adotada é: "Não foi possível confirmar nos documentos analisados."
+
+## 3. MATRIZ PRINCIPAL — TR × ORÇAMENTO
+
+| Nº | Tópico / Item | Ref. TR / Documento | Requisito / Solução | Q. Prev. | Q. Orç. | Ref. Orç. | Valor | Status | Divergência / Análise |
+|---:|---|---|---|---|---|---|---:|---|---|
+{% for r in matriz_principal -%}
+| {{ r.n }} | {{ r.topico }} | {{ r.ref_tr }} | {{ r.requisito }} | {{ r.q_prev }} | {{ r.q_orc }} | {{ r.ref_orc }} | {{ r.valor }} | {{ r.status }} | {{ r.divergencia }} |
+{% endfor %}
+
+## 4. CONFERÊNCIA DE QUANTITATIVOS
+
+{{ conferencia_quantitativos | default("A conferência compara quantidade, unidade, dimensões, número de módulos, ambientes, equipamentos, pontos, áreas, dias, colaboradores e produtividade. Diferenças devem ser apresentadas com previsto, orçado, diferença, motivo e impacto.") }}
+
+{% for b in blocos_quantitativos -%}
+### {{ b.titulo }}
+{{ b.corpo }}
+
+{% endfor %}
+
+## 5. CONFERÊNCIA DE VALORES
+
+A regra de conferência é Quantidade × Valor Unitário = Valor Parcial, seguida de subtotal, taxa administrativa, BDI e total geral. Nenhuma divergência matemática deve ser corrigida silenciosamente.
+
+| Campo | Valor |
+|---|---:|
+{% for k, v in conferencia_valores.items() -%}
+| {{ k }} | {{ v }} |
+{% endfor %}
+
+## 6. AUDITORIA REVERSA — PRINCIPAIS CUSTOS
+
+| Item | Ref. | Valor | Base | Justificativa técnica |
+|---|---|---:|---|---|
+{% for i in auditoria_reversa -%}
+| {{ i.item }} | {{ i.ref }} | {{ i.valor }} | {{ i.base }} | {{ i.justificativa }} |
+{% endfor %}
+
+## 7. ITENS ORÇADOS POR PREMISSA
+
+| Item | Origem/motivo | Premissa | Impacto | Tratamento |
+|---|---|---|---|---|
+{% for i in itens_premissa -%}
+| {{ i.item }} | {{ i.origem }} | {{ i.premissa }} | {{ i.impacto }} | {{ i.tratamento }} |
+{% endfor %}
+
+## 8. LOGÍSTICA
+
+| Componente | Cálculo | Valor | Critério |
+|---|---|---:|---|
+{% for l in logistica -%}
+| {{ l.componente }} | {{ l.calculo }} | {{ l.valor }} | {{ l.criterio }} |
+{% endfor %}
+
+## 9. MÃO DE OBRA
+
+{% for grupo in mao_de_obra -%}
+### {{ grupo.titulo }}
+
+| {{ grupo.titulo }} | Dias | Colab. | V. unit. | Parcial |
+|---|---:|---:|---:|---:|
+{% for m in grupo.linhas -%}
+| {{ m.funcao }} | {{ m.dias }} | {{ m.colab }} | {{ m.v_unit }} | {{ m.parcial }} |
+{% endfor %}
+| **TOTAL** | | | | **{{ grupo.total }}** |
+
+{% endfor %}
+
+## 10. EXCLUSÕES E RESPONSABILIDADES
+
+| Item | Responsável | Orçado | Status |
+|---|---|---|---|
+{% for e in exclusoes -%}
+| {{ e.item }} | {{ e.responsavel }} | {{ e.orcado }} | {{ e.status }} |
+{% endfor %}
+
+## 11. MATRIZ DE DIVERGÊNCIAS
+
+| Nº | Item | Tipo | Previsto | Orçado | Motivo | Impacto | Ação |
+|---:|---|---|---|---|---|---|---|
+{% for d in divergencias -%}
+| {{ d.n }} | {{ d.item }} | {{ d.tipo }} | {{ d.previsto }} | {{ d.orcado }} | {{ d.motivo }} | {{ d.impacto }} | {{ d.acao }} |
+{% endfor %}
+
+## 12. MATRIZ DE RISCOS
+
+| Risco | Tipo | Impacto | Condição | Tratamento |
+|---|---|---|---|---|
+{% for r in riscos -%}
+| {{ r.risco }} | {{ r.tipo }} | {{ r.impacto }} | {{ r.condicao }} | {{ r.tratamento }} |
+{% endfor %}
+
+## 13. PENDÊNCIAS
+
+| Pendência | Origem | Impacto potencial | Ação | Status |
+|---|---|---|---|---|
+{% for p in pendencias -%}
+| {{ p.pendencia }} | {{ p.origem }} | {{ p.impacto }} | {{ p.acao }} | {{ p.status }} |
+{% endfor %}
+
+## 14. ITENS NÃO ORÇADOS / NÃO CONFIRMADOS
+
+{{ itens_nao_orcados | default("Não foi identificado item que possa ser definitivamente classificado como NÃO ORÇADO sem considerar as premissas construtivas registradas. Os pontos que permanecem sem rastreabilidade integral são tratados como PENDENTES DE CONFIRMAÇÃO.") }}
+
+## 15. CHECKLIST DE COMPLETUDE
+
+| Verificação | Resultado |
+|---|---|
+{% for k, v in checklist.items() -%}
+| {{ k }} | {{ v }} |
+{% endfor %}
+
+## 16. CONCLUSÃO E VALIDAÇÃO
+
+{{ conclusao }}
+
+## 17. REGRA DE RASTREABILIDADE
+
+Para os itens relevantes, manter a cadeia: REFERÊNCIA TR/DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → REFERÊNCIA DO ORÇAMENTO → VALOR → PREMISSA → JUSTIFICATIVA → STATUS.
+
+A PTS Pós-Orçamento deve demonstrar por que o item foi orçado, de onde veio a necessidade, como a solução foi definida, quanto foi considerado, onde foi precificado, qual premissa foi utilizada, qual risco permanece e se o orçamento pode ser validado.
