@@ -51,19 +51,19 @@ def assess_escalation(
 
     reasons: list[str] = []
     if confidence < CONFIDENCE_MINIMUM:
-        reasons.append("confidence_below_minimum")
+        reasons.append("LOW_CONFIDENCE")
     if risk.strip().upper() in {"HIGH", "CRITICAL", "ALTO", "CRITICO"}:
-        reasons.append("high_risk")
+        reasons.append("HIGH_RISK")
     if canonical_conflict:
-        reasons.append("canonical_conflict")
+        reasons.append("CANON_CONFLICT")
     if insufficient_evidence:
-        reasons.append("insufficient_evidence")
+        reasons.append("INSUFFICIENT_EVIDENCE")
     if irreversible_action:
-        reasons.append("irreversible_action")
+        reasons.append("IRREVERSIBLE_ACTION")
     if pii_exposure:
-        reasons.append("pii_exposure")
+        reasons.append("PII_EXPOSURE")
     if financial_impact is not None and financial_limit is not None and financial_impact > financial_limit:
-        reasons.append("financial_limit_exceeded")
+        reasons.append("FINANCIAL_LIMIT")
 
     return EscalationAssessment(required=bool(reasons), reasons=tuple(reasons))
 
