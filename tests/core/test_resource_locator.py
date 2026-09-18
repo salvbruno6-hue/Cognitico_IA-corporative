@@ -8,11 +8,11 @@ from src.elo.core.resource_locator import (
 
 RECORDS = (
     ResourceRecord(
-        resource_id="ELO.EXCEDENTES.TABLE",
+        resource_id="ELO.DB.TABLE.EXCEDENTES",
         resource_type="database_table",
         provider="supabase",
         logical_name="excedentes",
-        physical_address="public.elo_excedentes",
+        physical_address="public.excedentes",
         scope="tenant",
         authority="ELO",
         provenance="Elo-forge",
@@ -34,7 +34,7 @@ def test_resolve_table_by_semantic_name():
     result = ResourceLocator(RECORDS).resolve("excedentes")
 
     assert result.matched_by == "logical_name"
-    assert result.physical_address == "public.elo_excedentes"
+    assert result.physical_address == "public.excedentes"
 
 
 def test_resolve_file_by_stable_identity():
