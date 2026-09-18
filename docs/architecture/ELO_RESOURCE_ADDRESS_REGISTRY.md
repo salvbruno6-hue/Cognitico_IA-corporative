@@ -25,19 +25,31 @@ Example:
 ```text
 "quero conferir excedentes"
         ↓
-ELO.EXCEDENTES.TABLE
+ELO.DB.TABLE.EXCEDENTES
         ↓
-public.elo_excedentes
+public.excedentes
         ↓
 authorized database read
 ```
 
-The same principle applies to files:
+A known directory follows the same pattern:
+
+```text
+"abrir a pasta de orçamento"
+        ↓
+registered repository directory
+        ↓
+<known repository path>
+        ↓
+authorized repository read
+```
+
+The same principle applies to canonical files:
 
 ```text
 "ELO metodologia de orçamento"
         ↓
-ELO.ORCAMENTO.METODOLOGIA
+canonical artifact/resource identity
         ↓
 04-knowledge-handbook/MULTITEINER_METODOLOGIA_ORCAMENTO_ELO.md
         ↓
@@ -72,13 +84,13 @@ authority
 provenance
 ```
 
-Optional aliases may point old names or paths to the same stable `resource_id`.
+Optional aliases may point known terminology or historical paths to the same stable `resource_id`. Aliases are explicit and governed; the locator does not perform fuzzy semantic guessing.
 
 ## Rules
 
 1. Stable identity is the key; physical address is a location attribute.
 2. A path change must not create a new logical resource when identity remains the same.
-3. An alias may preserve historical paths.
+3. An alias may preserve historical paths or approved terminology.
 4. The registry does not grant authorization.
 5. The registry does not infer causality.
 6. The registry does not create learning.
@@ -88,16 +100,17 @@ Optional aliases may point old names or paths to the same stable `resource_id`.
 10. Reads must still pass through the authorized provider boundary.
 11. Ambiguous identities or addresses are blocked rather than guessed.
 12. Registry entries must preserve provenance and ownership.
+13. Repository directories are derived from the authoritative Git tree; they are not separately inferred resources.
+14. The registry should be generated from current provider inventories, while stable semantic identities/aliases remain governed.
 
 ## Fast lookup behavior
 
 The cognitive layer should be able to resolve in one step:
 
 ```text
-"excedentes"
-→ resource_id
-→ provider
-→ address
+"tabela excedente"
+→ ELO.DB.TABLE.EXCEDENTES
+→ public.excedentes
 → authorized read
 ```
 
@@ -125,4 +138,4 @@ Authorized Read
 Evidence / Context
 ```
 
-This preserves the separation between knowing **what is needed** and knowing **where it is stored**.
+The registry is therefore a fast navigation/index boundary, not another retrieval or reasoning engine.
