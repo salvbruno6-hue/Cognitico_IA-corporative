@@ -19,7 +19,7 @@ def test_mandate_ack_is_required():
 def test_envelope_binds_scope_and_cannot_grant_canonical_mutation():
     with pytest.raises(ValueError, match="canonical mutation"):
         GovernedExternalAIEnvelope(
-            ack(), "tenant-a", ("read",), ("execution",),
+            ack(), "tenant-a", ("read",), ("execution",), "auth-1",
             constraints={"canonical_mutation": True},
         )
 
@@ -27,7 +27,7 @@ def test_envelope_binds_scope_and_cannot_grant_canonical_mutation():
 def test_envelope_rejects_scope_drift():
     with pytest.raises(ValueError, match="tenant scope"):
         GovernedExternalAIEnvelope(
-            ack(), "tenant-b", ("read",), ("execution",)
+            ack(), "tenant-b", ("read",), ("execution",), "auth-1"
         )
 
 
@@ -97,3 +97,17 @@ def test_financial_limit_can_be_explicitly_escalated():
         }
     )
     assert envelope.tenant_scope == "tenant-a"
+
+
+def test_envelope_requires_authorization_decision_provenance():
+    with pytest.raises(ValueError, match="authorization_decision_id"):
+        GovernedExternalAIEnvelope(
+            ack(), "tenant-a", ("read",), ("execution",), "",
+        )
+
+
+def test_envelope_rejects_empty_authorized_capability():
+    with pytest.raises(ValueError, match="empty values"):
+        GovernedExternalAIEnvelope(
+            ack(), "tenant-a", ("read", ""), ("execution",), "auth-1",
+        )
