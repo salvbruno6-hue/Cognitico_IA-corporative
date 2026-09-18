@@ -70,14 +70,22 @@ def investigate_relationships(
 
     adjacency: dict[str, list[RelationshipEdge]] = {}
     for e in sorted(usable, key=lambda x: (x.source, x.target, x.relation_type, x.provenance)):
+        # Discovery traverses the structural graph in both directions while
+        # preserving the original FK direction inside each edge.
         adjacency.setdefault(e.source, []).append(e)
+        adjacency.setdefault(e.target, []).append(e)
 
     paths: list[CascadePath] = []
     seen: set[tuple[str, ...]] = set()
 
     def walk(start: str, current: str, path_edges: tuple[RelationshipEdge, ...], visited: frozenset[str]) -> None:
         if path_edges:
-            signature = (start,) + tuple(e.target for e in path_edges)
+            signature_nodes = [start]
+            cursor = start
+            for e in path_edges:
+                cursor = e.target if cursor == e.source else e.source
+                signature_nodes.append(cursor)
+            signature = tuple(signature_nodes)
             if signature not in seen:
                 seen.add(signature)
                 paths.append(CascadePath(
@@ -89,8 +97,9 @@ def investigate_relationships(
         if len(path_edges) >= max_depth:
             return
         for e in adjacency.get(current, ()):
-            if e.target not in visited:
-                walk(start, e.target, path_edges + (e,), visited | {e.target})
+            nxt = e.target if current == e.source else e.source
+            if nxt not in visited:
+                walk(start, nxt, path_edges + (e,), visited | {nxt})
 
     for start in sorted(nodes):
         walk(start, start, (), frozenset({start}))
