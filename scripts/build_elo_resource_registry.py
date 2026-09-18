@@ -2,7 +2,8 @@
 
 Expected inputs:
 - repository-tree.json: {"files": ["path", ...]}
-- database-schema.json: {"tables": ["name", ...], "views": ["name", ...]}\n- canonical artifact registry: Docs/CANONICAL_KNOWLEDGE_ARTIFACT_ID_REGISTRY_2026-08-19.json
+- database-schema.json: {"tables": ["name", ...], "views": ["name", ...]}
+- canonical artifact registry: Docs/CANONICAL_KNOWLEDGE_ARTIFACT_ID_REGISTRY_2026-08-19.json
 """
 
 from __future__ import annotations
