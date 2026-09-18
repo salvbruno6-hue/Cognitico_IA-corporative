@@ -91,6 +91,8 @@ class DecisionBrief:
         if not self.audit:
             raise ValueError("decision brief requires audit metadata")
         _reject_sensitive_keys(self.audit, "audit")
+        if not self.audit.get("authorization_decision_id"):
+            raise ValueError("decision brief requires authorization_decision_id")
         if self.audit.get("request_id") not in {None, self.request_id}:
             raise ValueError("audit request_id does not match decision brief")
         if self.audit.get("tenant_scope") not in {None, self.tenant_scope}:
