@@ -159,8 +159,8 @@ class SymbiontLabAdapter:
             raise ValueError("unsupported laboratory source kind")
         if observation.regression_status.upper() in {"REGRESSION", "FAIL"}:
             raise ValueError("regression blocks laboratory evaluation")
-        if observation.generalization_status.upper() == "UNCONFIRMED":
-            raise ValueError("unconfirmed generalization remains LAB_ONLY")
+        if observation.generalization_status.upper() not in {"CONFIRMED", "PARTIAL", "UNCONFIRMED"}:
+            raise ValueError("unsupported generalization status")
         if observation.risk.upper() in {"CRITICAL", "CRITICO"}:
             raise ValueError("critical risk blocks laboratory evaluation")
 
