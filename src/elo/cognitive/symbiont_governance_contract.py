@@ -1,74 +1,27 @@
-"""Governance contract for the ELO Symbiont external-AI boundary.
+"""Compatibility facade for the canonical external-AI Symbiont contract.
 
-This module consolidates existing ELO rules without creating a new authority.
-It defines mandate acknowledgement, decision-brief shape and escalation
-conditions; authorization, evolution and learning remain owned by their
-existing canonical services.
+The canonical mandate and decision-brief definitions live in
+governed_external_ai_contract. This module keeps the existing Symbiont
+runtime import surface while ensuring there is only one contract authority.
+Authorization, evolution and learning remain owned by their existing services.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
 
-CONFIDENCE_MINIMUM = 0.70
+from elo.cognitive.governed_external_ai_contract import (
+    ALLOWED_ESCALATIONS,
+    MIN_CONFIDENCE,
+    DecisionBrief,
+    ExternalAIMandateAck,
+)
+
+CONFIDENCE_MINIMUM = MIN_CONFIDENCE
+MandateAcknowledgement = ExternalAIMandateAck
 ALLOWED_OPERATIONS = frozenset(
     {"metadata_read", "read", "query", "write", "schema_change"}
 )
-
-
-@dataclass(frozen=True)
-class MandateAcknowledgement:
-    request_id: str
-    identity_id: str
-    tenant_scope: str
-    mandate_version: str
-    acknowledged: bool
-
-    def __post_init__(self) -> None:
-        for value, name in (
-            (self.request_id, "request_id"),
-            (self.identity_id, "identity_id"),
-            (self.tenant_scope, "tenant_scope"),
-            (self.mandate_version, "mandate_version"),
-        ):
-            if not value or not value.strip():
-                raise ValueError(f"{name} is required")
-        if not self.acknowledged:
-            raise ValueError("mandate acknowledgement is required")
-
-
-@dataclass(frozen=True)
-class DecisionBrief:
-    request_id: str
-    tenant_scope: str
-    problem: str
-    evidence: tuple[str, ...]
-    alternatives: tuple[str, ...]
-    tradeoffs: tuple[str, ...]
-    recommendation: str
-    confidence: float
-    risks: tuple[str, ...]
-    audit_ref: str
-
-    def __post_init__(self) -> None:
-        required = (
-            self.request_id,
-            self.tenant_scope,
-            self.problem,
-            self.recommendation,
-            self.audit_ref,
-        )
-        if not all(value and value.strip() for value in required):
-            raise ValueError("decision brief requires identity, problem, recommendation and audit")
-        if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError("confidence must be between 0 and 1")
-        if not self.evidence:
-            raise ValueError("decision brief requires evidence")
-
-    @property
-    def confidence_sufficient(self) -> bool:
-        return self.confidence >= CONFIDENCE_MINIMUM
 
 
 @dataclass(frozen=True)
@@ -88,12 +41,7 @@ def assess_escalation(
     irreversible_action: bool = False,
     pii_exposure: bool = False,
 ) -> EscalationAssessment:
-    """Apply the existing human-escalation boundary to a Symbiont result.
-
-    A financial threshold is contextual: no monetary limit is invented here.
-    PII exposure and irreversible actions are treated as escalation conditions;
-    execution authority remains outside this function.
-    """
+    """Apply existing escalation conditions without granting authority."""
     if not 0.0 <= confidence <= 1.0:
         raise ValueError("confidence must be between 0 and 1")
     if financial_impact is not None and financial_impact < 0:
@@ -114,11 +62,7 @@ def assess_escalation(
         reasons.append("irreversible_action")
     if pii_exposure:
         reasons.append("pii_exposure")
-    if (
-        financial_impact is not None
-        and financial_limit is not None
-        and financial_impact > financial_limit
-    ):
+    if financial_impact is not None and financial_limit is not None and financial_impact > financial_limit:
         reasons.append("financial_limit_exceeded")
 
     return EscalationAssessment(required=bool(reasons), reasons=tuple(reasons))
@@ -140,3 +84,15 @@ def validate_symbiont_operation(
         raise ValueError("PII exposure is not permitted")
     if canonical_mutation:
         raise ValueError("canonical mutation is not permitted by Symbiont contract")
+
+
+__all__ = [
+    "ALLOWED_ESCALATIONS",
+    "ALLOWED_OPERATIONS",
+    "CONFIDENCE_MINIMUM",
+    "DecisionBrief",
+    "EscalationAssessment",
+    "MandateAcknowledgement",
+    "assess_escalation",
+    "validate_symbiont_operation",
+]
