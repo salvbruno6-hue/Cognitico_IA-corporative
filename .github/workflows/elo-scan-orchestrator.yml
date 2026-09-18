@@ -32,6 +32,96 @@ jobs:
       - name: Checkout canonical ELO code
         uses: actions/checkout@v4
 
+
+      - name: Resolve scoped schema relationships
+        id: relationships
+        shell: bash
+        env:
+          SCHEDULE_EXPR: ${{ github.event.schedule || 'manual' }}
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?SUPABASE_URL secret is required}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is required}"
+          export SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+
+          api = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1"
+          headers = {
+              "apikey": os.environ["SUPABASE_SERVICE_ROLE_KEY"],
+              "Authorization": "Bearer " + os.environ["SUPABASE_SERVICE_ROLE_KEY"],
+              "Accept": "application/json",
+          }
+
+          def get(table, params):
+              url = f"{api}/{table}?{urlencode(params, doseq=True)}"
+              req = Request(url, headers=headers)
+              with urlopen(req, timeout=30) as response:
+                  return json.load(response)
+
+          # Scope is intentionally bounded to operational cascades already identified
+          # by the ELO investigation: demand -> PCP -> production -> purchasing ->
+          # supplier -> stock, plus shared model/item identity.
+          scope = {
+              "mt_balanco_demanda", "mt_linhas_plano_pcp", "mt_planos_pcp",
+              "mt_ordens_producao", "mt_necessidades_materiais",
+              "mt_ordens_compra_itens", "mt_ordens_compra",
+              "compras_fornecedor", "compras_fornecedor_itens",
+              "fornecedores", "fornecedor_cotacoes", "fornecedor_itens_cotacao",
+              "mt_lotes_estoque", "mt_movimentacoes_estoque",
+              "modelos", "lista_mae",
+          }
+          fks = get("elo_scan_fk_metadata", {
+              "select": "constraint_name,source_schema,source_table,source_column,target_schema,target_table,target_column",
+          })
+          fks = [x for x in fks if x["source_table"] in scope and x["target_table"] in scope]
+
+          columns = {}
+          for fk in fks:
+              columns.setdefault(fk["source_table"], {"id"})
+              columns[fk["source_table"]].add(fk["source_column"])
+              columns.setdefault(fk["target_table"], {"id"})
+              columns[fk["target_table"]].add(fk["target_column"])
+
+          rows_by_table = {}
+          records = []
+          for table in sorted(columns):
+              # Bounded read: relationship investigation needs identity and FK values,
+              # not business payloads.
+              select = ",".join(sorted(columns[table]))
+              rows = get(table, {"select": select, "limit": "100"})
+              rows_by_table[table] = rows
+              records.extend({"id": f"{table}:{r['id']}"} for r in rows if r.get("id") is not None)
+
+          # Resolver consumes normalized FK metadata + scoped records; no graph is persisted.
+          import sys
+          sys.path.insert(0, str(Path.cwd() / "src"))
+          from elo.agent_intake.supabase_relationship_resolver import resolve_fk_edges
+          edges = resolve_fk_edges(fks, rows_by_table)
+          payload = {
+              "schema_source": "public.elo_scan_fk_metadata",
+              "scope_tables": sorted(scope),
+              "foreign_keys_considered": len(fks),
+              "records_considered": len(records),
+              "relationship_edges_resolved": len(edges),
+              "records": records,
+              "relationship_edges": list(edges),
+              "governance": {
+                  "structural_only": True,
+                  "causality_established": False,
+                  "learning_eligible": False,
+                  "canonical_mutation": False,
+                  "promotion": False,
+              },
+          }
+          Path("scan-relationships.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+          print(json.dumps({k: payload[k] for k in ("foreign_keys_considered","records_considered","relationship_edges_resolved")}, indent=2))
+          PY
+          cat scan-relationships.json >> "$GITHUB_STEP_SUMMARY"
+
       - name: Investigation-first gate
         id: investigation
         shell: bash
@@ -50,6 +140,7 @@ jobs:
           weekly = os.environ.get("FORCE_WEEKLY") == "true" or os.environ.get("SCHEDULE_EXPR") == "15 5 * * 1"
           missions = ["SCAN-001-source-inventory","SCAN-002-new-experiences","SCAN-003-errors-corrections","SCAN-004-arbitrated-decisions","SCAN-005-budget"]
           if weekly: missions += ["SCAN-006-repeated-patterns","SCAN-007-specializations","SCAN-008-evolution-gate","SCAN-009-unprocessed-sources"]
+          relationship_payload = json.loads(Path("scan-relationships.json").read_text(encoding="utf-8"))
           result = build_investigation_gate({
               "objective": "Investigate registered ELO learning sources and their cross-domain relationships before deciding scan actions or learning candidates.",
               "scope": missions + ["registered learning sources","existing learning structures","budget learning structures"],
@@ -58,6 +149,8 @@ jobs:
               "relevant_source_domains": ["planejamento_demanda","planejamento_pcp","producao_fluxo_modular","compras","orcamento"],
               "hypotheses": [{"id":"H1","statement":"registered sources contain evidence requiring cross-domain investigation","probability":0.7},{"id":"H2","statement":"current source state is insufficient for a learning conclusion","probability":0.3}],
               "prohibited_actions": ["canonical mutation","automatic learning promotion","causal inference from structural relationships alone"],
+              "records": relationship_payload["records"],
+              "relationship_edges": relationship_payload["relationship_edges"],
           })
           payload = {"status":result.status,"action":result.action,"objective":result.objective,"scope":result.scope,"success_criteria":result.success_criteria,"hypotheses":result.hypotheses,"relevant_source_domains":result.relevant_source_domains,"relation_plan":result.relation_plan,"evidence_requirements":result.evidence_requirements,"concept_outcome":result.concept_outcome,"evidence":result.evidence,"learning_candidate":result.learning_candidate}
           Path("scan-investigation.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
