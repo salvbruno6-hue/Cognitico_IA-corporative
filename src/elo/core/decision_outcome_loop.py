@@ -110,3 +110,50 @@ class DecisionLifecycle:
         if not candidate:
             raise ValueError("learning candidate is required")
         self.learning_candidate = dict(candidate)
+
+
+    def handoff_to_symbiont(
+        self,
+        *,
+        adapter: "SymbiontLabAdapter",
+        observation: "SymbiontLabObservation",
+        principal_id: str,
+        dataset_version: str,
+    ) -> "SymbiontLabEvaluation":
+        """Send an evaluated decision outcome through the existing Symbiont Lab.
+
+        The lifecycle remains the decision authority; Symbiont remains the
+        laboratory/learning bridge. No second candidate or memory path is
+        created here. The decision enters learned only when Symbiont returns
+        a learning candidate.
+        """
+        if self.state is not DecisionState.ATTRIBUTED:
+            raise ValueError("Symbiont handoff requires attributed state")
+        if observation.decision_id != self.decision.decision_id:
+            raise ValueError("Symbiont observation decision_id does not match decision")
+        if self.outcome is None:
+            raise ValueError("Symbiont handoff requires an attached outcome")
+        if not self.attribution:
+            raise ValueError("Symbiont handoff requires attribution")
+        if not observation.evidence_ids:
+            raise ValueError("Symbiont handoff requires evidence")
+
+        evaluation = adapter.evaluate(
+            observation,
+            principal_id=principal_id,
+            dataset_version=dataset_version,
+        )
+        if evaluation.candidate is not None:
+            self.attach_learning({
+                "candidate_id": evaluation.candidate.candidate_id,
+                "experience_id": evaluation.candidate.experience_id,
+                "dataset_version": evaluation.candidate.dataset_version,
+                "hypothesis": evaluation.candidate.hypothesis,
+                "evolution_classification": evaluation.evolution_classification,
+            })
+            self.transition(
+                DecisionState.LEARNED,
+                evidence_ids=tuple(observation.evidence_ids),
+                actor="symbiont",
+            )
+        return evaluation
