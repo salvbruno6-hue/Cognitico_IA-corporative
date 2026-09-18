@@ -1,3 +1,5 @@
+import { processLocalCognitiveMission } from "@/lib/elo-cognitive-core";
+
 export type CognitiveSource = {
   source_id: string;
   source_type: string;
@@ -55,53 +57,49 @@ export class ELOCognitiveError extends Error {
   }
 }
 
-function requireConfig(name: string) {
-  const value = process.env[name]?.trim();
-  if (!value) throw new ELOCognitiveError(`${name} não está configurada no servidor.`, 500, "CONFIGURATION_ERROR");
-  return value;
-}
-
 export async function executeCognitiveMission(input: {
   message: string;
   tenantId: string;
   principalId?: string;
   userId?: string;
   domain: string;
-  sessionId?: string;
+  sessionId: string;
   context?: Record<string, unknown>;
-}) {
-  const baseUrl = requireConfig("ELO_COGNITIVE_API_URL").replace(/\/$/, "");
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+}): Promise<CognitiveResponse> {
+  const startedAt = performance.now();
 
   try {
-    const response = await fetch(`${baseUrl}/cognitive`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      cache: "no-store",
-      signal: controller.signal,
-      body: JSON.stringify({
-        message: input.message,
-        tenant_id: input.tenantId,
-        principal_id: input.principalId,
-        user_id: input.userId,
-        domain: input.domain,
-        session_id: input.sessionId,
-        context: input.context ?? {},
-      }),
+    const result = processLocalCognitiveMission({
+      requestId: crypto.randomUUID(),
+      correlationId: crypto.randomUUID(),
+      message: input.message,
+      tenantId: input.tenantId,
+      principalId: input.principalId ?? input.userId,
+      domain: input.domain,
+      sessionId: input.sessionId,
+      context: input.context ?? {},
     });
 
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      const message = typeof payload?.message === "string" ? payload.message : typeof payload?.detail === "string" ? payload.detail : "A API cognitiva recusou a missão.";
-      throw new ELOCognitiveError(message, response.status, typeof payload?.code === "string" ? payload.code : "COGNITIVE_REQUEST_REJECTED");
-    }
-    return payload as CognitiveResponse;
+    return {
+      response_id: crypto.randomUUID(),
+      request_id: result.provenance.request_id,
+      correlation_id: result.provenance.correlation_id,
+      session_id: input.sessionId,
+      tenant_id: input.tenantId,
+      domain: input.domain,
+      response: result.response,
+      sources: [],
+      agents_used: [],
+      confidence: result.confidence,
+      provenance: result.provenance,
+      suggestions: [],
+      processing_time_ms: Math.max(0, performance.now() - startedAt),
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
-    if (error instanceof ELOCognitiveError) throw error;
-    if (error instanceof DOMException && error.name === "AbortError") throw new ELOCognitiveError("Tempo limite excedido ao consultar o ELO Cognitivo.", 504, "COGNITIVE_TIMEOUT");
-    throw new ELOCognitiveError("Não foi possível alcançar o ELO Cognitivo.", 502, "COGNITIVE_UNAVAILABLE");
-  } finally {
-    clearTimeout(timeout);
+    if (error instanceof Error) {
+      throw new ELOCognitiveError(error.message, 400, "COGNITIVE_REQUEST_REJECTED");
+    }
+    throw new ELOCognitiveError("Falha ao processar a missão cognitiva.");
   }
 }
