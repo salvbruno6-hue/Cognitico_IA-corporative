@@ -91,5 +91,13 @@ jobs:
             exit 0
           fi
           git commit -m "chore(elo): refresh resource address registry"
-          git push origin HEAD:elo/resource-registry-refresh
-          gh pr create --base main --head elo/resource-registry-refresh --title "chore(elo): refresh resource address registry" --body "Automated refresh of the governed ELO Resource Address Registry from current GitHub and Supabase inventories." || true
+          refresh_branch="elo/resource-registry-refresh"
+          # This is a bot-owned refresh branch. Rebase it to the current generated result
+          # so scheduled runs remain idempotent instead of accumulating stale commits.
+          git fetch origin "$refresh_branch" || true
+          if git show-ref --verify --quiet "refs/remotes/origin/$refresh_branch"; then
+            git push --force-with-lease origin HEAD:"$refresh_branch"
+          else
+            git push origin HEAD:"$refresh_branch"
+          fi
+          gh pr create --base main --head "$refresh_branch" --title "chore(elo): refresh resource address registry" --body "Automated refresh of the governed ELO Resource Address Registry from current GitHub and Supabase inventories." || true
