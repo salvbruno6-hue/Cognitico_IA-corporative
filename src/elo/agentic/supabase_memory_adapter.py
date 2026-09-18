@@ -1,8 +1,8 @@
 """Read-only adapter for ELO's existing Supabase learning-memory fabric.
 
-The adapter is provider-neutral: Supabase rows are supplied by the caller and
-this layer only maps the verified Elo-forge schema into KnowledgeCandidate.
-It never persists, promotes, authorizes or mutates canonical state.
+The adapter maps caller-supplied rows into the canonical agentic knowledge
+contract. It never connects to Supabase, persists data, authorizes access,
+promotes learning, or mutates canonical state.
 """
 
 from __future__ import annotations
@@ -90,16 +90,101 @@ class SupabaseLearningMemoryAdapter:
     def inventory() -> tuple[MemoryTableSpec, ...]:
         return MEMORY_TABLES
 
-    def retrieve(self, intent: IntentSpec, requirement: KnowledgeRequirement) -> tuple[KnowledgeCandidate, ...]:
+    def retrieve(
+        self, intent: IntentSpec, requirement: KnowledgeRequirement
+    ) -> tuple[KnowledgeCandidate, ...]:
         tables = _REQUIREMENT_TABLES.get(requirement.key)
         if not tables:
             return ()
-        candidates: list[KnowledgeCandidate] = []
+
         requested_domain = (intent.domain or "").casefold()
+        requested_scope = str(intent.metadata.get("scope") or "").strip()
         requested_address = str(intent.metadata.get("resource_address") or "").strip()
-        scoped_tables = None
-        if requested_address.startswith("public."):
-            requested_table = requested_address.removeprefix("public.")
-            scoped_tables = {requested_table}
+        scoped_table = (
+            requested_address.removeprefix("public.")
+            if requested_address.startswith("public.")
+            else None
+        )
+
+        candidates: list[KnowledgeCandidate] = []
+        for table in tables:
+            if scoped_table and table != scoped_table:
+                continue
+
+            spec = _TABLE_BY_NAME[table]
+            for index, row in enumerate(self._rows.get(table, ())):
+                row_scope = str(row.get("scope") or "").strip()
+
+                # Scoped requests may only consume records explicitly scoped
+                # to the same boundary. Global or scope-less records are not
+                # silently reused across a scoped request.
+                if requested_scope and row_scope != requested_scope:
+                    continue
+
+                source_value = (
+                    row.get("id")
+                    or row.get("memoria_id")
+                    or row.get("learning_id")
+                    or row.get("experience_id")
+                    or row.get("concept_id")
+                    or row.get("calculo_id")
+                    or row.get("decision_id")
+                    or f"row-{index}"
+                )
+                source_id = f"supabase:{table}:{source_value}"
+
+                content = "; ".join(
+                    f"{key}={value}"
+                    for key, value in row.items()
+                    if value is not None
+                )
+                domain_match = 1.0 if not requested_domain or spec.domain.casefold() == requested_domain else 0.5
+                relevance = 1.0 if requirement.key in spec.description.casefold() else domain_match
+                relevance = max(relevance, domain_match)
+
+                status = "REFERENCE"
+                if spec.role in {"budget_memory", "budget_calculation", "learning_experience", "experience", "reasoning", "specialization"}:
+                    status = "GOVERNED" if row.get("status") in {"VALIDADO", "GOVERNED", "APPROVED"} or spec.role in {"budget_memory", "budget_calculation"} else "REFERENCE"
+
+                confidence_value = row.get("confidence", row.get("confianca", 0.0))
+                try:
+                    confidence = float(confidence_value or 0.0)
+                except (TypeError, ValueError):
+                    confidence = 0.0
+
+                provenance = {
+                    "storage": "supabase",
+                    "table": table,
+                    "source_reference": str(
+                        row.get("source_reference")
+                        or row.get("origem_so")
+                        or row.get("origem_referencia")
+                        or row.get("fonte")
+                        or ""
+                    ),
+                }
+                metadata = {
+                    "scope": row_scope,
+                    "role": spec.role,
+                    "promotion": "none",
+                    "canonical_mutation": "false",
+                }
+
+                candidates.append(
+                    KnowledgeCandidate(
+                        source_id=source_id,
+                        content=content,
+                        source_type=spec.role,
+                        status=status,
+                        relevance=relevance,
+                        confidence=max(0.0, min(1.0, confidence)),
+                        context_match=domain_match,
+                        provenance=provenance,
+                        metadata=metadata,
+                    )
+                )
+
+        return tuple(candidates)
 
 
+__all__ = ["MEMORY_TABLES", "MemoryTableSpec", "SupabaseLearningMemoryAdapter"]
