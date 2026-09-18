@@ -30,8 +30,37 @@ def build_registry(
     repository_files: Iterable[str] = (),
     database_tables: Iterable[str] = (),
     database_views: Iterable[str] = (),
+    canonical_artifacts: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
+    canonical_paths: set[str] = set()
+
+    for artifact in canonical_artifacts:
+        artifact_id = str(artifact.get("artifact_id", "")).strip()
+        canonical_path = str(artifact.get("canonical_path", "")).strip().replace("\\\\", "/")
+        if not artifact_id or not canonical_path:
+            continue
+        legacy_paths = tuple(
+            str(value).strip().replace("\\\\", "/")
+            for value in artifact.get("legacy_paths", ())
+            if str(value).strip()
+        )
+        aliases = tuple(dict.fromkeys((str(artifact.get("source_path", "")).strip(), *legacy_paths)))
+        aliases = tuple(value for value in aliases if value and value != canonical_path)
+        records.append({
+            "resource_id": artifact_id,
+            "resource_type": "governed_document",
+            "provider": "github",
+            "logical_name": str(artifact.get("concept_id") or artifact_id),
+            "physical_address": canonical_path,
+            "canonical": True,
+            "status": "ACTIVE" if artifact.get("migration_status") != "RETIRED" else "RETIRED",
+            "scope": "repository",
+            "authority": str(artifact.get("authority") or "COGNITICO"),
+            "provenance": "canonical-artifact-registry",
+            **({"aliases": list(aliases)} if aliases else {}),
+        })
+        canonical_paths.add(canonical_path)
 
     normalized_files = sorted(
         {
@@ -66,6 +95,8 @@ def build_registry(
         )
 
     for path in normalized_files:
+        if path in canonical_paths:
+            continue
         records.append(
             {
                 "resource_id": f"ELO.REPO.{_slug(path)}",
