@@ -56,3 +56,44 @@ def test_confident_brief_with_evidence_remains_consultative():
         audit={"source": "elo"},
     )
     assert brief.human_escalation_required is False
+
+
+def test_decision_brief_rejects_incomplete_output_and_secret_audit_data():
+    with pytest.raises(ValueError, match="alternatives"):
+        DecisionBrief(
+            "req-1", "tenant-a", "problem", ("ev-1",), (), ("tradeoff",),
+            "recommendation", 0.80, audit={"source": "elo"}
+        )
+    with pytest.raises(ValueError, match="sensitive field"):
+        DecisionBrief(
+            "req-1", "tenant-a", "problem", ("ev-1",), ("alt",), ("tradeoff",),
+            "recommendation", 0.80, audit={"api_key": "must-not-cross-boundary"}
+        )
+
+
+def test_external_ai_envelope_blocks_unmasked_pii_and_financial_limit_bypass():
+    with pytest.raises(ValueError, match="PII"):
+        GovernedExternalAIEnvelope(
+            ack(), "tenant-a", ("read",), ("execution",),
+            constraints={"pii_exposure": True}
+        )
+    with pytest.raises(ValueError, match="financial impact"):
+        GovernedExternalAIEnvelope(
+            ack(), "tenant-a", ("read",), ("execution",),
+            constraints={
+                "financial_impact": 150.0,
+                "financial_limit": 100.0,
+            }
+        )
+
+
+def test_financial_limit_can_be_explicitly_escalated():
+    envelope = GovernedExternalAIEnvelope(
+        ack(), "tenant-a", ("read",), ("execution",),
+        constraints={
+            "financial_impact": 150.0,
+            "financial_limit": 100.0,
+            "escalation_reasons": ("FINANCIAL_LIMIT",),
+        }
+    )
+    assert envelope.tenant_scope == "tenant-a"
