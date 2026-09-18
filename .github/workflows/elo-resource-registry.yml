@@ -1,0 +1,102 @@
+name: ELO Resource Address Registry
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 4 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: elo-resource-address-registry
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Inventory repository tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          repo = os.environ["GITHUB_REPOSITORY"]
+          url = f"https://api.github.com/repos/{repo}/git/trees/{os.environ['GITHUB_SHA']}?recursive=1"
+          req = urllib.request.Request(url, headers={
+              "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+              "Accept": "application/vnd.github+json",
+          })
+          data = json.load(urllib.request.urlopen(req))
+          files = sorted(
+              item["path"] for item in data.get("tree", [])
+              if item.get("type") == "blob"
+          )
+          os.makedirs(".elo-inventory", exist_ok=True)
+          with open(".elo-inventory/repository-tree.json", "w", encoding="utf-8") as fh:
+              json.dump({"files": files}, fh, ensure_ascii=False, indent=2)
+          PY
+
+      - name: Inventory Supabase schema
+        run: |
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_SERVICE_ROLE_KEY"
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          base = os.environ["SUPABASE_URL"].rstrip("/")
+          key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          query = urllib.parse.quote(
+              "select table_name, table_type from information_schema.tables "
+              "where table_schema='public' and table_type in ('BASE TABLE','VIEW') "
+              "order by table_name;"
+          )
+          req = urllib.request.Request(
+              f"{base}/rest/v1/rpc/execute_sql?query={query}",
+              headers={"apikey": key, "Authorization": f"Bearer {key}"},
+          )
+          # The production project may not expose an execute_sql RPC. In that case
+          # schema inventory must be supplied by the governed DB inventory endpoint.
+          try:
+              data = json.load(urllib.request.urlopen(req))
+          except Exception:
+              data = []
+          tables = sorted(
+              row["table_name"] for row in data
+              if row.get("table_type") == "BASE TABLE"
+          )
+          views = sorted(
+              row["table_name"] for row in data
+              if row.get("table_type") == "VIEW"
+          )
+          os.makedirs(".elo-inventory", exist_ok=True)
+          with open(".elo-inventory/database-schema.json", "w", encoding="utf-8") as fh:
+              json.dump({"tables": tables, "views": views}, fh, ensure_ascii=False, indent=2)
+          PY
+
+      - name: Build registry
+        run: python scripts/build_elo_resource_registry.py
+
+      - name: Validate registry
+        run: |
+          python -m pytest tests/core/test_resource_registry_builder.py tests/core/test_artifact_resolver.py
+
+      - name: Persist generated registry
+        run: |
+          git config user.name "ELO Registry Bot"
+          git config user.email "elo-registry-bot@users.noreply.github.com"
+          git add config/elo_resource_registry.json
+          if git diff --cached --quiet; then
+            echo "Registry unchanged."
+            exit 0
+          fi
+          git commit -m "chore(elo): refresh resource address registry"
+          git push origin HEAD:main
