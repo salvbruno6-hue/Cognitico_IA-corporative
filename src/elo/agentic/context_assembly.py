@@ -13,7 +13,7 @@ from typing import Iterable
 from .contracts import IntentSpec, KnowledgeContext
 from .orchestrator import KnowledgeOrchestrator, KnowledgeProvider, OrchestrationLimits
 from .supabase_memory_adapter import SupabaseLearningMemoryAdapter\n
-from src.elo.core.resource_locator import ResourceLocator, ResourceResolutionError
+from ..core.resource_locator import ResourceLocator, ResourceResolutionError
 
 
 
