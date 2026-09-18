@@ -9,6 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SKIP = {"node_modules", ".next", ".git", "dist", "build"}
 FORBIDDEN_FLOATING = {"latest", "next", "canary", "*"}
+CANONICAL_ELO_WEB = "apps/elo-web"
+AUTHORIZED_EXTERNAL_MANIFEST = ROOT / "docs" / "governance" / "AUTHORIZED_VERCEL_PROJECTS.json"
 
 
 def iter_package_files():
@@ -45,6 +47,25 @@ def main() -> int:
     if not apps:
         print("Vercel governance: no Next.js application detected.")
         return 0
+
+    next_app_dirs = {str(path.parent.relative_to(ROOT)).replace("\\", "/") for path, _ in apps}
+    unauthorized_apps = next_app_dirs - {CANONICAL_ELO_WEB}
+    if unauthorized_apps:
+        authorized = set()
+        if AUTHORIZED_EXTERNAL_MANIFEST.exists():
+            try:
+                manifest = json.loads(AUTHORIZED_EXTERNAL_MANIFEST.read_text(encoding="utf-8"))
+                authorized = {
+                    str(item.get("path", "")).strip().replace("\\", "/")
+                    for item in manifest.get("authorized_projects", [])
+                    if item.get("status") == "AUTHORIZED"
+                }
+            except Exception as exc:
+                errors.append(f"{AUTHORIZED_EXTERNAL_MANIFEST.relative_to(ROOT)}: invalid authorization manifest: {exc}")
+        for app_dir in sorted(unauthorized_apps - authorized):
+            errors.append(
+                f"{app_dir}: ELO application outside canonical {CANONICAL_ELO_WEB} requires explicit ELO Vercel authorization"
+            )
 
     for package_path, data in apps:
         rel = package_path.relative_to(ROOT)
