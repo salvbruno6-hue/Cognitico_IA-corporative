@@ -38,3 +38,18 @@ def test_codex_cannot_emit_authorization_states() -> None:
     assert "ELO_DECISION=APPROVE_COMMIT" in workflow
     assert "elo-commit-authorized" not in workflow
     assert "elo-merge-authorized" not in workflow
+
+
+def test_canonical_issuer_is_required_for_binding_and_grants():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert 'action==="create_operator_binding" || action==="issue_authorization_grant"' in source
+    assert 'auth.roles.includes("CANONICAL_ADMIN")' in source
+    assert "canonical_admin_created_operator_binding" in source
+    assert "canonical_admin_issued_authorization_state" in source
+    assert "expires_in_seconds" in source
+    assert "86400" in source
+
+
+def test_web_boundary_exposes_only_canonical_issuer_actions():
+    route = Path("apps/elo-web/src/app/api/authorization/route.ts").read_text(encoding="utf-8")
+    assert '"create_operator_binding","issue_authorization_grant"' in route
