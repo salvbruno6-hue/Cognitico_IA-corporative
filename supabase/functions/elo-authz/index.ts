@@ -240,6 +240,82 @@ Deno.serve(async(req:Request)=>{
     });
   }
 
+  if(action==="create_operator_binding" || action==="issue_authorization_grant") {
+    if(!auth.roles.includes("CANONICAL_ADMIN"))
+      return json({authorized:false,reason:"canonical_authority_required",request_id:requestId},403);
+
+    if(!repository)
+      return json({authorized:false,reason:"repository_required",request_id:requestId},400);
+
+    const issuerScopes=await getScopes(auth.identity.identity_id);
+    if(!issuerScopes.ok)
+      return json({authorized:false,reason:issuerScopes.reason,request_id:requestId},403);
+    if(!issuerScopes.scopes.some((s:any)=>s.scope_key===repository))
+      return json({authorized:false,reason:"repository_out_of_scope",request_id:requestId},403);
+
+    if(action==="create_operator_binding") {
+      const targetIdentityId=typeof body.identity_id==="string"?body.identity_id.trim():"";
+      const githubUserId=Number(body.github_user_id);
+      const githubLogin=typeof body.github_login==="string"?body.github_login.trim():"";
+      const operationClass=typeof body.operation_class==="string"?body.operation_class.trim():"";
+      if(!targetIdentityId||!Number.isSafeInteger(githubUserId)||githubUserId<=0||!githubLogin||!["OPERATIONAL","STRUCTURAL"].includes(operationClass))
+        return json({authorized:false,reason:"binding_identity_github_repository_operation_class_required",request_id:requestId},400);
+
+      const {data:target,error:targetError}=await supabase.from("elo_identity_registry")
+        .select("identity_id,active").eq("identity_id",targetIdentityId).eq("active",true).maybeSingle();
+      if(targetError)return json({authorized:false,reason:"target_identity_lookup_failed",request_id:requestId},503);
+      if(!target)return json({authorized:false,reason:"target_identity_inactive",request_id:requestId},403);
+
+      const {data:existing,error:existingError}=await supabase.from("elo_operator_github_bindings")
+        .select("binding_id,active").or(`identity_id.eq.${targetIdentityId},and(github_user_id.eq.${githubUserId},repository_full_name.eq.${repository})`)
+        .eq("repository_full_name",repository);
+      if(existingError)return json({authorized:false,reason:"binding_conflict_lookup_failed",request_id:requestId},503);
+      if((existing??[]).some((b:any)=>b.active===true))
+        return json({authorized:false,reason:"active_operator_binding_already_exists",request_id:requestId},409);
+
+      const {data:binding,error}=await supabase.from("elo_operator_github_bindings").insert({
+        identity_id:targetIdentityId,github_user_id:githubUserId,github_login:githubLogin,
+        repository_full_name:repository,operation_class:operationClass,active:true,
+        verified_at:new Date().toISOString(),verified_by_identity_id:auth.identity.identity_id
+      }).select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active,verified_at").single();
+      if(error||!binding)return json({authorized:false,reason:"operator_binding_create_failed",request_id:requestId},503);
+
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_created_operator_binding",requestId);}
+      catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+      return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",binding});
+    }
+
+    const bindingId=typeof body.binding_id==="string"?body.binding_id.trim():"";
+    const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
+    const operation=typeof body.operation==="string"?body.operation.trim():"";
+    const expiresIn=Number(body.expires_in_seconds);
+    if(!bindingId||!state||!operation||!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>86400)
+      return json({authorized:false,reason:"binding_state_operation_expiry_required",request_id:requestId},400);
+
+    const allowedStates=new Set(["elo-execution-authorized","elo-commit-authorized","elo-merge-authorized"]);
+    if(!allowedStates.has(state))
+      return json({authorized:false,reason:"authorization_state_not_supported",request_id:requestId},400);
+
+    const {data:binding,error:bindingError}=await supabase.from("elo_operator_github_bindings")
+      .select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active")
+      .eq("binding_id",bindingId).eq("repository_full_name",repository).eq("active",true).maybeSingle();
+    if(bindingError)return json({authorized:false,reason:"operator_binding_lookup_failed",request_id:requestId},503);
+    if(!binding)return json({authorized:false,reason:"operator_binding_inactive",request_id:requestId},403);
+
+    const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
+    const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
+      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
+      authorization_state:state,operation,repository_full_name:repository,
+      issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
+      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:{issuer_role:"CANONICAL_ADMIN"}
+    }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at").single();
+    if(error||!grant)return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
+
+    try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_issued_authorization_state",requestId);}
+    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+    return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding});
+  }
+
   if(action==="portal_access") {
     const cap=await hasCapability(auth.roleIds,"PORTAL_READ");
     const scopes=await getScopes(auth.identity.identity_id);
