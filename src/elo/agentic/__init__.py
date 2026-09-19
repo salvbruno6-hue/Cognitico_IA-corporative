@@ -5,6 +5,8 @@ orchestrate existing ELO capabilities, but it does not own canonical truth,
 identity, Soul, Core, Forge, promotion, or persistence authority.
 """
 
+from .entry_handoff import ELOAIEntryHandoff, ELOAIEntryHandoffError, ELOCognitiveSession
+
 from .entry_contract import (
     DEFAULT_BOOTSTRAP_ARTIFACTS,
     ELOAIEntryBlock,
@@ -24,5 +26,8 @@ __all__ = [
     "ELOAIEntryMode",
     "ELOAIEntryRequest",
     "ELOAIEntrySession",
+    "ELOAIEntryHandoff",
+    "ELOAIEntryHandoffError",
+    "ELOCognitiveSession",
     "ELOAIEntryState",
 ]
