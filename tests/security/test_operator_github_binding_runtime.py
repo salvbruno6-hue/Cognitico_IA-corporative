@@ -36,8 +36,9 @@ def test_authorization_audit_remains_canonical() -> None:
 def test_codex_cannot_emit_authorization_states() -> None:
     workflow = (ROOT / ".github/workflows/elo-agent-loop.yml").read_text(encoding="utf-8")
     assert "ELO_DECISION=APPROVE_COMMIT" in workflow
-    assert "elo-commit-authorized" not in workflow
-    assert "elo-merge-authorized" not in workflow
+    assert "authorization_state:" not in workflow
+    assert "create_operator_binding" not in workflow
+    assert "issue_authorization_grant" not in workflow
 
 
 def test_canonical_issuer_is_required_for_binding_and_grants():
