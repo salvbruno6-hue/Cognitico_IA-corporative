@@ -8,6 +8,8 @@ const ALLOWED_ACTIONS = new Set([
 type AuthorizationBody = {
   action?: unknown; capability?: unknown; repository?: unknown;
   area_code?: unknown; operation?: unknown; authorization_state?: unknown;
+  identity_id?: unknown; github_user_id?: unknown; github_login?: unknown;
+  operation_class?: unknown; binding_id?: unknown; expires_in_seconds?: unknown;
 };
 
 function json(data: unknown,status=200){return NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});}
