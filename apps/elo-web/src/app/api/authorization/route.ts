@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 const ALLOWED_ACTIONS = new Set([
   "establish_session","revoke_session","read","consult","search","inspect",
-  "portal_access","authorize_area","check_authorization_state",
+  "portal_access","authorize_area","check_authorization_state","create_operator_binding","issue_authorization_grant",
 ]);
 
 type AuthorizationBody = {
@@ -30,6 +30,12 @@ export async function POST(request:Request){
       area_code:typeof body.area_code==="string"?body.area_code.trim():undefined,
       operation:typeof body.operation==="string"?body.operation.trim():undefined,
       authorization_state:typeof body.authorization_state==="string"?body.authorization_state.trim():undefined,
+      identity_id:typeof body.identity_id==="string"?body.identity_id.trim():undefined,
+      github_user_id:body.github_user_id,
+      github_login:typeof body.github_login==="string"?body.github_login.trim():undefined,
+      operation_class:typeof body.operation_class==="string"?body.operation_class.trim():undefined,
+      binding_id:typeof body.binding_id==="string"?body.binding_id.trim():undefined,
+      expires_in_seconds:body.expires_in_seconds,
     }),
     cache:"no-store",
   });
