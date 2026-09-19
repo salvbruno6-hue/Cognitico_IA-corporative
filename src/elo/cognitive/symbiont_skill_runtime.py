@@ -26,7 +26,9 @@ class SymbiontSkillRuntime:
 
     @staticmethod
     def validate_boundary(request: Any) -> None:
-        SymbiontRequestGuard.validate(request)
+        if not isinstance(request, SymbiontRequestGuard):
+            raise TypeError("runtime boundary requires the canonical SymbiontRequestGuard")
+        request.human_escalation()
 
     @staticmethod
     def validate_operation(operation: str) -> str:
