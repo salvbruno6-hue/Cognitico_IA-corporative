@@ -85,6 +85,9 @@ class SymbiontLabAdapter:
         decision = EvolutionGate().evaluate(proposal)
         disposition = self._disposition(decision.classification)
 
+        # Unconfirmed generalization is retained as laboratory evidence only;
+        # it must not manufacture a learning candidate.
+
         # Reuse is an association outcome, not a new learning candidate.
         # Blocked evolution likewise must not create a parallel candidate.
         if decision.classification in {
@@ -160,7 +163,9 @@ class SymbiontLabAdapter:
         if observation.regression_status.upper() in {"REGRESSION", "FAIL"}:
             raise ValueError("regression blocks laboratory evaluation")
         if observation.generalization_status.upper() == "UNCONFIRMED":
-            raise ValueError("unconfirmed generalization remains LAB_ONLY")
+            raise ValueError("unconfirmed generalization blocks learning")
+        if observation.generalization_status.upper() not in {"CONFIRMED", "PARTIAL"}:
+            raise ValueError("unsupported generalization status")
         if observation.risk.upper() in {"CRITICAL", "CRITICO"}:
             raise ValueError("critical risk blocks laboratory evaluation")
 
