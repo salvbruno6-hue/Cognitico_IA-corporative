@@ -26,7 +26,6 @@ def test_new_github_connection_defaults_to_read_only_and_cannot_write():
         _request(),
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
     )
-
     assert session.state is ELOAIEntryState.READY
     assert session.mode is ELOAIEntryMode.READ_ONLY_CONSULTATION
     assert session.repository_ref == "main"
@@ -38,7 +37,6 @@ def test_missing_bootstrap_artifact_blocks_entry():
         _request(),
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS[:-1],
     )
-
     assert session.state is ELOAIEntryState.BLOCKED
     assert session.block is ELOAIEntryBlock.BOOTSTRAP_INCOMPLETE
 
@@ -49,21 +47,21 @@ def test_broader_github_access_than_elo_scope_blocks_entry():
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
         access_scope_valid=False,
     )
-
     assert session.state is ELOAIEntryState.BLOCKED
     assert session.block is ELOAIEntryBlock.ACCESS_SCOPE_VIOLATION
 
 
 def test_specialist_requires_external_binding():
     session = ELOAIEntryGate().establish(
-        _request(ELOAIEntryMode.AUTHORIZED_SPECIALIST),
+        _request(
+            ELOAIEntryMode.AUTHORIZED_SPECIALIST,
+            tenant_id="tenant-a",
+            domain="engineering",
+            principal_id="principal-a",
+            authorization_scope="engineering:read",
+        ),
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
-        tenant_id="tenant-a",
-        domain="engineering",
-        principal_id="principal-a",
-        authorization_scope="engineering:read",
     )
-
     assert session.state is ELOAIEntryState.BLOCKED
     assert session.block is ELOAIEntryBlock.AUTHORIZATION_REQUIRED
 
@@ -82,9 +80,8 @@ def test_specialist_can_enter_after_required_binding_is_present():
         ),
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
     )
-
     assert session.state is ELOAIEntryState.READY
-    assert session.can_write is False
+    assert session.execution_binding_ready is False
 
 
 def test_governed_execution_requires_full_operator_binding_and_correlation():
@@ -104,7 +101,6 @@ def test_governed_execution_requires_full_operator_binding_and_correlation():
         ),
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
     )
-
     assert session.state is ELOAIEntryState.READY
     assert session.execution_binding_ready is True
 
@@ -122,7 +118,6 @@ def test_governed_execution_without_binding_fails_closed():
         ),
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
     )
-
     assert session.state is ELOAIEntryState.BLOCKED
     assert session.block is ELOAIEntryBlock.AUTHORIZATION_REQUIRED
 
@@ -133,6 +128,5 @@ def test_contract_conflict_blocks_even_with_valid_access():
         readable_artifacts=DEFAULT_BOOTSTRAP_ARTIFACTS,
         contract_conflict=True,
     )
-
     assert session.state is ELOAIEntryState.BLOCKED
     assert session.block is ELOAIEntryBlock.CONTRACT_CONFLICT
