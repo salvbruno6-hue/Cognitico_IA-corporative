@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 
 const ALLOWED_ACTIONS = new Set([
   "establish_session","revoke_session","read","consult","search","inspect",
-  "portal_access","authorize_area",
+  "portal_access","authorize_area","check_authorization_state",
 ]);
 
-type AuthorizationBody = { action?: unknown; capability?: unknown; repository?: unknown; area_code?: unknown; operation?: unknown; };
+type AuthorizationBody = {
+  action?: unknown; capability?: unknown; repository?: unknown;
+  area_code?: unknown; operation?: unknown; authorization_state?: unknown;
+};
 
 function json(data: unknown,status=200){return NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});}
 
@@ -20,7 +23,14 @@ export async function POST(request:Request){
   if(!ALLOWED_ACTIONS.has(action))return json({authorized:false,reason:"action_not_allowed_at_elo_web_boundary"},403);
   const upstream=await fetch(`${supabaseUrl}/functions/v1/elo-authz`,{
     method:"POST",headers:{Authorization:authorization,"Content-Type":"application/json","x-elo-request-id":request.headers.get("x-elo-request-id")?.trim()||crypto.randomUUID()},
-    body:JSON.stringify({action,capability:typeof body.capability==="string"?body.capability.trim():undefined,repository:typeof body.repository==="string"?body.repository.trim():undefined,area_code:typeof body.area_code==="string"?body.area_code.trim():undefined,operation:typeof body.operation==="string"?body.operation.trim():undefined}),
+    body:JSON.stringify({
+      action,
+      capability:typeof body.capability==="string"?body.capability.trim():undefined,
+      repository:typeof body.repository==="string"?body.repository.trim():undefined,
+      area_code:typeof body.area_code==="string"?body.area_code.trim():undefined,
+      operation:typeof body.operation==="string"?body.operation.trim():undefined,
+      authorization_state:typeof body.authorization_state==="string"?body.authorization_state.trim():undefined,
+    }),
     cache:"no-store",
   });
   const payload=await upstream.json().catch(()=>({authorized:false,reason:"invalid_authorization_response"}));
