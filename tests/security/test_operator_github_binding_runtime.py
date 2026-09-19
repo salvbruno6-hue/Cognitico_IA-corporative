@@ -54,3 +54,22 @@ def test_canonical_issuer_is_required_for_binding_and_grants():
 def test_web_boundary_exposes_only_canonical_issuer_actions():
     route = Path("apps/elo-web/src/app/api/authorization/route.ts").read_text(encoding="utf-8")
     assert '"create_operator_binding","issue_authorization_grant"' in route
+
+
+def test_collaborator_and_visitor_tiers_are_separated():
+    migration = Path("supabase/migrations/20260919010000_elo_access_tiers.sql").read_text(encoding="utf-8")
+    assert "'COLABORADOR'" in migration
+    assert "'VISITANTE'" in migration
+    assert "'LISTA_MAE_INSERT'" in migration
+    assert "('COLABORADOR'" in migration
+    assert "('VISITANTE'" in migration
+    assert "elo_private.has_capability('LISTA_MAE_INSERT')" in migration
+    assert "FOR INSERT" in migration
+    assert "FOR UPDATE" not in migration
+    assert "FOR DELETE" not in migration
+
+
+def test_collaborator_has_no_github_binding_by_definition():
+    migration = Path("supabase/migrations/20260919010000_elo_access_tiers.sql").read_text(encoding="utf-8")
+    assert "does not automatically create or elevate any human identity" in migration
+    assert "does not receive a GitHub operator binding" in migration
