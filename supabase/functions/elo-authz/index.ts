@@ -11,7 +11,7 @@ const ACTION_CAPABILITY: Record<string, string> = {
   modify_cognitive_identity: "ADMIN", modify_core: "CANONICAL_WRITE",
   modify_canonical_memory: "CANONICAL_WRITE", modify_security_policy: "ADMIN",
   change_permissions: "ADMIN", promote_to_core: "CANONICAL_WRITE",
-  merge_protected_change: "APPROVE",
+  merge_protected_change: "APPROVE",\n  lista_mae_insert: "LISTA_MAE_INSERT",
 };
 
 const AREA_CAPABILITIES: Record<string, string> = {
