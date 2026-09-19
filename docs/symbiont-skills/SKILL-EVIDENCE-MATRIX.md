@@ -1,17 +1,17 @@
 # Symbiont Skill — Evidence Matrix
 
-Esta matriz liga cada skill documentada ao código canônico e aos testes localizados em `main` e, quando explicitamente implementado neste ciclo, ao código de governança da própria PR. Ela registra evidência; não concede aprovação humana nem promoção canônica.
+Esta matriz liga cada skill documentada ao código canônico e aos testes localizados em `main`. Ela registra evidência; não concede aprovação humana nem promoção canônica.
 
 | Skill | Código | Testes | Estado |
 |---|---|---|---|
 | SKILL-001 `symbiont.operational_boundary` | `src/elo/cognitive/symbiont_operational_contract.py` | `tests/cognitive/test_symbiont_operational_contract.py` | **GREEN** |
-| SKILL-002 `decision.outcome_loop` | não existe em `main`; implementação permanece na PR #573 | não pode ser declarada canônica nesta linha | **BLOCKED** |
+| SKILL-002 `decision.outcome_loop` | `src/elo/core/decision_outcome_loop.py` | `tests/core/test_decision_outcome_loop.py` | **GREEN** |
 | SKILL-003 `symbiont.lab` | `src/elo/cognitive/symbionte_lab.py` | `tests/evolution/test_symbionte_lab_adapter.py`, `test_symbionte_lab_gate_order.py`, `test_symbionte_lab_evidence_boundary.py`, `test_symbionte_lab_execution_contract.py` | **GREEN** |
 | SKILL-004 `symbiont.capability_absorption` | `src/elo/cognitive/capability_absorption.py` | `tests/cognitive/test_process_view_and_capability_absorption.py` | **GREEN** |
 
 ## SKILL-001 — finalidade internalizada no código
 
-A finalidade operacional da skill agora possui contrato executável:
+A finalidade operacional da skill possui contrato executável:
 
 - operações permitidas: metadata/read/query/scenario/risk/KPI;
 - operações de escrita, DDL, DML, alteração de schema e registro direto de decisão são bloqueadas;
@@ -24,9 +24,23 @@ A finalidade operacional da skill agora possui contrato executável:
 
 O código é deliberadamente um **guard**, não um executor, roteador, registry, memória ou Evolution Gate.
 
+## SKILL-002 — evidência operacional existente
+
+A implementação canônica do Decision Outcome Loop está em `main` e possui testes específicos cobrindo:
+
+- sequência ordenada do lifecycle;
+- bloqueio de transições inválidas;
+- outcome vinculado à decisão e com evidência;
+- attribution normalizada e validada;
+- handoff para o Symbiont Lab existente;
+- geração de learning candidate;
+- fechamento e criação de precedente.
+
+**Importante:** o estado `LEARNED` continua significando que um learning candidate foi produzido. Não significa promoção de conhecimento canônico.
+
 ## SKILL-003 — evidência operacional existente
 
-A base canônica já possui testes específicos do adapter cobrindo:
+A base canônica possui testes específicos do adapter cobrindo:
 
 - reutilização do owner existente;
 - evidência obrigatória;
@@ -48,16 +62,6 @@ A base canônica possui testes para:
 - `CANDIDATE_ONLY`;
 - bloqueio sem regression PASS;
 - bloqueio sem generalização CONFIRMED.
-
-## SKILL-002 — bloqueio real, não mascarado
-
-O Decision Outcome Loop não pode ser pintado de GREEN nesta PR sem implementar/promover sua implementação canônica.
-
-A dependência concreta é:
-
-`DecisionRecord → lifecycle → outcome → attribution → learning candidate → closure → precedent`
-
-A implementação correspondente está na PR #573, não em `main`. A solução correta é concluir o ciclo próprio da #573 e somente então marcar SKILL-002 como canônica.
 
 ## Critério de GREEN
 
