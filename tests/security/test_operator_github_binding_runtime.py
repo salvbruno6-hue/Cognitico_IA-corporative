@@ -71,5 +71,5 @@ def test_collaborator_and_visitor_tiers_are_separated():
 
 def test_collaborator_has_no_github_binding_by_definition():
     migration = Path("supabase/migrations/20260919010000_elo_access_tiers.sql").read_text(encoding="utf-8")
-    assert "does not automatically create or elevate any human identity" in migration
-    assert "does not receive a GitHub operator binding" in migration
+    assert "No identity is auto-provisioned by this migration." in migration
+    assert "A collaborator does not receive a GitHub operator binding." in migration
