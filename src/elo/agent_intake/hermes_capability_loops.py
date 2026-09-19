@@ -218,3 +218,77 @@ class HermesCapabilityLoops:
             evolution_gate_approved=approval.get("evolution_gate", False),
         )
         return stable, discovery_history, candidate, readiness
+
+@dataclass(frozen=True)
+class ImplementationDecision:
+    """Explicit ELO decision authorizing implementation of an already-approved candidate."""
+
+    decision_id: str
+    candidate_id: str
+    approved: bool
+    scope: str
+    evidence_refs: tuple[str, ...] = ()
+    authority: str = "elo_cognitive"
+
+
+@dataclass(frozen=True)
+class ImplementationActivation:
+    """Auditable result of the approval -> implementation handoff."""
+
+    decision_id: str
+    candidate_id: str
+    state: str
+    activated: bool
+    scope: str
+    reason: str = ""
+
+
+class ApprovedCandidateImplementationLoop:
+    """Fail-closed loop from approved candidate to controlled implementation.
+
+    Approval and implementation are separate decisions. This loop never grants
+    Evolution Gate approval and never promotes a candidate by itself. It only
+    activates a candidate after all prior approval gates are already satisfied
+    and an explicit implementation decision authorizes that candidate.
+    """
+
+    @staticmethod
+    def activate(
+        candidate: TransformationCandidate,
+        *,
+        readiness: ApprovalReadiness,
+        decision: ImplementationDecision,
+    ) -> ImplementationActivation:
+        if decision.candidate_id != candidate.candidate_id:
+            raise ValueError("implementation decision does not match candidate")
+        if not decision.decision_id:
+            raise ValueError("implementation decision requires decision_id")
+        if not decision.scope:
+            raise ValueError("implementation decision requires scope")
+        if not decision.evidence_refs:
+            raise ValueError("implementation decision requires evidence_refs")
+        if not decision.approved:
+            return ImplementationActivation(
+                decision_id=decision.decision_id,
+                candidate_id=candidate.candidate_id,
+                state="BLOCKED",
+                activated=False,
+                scope=decision.scope,
+                reason="implementation decision not approved",
+            )
+        if not readiness.ready:
+            return ImplementationActivation(
+                decision_id=decision.decision_id,
+                candidate_id=candidate.candidate_id,
+                state="BLOCKED",
+                activated=False,
+                scope=decision.scope,
+                reason="candidate is not fully approved",
+            )
+        return ImplementationActivation(
+            decision_id=decision.decision_id,
+            candidate_id=candidate.candidate_id,
+            state="IMPLEMENTATION_AUTHORIZED",
+            activated=True,
+            scope=decision.scope,
+        )
