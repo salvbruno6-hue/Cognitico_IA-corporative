@@ -106,3 +106,19 @@ Depois de aprovado, o candidato continua sendo rastreado até seu outcome pós-a
 `APPROVED → DEPLOYED/USED → OBSERVING → OUTCOME → REVIEW`
 
 O resultado pós-aprovação deve alimentar os mecanismos canônicos existentes de outcome/learning, não uma memória paralela.
+
+## Handoff automático após decisão de implementação
+
+Após um candidato já ter satisfeito todos os gates de aprovação, a implementação não deve depender de uma nova aprovação implícita. O ELO registra uma ImplementationDecision explícita, vinculada ao candidate_id, decision_id, escopo e evidências.
+
+O ApprovedCandidateImplementationLoop então executa, de forma fail-closed:
+
+`candidate aprovado + decisão de implementação aprovada → IMPLEMENTATION_AUTHORIZED`
+
+Se qualquer gate anterior estiver incompleto, se a decisão não estiver aprovada, ou se o candidate_id não corresponder à decisão, o resultado é BLOCKED.
+
+Esse loop não concede aprovação do Evolution Gate, não promove conhecimento canônico e não cria autoridade paralela. Ele apenas automatiza o handoff de um candidato já aprovado para a etapa de implementação controlada.
+
+Fluxo pós-aprovação:
+
+`APPROVED → decisão de implementação → IMPLEMENTATION_AUTHORIZED → DEPLOYED/USED → OBSERVING → OUTCOME → REVIEW`

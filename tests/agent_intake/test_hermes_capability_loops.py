@@ -130,3 +130,101 @@ def test_approval_readiness_green_requires_all_checks():
     )
     assert readiness.ready
     assert readiness.missing == ()
+
+def test_approved_candidate_implementation_loop_activates_after_explicit_decision():
+    candidate, _ = HermesCapabilityLoops.transform_until_valid(
+        evidence(), kind=CapabilityKind.SKILL, build=build, test=lambda _current: (True, ()),
+    )
+    readiness = HermesCapabilityLoops.approval_readiness(
+        candidate,
+        implementation_passed=True,
+        provenance_passed=True,
+        consistency_passed=True,
+        governance_metadata_complete=True,
+        evolution_gate_approved=True,
+    )
+    decision = __import__(
+        "elo.agent_intake.hermes_capability_loops",
+        fromlist=["ImplementationDecision"],
+    ).ImplementationDecision(
+        decision_id="decision-001",
+        candidate_id=candidate.candidate_id,
+        approved=True,
+        scope="controlled-runtime",
+        evidence_refs=("decision-evidence-001",),
+    )
+    activation = __import__(
+        "elo.agent_intake.hermes_capability_loops",
+        fromlist=["ApprovedCandidateImplementationLoop"],
+    ).ApprovedCandidateImplementationLoop.activate(
+        candidate, readiness=readiness, decision=decision
+    )
+    assert activation.activated
+    assert activation.state == "IMPLEMENTATION_AUTHORIZED"
+
+
+def test_approved_candidate_implementation_loop_fails_closed_without_gate():
+    candidate, _ = HermesCapabilityLoops.transform_until_valid(
+        evidence(), kind=CapabilityKind.SKILL, build=build, test=lambda _current: (True, ()),
+    )
+    readiness = HermesCapabilityLoops.approval_readiness(
+        candidate,
+        implementation_passed=True,
+        provenance_passed=True,
+        consistency_passed=True,
+        governance_metadata_complete=True,
+        evolution_gate_approved=False,
+    )
+    decision = __import__(
+        "elo.agent_intake.hermes_capability_loops",
+        fromlist=["ImplementationDecision"],
+    ).ImplementationDecision(
+        decision_id="decision-002",
+        candidate_id=candidate.candidate_id,
+        approved=True,
+        scope="controlled-runtime",
+        evidence_refs=("decision-evidence-002",),
+    )
+    activation = __import__(
+        "elo.agent_intake.hermes_capability_loops",
+        fromlist=["ApprovedCandidateImplementationLoop"],
+    ).ApprovedCandidateImplementationLoop.activate(
+        candidate, readiness=readiness, decision=decision
+    )
+    assert not activation.activated
+    assert activation.state == "BLOCKED"
+
+
+def test_approved_candidate_implementation_loop_requires_matching_decision():
+    candidate, _ = HermesCapabilityLoops.transform_until_valid(
+        evidence(), kind=CapabilityKind.SKILL, build=build, test=lambda _current: (True, ()),
+    )
+    readiness = HermesCapabilityLoops.approval_readiness(
+        candidate,
+        implementation_passed=True,
+        provenance_passed=True,
+        consistency_passed=True,
+        governance_metadata_complete=True,
+        evolution_gate_approved=True,
+    )
+    decision = __import__(
+        "elo.agent_intake.hermes_capability_loops",
+        fromlist=["ImplementationDecision"],
+    ).ImplementationDecision(
+        decision_id="decision-003",
+        candidate_id="different-candidate",
+        approved=True,
+        scope="controlled-runtime",
+        evidence_refs=("decision-evidence-003",),
+    )
+    try:
+        __import__(
+            "elo.agent_intake.hermes_capability_loops",
+            fromlist=["ApprovedCandidateImplementationLoop"],
+        ).ApprovedCandidateImplementationLoop.activate(
+            candidate, readiness=readiness, decision=decision
+        )
+    except ValueError as exc:
+        assert "does not match" in str(exc)
+    else:
+        raise AssertionError("mismatched implementation decision must be rejected")
