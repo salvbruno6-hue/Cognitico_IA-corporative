@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .elo_provider import ELOKnowledgeProvider, ELORequestContext
-from .entry_contract import ELOAIEntryMode, ELOAIEntrySession
+from .entry_contract import ELOAIEntrySession
 from .runtime_context import ELORuntimeContext, resolve_runtime_context
 
 
