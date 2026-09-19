@@ -1,0 +1,40 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+AUTHZ = (ROOT / "supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+MIGRATION = (ROOT / "supabase/migrations/20260919000000_elo_operator_github_binding_runtime.sql").read_text(
+    encoding="utf-8"
+)
+
+
+def test_binding_is_persistent_and_repository_scoped() -> None:
+    assert "elo_operator_github_bindings" in MIGRATION
+    assert "identity_id uuid not null" in MIGRATION
+    assert "github_user_id bigint not null" in MIGRATION
+    assert "repository_full_name text not null" in MIGRATION
+    assert "unique (identity_id, repository_full_name)" in MIGRATION
+    assert "unique (github_user_id, repository_full_name)" in MIGRATION
+
+
+def test_authorization_states_are_explicit_and_expiring() -> None:
+    for state in (
+        "elo-execution-authorized",
+        "elo-commit-authorized",
+        "elo-merge-authorized",
+    ):
+        assert state in MIGRATION
+    assert "elo_authorization_grants" in MIGRATION
+    assert "expires_at timestamptz not null" in MIGRATION
+    assert "revoked_at timestamptz" in MIGRATION
+
+
+def test_authorization_audit_remains_canonical() -> None:
+    assert 'supabase.from("elo_authorization_audit").insert' in AUTHZ
+    assert "authorization_authority:" in AUTHZ
+
+
+def test_codex_cannot_emit_authorization_states() -> None:
+    workflow = (ROOT / ".github/workflows/elo-agent-loop.yml").read_text(encoding="utf-8")
+    assert "ELO_DECISION=APPROVE_COMMIT" in workflow
+    assert "elo-commit-authorized" not in workflow
+    assert "elo-merge-authorized" not in workflow
