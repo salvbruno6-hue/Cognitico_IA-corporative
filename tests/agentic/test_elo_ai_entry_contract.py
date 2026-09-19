@@ -29,7 +29,8 @@ def test_new_github_connection_defaults_to_read_only_and_cannot_write():
 
     assert session.state is ELOAIEntryState.READY
     assert session.mode is ELOAIEntryMode.READ_ONLY_CONSULTATION
-    assert session.can_write is False
+    assert session.repository_ref == "main"
+    assert session.execution_binding_ready is False
 
 
 def test_missing_bootstrap_artifact_blocks_entry():
@@ -105,7 +106,7 @@ def test_governed_execution_requires_full_operator_binding_and_correlation():
     )
 
     assert session.state is ELOAIEntryState.READY
-    assert session.can_write is True
+    assert session.execution_binding_ready is True
 
 
 def test_governed_execution_without_binding_fails_closed():
