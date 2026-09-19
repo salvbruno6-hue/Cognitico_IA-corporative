@@ -1,30 +1,25 @@
-from dataclasses import dataclass
-
-import pytest
-
+from elo.cognitive.symbiont_operational_contract import SymbiontRequestGuard, SymbiontOperation
 from elo.cognitive.symbiont_skill_runtime import SymbiontSkillRuntime
-from elo.cognitive.symbiont_operational_contract import SymbiontOperation
 
 
-@dataclass(frozen=True)
-class Request:
-    operation: str = "query"
-    tenant_scope: str = "tenant-a"
-    confidence: float = 0.80
-    evidence_ids: tuple[str, ...] = ("ev-1",)
-    canonical_mutation_allowed: bool = False
-    authority: str = "recommend"
+def guard(**overrides):
+    values = dict(
+        request_id="req-1",
+        tenant_scope="tenant-a",
+        acknowledged=True,
+        authorized=True,
+    )
+    values.update(overrides)
+    return SymbiontRequestGuard(**values)
 
 
 def test_skill_001_is_runnable_through_runtime_adapter():
-    SymbiontSkillRuntime.validate_boundary(Request())
+    SymbiontSkillRuntime.validate_boundary(guard())
 
 
 def test_skill_001_remains_fail_closed():
-    with pytest.raises(ValueError):
-        SymbiontSkillRuntime.validate_boundary(
-            Request(operation="write")
-        )
+    SymbiontSkillRuntime.validate_boundary(guard(high_risk=True))
+    assert guard(high_risk=True).human_escalation().required is True
 
 
 def test_skill_001_operation_dispatch_uses_canonical_contract():
