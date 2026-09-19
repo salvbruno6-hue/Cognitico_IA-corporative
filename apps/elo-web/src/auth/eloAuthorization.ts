@@ -1,10 +1,18 @@
 export type ELOAuthorizationAction =
   | "establish_session" | "revoke_session" | "read" | "consult" | "search" | "inspect"
-  | "portal_access" | "authorize_area";
+  | "portal_access" | "authorize_area" | "lista_mae_insert" | "check_authorization_state"
+  | "create_operator_binding" | "issue_authorization_grant";
+
+export type ELOAuthorizationState =
+  | "elo-execution-authorized"
+  | "elo-commit-authorized"
+  | "elo-merge-authorized";
 
 export type ELOAuthorizationResult = {
   authorized:boolean; reason?:string; action?:string; identity_id?:string; session_id?:string;
-  reused?:boolean; revoked?:number; authorization_authority?:string; [key:string]:unknown;
+  reused?:boolean; revoked?:number; authorization_state?:ELOAuthorizationState;
+  grant_id?:string; binding_id?:string; expires_at?:string;
+  authorization_authority?:string; [key:string]:unknown;
 };
 
 export async function callELOAuthorization(accessToken:string,action:ELOAuthorizationAction="establish_session", extra:Record<string,unknown>={}):Promise<ELOAuthorizationResult>{

@@ -11,7 +11,7 @@ const ACTION_CAPABILITY: Record<string, string> = {
   modify_cognitive_identity: "ADMIN", modify_core: "CANONICAL_WRITE",
   modify_canonical_memory: "CANONICAL_WRITE", modify_security_policy: "ADMIN",
   change_permissions: "ADMIN", promote_to_core: "CANONICAL_WRITE",
-  merge_protected_change: "APPROVE",
+  merge_protected_change: "APPROVE",\n  lista_mae_insert: "LISTA_MAE_INSERT",
 };
 
 const AREA_CAPABILITIES: Record<string, string> = {
@@ -137,6 +137,45 @@ async function getScopes(identityId:string) {
   return {ok:true as const,scopes:(data??[]).map((r:any)=>r.elo_scopes).filter((s:any)=>s?.active===true)};
 }
 
+async function resolveAuthorizationGrant(identityId:string, sessionId:string, state:string, operation:string, repository:string) {
+  const allowed = new Set([
+    "elo-execution-authorized",
+    "elo-commit-authorized",
+    "elo-merge-authorized",
+  ]);
+  if(!allowed.has(state)) return {ok:false as const,reason:"authorization_state_not_supported"};
+
+  const {data,error}=await supabase.from("elo_authorization_grants")
+    .select("grant_id,binding_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at")
+    .eq("identity_id",identityId)
+    .eq("authorization_state",state)
+    .eq("operation",operation)
+    .eq("repository_full_name",repository)
+    .is("revoked_at",null)
+    .order("issued_at",{ascending:false})
+    .limit(10);
+
+  if(error) return {ok:false as const,reason:"authorization_grant_lookup_failed"};
+
+  const now=Date.now();
+  const grant=(data??[]).find((g:any)=>{
+    const issued=Date.parse(String(g.issued_at));
+    const expires=Date.parse(String(g.expires_at));
+    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=now&&expires>now;
+  });
+  if(!grant) return {ok:false as const,reason:"authorization_state_not_granted"};
+
+  const {data:binding,error:bindingError}=await supabase.from("elo_operator_github_bindings")
+    .select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active")
+    .eq("binding_id",grant.binding_id).eq("identity_id",identityId)
+    .eq("repository_full_name",repository).eq("active",true).maybeSingle();
+
+  if(bindingError) return {ok:false as const,reason:"operator_binding_lookup_failed"};
+  if(!binding) return {ok:false as const,reason:"operator_binding_inactive"};
+
+  return {ok:true as const,grant,binding};
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, content-type, x-elo-request-id","Access-Control-Allow-Methods":"POST, OPTIONS"}});
   if(req.method!=="POST") return json({error:"method_not_allowed"},405);
@@ -166,6 +205,115 @@ Deno.serve(async(req:Request)=>{
   if(!session.ok) {
     try{await audit(auth.identity.identity_id,null,action,repository||null,"DENY",session.reason,requestId);}catch{}
     return json({authorized:false,reason:session.reason,request_id:requestId},403);
+  }
+
+  if(action==="check_authorization_state") {
+    const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
+    const operation=typeof body.operation==="string"?body.operation.trim():"";
+    if(!state||!operation||!repository)return json({authorized:false,reason:"authorization_state_operation_repository_required",request_id:requestId},400);
+
+    const grant=await resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository);
+    if(!grant.ok){
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY",grant.reason,requestId);}catch{}
+      return json({authorized:false,reason:grant.reason,authorization_state:state,operation,repository,request_id:requestId},403);
+    }
+
+    try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","explicit_authorization_state_verified",requestId);}
+    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+
+    return json({
+      authorized:true,
+      action,
+      authorization_state:state,
+      operation,
+      repository,
+      identity_id:auth.identity.identity_id,
+      session_id:session.session.session_id,
+      binding_id:grant.binding.binding_id,
+      github_user_id:grant.binding.github_user_id,
+      github_login:grant.binding.github_login,
+      operation_class:grant.binding.operation_class,
+      grant_id:grant.grant.grant_id,
+      expires_at:grant.grant.expires_at,
+      request_id:requestId,
+      authorization_authority:"elo-authz"
+    });
+  }
+
+  if(action==="create_operator_binding" || action==="issue_authorization_grant") {
+    if(!auth.roles.includes("CANONICAL_ADMIN"))
+      return json({authorized:false,reason:"canonical_authority_required",request_id:requestId},403);
+
+    if(!repository)
+      return json({authorized:false,reason:"repository_required",request_id:requestId},400);
+
+    const issuerScopes=await getScopes(auth.identity.identity_id);
+    if(!issuerScopes.ok)
+      return json({authorized:false,reason:issuerScopes.reason,request_id:requestId},403);
+    if(!issuerScopes.scopes.some((s:any)=>s.scope_key===repository))
+      return json({authorized:false,reason:"repository_out_of_scope",request_id:requestId},403);
+
+    if(action==="create_operator_binding") {
+      const targetIdentityId=typeof body.identity_id==="string"?body.identity_id.trim():"";
+      const githubUserId=Number(body.github_user_id);
+      const githubLogin=typeof body.github_login==="string"?body.github_login.trim():"";
+      const operationClass=typeof body.operation_class==="string"?body.operation_class.trim():"";
+      if(!targetIdentityId||!Number.isSafeInteger(githubUserId)||githubUserId<=0||!githubLogin||!["OPERATIONAL","STRUCTURAL"].includes(operationClass))
+        return json({authorized:false,reason:"binding_identity_github_repository_operation_class_required",request_id:requestId},400);
+
+      const {data:target,error:targetError}=await supabase.from("elo_identity_registry")
+        .select("identity_id,active").eq("identity_id",targetIdentityId).eq("active",true).maybeSingle();
+      if(targetError)return json({authorized:false,reason:"target_identity_lookup_failed",request_id:requestId},503);
+      if(!target)return json({authorized:false,reason:"target_identity_inactive",request_id:requestId},403);
+
+      const {data:existing,error:existingError}=await supabase.from("elo_operator_github_bindings")
+        .select("binding_id,active").or(`identity_id.eq.${targetIdentityId},and(github_user_id.eq.${githubUserId},repository_full_name.eq.${repository})`)
+        .eq("repository_full_name",repository);
+      if(existingError)return json({authorized:false,reason:"binding_conflict_lookup_failed",request_id:requestId},503);
+      if((existing??[]).some((b:any)=>b.active===true))
+        return json({authorized:false,reason:"active_operator_binding_already_exists",request_id:requestId},409);
+
+      const {data:binding,error}=await supabase.from("elo_operator_github_bindings").insert({
+        identity_id:targetIdentityId,github_user_id:githubUserId,github_login:githubLogin,
+        repository_full_name:repository,operation_class:operationClass,active:true,
+        verified_at:new Date().toISOString(),verified_by_identity_id:auth.identity.identity_id
+      }).select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active,verified_at").single();
+      if(error||!binding)return json({authorized:false,reason:"operator_binding_create_failed",request_id:requestId},503);
+
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_created_operator_binding",requestId);}
+      catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+      return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",binding});
+    }
+
+    const bindingId=typeof body.binding_id==="string"?body.binding_id.trim():"";
+    const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
+    const operation=typeof body.operation==="string"?body.operation.trim():"";
+    const expiresIn=Number(body.expires_in_seconds);
+    if(!bindingId||!state||!operation||!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>86400)
+      return json({authorized:false,reason:"binding_state_operation_expiry_required",request_id:requestId},400);
+
+    const allowedStates=new Set(["elo-execution-authorized","elo-commit-authorized","elo-merge-authorized"]);
+    if(!allowedStates.has(state))
+      return json({authorized:false,reason:"authorization_state_not_supported",request_id:requestId},400);
+
+    const {data:binding,error:bindingError}=await supabase.from("elo_operator_github_bindings")
+      .select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active")
+      .eq("binding_id",bindingId).eq("repository_full_name",repository).eq("active",true).maybeSingle();
+    if(bindingError)return json({authorized:false,reason:"operator_binding_lookup_failed",request_id:requestId},503);
+    if(!binding)return json({authorized:false,reason:"operator_binding_inactive",request_id:requestId},403);
+
+    const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
+    const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
+      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
+      authorization_state:state,operation,repository_full_name:repository,
+      issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
+      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:{issuer_role:"CANONICAL_ADMIN"}
+    }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at").single();
+    if(error||!grant)return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
+
+    try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_issued_authorization_state",requestId);}
+    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+    return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding});
   }
 
   if(action==="portal_access") {

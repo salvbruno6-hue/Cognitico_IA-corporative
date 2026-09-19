@@ -71,6 +71,18 @@ jobs:
           cat automation/ELO_CHAT_CODEX_BRIDGE.md
           cat "$TASK_PATH"
 
+      - name: Verify canonical ELO execution authorization
+        id: execution_authz
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || { echo "Missing Supabase read credential; canonical execution authorization is required."; exit 1; }
+          binding="$(curl -fsS "$SUPABASE_URL/rest/v1/elo_operator_github_bindings?github_user_id=eq.${GITHUB_ACTOR_ID}&repository_full_name=eq.${REPO}&active=eq.true&select=binding_id" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")"
+          binding_id="$(jq -r '.[0].binding_id // empty' <<<"$binding")"
+          test -n "$binding_id" || { echo "elo-execution-authorized binding not found."; exit 1; }
+          grants="$(curl -fsS "$SUPABASE_URL/rest/v1/elo_authorization_grants?binding_id=eq.${binding_id}&authorization_state=eq.elo-execution-authorized&operation=eq.execute&repository_full_name=eq.${REPO}&revoked_at=is.null&expires_at=gt.$(date -u +%Y-%m-%dT%H:%M:%SZ)&select=grant_id,expires_at&order=issued_at.desc&limit=1" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")"
+          jq -e 'length > 0' <<<"$grants" >/dev/null || { echo "elo-execution-authorized grant not found or expired."; exit 1; }
+          echo "$grants" > execution-authorization.json
       - name: ELO execution and preparation
         uses: openai/codex-action@v1
         with:
@@ -193,6 +205,19 @@ jobs:
           [[ "$decision" == 'LAB_DECISION=PASS' ]] || { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Virtual Laboratory did not pass: $decision. No Commit/PR/Merge executed. Issue returns to ELO correction loop."; exit 1; }
           gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Virtual Laboratory PASS. ELO Commit gate remains valid."
 
+      - name: Verify canonical ELO commit authorization
+        id: commit_authz
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}" || { echo "Missing Supabase read credential; canonical commit authorization is required."; exit 1; }
+          binding="$(curl -fsS "$SUPABASE_URL/rest/v1/elo_operator_github_bindings?github_user_id=eq.${GITHUB_ACTOR_ID}&repository_full_name=eq.${REPO}&active=eq.true&select=binding_id" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")"
+          binding_id="$(jq -r '.[0].binding_id // empty' <<<"$binding")"
+          test -n "$binding_id" || { echo "elo-commit-authorized binding not found."; exit 1; }
+          grants="$(curl -fsS "$SUPABASE_URL/rest/v1/elo_authorization_grants?binding_id=eq.${binding_id}&authorization_state=eq.elo-commit-authorized&operation=eq.commit&repository_full_name=eq.${REPO}&revoked_at=is.null&expires_at=gt.$(date -u +%Y-%m-%dT%H:%M:%SZ)&select=grant_id,expires_at&order=issued_at.desc&limit=1" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")"
+          jq -e 'length > 0' <<<"$grants" >/dev/null || { echo "elo-commit-authorized grant not found or expired."; exit 1; }
+          echo "$grants" > commit-authorization.json
       - name: Commit after ELO approval and required laboratory gate
         if: success()
         shell: bash
