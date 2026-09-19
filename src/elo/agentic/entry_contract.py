@@ -51,6 +51,7 @@ class ELOAIEntryRequest:
     repository: str
     connector: str
     session_id: str
+    repository_ref: str = "main"
     requested_mode: ELOAIEntryMode = ELOAIEntryMode.READ_ONLY_CONSULTATION
     tenant_id: str | None = None
     domain: str | None = None
@@ -70,6 +71,8 @@ class ELOAIEntryRequest:
             raise ELOAIEntryError("connector is required")
         if not self.session_id.strip():
             raise ELOAIEntryError("session_id is required")
+        if not self.repository_ref.strip():
+            raise ELOAIEntryError("repository_ref is required")
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,7 @@ class ELOAIEntrySession:
     repository: str
     connector: str
     session_id: str
+    repository_ref: str
     mode: ELOAIEntryMode
     state: ELOAIEntryState
     bootstrap_artifacts: tuple[str, ...]
@@ -89,7 +93,12 @@ class ELOAIEntrySession:
     block: ELOAIEntryBlock | None = None
 
     @property
-    def can_write(self) -> bool:
+    def execution_binding_ready(self) -> bool:
+        """Indicate that the entry contract accepted the execution binding.
+
+        This is not an authorization decision. The canonical authorization
+        system remains responsible for granting the actual operation.
+        """
         return self.state is ELOAIEntryState.READY and self.mode is ELOAIEntryMode.GOVERNED_EXECUTION
 
 
@@ -114,6 +123,7 @@ class ELOAIEntryGate:
             repository=request.repository,
             connector=request.connector,
             session_id=request.session_id,
+            repository_ref=request.repository_ref,
             mode=request.requested_mode,
             bootstrap_artifacts=self.bootstrap_artifacts,
             tenant_id=request.tenant_id,
@@ -194,12 +204,14 @@ class ELOAIEntryGate:
         connector: str,
         requested_mode: ELOAIEntryMode,
         session_id: str,
+        repository_ref: str = "main",
         context: Mapping[str, str],
     ) -> ELOAIEntryRequest:
         return ELOAIEntryRequest(
             repository=repository,
             connector=connector,
             session_id=session_id,
+            repository_ref=repository_ref,
             requested_mode=requested_mode,
             tenant_id=context.get("tenant_id"),
             domain=context.get("domain"),
