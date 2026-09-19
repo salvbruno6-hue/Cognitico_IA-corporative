@@ -223,6 +223,35 @@ Deno.serve(async (req: Request) => {
       await audit(auth.user.id, "elo_read", "success", { table, row_count: data?.length ?? 0 });
       return rpc(id, { content: [{ type: "text", text: JSON.stringify({ table, count: data?.length ?? 0, rows: data ?? [] }) }] });
     }
+    if (name === "decision_ledger") {
+      const decisionId = String(args.decision_id ?? "").trim();
+      if (!decisionId) {
+        await audit(auth.user.id, "decision_ledger", "denied", { reason: "decision_id_required" });
+        return rpcError(id, -32602, "decision_id_required");
+      }
+      const limit = Math.min(Math.max(Number(args.limit ?? 100), 1), 100);
+      const { data, error } = await supabase
+        .from("elo_audit_log")
+        .select("id,correlation_id,actor_type,operation,entity_type,entity_id,status,metadata,created_at")
+        .eq("operation", "decision_lifecycle_transition")
+        .contains("metadata", { decision_id: decisionId })
+        .order("created_at", { ascending: true })
+        .limit(limit);
+      if (error) {
+        await audit(auth.user.id, "decision_ledger", "error", { decision_id: decisionId, error: error.message });
+        return rpcError(id, -32003, "decision_ledger_read_failed");
+      }
+      await audit(auth.user.id, "decision_ledger", "success", { decision_id: decisionId, row_count: data?.length ?? 0 });
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        decision_id: decisionId,
+        count: data?.length ?? 0,
+        records: data ?? [],
+        authority: "elo.core.decision_outcome_loop",
+        persistence: "elo_audit_log",
+        mutation: false,
+      }) }] });
+    }
+
     return rpcError(id, -32601, `Unknown tool: ${String(name)}`);
   }
 
