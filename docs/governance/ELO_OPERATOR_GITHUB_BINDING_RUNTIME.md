@@ -50,3 +50,17 @@ The first binding/grant must be created through an authorized canonical administ
 Issue #532 consumes these explicit states. It must not infer them from Codex output such as `ELO_DECISION=APPROVE_COMMIT`.
 
 The three authorization states are evidence emitted by the canonical authorization layer and remain outside the Codex decision channel.
+
+
+## Canonical administrative issuer
+
+The runtime issuer is exposed only through `elo-authz`:
+
+- `create_operator_binding`: requires an authenticated active ELO session and the `CANONICAL_ADMIN` role; the administrator explicitly supplies the target ELO identity, GitHub user ID/login, repository and operation class.
+- `issue_authorization_grant`: requires `CANONICAL_ADMIN`, an active binding, a supported authorization state, operation, repository and bounded expiry (60 seconds to 24 hours).
+- Every issuance is audited by `elo-authz`.
+- GitHub authentication alone does not create a binding.
+- Codex output cannot create a binding or grant.
+- No production grant is seeded by migration.
+
+The issuer therefore establishes the missing administrative transition without creating a parallel authorization authority.
