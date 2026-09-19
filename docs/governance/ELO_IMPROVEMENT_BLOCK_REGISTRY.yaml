@@ -1,7 +1,21 @@
-version: 1
+version: 2
 registry: ELO_IMPROVEMENT_BLOCKS
-branch: feat/elo-improvement-blocks-04-12
+branch: feat/elo-platform-convergence
+strategy: simultaneous-layer-convergence
+principle: reuse-existing-capabilities-before-creating-new-components
 blocks:
+  - id: ELO-B01
+    name: casa-identity-tenant-workspace
+    state: convergence-next
+    canonical_owner: frontend
+  - id: ELO-B02
+    name: context-memory
+    state: implemented-extend
+    canonical_owner: src/elo/integration/contextual_memory.py
+  - id: ELO-B03
+    name: evidence-provenance
+    state: implemented-extend
+    canonical_owner: src/elo/core
   - id: ELO-B04
     name: reasoning-critique
     state: implemented-extend
@@ -20,27 +34,44 @@ blocks:
     canonical_owner: src/elo/core/learning_governance.py
   - id: ELO-B08
     name: agent-runtime
-    state: implemented-scaffold
+    state: implemented
     canonical_owner: src/elo/agents/runtime.py
   - id: ELO-B09
     name: workflow-automation
-    state: implemented-scaffold
+    state: implemented
     canonical_owner: automation/workflow_contract.py
   - id: ELO-B10
     name: infrastructure-integrations
-    state: roadmap-poc-gated
+    state: poc-gated
     canonical_owner: 12-system-engineering/ELO_INTEGRATION_EVALUATION_MATRIX.md
   - id: ELO-B11
     name: corporate-workspace
-    state: implemented-contract
+    state: convergence-next
     canonical_owner: frontend/ELO_CORPORATE_WORKSPACE_CONTRACT.md
   - id: ELO-B12
     name: evolution-dashboard
-    state: implemented-contract
+    state: contract-plus-convergence
     canonical_owner: docs/governance/ELO_EVOLUTION_DASHBOARD_CONTRACT.md
+  - id: ELO-B13
+    name: intelligence-router-convergence
+    state: convergence-next
+    canonical_owner: src/elo/cognitive/routing/execution_routing.py
+  - id: ELO-B14
+    name: symbiotic-ai-execution
+    state: adapter-implemented-router-integration-next
+    canonical_owner: src/elo/integrations/ai_provider.py
+  - id: ELO-B15
+    name: learning-laboratory
+    state: branch-audit-required
+    canonical_owner: src/elo/core/learning_laboratory.py
 rules:
+  simultaneous_layer_work: true
   new_component_requires_duplicate_check: true
   provider_neutrality: true
   tenant_isolation: mandatory
   evidence_before_promotion: true
   human_authorization_for_consequential_actions: true
+  no_second_core: true
+  no_second_memory_authority: true
+  no_second_router: true
+  no_provider_as_canonical_authority: true
