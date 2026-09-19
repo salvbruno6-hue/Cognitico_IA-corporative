@@ -1,6 +1,7 @@
 export type ELOAuthorizationAction =
   | "establish_session" | "revoke_session" | "read" | "consult" | "search" | "inspect"
-  | "portal_access" | "authorize_area" | "check_authorization_state";
+  | "portal_access" | "authorize_area" | "check_authorization_state"
+  | "create_operator_binding" | "issue_authorization_grant";
 
 export type ELOAuthorizationState =
   | "elo-execution-authorized"
