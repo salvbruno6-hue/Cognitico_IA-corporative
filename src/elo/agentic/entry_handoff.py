@@ -72,15 +72,11 @@ class ELOAIEntryHandoff:
     def can_query(entry: ELOAIEntrySession) -> bool:
         """Indicate whether the entry carries enough identity to query ELO.
 
+        A read-only connection is allowed to query governed ELO knowledge.
         This is a capability precondition, not an authorization decision.
         """
         return (
             entry.state.value == "READY"
-            and entry.mode
-            in {
-                ELOAIEntryMode.AUTHORIZED_SPECIALIST,
-                ELOAIEntryMode.GOVERNED_EXECUTION,
-            }
             and bool(
                 entry.tenant_id
                 and entry.principal_id
