@@ -2,9 +2,21 @@ from elo.core.approved_candidate_loop import (
     ApprovedCandidate,
     ApprovedCandidateLoop,
     CandidateApprovalState,
-    ImplementationDecision,
     PostApprovalState,
 )
+from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
+from elo.core.systemic_primitives import DecisionRecord
+
+
+def lifecycle(decision_id="decision-001", state=DecisionState.APPROVED):
+    return DecisionLifecycle(
+        decision=DecisionRecord(
+            decision_id=decision_id,
+            decision="implementar skill aprovada",
+            rationale="decisão governada",
+        ),
+        state=state,
+    )
 
 
 def candidate(candidate_id="cand-001", state=CandidateApprovalState.APPROVED):
@@ -13,16 +25,13 @@ def candidate(candidate_id="cand-001", state=CandidateApprovalState.APPROVED):
         skill_id="symbiont.example",
         approval_state=state,
         implementation_ref="src/elo/example.py",
+        implementation_decision_id="decision-001",
     )
 
 
 def test_approved_candidates_activate_after_approved_implementation_decision():
     result = ApprovedCandidateLoop().activate(
-        decision=ImplementationDecision(
-            decision_id="decision-001",
-            state="approved",
-            approved_candidate_ids=("cand-001",),
-        ),
+        lifecycle=lifecycle(),
         candidates=(candidate(),),
     )
 
@@ -34,11 +43,7 @@ def test_approved_candidates_activate_after_approved_implementation_decision():
 def test_loop_is_fail_closed_for_unapproved_candidate():
     try:
         ApprovedCandidateLoop().activate(
-            decision=ImplementationDecision(
-                decision_id="decision-002",
-                state="approved",
-                approved_candidate_ids=("cand-002",),
-            ),
+            lifecycle=lifecycle(),
             candidates=(candidate("cand-002", CandidateApprovalState.BLOCKED),),
         )
     except ValueError as exc:
@@ -50,11 +55,7 @@ def test_loop_is_fail_closed_for_unapproved_candidate():
 def test_loop_does_not_activate_before_implementation_decision():
     try:
         ApprovedCandidateLoop().activate(
-            decision=ImplementationDecision(
-                decision_id="decision-003",
-                state="proposed",
-                approved_candidate_ids=("cand-001",),
-            ),
+            lifecycle=lifecycle(state=DecisionState.PROPOSED),
             candidates=(candidate(),),
         )
     except ValueError as exc:
@@ -69,17 +70,29 @@ def test_loop_requires_implementation_reference():
         skill_id="symbiont.example",
         approval_state=CandidateApprovalState.APPROVED,
         implementation_ref="",
+        implementation_decision_id="decision-001",
     )
     try:
         ApprovedCandidateLoop().activate(
-            decision=ImplementationDecision(
-                decision_id="decision-004",
-                state="approved",
-                approved_candidate_ids=("cand-004",),
-            ),
+            lifecycle=lifecycle(),
             candidates=(invalid,),
         )
     except ValueError as exc:
         assert "implementation reference" in str(exc)
     else:
         raise AssertionError("missing implementation reference must block activation")
+
+
+def test_loop_ignores_candidates_bound_to_another_decision():
+    other = ApprovedCandidate(
+        candidate_id="cand-other",
+        skill_id="symbiont.other",
+        approval_state=CandidateApprovalState.APPROVED,
+        implementation_ref="src/elo/other.py",
+        implementation_decision_id="decision-other",
+    )
+    result = ApprovedCandidateLoop().activate(
+        lifecycle=lifecycle(),
+        candidates=(other,),
+    )
+    assert result == ()
