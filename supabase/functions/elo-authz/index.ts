@@ -137,6 +137,45 @@ async function getScopes(identityId:string) {
   return {ok:true as const,scopes:(data??[]).map((r:any)=>r.elo_scopes).filter((s:any)=>s?.active===true)};
 }
 
+async function resolveAuthorizationGrant(identityId:string, sessionId:string, state:string, operation:string, repository:string) {
+  const allowed = new Set([
+    "elo-execution-authorized",
+    "elo-commit-authorized",
+    "elo-merge-authorized",
+  ]);
+  if(!allowed.has(state)) return {ok:false as const,reason:"authorization_state_not_supported"};
+
+  const {data,error}=await supabase.from("elo_authorization_grants")
+    .select("grant_id,binding_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at")
+    .eq("identity_id",identityId)
+    .eq("authorization_state",state)
+    .eq("operation",operation)
+    .eq("repository_full_name",repository)
+    .is("revoked_at",null)
+    .order("issued_at",{ascending:false})
+    .limit(10);
+
+  if(error) return {ok:false as const,reason:"authorization_grant_lookup_failed"};
+
+  const now=Date.now();
+  const grant=(data??[]).find((g:any)=>{
+    const issued=Date.parse(String(g.issued_at));
+    const expires=Date.parse(String(g.expires_at));
+    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=now&&expires>now;
+  });
+  if(!grant) return {ok:false as const,reason:"authorization_state_not_granted"};
+
+  const {data:binding,error:bindingError}=await supabase.from("elo_operator_github_bindings")
+    .select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active")
+    .eq("binding_id",grant.binding_id).eq("identity_id",identityId)
+    .eq("repository_full_name",repository).eq("active",true).maybeSingle();
+
+  if(bindingError) return {ok:false as const,reason:"operator_binding_lookup_failed"};
+  if(!binding) return {ok:false as const,reason:"operator_binding_inactive"};
+
+  return {ok:true as const,grant,binding};
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, content-type, x-elo-request-id","Access-Control-Allow-Methods":"POST, OPTIONS"}});
   if(req.method!=="POST") return json({error:"method_not_allowed"},405);
@@ -166,6 +205,39 @@ Deno.serve(async(req:Request)=>{
   if(!session.ok) {
     try{await audit(auth.identity.identity_id,null,action,repository||null,"DENY",session.reason,requestId);}catch{}
     return json({authorized:false,reason:session.reason,request_id:requestId},403);
+  }
+
+  if(action==="check_authorization_state") {
+    const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
+    const operation=typeof body.operation==="string"?body.operation.trim():"";
+    if(!state||!operation||!repository)return json({authorized:false,reason:"authorization_state_operation_repository_required",request_id:requestId},400);
+
+    const grant=await resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository);
+    if(!grant.ok){
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY",grant.reason,requestId);}catch{}
+      return json({authorized:false,reason:grant.reason,authorization_state:state,operation,repository,request_id:requestId},403);
+    }
+
+    try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","explicit_authorization_state_verified",requestId);}
+    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+
+    return json({
+      authorized:true,
+      action,
+      authorization_state:state,
+      operation,
+      repository,
+      identity_id:auth.identity.identity_id,
+      session_id:session.session.session_id,
+      binding_id:grant.binding.binding_id,
+      github_user_id:grant.binding.github_user_id,
+      github_login:grant.binding.github_login,
+      operation_class:grant.binding.operation_class,
+      grant_id:grant.grant.grant_id,
+      expires_at:grant.grant.expires_at,
+      request_id:requestId,
+      authorization_authority:"elo-authz"
+    });
   }
 
   if(action==="portal_access") {
