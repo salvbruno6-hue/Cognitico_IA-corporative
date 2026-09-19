@@ -71,6 +71,17 @@ jobs:
           cat automation/ELO_CHAT_CODEX_BRIDGE.md
           cat "$TASK_PATH"
 
+      - name: Verify canonical ELO execution authorization
+        id: execution_authz
+        shell: bash
+        env:
+          ELO_AUTHZ_TOKEN: ${{ secrets.ELO_AUTHZ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${ELO_AUTHZ_TOKEN:-}" || { echo "Missing ELO_AUTHZ_TOKEN; canonical execution authorization is required."; exit 1; }
+          response="$(curl -fsS "$SUPABASE_URL/functions/v1/elo-authz" -H "Authorization: Bearer $ELO_AUTHZ_TOKEN" -H "Content-Type: application/json" -H "x-elo-request-id: ${GITHUB_RUN_ID}-execution-authz" --data "$(jq -nc --arg repo "$REPO" '{action:"check_authorization_state",authorization_state:"elo-execution-authorized",operation:"execute",repository:$repo}')")"
+          echo "$response" > execution-authorization.json
+          jq -e '.authorized == true and .authorization_state == "elo-execution-authorized" and .repository == $repo' --arg repo "$REPO" execution-authorization.json >/dev/null
       - name: ELO execution and preparation
         uses: openai/codex-action@v1
         with:
@@ -193,6 +204,18 @@ jobs:
           [[ "$decision" == 'LAB_DECISION=PASS' ]] || { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Virtual Laboratory did not pass: $decision. No Commit/PR/Merge executed. Issue returns to ELO correction loop."; exit 1; }
           gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "Virtual Laboratory PASS. ELO Commit gate remains valid."
 
+      - name: Verify canonical ELO commit authorization
+        id: commit_authz
+        if: success()
+        shell: bash
+        env:
+          ELO_AUTHZ_TOKEN: ${{ secrets.ELO_AUTHZ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${ELO_AUTHZ_TOKEN:-}" || { echo "Missing ELO_AUTHZ_TOKEN; canonical commit authorization is required."; exit 1; }
+          response="$(curl -fsS "$SUPABASE_URL/functions/v1/elo-authz" -H "Authorization: Bearer $ELO_AUTHZ_TOKEN" -H "Content-Type: application/json" -H "x-elo-request-id: ${GITHUB_RUN_ID}-commit-authz" --data "$(jq -nc --arg repo "$REPO" '{action:"check_authorization_state",authorization_state:"elo-commit-authorized",operation:"commit",repository:$repo}')")"
+          echo "$response" > commit-authorization.json
+          jq -e '.authorized == true and .authorization_state == "elo-commit-authorized" and .repository == $repo' --arg repo "$REPO" commit-authorization.json >/dev/null
       - name: Commit after ELO approval and required laboratory gate
         if: success()
         shell: bash
