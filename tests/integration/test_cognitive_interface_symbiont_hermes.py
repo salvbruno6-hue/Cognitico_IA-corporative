@@ -38,7 +38,11 @@ def test_interface_to_symbiont_hermes_path_preserves_governance(monkeypatch) -> 
                 transport=_fake_transport,
             )
 
-    api.core = CognitiveCore(hermes_bridge=BridgeWithFakeTransport())
+    monkeypatch.setattr(
+        api,
+        "core",
+        CognitiveCore(hermes_bridge=BridgeWithFakeTransport()),
+    )
 
     request = CognitiveRequest(
         message="Run the bounded Hermes runtime probe.",
