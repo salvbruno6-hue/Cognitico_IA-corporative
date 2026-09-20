@@ -25,7 +25,7 @@ The readiness evaluator covers the 13 registry mechanisms plus the separately ev
 
 ## Green definition
 
-A mechanism is GREEN_READY_FOR_EVOLUTION_GATE only when the evidence package contains:
+A mechanism is GREEN_READY_FOR_CANONICAL_REVIEW only when the evidence package contains:
 
 1. explicit candidate identity and ELO owner;
 2. baseline and experiment identifiers;
@@ -35,7 +35,7 @@ A mechanism is GREEN_READY_FOR_EVOLUTION_GATE only when the evidence package con
 6. security verification;
 7. isolation verification;
 8. no authority conflict;
-9. Evolution Gate = PASS;
+9. Evolution Gate = PASS (the gate decision is already recorded);
 10. approval reference and promotion-package reference.
 
 A fixture or unit-test example is not production/runtime evidence. No measured value is inferred by this evaluator.
