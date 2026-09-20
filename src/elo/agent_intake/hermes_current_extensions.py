@@ -18,6 +18,12 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-PROFILE-HERMES", "profiles/Bot Mode", "ELO Agent Context & Delegation", "isolated agent-context profiles"),
     ("EXT-BATCH-HERMES", "batch processing", "ELO Evaluation & Learning", "bounded batch evaluation intake"),
     ("EXT-MEMPROVIDER-HERMES", "external memory providers", "ELO Memory", "provider adapter without authority transfer"),
+    ("EXT-LEARN-HERMES", "skill learning / /learn", "ELO Knowledge & Skills", "candidate skill synthesis with governed admission"),
+    ("EXT-LEARNING-GRAPH-HERMES", "learning graph / curator", "ELO Evolution Memory", "evidence-linked learning relationships without autonomous promotion"),
+    ("EXT-CONTEXT-PLUGIN-HERMES", "context engine plugins", "ELO Context", "bounded context-engine adapter behind existing context authority"),
+    ("EXT-WORKTREE-HERMES", "isolated git worktrees", "ELO Forge", "isolated technical workspaces with governed merge"),
+    ("EXT-MULTIAGENT-HERMES", "subagent delegation / parallel workstreams", "ELO Agent Delegation", "bounded delegated execution with evidence and authority limits"),
+    ("EXT-CRON-HERMES", "scheduled agent tasks", "ELO Workflow/Automation", "deterministic scheduled invocation with ELO governance"),
 )
 
 
