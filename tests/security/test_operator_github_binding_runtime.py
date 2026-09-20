@@ -57,6 +57,6 @@ def test_collaborator_and_visitor_tiers_are_separated():
     assert "FOR DELETE" not in migration
 
 def test_collaborator_has_no_github_binding_by_definition():
-    migration = Path("supabase/migrations/20260919010000_elo_access_tiers.sql").read_text(encoding="utf-8")
+    migration = Path("supabase/migrations/20260919220406_elo_access_tiers.sql").read_text(encoding="utf-8")
     assert "No identity is auto-provisioned by this migration." in migration
     assert "no GitHub repository binding" in migration
