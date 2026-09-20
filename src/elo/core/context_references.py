@@ -12,19 +12,18 @@ from dataclasses import dataclass
 import re
 from typing import Literal
 
-
 ReferenceKind = Literal["file", "folder", "diff", "staged", "git", "url"]
 ReferenceOwner = Literal["artifact_resolver", "source_discovery"]
 
 _BUILTIN_SIMPLE = {"diff", "staged"}
 _BUILTIN_NAMED = {"file", "folder", "git", "url"}
 _PATTERN = re.compile(
-    r"(?<![\\w/])@(?:(?P<simple>diff|staged)\\b|"
-    r"(?P<kind>file|folder|git|url):(?P<value>`[^`\\n]+`|\"[^\"\\n]+\"|'[^'\\n]+'|\\S+))"
+    r"(?<![\w/])@(?:(?P<simple>diff|staged)\b|"
+    r"(?P<kind>file|folder|git|url):(?P<value>`[^`\n]+`|\"[^\"\n]+\"|'[^'\n]+'|\S+))"
 )
 _FILE_PATTERN = re.compile(
     r"^(?:(?P<quote>`|\"|')(?P<path>.+?)(?P=quote)|(?P<bare>.+?))"
-    r"(?::(?P<start>\\d+)(?:-(?P<end>\\d+))?)?$"
+    r"(?::(?P<start>\d+)(?:-(?P<end>\d+))?)?$"
 )
 
 
