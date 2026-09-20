@@ -20,9 +20,12 @@ A candidate may enter the implementation loop only when all are present:
 3. baseline and adapted metrics exist;
 4. at least one common metric exists;
 5. every measured metric has explicit direction: `maximize` or `minimize`;
-6. no regression or governance-boundary violation exists;
-7. repeatability is proven;
-8. provenance and owner mapping are available from the evaluation record.
+6. at least one common metric shows a strictly positive, direction-correct gain;
+7. no regression or governance-boundary violation exists;
+8. repeatability is proven;
+9. provenance and owner mapping are available from the evaluation record;
+10. Evolution Gate approval is present;
+11. explicit ELO authorization is present.
 
 ## Loop
 
