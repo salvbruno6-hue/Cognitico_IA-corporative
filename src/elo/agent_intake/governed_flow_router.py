@@ -102,11 +102,18 @@ class GovernedFlowRouter:
             decision for decision in candidates
             if decision.status == "ELIGIBLE"
         )
-        if len(eligible) == 1:
+        # Multiple independent relation kinds may reinforce the same next flow.
+        # Ambiguity is about competing target flows, not repeated evidence for
+        # one deterministic cadence target.
+        eligible_targets = tuple(dict.fromkeys(
+            decision.cadence_next for decision in eligible
+            if decision.cadence_next is not None
+        ))
+        if len(eligible_targets) == 1:
             return NextFlowResolution(
-                origin_flow, outcome, tuple(candidates), eligible[0].cadence_next, "ELIGIBLE"
+                origin_flow, outcome, tuple(candidates), eligible_targets[0], "ELIGIBLE"
             )
-        if len(eligible) > 1:
+        if len(eligible_targets) > 1:
             return NextFlowResolution(
                 origin_flow, outcome, tuple(candidates), None, "REVIEW_REQUIRED"
             )
