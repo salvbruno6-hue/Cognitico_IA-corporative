@@ -125,7 +125,7 @@ def test_router_discovers_the_single_governed_complementary_next_flow():
     assert len(result.candidates) == 1
 
 
-def test_router_never_selects_an_ambiguous_or_unregistered_next_flow():
+def test_router_treats_reinforcing_relations_to_one_next_flow_as_eligible():
     profiles = (
         FlowProfile(
             "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
@@ -138,16 +138,16 @@ def test_router_never_selects_an_ambiguous_or_unregistered_next_flow():
         ),
     )
     relation = hermes_relation(
-        relation_id="r-router-discovery-2",
+        relation_id="r-router-reinforce-1",
         origin_flow="CONTROLLED_TEST",
         target_flow="MEASURED_GAIN",
         kind=RelationKind.ENRICHES,
-        evidence_refs=("h-ambiguous",),
-        provenance_refs=("p-ambiguous",),
+        evidence_refs=("h-enriches",),
+        provenance_refs=("p-enriches",),
         confidence=1.0,
     )
     relation_2 = hermes_relation(
-        relation_id="r-router-discovery-3",
+        relation_id="r-router-reinforce-2",
         origin_flow="CONTROLLED_TEST",
         target_flow="MEASURED_GAIN",
         kind=RelationKind.FEEDS,
@@ -163,10 +163,96 @@ def test_router_never_selects_an_ambiguous_or_unregistered_next_flow():
         origin_flow="CONTROLLED_TEST",
         outcome=CadenceOutcome.PASS,
         evidence={"baseline": True},
-        provenance_refs=("p-ambiguous", "p-feeds"),
+        provenance_refs=("p-enriches", "p-feeds"),
     )
 
-    assert result.status == "REVIEW_REQUIRED"
+    assert result.status == "ELIGIBLE"
+    assert result.selected_next == "MEASURED_GAIN"
+    assert len(result.candidates) == 2
+
+
+def test_router_requires_review_for_competing_eligible_target_flows():
+    profiles = (
+        FlowProfile(
+            "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
+            success_outcomes=("PASS",),
+            allowed_next_relations=(RelationKind.FEEDS,),
+        ),
+        FlowProfile(
+            "MEASURED_GAIN", "ELO", ("controlled_evidence",), ("measured_gain",),
+            success_outcomes=("PASS",),
+        ),
+        FlowProfile(
+            "REVIEW_GAIN", "ELO", ("controlled_evidence",), ("review_gain",),
+            success_outcomes=("PASS",),
+        ),
+    )
+    relation = hermes_relation(
+        relation_id="r-router-ambiguous-1",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-measured",),
+        provenance_refs=("p-measured",),
+        confidence=1.0,
+    )
+    relation_2 = hermes_relation(
+        relation_id="r-router-ambiguous-2",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="REVIEW_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-review",),
+        provenance_refs=("p-review",),
+        confidence=1.0,
+    )
+    router = GovernedFlowRouter(
+        complementarity=ComplementarityEngine(profiles, (relation, relation_2))
+    )
+
+    result = router.resolve_next(
+        origin_flow="CONTROLLED_TEST",
+        outcome=CadenceOutcome.PASS,
+        evidence={"baseline": True},
+        provenance_refs=("p-measured", "p-review"),
+    )
+
+    assert result.status == "ELIGIBLE"
+    assert result.selected_next == "MEASURED_GAIN"
+
+
+def test_router_never_selects_an_unregistered_next_flow():
+    profiles = (
+        FlowProfile(
+            "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
+            success_outcomes=("PASS",),
+            allowed_next_relations=(RelationKind.FEEDS,),
+        ),
+        FlowProfile(
+            "MEASURED_GAIN", "ELO", ("controlled_evidence",), ("measured_gain",),
+            success_outcomes=("PASS",),
+        ),
+    )
+    relation = hermes_relation(
+        relation_id="r-router-unregistered-1",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.ENRICHES,
+        evidence_refs=("h-unregistered",),
+        provenance_refs=("p-unregistered",),
+        confidence=1.0,
+    )
+    router = GovernedFlowRouter(
+        complementarity=ComplementarityEngine(profiles, (relation,))
+    )
+
+    result = router.resolve_next(
+        origin_flow="CONTROLLED_TEST",
+        outcome=CadenceOutcome.PASS,
+        evidence={"baseline": True},
+        provenance_refs=("p-unregistered",),
+    )
+
+    assert result.status == "WAITING"
     assert result.selected_next is None
 
 def test_router_reports_capability_requirement_without_selector_as_configuration_gap():
