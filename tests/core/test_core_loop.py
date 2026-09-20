@@ -1,4 +1,7 @@
 from elo.core.context_resolution import ContextEvidence, ContextQuery, ContextResolutionEngine, ContextSource
+from elo.agent_intake.elo_flow_cadence import CadenceOutcome
+from elo.agent_intake.flow_complementarity import ComplementarityEngine, FlowProfile, RelationKind, hermes_relation
+from elo.agent_intake.governed_flow_router import GovernedFlowRouter
 from elo.core.core_loop import CoreLoopEngine, CoreLoopRequest
 from elo.core.diagnostic_scenarios import DiagnosticLens, DiagnosticObservation, DiagnosticScenario, DiagnosticStatus
 
@@ -72,3 +75,51 @@ def test_core_loop_with_no_observations_is_blocked_not_invented():
     assert result.status == "BLOCKED"
     assert result.evidence_ids == ("e1",)
     assert result.handoff_required is True
+
+
+
+def test_core_loop_uses_governed_complementarity_for_the_next_flow():
+    profiles = (
+        FlowProfile(
+            "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
+            success_outcomes=("PASS",),
+            allowed_next_relations=(RelationKind.FEEDS,),
+        ),
+        FlowProfile(
+            "MEASURED_GAIN", "ELO", ("controlled_evidence",), ("measured_gain",),
+            prerequisites=("baseline", "adapted", "repeatable"),
+            success_outcomes=("PASS",),
+            evidence_required=("baseline", "adapted", "repeatable"),
+            provenance_required=("source",),
+        ),
+    )
+    relation = hermes_relation(
+        relation_id="r-core-loop-1",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-core-loop",),
+        provenance_refs=("p-core-loop",),
+        confidence=1.0,
+    )
+    router = GovernedFlowRouter(
+        complementarity=ComplementarityEngine(profiles, (relation,))
+    )
+    observations = (observation("e1", DiagnosticLens.OPERATIONAL),)
+    scenario = DiagnosticScenario("s-flow", "avaliar fluxo", observations=observations)
+    result = CoreLoopEngine(flow_router=router).run(
+        CoreLoopRequest(
+            context(),
+            scenario,
+            observations,
+            flow_origin="CONTROLLED_TEST",
+            flow_outcome=CadenceOutcome.PASS,
+            flow_relation_kind=RelationKind.FEEDS,
+            flow_evidence={"baseline": True, "adapted": True, "repeatable": True},
+            flow_provenance_refs=("p-core-loop",),
+        )
+    )
+    assert result.status == "RECOMMENDATION"
+    assert result.next_flow == "MEASURED_GAIN"
+    assert result.flow_routing_status == "ELIGIBLE"
+    assert result.can_execute is False
