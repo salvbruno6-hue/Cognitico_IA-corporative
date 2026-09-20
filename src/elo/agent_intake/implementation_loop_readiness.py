@@ -22,6 +22,22 @@ class LoopReadiness:
     canonical_mutation: bool = False
 
 
+def _has_positive_gain(
+    baseline: Mapping[str, float],
+    adapted: Mapping[str, float],
+    metric_directions: Mapping[str, str],
+) -> bool:
+    """Require at least one strictly positive, direction-correct metric delta."""
+    for metric in baseline.keys() & adapted.keys():
+        direction = metric_directions[metric]
+        delta = adapted[metric] - baseline[metric]
+        if (direction == "maximize" and delta > 0) or (
+            direction == "minimize" and delta < 0
+        ):
+            return True
+    return False
+
+
 def assess_loop_readiness(
     candidate: HermesCandidate,
     adaptation: SymbiontAdaptation,
@@ -33,6 +49,8 @@ def assess_loop_readiness(
     regressions: tuple[str, ...] = (),
     provenance_refs: tuple[str, ...] = (),
     boundary_integrity: bool = True,
+    evolution_gate_approved: bool = False,
+    elo_authorized: bool = False,
 ) -> LoopReadiness:
     """Check entry evidence without deciding or performing implementation."""
     missing: list[str] = []
@@ -50,13 +68,21 @@ def assess_loop_readiness(
     if not common:
         missing.append("common_metric")
 
-    for metric in common:
-        if metric_directions.get(metric) not in {"maximize", "minimize"}:
-            missing.append(f"metric_direction:{metric}")
+    invalid_directions = [
+        metric
+        for metric in common
+        if metric_directions.get(metric) not in {"maximize", "minimize"}
+    ]
+    if invalid_directions:
+        missing.extend(f"metric_direction:{metric}" for metric in invalid_directions)
+
+    if common and not invalid_directions and not _has_positive_gain(
+        baseline, adapted, metric_directions
+    ):
+        missing.append("measured_gain")
 
     if regressions:
         missing.append("regression_free")
-
     if not repeatable:
         missing.append("repeatability")
     if not provenance_refs:
@@ -77,6 +103,11 @@ def assess_loop_readiness(
     )
     if not evidence.is_complete():
         missing.append("evidence_contract")
+
+    if not evolution_gate_approved:
+        missing.append("evolution_gate_approval")
+    if not elo_authorized:
+        missing.append("elo_authorization")
 
     return LoopReadiness(
         candidate_id=candidate.candidate_id,
