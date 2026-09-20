@@ -17,6 +17,17 @@ const areas:Area[]=[
  {name:"Fluxo da empresa",description:"Visão ponta a ponta dos processos Multiteiner."},
 ];
 
+const listaMaeFields: Array<{name:string; label:string; required:boolean}> = [
+  {name:"cod_item",label:"Código do item",required:true},
+  {name:"cod_produt",label:"Código do produto",required:false},
+  {name:"descricao_oficial",label:"Descrição oficial",required:true},
+  {name:"aplicacao",label:"Aplicação",required:false},
+  {name:"un",label:"Unidade",required:false},
+  {name:"valor_unitario",label:"Valor unitário",required:false},
+  {name:"curva",label:"Curva",required:false},
+  {name:"modelos_aplicaveis",label:"Modelos aplicáveis",required:false},
+];
+
 export function EloWebOperationalPortal({accessToken,displayName,email,onSignOut}:Props){
  const [active,setActive]=useState("Visão geral");
  const [authz,setAuthz]=useState<ELOAuthorizationResult|null>(null);
@@ -86,10 +97,7 @@ export function EloWebOperationalPortal({accessToken,displayName,email,onSignOut
       <h3 className="mt-2 text-xl font-semibold">Inserir novo item</h3>
       <p className="mt-2 text-sm text-slate-500">Disponível somente para identidades com <span className="font-semibold">LISTA_MAE_INSERT</span>. UPDATE e DELETE não são oferecidos.</p>
       <form onSubmit={insertListaMae} className="mt-5 grid gap-4 md:grid-cols-2">
-        {[
-          ["cod_item","Código do item",true],["cod_produt","Código do produto",false],["descricao_oficial","Descrição oficial",true],
-          ["aplicacao","Aplicação",false],["un","Unidade",false],["valor_unitario","Valor unitário",false],["curva","Curva",false],["modelos_aplicaveis","Modelos aplicáveis",false]
-        ].map(([name,label,required])=><label key={name} className="text-xs font-semibold text-slate-600">{label as string}{required?" *":""}<input name={name as string} required={Boolean(required)} type={name==="valor_unitario"?"number":"text"} step={name==="valor_unitario"?"0.01":undefined} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none focus:border-slate-400" /></label>)}
+        {listaMaeFields.map(({name,label,required})=><label key={name} className="text-xs font-semibold text-slate-600">{label}{required?" *":""}<input name={name} required={required} type={name==="valor_unitario"?"number":"text"} step={name==="valor_unitario"?"0.01":undefined} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none focus:border-slate-400" />)}
         <div className="md:col-span-2 flex flex-wrap items-center gap-3">
           <button type="submit" disabled={saving} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving?"Inserindo…":"Inserir na Lista-Mãe"}</button>
           {insertMessage&&<span className="text-sm font-medium text-slate-600">{insertMessage}</span>}
