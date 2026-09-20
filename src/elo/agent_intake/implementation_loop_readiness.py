@@ -50,6 +50,16 @@ def assess_loop_readiness(
     if not common:
         missing.append("common_metric")
 
+    positive_gain = False
+    for metric in common:
+        direction = metric_directions.get(metric)
+        if direction == "maximize" and adapted[metric] > baseline[metric]:
+            positive_gain = True
+        elif direction == "minimize" and adapted[metric] < baseline[metric]:
+            positive_gain = True
+    if common and not positive_gain:
+        missing.append("measurable_positive_gain")
+
     for metric in common:
         if metric_directions.get(metric) not in {"maximize", "minimize"}:
             missing.append(f"metric_direction:{metric}")
