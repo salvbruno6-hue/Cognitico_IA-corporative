@@ -1,52 +1,79 @@
-# ELO — Hermes Current Mechanisms Discovery 2026-09-19
+# ELO — Hermes Current Mechanisms Discovery 2026-09-20
 
 **Status:** EVOLUTION LAB / CANDIDATE-ONLY  
-**Source:** Hermes Agent public documentation, observed 2026-09-19  
+**Source:** Hermes Agent public documentation, observed 2026-09-20  
 **Authority:** ELO Cognitivo / Evolution_Gate  
-**Constraint:** discovery only; no Hermes modification and no business operation.
+**Constraint:** discovery and candidate registration only; no Hermes modification and no business operation.
 
 ## Purpose
 
-Record newly exposed Hermes mechanisms that are not yet represented as validated ELO extensions. Each candidate must extend an existing ELO owner; none may create a parallel authority.
+Expand the Hermes-to-ELO candidate registry with mechanisms currently exposed by Hermes that are not yet validated as ELO capabilities. Every candidate must map to an existing ELO owner and remain non-authoritative until controlled validation.
 
-## Validated source observations
+## Newly observed mechanisms
 
-Hermes currently documents context references, checkpoints, event hooks, programmatic code execution, provider routing/fallback, credential pools, prompt caching, profiles/bot mode, batch processing and pluggable external memory providers. These observations come from Hermes documentation and are treated as source evidence, not ELO authority.
+Current Hermes documentation exposes or documents:
+
+- context references and extensible context-reference providers;
+- filesystem checkpoints and rollback;
+- lifecycle hooks;
+- provider/model routing and credential pools;
+- isolated profiles/Bot Mode;
+- batch trajectory generation;
+- external memory providers;
+- `/learn` skill learning and curator/learning-graph concepts;
+- pluggable context engines;
+- git worktree isolation;
+- subagent delegation and parallel workstreams;
+- cron/scheduled agent tasks.
+
+These are source observations, not ELO authority. Hermes remains unmodified.
 
 ## Candidate introductions
 
-| ID | Hermes mechanism | Existing ELO owner | Candidate introduction | Validation state |
+| ID | Hermes mechanism | Existing ELO owner | Candidate introduction | State |
 |---|---|---|---|---|
-| `EXT-CONTEXTREF-HERMES` | `@` context references for files/folders/diffs/URLs | ELO Context | governed context-reference resolution with provenance and size/policy bounds | CANDIDATE-ONLY |
-| `EXT-CHECKPOINT-HERMES` | working-directory checkpoints and rollback | ELO State Recovery | pre-mutation checkpoint contract for controlled technical changes | CANDIDATE-ONLY |
-| `EXT-HOOK-HERMES` | lifecycle gateway/plugin hooks | ELO Workflow/Automation | provider-neutral lifecycle interception for evidence, metrics and guardrails | CANDIDATE-ONLY |
-| `EXT-ROUTE-HERMES` | provider routing, fallback and credential pools | ELO Model/Tool Routing | policy-based provider selection and bounded failover without changing authority | CANDIDATE-ONLY |
-| `EXT-PROFILE-HERMES` | isolated profiles / Bot Mode | ELO Agent Context & Delegation | isolated agent-context profiles with explicit identity, memory and skill scope | CANDIDATE-ONLY |
-| `EXT-BATCH-HERMES` | batch processing / trajectory generation | ELO Evaluation & Learning | bounded batch evaluation intake with provenance and no automatic promotion | CANDIDATE-ONLY |
-| `EXT-MEMPROVIDER-HERMES` | pluggable external memory providers | ELO Memory | provider adapter contract only; Supabase remains the cognitive persistence authority | CANDIDATE-ONLY |
+| EXT-CONTEXTREF-HERMES | context references | ELO Context | provenance-bounded reference resolution | CANDIDATE-ONLY |
+| EXT-CHECKPOINT-HERMES | checkpoints/rollback | ELO State Recovery | pre-mutation checkpoint contract | CANDIDATE-ONLY |
+| EXT-HOOK-HERMES | lifecycle hooks | ELO Workflow/Automation | evidence/metric/guardrail lifecycle hooks | CANDIDATE-ONLY |
+| EXT-ROUTE-HERMES | routing/fallback/credential pools | ELO Model/Tool Routing | policy-bounded failover | CANDIDATE-ONLY |
+| EXT-PROFILE-HERMES | profiles/Bot Mode | ELO Agent Context & Delegation | isolated agent-context profiles | CANDIDATE-ONLY |
+| EXT-BATCH-HERMES | batch processing | ELO Evaluation & Learning | bounded evaluation intake | CANDIDATE-ONLY |
+| EXT-MEMPROVIDER-HERMES | external memory providers | ELO Memory | adapter-only memory providers | CANDIDATE-ONLY |
+| EXT-LEARN-HERMES | /learn / skill learning | ELO Knowledge & Skills | governed skill synthesis/admission | CANDIDATE-ONLY |
+| EXT-LEARNING-GRAPH-HERMES | learning graph/curator | ELO Evolution Memory | evidence-linked learning relations | CANDIDATE-ONLY |
+| EXT-CONTEXT-PLUGIN-HERMES | context engine plugins | ELO Context | bounded context-engine adapter | CANDIDATE-ONLY |
+| EXT-WORKTREE-HERMES | isolated git worktrees | ELO Forge | isolated technical workspace | CANDIDATE-ONLY |
+| EXT-MULTIAGENT-HERMES | subagent delegation | ELO Agent Delegation | bounded parallel/delegated execution | CANDIDATE-ONLY |
+| EXT-CRON-HERMES | scheduled agent tasks | ELO Workflow/Automation | governed deterministic scheduling | CANDIDATE-ONLY |
 
-## Acceptance contract
+## Validation boundary
 
-A candidate can become valid only after:
+A candidate becomes valid only after:
 
-`source evidence → existing owner mapping → bounded adaptation → controlled test → measured gain → no regression → repeatability → Evolution_Gate`
+`source evidence → owner mapping → bounded adaptation → controlled test → measured gain → no regression → repeatability → Evolution Gate`
 
-The source mechanism itself is never sufficient evidence of promotion.
+Registration in this file is not validation and does not activate a runtime capability.
 
-## Explicit exclusions
+## Governance
 
-- No new Core, Memory Authority, Skill Registry, Tool Registry, Context Engine, Scheduler, MCP Authority, or State Authority.
-- No direct Hermes mutation.
-- No business execution.
-- No use of SO 001.26 as architectural reference.
-- External memory providers are adapters only; they cannot become ELO cognitive authority.
+- No Hermes source is modified.
+- No business operation is executed.
+- No SO 001.26 is used as architectural evidence.
+- No candidate creates a second Core, Memory authority, Context authority, Tool registry, Scheduler authority, or Forge authority.
+- External memory providers remain adapters; Supabase remains the cognitive persistence member.
+- Git worktrees remain Forge isolation mechanisms and do not become an independent merge authority.
+- Cron remains an execution adapter; scheduling cannot bypass ELO governance.
+- Multi-agent execution cannot transfer cognitive or merge authority.
 
 ## Source evidence
 
 - Hermes Features Overview: https://hermes-agent.nousresearch.com/docs/user-guide/features/overview
-- Hermes Tools & Toolsets: https://hermes-agent.nousresearch.com/docs/user-guide/features/tools
-- Hermes documentation index: https://hermes-agent.nousresearch.com/docs/
+- Hermes Plugins: https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins
+- Hermes Memory Providers: https://hermes-agent.nousresearch.com/docs/user-guide/features/memory-providers
+- Hermes Memory Provider Plugin contract: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/memory-provider-plugin.md
+- Hermes Gateway Internals: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/gateway-internals.md
+- Hermes Cron Internals: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/cron-internals.md
 
 ## Decision
 
-The mechanisms above are **new discovery candidates**, not validated ELO capabilities. This run does not promote them. Existing Hermes/OpenClaw extensions remain governed by `ELO_EXTENDED_CAPABILITIES_HERMES_OPENCLAW.md` and its Evolution Gate.
+All thirteen mechanisms remain CANDIDATE-ONLY. The registry is evidence capture and experiment planning; it is not a promotion event.

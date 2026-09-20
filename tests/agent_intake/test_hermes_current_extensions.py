@@ -6,7 +6,7 @@ from src.elo.agent_intake.hermes_current_extensions import (
 
 
 def test_all_current_hermes_candidates_have_existing_elo_owners():
-    assert len(CANDIDATES) == 7
+    assert len(CANDIDATES) == 13
     assert all(owner for _, _, owner, _ in CANDIDATES)
     assert len({candidate_id for candidate_id, *_ in CANDIDATES}) == len(CANDIDATES)
 
@@ -16,6 +16,18 @@ def test_candidates_are_candidate_only_and_non_mutating():
         candidate = build_candidate(candidate_id)
         assert candidate.promotion_state == "candidate_only"
         assert candidate.canonical_mutation is False
+
+
+def test_new_candidates_are_registered():
+    expected = {
+        "EXT-LEARN-HERMES",
+        "EXT-LEARNING-GRAPH-HERMES",
+        "EXT-CONTEXT-PLUGIN-HERMES",
+        "EXT-WORKTREE-HERMES",
+        "EXT-MULTIAGENT-HERMES",
+        "EXT-CRON-HERMES",
+    }
+    assert expected.issubset({candidate_id for candidate_id, *_ in CANDIDATES})
 
 
 def test_positive_repeatable_measurement_stops_at_evolution_gate():
