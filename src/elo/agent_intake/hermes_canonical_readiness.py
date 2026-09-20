@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Optional
 
 class Readiness(str, Enum):
-    GREEN_READY_FOR_EVOLUTION_GATE = "GREEN_READY_FOR_EVOLUTION_GATE"
+    GREEN_READY_FOR_CANONICAL_REVIEW = "GREEN_READY_FOR_CANONICAL_REVIEW"
     YELLOW_EVIDENCE_PENDING = "YELLOW_EVIDENCE_PENDING"
     RED_REJECTED = "RED_REJECTED"
 
@@ -71,7 +71,7 @@ def evaluate_readiness(evidence: HermesReadinessEvidence) -> Readiness:
         return Readiness.YELLOW_EVIDENCE_PENDING
     if not evidence.approval_ref or not evidence.promotion_package_ref:
         return Readiness.YELLOW_EVIDENCE_PENDING
-    return Readiness.GREEN_READY_FOR_EVOLUTION_GATE
+    return Readiness.GREEN_READY_FOR_CANONICAL_REVIEW
 
 def canonical_mutation_permitted(_: HermesReadinessEvidence) -> bool:
     return False
