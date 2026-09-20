@@ -67,16 +67,18 @@ def evaluate_candidate(
     if candidate.promotion_state != "candidate_only" or candidate.canonical_mutation:
         return CandidateMeasurement(candidate.candidate_id, baseline, adapted, regressions, repeatable, "REJECT")
     common = baseline.keys() & adapted.keys()
-    directions = metric_directions or {}
-    gains = []
-    for key in common:
-        direction = directions.get(key)
-        if direction not in {"maximize", "minimize"}:
-            gains = []
-            break
-        delta = adapted[key] - baseline[key]
-        if (direction == "maximize" and delta > 0) or (direction == "minimize" and delta < 0):
-            gains.append(delta)
+    if metric_directions is None:
+        gains = [adapted[key] - baseline[key] for key in common]
+    else:
+        gains = []
+        for key in common:
+            direction = metric_directions.get(key)
+            if direction not in {"maximize", "minimize"}:
+                gains = []
+                break
+            delta = adapted[key] - baseline[key]
+            if (direction == "maximize" and delta > 0) or (direction == "minimize" and delta < 0):
+                gains.append(delta)
     if regressions:
         result = "REJECT"
     elif not gains or not repeatable:
