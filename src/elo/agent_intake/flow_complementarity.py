@@ -85,6 +85,15 @@ class ComplementarityEngine:
         profiles: tuple[FlowProfile, ...],
         relations: tuple[FlowRelation, ...] = (),
     ) -> None:
+        profile_ids = [profile.flow_id for profile in profiles]
+        if len(profile_ids) != len(set(profile_ids)):
+            raise ValueError("duplicate flow profile identity is not permitted")
+        relation_keys = [
+            (item.origin_flow, item.target_flow, item.kind)
+            for item in relations
+        ]
+        if len(relation_keys) != len(set(relation_keys)):
+            raise ValueError("duplicate flow relation is not permitted")
         self._profiles = {profile.flow_id: profile for profile in profiles}
         self._relations = {
             (item.origin_flow, item.target_flow, item.kind): item
