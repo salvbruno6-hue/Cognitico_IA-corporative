@@ -91,6 +91,19 @@ class ComplementarityEngine:
             for item in relations
         }
 
+    def candidate_relations(self, origin_flow: str) -> tuple[FlowRelation, ...]:
+        """Return explicitly registered outgoing relations for an existing flow.
+
+        This is discovery over the existing relation set, not a second registry
+        and not a promotion mechanism. Callers must still validate each relation
+        through ``evaluate`` before selecting a next flow.
+        """
+        return tuple(
+            relation
+            for relation in self._relations.values()
+            if relation.origin_flow == origin_flow
+        )
+
     def evaluate(
         self,
         *,
