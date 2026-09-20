@@ -87,6 +87,7 @@ def run_implementation_loop(
 
     measurement = evaluate_candidate(
         candidate, baseline, adapted, regressions=regressions, repeatable=repeatable,
+        metric_directions=directions,
     )
 
     if measurement.result == "REJECT":
