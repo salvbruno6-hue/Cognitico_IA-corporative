@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from .hermes_current_extensions import HermesCandidate
+from .implementation_loop_evidence import ImplementationEvidence
 from .symbiont_adaptation import SymbiontAdaptation, refinement_is_eligible_for_test
 
 
@@ -30,6 +31,8 @@ def assess_loop_readiness(
     metric_directions: Mapping[str, str],
     repeatable: bool,
     regressions: tuple[str, ...] = (),
+    provenance_refs: tuple[str, ...] = (),
+    boundary_integrity: bool = True,
 ) -> LoopReadiness:
     """Check entry evidence without deciding or performing implementation."""
     missing: list[str] = []
@@ -56,6 +59,24 @@ def assess_loop_readiness(
 
     if not repeatable:
         missing.append("repeatability")
+    if not provenance_refs:
+        missing.append("provenance")
+    if not boundary_integrity:
+        missing.append("boundary_integrity")
+
+    evidence = ImplementationEvidence(
+        candidate_id=candidate.candidate_id,
+        owner=candidate.owner,
+        baseline=baseline,
+        adapted=adapted,
+        metric_directions=metric_directions,
+        regressions=regressions,
+        repeatable=repeatable,
+        provenance_refs=provenance_refs,
+        boundary_integrity=boundary_integrity,
+    )
+    if not evidence.is_complete():
+        missing.append("evidence_contract")
 
     return LoopReadiness(
         candidate_id=candidate.candidate_id,

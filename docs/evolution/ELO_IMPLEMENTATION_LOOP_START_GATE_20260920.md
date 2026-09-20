@@ -22,7 +22,9 @@ A candidate may enter the implementation loop only when all are present:
 5. every measured metric has explicit direction: `maximize` or `minimize`;
 6. no regression or governance-boundary violation exists;
 7. repeatability is proven;
-8. provenance and owner mapping are available from the evaluation record.
+8. provenance references are present;
+9. boundary integrity is verified;
+10. existing ELO owner mapping is present.
 
 ## Loop
 

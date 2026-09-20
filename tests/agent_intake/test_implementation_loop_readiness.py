@@ -18,6 +18,7 @@ def test_loop_entry_requires_complete_evidence():
         {"accuracy": 0.8},
         metric_directions={"accuracy": "maximize"},
         repeatable=True,
+        provenance_refs=("controlled-test:628",),
     )
     assert result.ready_for_loop is True
     assert result.missing == ()
@@ -32,6 +33,7 @@ def test_loop_entry_blocks_missing_direction():
         {"accuracy": 0.9},
         metric_directions={},
         repeatable=True,
+        provenance_refs=("controlled-test:628",),
     )
     assert result.ready_for_loop is False
     assert "metric_direction:accuracy" in result.missing
@@ -50,3 +52,16 @@ def test_loop_entry_blocks_regression_and_nonrepeatability():
     assert result.ready_for_loop is False
     assert "regression_free" in result.missing
     assert "repeatability" in result.missing
+
+
+def test_loop_entry_blocks_missing_provenance():
+    result = assess_loop_readiness(
+        build_candidate("EXT-CONTEXTREF-HERMES"),
+        _adaptation(),
+        {"accuracy": 0.8},
+        {"accuracy": 0.9},
+        metric_directions={"accuracy": "maximize"},
+        repeatable=True,
+    )
+    assert result.ready_for_loop is False
+    assert "provenance" in result.missing
