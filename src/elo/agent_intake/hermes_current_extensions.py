@@ -62,13 +62,26 @@ def evaluate_candidate(
     *,
     regressions: tuple[str, ...] = (),
     repeatable: bool = False,
+    metric_directions: Mapping[str, str] | None = None,
 ) -> CandidateMeasurement:
     if candidate.promotion_state != "candidate_only" or candidate.canonical_mutation:
         return CandidateMeasurement(candidate.candidate_id, baseline, adapted, regressions, repeatable, "REJECT")
-    gains = [adapted[key] - baseline[key] for key in baseline.keys() & adapted.keys()]
+    common = baseline.keys() & adapted.keys()
+    if metric_directions is None:
+        gains = [adapted[key] - baseline[key] for key in common]
+    else:
+        gains = []
+        for key in common:
+            direction = metric_directions.get(key)
+            if direction not in {"maximize", "minimize"}:
+                gains = []
+                break
+            delta = adapted[key] - baseline[key]
+            if (direction == "maximize" and delta > 0) or (direction == "minimize" and delta < 0):
+                gains.append(delta)
     if regressions:
         result = "REJECT"
-    elif not gains or max(gains) <= 0 or not repeatable:
+    elif not gains or not repeatable:
         result = "RETEST"
     else:
         result = "EVOLUTION_GATE_REQUIRED"
