@@ -19,3 +19,5 @@ jobs:
       - run: python -m pip install -e .
       - run: python -m compileall -q src/elo/agent_intake/checkpoint_compaction_guard.py
       - run: python -m pytest -q tests/agent_intake/test_checkpoint_compaction_guard.py
+
+# controlled lab trigger
