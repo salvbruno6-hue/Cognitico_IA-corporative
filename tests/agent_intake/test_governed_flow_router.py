@@ -57,6 +57,7 @@ def test_router_does_not_execute_or_authorize():
         FlowProfile(
             "MEASURED_GAIN", "ELO", ("controlled_evidence",), ("measured_gain",),
             success_outcomes=("PASS",),
+            prerequisites=("baseline",),
         ),
     )
     relation = hermes_relation(
@@ -145,16 +146,25 @@ def test_router_never_selects_an_ambiguous_or_unregistered_next_flow():
         provenance_refs=("p-ambiguous",),
         confidence=1.0,
     )
+    relation_2 = hermes_relation(
+        relation_id="r-router-discovery-3",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-feeds",),
+        provenance_refs=("p-feeds",),
+        confidence=1.0,
+    )
     router = GovernedFlowRouter(
-        complementarity=ComplementarityEngine(profiles, (relation,))
+        complementarity=ComplementarityEngine(profiles, (relation, relation_2))
     )
 
     result = router.resolve_next(
         origin_flow="CONTROLLED_TEST",
         outcome=CadenceOutcome.PASS,
-        evidence={},
-        provenance_refs=("p-ambiguous",),
+        evidence={"baseline": True},
+        provenance_refs=("p-ambiguous", "p-feeds"),
     )
 
-    assert result.status == "WAITING"
+    assert result.status == "REVIEW_REQUIRED"
     assert result.selected_next is None
