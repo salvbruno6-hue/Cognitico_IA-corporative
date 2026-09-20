@@ -46,6 +46,8 @@ def assess_loop_readiness(
     metric_directions: Mapping[str, str],
     repeatable: bool,
     regressions: tuple[str, ...] = (),
+    evolution_gate_approved: bool = False,
+    elo_authorized: bool = False,
 ) -> LoopReadiness:
     """Check entry evidence without deciding or performing implementation."""
     missing: list[str] = []
@@ -81,6 +83,15 @@ def assess_loop_readiness(
 
     if not repeatable:
         missing.append("repeatability")
+
+    if not adaptation.source_experience or not candidate.owner:
+        missing.append("provenance_and_owner_mapping")
+
+    if not evolution_gate_approved:
+        missing.append("evolution_gate_approval")
+
+    if not elo_authorized:
+        missing.append("elo_authorization")
 
     return LoopReadiness(
         candidate_id=candidate.candidate_id,
