@@ -4,7 +4,7 @@ This module coordinates the existing canonical contracts. It does not execute
 enterprise actions, create a parallel reasoning engine, or mutate evidence.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Mapping
 
 from elo.agent_intake.elo_flow_cadence import CadenceOutcome
@@ -29,7 +29,7 @@ class CoreLoopRequest:
     flow_origin: str | None = None
     flow_outcome: CadenceOutcome | None = None
     flow_relation_kind: RelationKind | None = None
-    flow_evidence: Mapping[str, object] = ()
+    flow_evidence: Mapping[str, object] = field(default_factory=dict)
     flow_provenance_refs: tuple[str, ...] = ()
 
 
