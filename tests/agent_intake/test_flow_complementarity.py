@@ -135,3 +135,30 @@ def test_consequential_target_requires_authorization():
         provenance_refs=("p1",),
     )
     assert decision.status is ConnectionStatus.WAITING
+
+def test_duplicate_flow_profiles_fail_closed():
+    profile = profiles()[0]
+    try:
+        ComplementarityEngine((profile, profile))
+    except ValueError as exc:
+        assert "duplicate flow profile identity" in str(exc)
+    else:
+        raise AssertionError("duplicate flow identities must be rejected")
+
+
+def test_duplicate_relations_fail_closed():
+    relation = hermes_relation(
+        relation_id="duplicate-1",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-duplicate",),
+        provenance_refs=("p-duplicate",),
+        confidence=1.0,
+    )
+    try:
+        ComplementarityEngine(profiles(), (relation, relation))
+    except ValueError as exc:
+        assert "duplicate flow relation" in str(exc)
+    else:
+        raise AssertionError("duplicate flow relations must be rejected")
