@@ -18,6 +18,8 @@ def test_loop_entry_requires_complete_evidence():
         {"accuracy": 0.9},
         metric_directions={"accuracy": "maximize"},
         repeatable=True,
+        evolution_gate_approved=True,
+        elo_authorized=True,
     )
     assert result.ready_for_loop is True
     assert result.missing == ()
@@ -32,6 +34,8 @@ def test_loop_entry_blocks_missing_gain():
         {"accuracy": 0.8},
         metric_directions={"accuracy": "maximize"},
         repeatable=True,
+        evolution_gate_approved=True,
+        elo_authorized=True,
     )
     assert result.ready_for_loop is False
     assert "measured_gain" in result.missing
@@ -45,6 +49,8 @@ def test_loop_entry_blocks_missing_direction():
         {"accuracy": 0.9},
         metric_directions={},
         repeatable=True,
+        evolution_gate_approved=True,
+        elo_authorized=True,
     )
     assert result.ready_for_loop is False
     assert "metric_direction:accuracy" in result.missing
@@ -59,6 +65,8 @@ def test_loop_entry_blocks_regression_and_nonrepeatability():
         metric_directions={"accuracy": "maximize"},
         repeatable=False,
         regressions=("scope",),
+        evolution_gate_approved=True,
+        elo_authorized=True,
     )
     assert result.ready_for_loop is False
     assert "regression_free" in result.missing
@@ -73,6 +81,24 @@ def test_loop_entry_accepts_directional_minimize_gain():
         {"latency": 8.0},
         metric_directions={"latency": "minimize"},
         repeatable=True,
+        evolution_gate_approved=True,
+        elo_authorized=True,
     )
     assert result.ready_for_loop is True
     assert result.missing == ()
+
+
+def test_loop_entry_blocks_missing_governance_approval():
+    result = assess_loop_readiness(
+        build_candidate("EXT-CONTEXTREF-HERMES"),
+        _adaptation(),
+        {"accuracy": 0.8},
+        {"accuracy": 0.9},
+        metric_directions={"accuracy": "maximize"},
+        repeatable=True,
+        evolution_gate_approved=False,
+        elo_authorized=False,
+    )
+    assert result.ready_for_loop is False
+    assert "evolution_gate_approval" in result.missing
+    assert "elo_authorization" in result.missing
