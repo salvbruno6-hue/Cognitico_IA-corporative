@@ -32,7 +32,7 @@ def test_new_candidates_are_registered():
 
 def test_positive_repeatable_measurement_stops_at_evolution_gate():
     candidate = build_candidate("EXT-CONTEXTREF-HERMES")
-    result = evaluate_candidate(candidate, {"precision": 0.70}, {"precision": 0.82}, repeatable=True)
+    result = evaluate_candidate(candidate, {"precision": 0.70}, {"precision": 0.82}, repeatable=True, metric_directions={"precision": "maximize"})
     assert result.result == "EVOLUTION_GATE_REQUIRED"
 
 
@@ -44,11 +44,12 @@ def test_regression_is_rejected():
         {"recovery": 0.95},
         regressions=("mutation_boundary",),
         repeatable=True,
+        metric_directions={"recovery": "maximize"},
     )
     assert result.result == "REJECT"
 
 
 def test_non_repeatable_gain_requires_retest():
     candidate = build_candidate("EXT-BATCH-HERMES")
-    result = evaluate_candidate(candidate, {"recall": 0.60}, {"recall": 0.70}, repeatable=False)
+    result = evaluate_candidate(candidate, {"recall": 0.60}, {"recall": 0.70}, repeatable=False, metric_directions={"recall": "maximize"})
     assert result.result == "RETEST"
