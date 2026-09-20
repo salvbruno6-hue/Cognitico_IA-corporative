@@ -48,4 +48,4 @@ def test_no_reference_means_no_work():
 def test_parser_is_non_operational_and_preserves_order():
     refs = parse_context_references("@file:a.py @diff @file:b.py:4")
     assert [ref.raw for ref in refs] == ["@file:a.py", "@diff", "@file:b.py:4"]
-    assert all(ref.target for ref in refs)
+    assert [ref.target for ref in refs if ref.kind == "file"] == ["a.py", "b.py"]
