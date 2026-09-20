@@ -23,9 +23,15 @@ A candidate may enter the implementation loop only when all are present:
 6. at least one common metric shows a strictly positive, direction-correct gain;
 7. no regression or governance-boundary violation exists;
 8. repeatability is proven;
-9. provenance and owner mapping are available from the evaluation record;
-10. Evolution Gate approval is present;
-11. explicit ELO authorization is present.
+9. provenance references are present;
+10. boundary integrity is verified;
+11. existing ELO owner mapping is present;
+12. Evolution Gate approval is present;
+13. explicit ELO authorization is present.
+
+The immutable `ImplementationEvidence` record is the minimum evidence
+contract. It is descriptive and cannot promote, deploy, or mutate canonical
+ELO state.
 
 ## Loop
 
@@ -37,12 +43,12 @@ change remains a separate governed merge/implementation action.
 ## Current project position
 
 The implementation-loop engine already exists and its regression ordering is
-tested. The start gate now provides an explicit pre-flight contract so the
-first full loop cannot start from incomplete evidence.
+tested. The start gate provides an explicit pre-flight contract so the first
+full loop cannot start from incomplete evidence or zero measured gain.
 
 The current Hermes sequence continues independently until the candidates have
-their controlled evidence. A `RETEST` result does not satisfy the gain gate;
-it returns the candidate to controlled experimentation.
+controlled evidence. A `RETEST` result does not satisfy the gain gate; it
+returns the candidate to controlled experimentation.
 
 ## First-loop rule
 
@@ -52,7 +58,8 @@ The first complete loop must use a candidate with:
 - explicit metric direction;
 - zero regressions;
 - repeatable result;
-- valid provenance;
+- valid provenance and owner mapping;
+- verified boundary integrity;
 - Evolution Gate approval;
 - explicit ELO authorization before implementation.
 
