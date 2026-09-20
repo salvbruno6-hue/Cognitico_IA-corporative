@@ -171,7 +171,7 @@ def test_router_treats_reinforcing_relations_to_one_next_flow_as_eligible():
     assert len(result.candidates) == 2
 
 
-def test_router_requires_review_for_competing_eligible_target_flows():
+def test_router_ignores_eligible_relation_to_non_cadence_target():
     profiles = (
         FlowProfile(
             "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
@@ -218,6 +218,7 @@ def test_router_requires_review_for_competing_eligible_target_flows():
 
     assert result.status == "ELIGIBLE"
     assert result.selected_next == "MEASURED_GAIN"
+    assert all(candidate.cadence_next == "MEASURED_GAIN" for candidate in result.candidates if candidate.status == "ELIGIBLE")
 
 
 def test_router_never_selects_an_unregistered_next_flow():
