@@ -37,3 +37,26 @@ def evaluate_skill_learning(signal: SkillLearningSignal) -> LearningAdmissionDec
     if not signal.verified:
         return LearningAdmissionDecision(signal.signal_id, CAPABILITY_ID, "OBSERVED", False, "unverified skill learning remains an observation", signal.source_refs)
     return LearningAdmissionDecision(signal.signal_id, CAPABILITY_ID, "CANDIDATE", True, "verified skill-learning signal admitted as candidate-only evidence", signal.source_refs)
+
+
+GraphRelationKind = Literal["SUPPORTS", "RELATES_TO", "CONFLICTS_WITH", "DERIVED_FROM"]
+
+@dataclass(frozen=True, slots=True)
+class LearningGraphRelation:
+    relation_id: str
+    left_id: str
+    right_id: str
+    kind: GraphRelationKind
+    evidence_refs: tuple[str, ...]
+    canonical_authority: bool = False
+
+def validate_graph_relation(relation: LearningGraphRelation) -> LearningGraphRelation:
+    if not relation.relation_id.strip():
+        raise ValueError("relation_id is required")
+    if not relation.left_id.strip() or not relation.right_id.strip():
+        raise ValueError("graph endpoints are required")
+    if not relation.evidence_refs:
+        raise ValueError("graph relation requires evidence")
+    if relation.left_id == relation.right_id:
+        raise ValueError("self-referential learning relation is not admitted")
+    return relation
