@@ -7,6 +7,10 @@ enterprise actions, create a parallel reasoning engine, or mutate evidence.
 from dataclasses import dataclass
 from typing import Mapping
 
+from elo.agent_intake.elo_flow_cadence import CadenceOutcome
+from elo.agent_intake.flow_complementarity import RelationKind
+from elo.agent_intake.governed_flow_router import GovernedFlowRouter, NextFlowResolution
+
 from .context_resolution import ContextPack
 from .diagnostic_scenarios import (
     DiagnosticObservation,
@@ -22,6 +26,11 @@ class CoreLoopRequest:
     scenario: DiagnosticScenario
     observations: tuple[DiagnosticObservation, ...] = ()
     minimum_confidence: float = 0.7
+    flow_origin: str | None = None
+    flow_outcome: CadenceOutcome | None = None
+    flow_relation_kind: RelationKind | None = None
+    flow_evidence: Mapping[str, object] = ()
+    flow_provenance_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -36,6 +45,8 @@ class CoreLoopResult:
     handoff_required: bool = False
     gaps: tuple[str, ...] = ()
     metadata: Mapping[str, str] = ()
+    next_flow: str | None = None
+    flow_routing_status: str | None = None
 
     @property
     def can_execute(self) -> bool:
@@ -45,8 +56,13 @@ class CoreLoopResult:
 class CoreLoopEngine:
     """Canonical coordinator for Context → Evidence → Diagnosis → Handoff."""
 
-    def __init__(self, scenario_engine: DiagnosticScenarioEngine | None = None) -> None:
+    def __init__(
+        self,
+        scenario_engine: DiagnosticScenarioEngine | None = None,
+        flow_router: GovernedFlowRouter | None = None,
+    ) -> None:
         self._scenario = scenario_engine or DiagnosticScenarioEngine()
+        self._flow_router = flow_router
 
     def run(self, request: CoreLoopRequest) -> CoreLoopResult:
         if not 0.0 <= request.minimum_confidence <= 1.0:
@@ -97,8 +113,27 @@ class CoreLoopEngine:
         handoff = bool(gaps) or confidence < request.minimum_confidence
         if confidence < request.minimum_confidence:
             gaps = tuple(dict.fromkeys(gaps + ("diagnostic confidence below decision threshold",)))
-        status = "HANDOFF" if handoff else "RECOMMENDATION"
 
+        routing: NextFlowResolution | None = None
+        if request.flow_origin is not None or request.flow_outcome is not None:
+            if self._flow_router is None or request.flow_origin is None or request.flow_outcome is None:
+                gaps = tuple(dict.fromkeys(gaps + ("flow routing contract is incomplete",)))
+                handoff = True
+            else:
+                routing = self._flow_router.resolve_next(
+                    origin_flow=request.flow_origin,
+                    outcome=request.flow_outcome,
+                    evidence=request.flow_evidence,
+                    provenance_refs=request.flow_provenance_refs,
+                    relation_kind=request.flow_relation_kind,
+                )
+                if routing.status != "ELIGIBLE":
+                    gaps = tuple(dict.fromkeys(gaps + (
+                        f"next flow routing status: {routing.status}",
+                    )))
+                    handoff = True
+
+        status = "HANDOFF" if handoff else "RECOMMENDATION"
         return CoreLoopResult(
             scenario_id=request.scenario.scenario_id,
             status=status,
@@ -109,4 +144,6 @@ class CoreLoopEngine:
             recommendation=None if handoff else "reconcile diagnostic findings before any authorized action",
             handoff_required=handoff,
             gaps=gaps,
+            next_flow=routing.selected_next if routing else None,
+            flow_routing_status=routing.status if routing else None,
         )
