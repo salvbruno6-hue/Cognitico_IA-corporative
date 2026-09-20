@@ -2,7 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 AUTHZ = (ROOT / "supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
-MIGRATION = (ROOT / "supabase/migrations/20260919000000_elo_operator_github_binding_runtime.sql").read_text(encoding="utf-8")
+MIGRATION = (ROOT / "supabase/migrations/20260919220335_elo_operator_github_binding_runtime.sql").read_text(encoding="utf-8")
 
 def test_binding_is_persistent_and_repository_scoped() -> None:
     assert "elo_operator_github_bindings" in MIGRATION
@@ -48,7 +48,7 @@ def test_web_boundary_exposes_only_canonical_issuer_actions():
     assert '"create_operator_binding","issue_authorization_grant"' in route
 
 def test_collaborator_and_visitor_tiers_are_separated():
-    migration = Path("supabase/migrations/20260919010000_elo_access_tiers.sql").read_text(encoding="utf-8")
+    migration = Path("supabase/migrations/20260919220406_elo_access_tiers.sql").read_text(encoding="utf-8")
     assert "'COLABORADOR'" in migration
     assert "'VISITANTE'" in migration
     assert "'LISTA_MAE_INSERT'" in migration
@@ -57,6 +57,6 @@ def test_collaborator_and_visitor_tiers_are_separated():
     assert "FOR DELETE" not in migration
 
 def test_collaborator_has_no_github_binding_by_definition():
-    migration = Path("supabase/migrations/20260919010000_elo_access_tiers.sql").read_text(encoding="utf-8")
+    migration = Path("supabase/migrations/20260919220406_elo_access_tiers.sql").read_text(encoding="utf-8")
     assert "No identity is auto-provisioned by this migration." in migration
     assert "no GitHub repository binding" in migration
