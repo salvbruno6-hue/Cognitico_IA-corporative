@@ -197,6 +197,7 @@ class ComplementarityEngine:
                     "missing",
                     "requires",
                     "authority",
+                    "authorization",
                     "not permitted",
                 )
             )
