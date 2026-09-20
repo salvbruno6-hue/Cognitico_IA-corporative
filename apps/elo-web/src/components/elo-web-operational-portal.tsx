@@ -97,7 +97,7 @@ export function EloWebOperationalPortal({accessToken,displayName,email,onSignOut
       <h3 className="mt-2 text-xl font-semibold">Inserir novo item</h3>
       <p className="mt-2 text-sm text-slate-500">Disponível somente para identidades com <span className="font-semibold">LISTA_MAE_INSERT</span>. UPDATE e DELETE não são oferecidos.</p>
       <form onSubmit={insertListaMae} className="mt-5 grid gap-4 md:grid-cols-2">
-        {listaMaeFields.map(({name,label,required})=><label key={name} className="text-xs font-semibold text-slate-600">{label}{required?" *":""}<input name={name} required={required} type={name==="valor_unitario"?"number":"text"} step={name==="valor_unitario"?"0.01":undefined} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none focus:border-slate-400" />)}
+        {listaMaeFields.map(({name,label,required})=><label key={name} className="text-xs font-semibold text-slate-600">{label}{required?" *":""}<input name={name} required={required} type={name==="valor_unitario"?"number":"text"} step={name==="valor_unitario"?"0.01":undefined} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none focus:border-slate-400" /></label>)}
         <div className="md:col-span-2 flex flex-wrap items-center gap-3">
           <button type="submit" disabled={saving} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving?"Inserindo…":"Inserir na Lista-Mãe"}</button>
           {insertMessage&&<span className="text-sm font-medium text-slate-600">{insertMessage}</span>}
