@@ -79,6 +79,12 @@ def run_implementation_loop(
         )
 
     directions = metric_directions or {}
+    if regressions:
+        return ImplementationDecision(
+            candidate.candidate_id, ImplementationStage.CONTROLLED_TEST, "REJECT", False,
+            "regression or governance boundary violation detected",
+        )
+
     if not _has_positive_gain(baseline, adapted, directions):
         return ImplementationDecision(
             candidate.candidate_id, ImplementationStage.MEASURED_GAIN, "RETEST", False,
