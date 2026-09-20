@@ -15,7 +15,7 @@ def test_loop_entry_requires_complete_evidence():
         build_candidate("EXT-CONTEXTREF-HERMES"),
         _adaptation(),
         {"accuracy": 0.8},
-        {"accuracy": 0.8},
+        {"accuracy": 0.9},
         metric_directions={"accuracy": "maximize"},
         repeatable=True,
         provenance_refs=("controlled-test:628",),
