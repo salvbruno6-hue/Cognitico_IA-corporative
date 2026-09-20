@@ -168,3 +168,41 @@ def test_router_never_selects_an_ambiguous_or_unregistered_next_flow():
 
     assert result.status == "REVIEW_REQUIRED"
     assert result.selected_next is None
+
+def test_router_reports_capability_requirement_without_selector_as_configuration_gap():
+    profiles = (
+        FlowProfile(
+            "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
+            success_outcomes=("PASS",), allowed_next_relations=(RelationKind.FEEDS,),
+        ),
+        FlowProfile(
+            "MEASURED_GAIN", "ELO", ("controlled_evidence",), ("measured_gain",),
+            prerequisites=("baseline",), success_outcomes=("PASS",),
+        ),
+    )
+    relation = hermes_relation(
+        relation_id="r-capability-gap",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-capability-gap",),
+        provenance_refs=("p-capability-gap",),
+        confidence=1.0,
+    )
+    router = GovernedFlowRouter(
+        complementarity=ComplementarityEngine(profiles, (relation,))
+    )
+    try:
+        router.resolve(
+            origin_flow="CONTROLLED_TEST",
+            target_flow="MEASURED_GAIN",
+            outcome=CadenceOutcome.PASS,
+            relation_kind=RelationKind.FEEDS,
+            evidence={"baseline": True},
+            provenance_refs=("p-capability-gap",),
+            capability_requirement=object(),
+        )
+    except ValueError as exc:
+        assert "capability selector" in str(exc)
+    else:
+        raise AssertionError("missing capability selector must not be silently bypassed")
