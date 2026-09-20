@@ -7,15 +7,16 @@ selection contracts. It does not execute flows or grant authorization.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
 from .flow_complementarity import RelationKind
 
-from elo.cognitive.reasoning.capability_selection import (
-    CapabilityDecision,
-    CapabilityRequirement,
-    CapabilitySelector,
-)
+if TYPE_CHECKING:
+    from elo.cognitive.reasoning.capability_selection import (
+        CapabilityDecision,
+        CapabilityRequirement,
+        CapabilitySelector,
+    )
 from .elo_flow_cadence import CadenceOutcome, FlowCadence
 from .flow_complementarity import (
     ComplementarityEngine,
