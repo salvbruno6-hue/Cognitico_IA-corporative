@@ -19,7 +19,7 @@ def test_evaluated_scope_contains_all_current_hermes_mechanisms():
     assert "EXT-CURATOR-HERMES" in HERMES_EVALUATED_CAPABILITIES
 
 def test_complete_repeatable_evidence_is_green():
-    assert evaluate_readiness(_evidence()) is Readiness.GREEN_READY_FOR_EVOLUTION_GATE
+    assert evaluate_readiness(_evidence()) is Readiness.GREEN_READY_FOR_CANONICAL_REVIEW
 
 def test_single_run_is_not_green():
     assert evaluate_readiness(_evidence(repeatability_runs=1)) is Readiness.YELLOW_EVIDENCE_PENDING
