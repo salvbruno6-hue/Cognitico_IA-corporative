@@ -49,8 +49,8 @@ def test_symbiont_lab_keeps_canonical_authorities_outside_its_ownership():
 def test_symbionte_external_intake_preserves_source_authority():
     text = Path("docs/architecture/SIMBIONTE_EXTERNAL_INTAKE_BOUNDARY.md").read_text(encoding="utf-8")
     assert "AUTHORIZED SOURCE → OBSERVE → UNDERSTAND → RELATE → ASSESS UTILITY → CANDIDATE → GOVERN" in text
-    assert "A fonte continua funcionando normalmente" in text
-    assert "A Simbionte não controla o source" not in text
+    assert "The source remains operationally independent within its authorized role." in text
+    assert "The Simbionte does not control the source." in text
 
 
 def test_symbionte_external_intake_keeps_figma_as_design_only():
