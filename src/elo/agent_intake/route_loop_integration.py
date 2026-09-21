@@ -21,7 +21,7 @@ def run_route_loop_probe() -> tuple[object, object]:
     )
     evidence = measurement_to_implementation_evidence(
         candidate,
-        candidate_measurement=__import__("elo.agent_intake.hermes_current_extensions", fromlist=["CandidateMeasurement"]).CandidateMeasurement(
+        __import__("elo.agent_intake.hermes_current_extensions", fromlist=["CandidateMeasurement"]).CandidateMeasurement(
             candidate.candidate_id, baseline, adapted, regressions, evaluation.repeatable, evaluation.result
         ),
         metric_directions={"successful_policy_routed_execution_rate": "maximize"},
