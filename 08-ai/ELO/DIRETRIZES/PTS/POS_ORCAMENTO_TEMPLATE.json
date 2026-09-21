@@ -1,0 +1,28 @@
+{
+  "so": "",
+  "cliente": "",
+  "local": "",
+  "objeto": "",
+  "tipo_negociacao": "",
+  "revisao": "0",
+  "documentos": [],
+  "objetivo": "",
+  "escopo_tecnico": [],
+  "matriz_rastreabilidade": [],
+  "memorias_calculo": [],
+  "composicao_orcamentaria": [],
+  "comparacao_orcamentos": [],
+  "divergencias": [],
+  "excedentes": [],
+  "competitividade": [],
+  "resumo_executivo": [],
+  "parecer_tecnico": "",
+  "parecer_competitividade": "",
+  "legenda_criterios": {
+    "AI": "Atendido Integralmente",
+    "AE": "Atendido por Solução Equivalente",
+    "AP": "Atendido Parcialmente",
+    "NA": "Não Atendido"
+  },
+  "registro_aprendizado": []
+}
