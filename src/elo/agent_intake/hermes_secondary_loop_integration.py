@@ -11,6 +11,8 @@ from .hermes_context_plugin_boundary import (
     assess_context_engine_plugin,
 )
 from .hermes_context_plugin_evaluation import evaluate_context_plugin_candidate
+from .hermes_cron_boundary import ScheduleSignal, assess_schedule
+from .hermes_cron_evaluation import evaluate as evaluate_cron
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
@@ -143,6 +145,43 @@ def run_context_plugin_loop_probe() -> tuple[object, object]:
     )
 
 
+def run_cron_loop_probe() -> tuple[object, object]:
+    """Route EXT-CRON-HERMES through the existing HERMES-AUTOMATION surface."""
+    evaluation = evaluate_cron()
+    signals = tuple(
+        ScheduleSignal(
+            f"cron-loop-{i}",
+            "multiteiner",
+            f"task-{i}",
+            (f"controlled-eval:cron/{i}",),
+            "0 8 * * *",
+            "elo",
+            provenance_verified=True,
+            explicit_authorization=True,
+            idempotent=True,
+            governance_bypass=False,
+        )
+        for i in range(1, 6)
+    )
+    assessments = tuple(assess_schedule(signal) for signal in signals)
+    refs = tuple(ref for assessment in assessments for ref in assessment.evidence_refs)
+    boundary_integrity = all(
+        not assessment.canonical_authority
+        and not assessment.execution_permitted
+        for assessment in assessments
+    )
+    return _handoff(
+        "EXT-CRON-HERMES",
+        "authorized_idempotent_schedule_recognition_rate",
+        evaluation.baseline_rate,
+        evaluation.adapted_rate,
+        evaluation.repeatable,
+        refs,
+        boundary_integrity,
+        "HERMES-AUTOMATION",
+    )
+
+
 def run_independent_review_loop_probe() -> tuple[object, object]:
     """Evaluate independent review as a refinement of HERMES-DELEGATION."""
     reviews = tuple(
@@ -184,5 +223,6 @@ def run_independent_review_loop_probe() -> tuple[object, object]:
 __all__ = [
     "run_multiagent_loop_probe",
     "run_context_plugin_loop_probe",
+    "run_cron_loop_probe",
     "run_independent_review_loop_probe",
 ]
