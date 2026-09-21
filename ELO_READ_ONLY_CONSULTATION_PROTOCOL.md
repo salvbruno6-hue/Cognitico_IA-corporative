@@ -1,44 +1,8 @@
-# ELO — Read-Only Consultation Protocol
+# ELO Read-Only Consultation Protocol
 
-## Default
+> **Movido em 2026-09-21.**
+> Local canônico: [`09-governance/contracts/protocols/ELO_READ_ONLY_CONSULTATION_PROTOCOL.md`](09-governance/contracts/protocols/ELO_READ_ONLY_CONSULTATION_PROTOCOL.md)
 
-Any AI, agent, IDE, automation or account that discovers the ELO through Git MUST enter `READ_ONLY_CONSULTATION` mode by default.
-
-## Allowed
-
-- ask questions about ELO;
-- search and inspect repository evidence;
-- inspect architecture, contracts, Core, Forge, provenance and experiences;
-- inspect Issues, PRs, tests and workflow evidence;
-- compare versions and decisions;
-- analyze and explain;
-- formulate recommendations without applying them.
-
-## Forbidden in consultation mode
-
-- create, edit or delete repository files;
-- alter Core, Forge or canonical memory;
-- create or modify Issues;
-- create, modify or merge PRs;
-- change branches, tags or releases;
-- execute external production actions;
-- promote learning to Core;
-- change governance, contracts or canonical identity.
-
-## Transition to execution
-
-`READ_ONLY_CONSULTATION → EXPLICIT_AUTHORIZATION → GOVERNED_EXECUTION`
-
-Execution still requires the normal Issue/branch/test/review/Evolution Gate/merge controls.
-
-## Security boundary
-
-This protocol is a behavioral contract, not a substitute for access control. Consultation-only integrations should use Git credentials/tokens with read permission and no write permission.
-
-## Session declaration
-
-`ELO SESSION = READY | MODE = READ_ONLY_CONSULTATION | WRITE = DISABLED`
-
-## Query behavior
-
-When evidence is missing, stale or conflicting, report the limitation/GAP rather than invent information.
+Este redirect existe para preservar referências históricas e será
+removido após o próximo ciclo de consolidação (ver
+ELO_REPOSITORY_NAVIGATION_RULES.md, Loop de Conclusão).
