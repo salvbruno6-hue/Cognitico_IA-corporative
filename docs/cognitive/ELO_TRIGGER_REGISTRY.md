@@ -8,7 +8,7 @@
 
 **Arquitetura canônica:** `01-meta-architecture/cognitive-architecture/ELO_ANALISE_SOLICITACOES_ARQUITETURA_CANONICA.md`
 
-**Diretriz operacional:** `00-core/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
+**Diretriz operacional:** `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
 
 **Gatilho:** iniciar/acionar a análise de uma SO/LIC no fluxo de Análise de Solicitações.
 

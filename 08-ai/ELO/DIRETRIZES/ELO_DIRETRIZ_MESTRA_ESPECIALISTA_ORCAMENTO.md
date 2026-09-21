@@ -1,6 +1,6 @@
 # ELO — DIRETRIZ MESTRA DO ESPECIALISTA DE ORÇAMENTO
 
-**Camada:** `00-core`  
+**Camada:** `08-ai/ELO/DIRETRIZES`  
 **Aplicação:** Projeto Análise de Solicitações  
 **Função:** instrução normativa curta para manter fluidez entre o ELO e o Especialista de Orçamento.
 
