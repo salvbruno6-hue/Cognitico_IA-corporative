@@ -9,7 +9,7 @@ def test_multiagent_uses_shared_governed_mediator_without_gain():
     assert decision.result == "RETEST"
     assert evidence.candidate_id == "EXT-MULTIAGENT-HERMES"
     assert evidence.boundary_integrity is True
-    assert evidence.canonical_mutation is False
+    assert decision.canonical_mutation is False
 
 
 def test_context_plugin_uses_shared_governed_mediator_without_gain():
