@@ -10,7 +10,7 @@ def read(path: str) -> str:
 
 def test_external_bootstrap_defaults_to_read_only_and_rejects_prompt_authorization():
     bootstrap = read("ELO_BOOTSTRAP.md")
-    standard = read("ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md")
+    standard = read("09-governance/contracts/standards/ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md")
 
     assert "READ_ONLY_CONSULTATION" in bootstrap
     assert "natural-language request" in bootstrap
@@ -57,7 +57,7 @@ def test_acceptance_matrix_covers_write_escalation_and_isolation_cases():
 
 
 def test_security_standard_separates_elo_policy_from_github_permissions():
-    standard = read("ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md")
+    standard = read("09-governance/contracts/standards/ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md")
 
     assert "ELO behavioral rules cannot revoke GitHub permissions" in standard
     assert "consultation integrations: read-only repository permission" in standard
