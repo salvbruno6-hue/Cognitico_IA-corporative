@@ -17,7 +17,7 @@ def test_incomplete_evidence_stops_before_elo_review():
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-001",),
     )
-    assert result.next_state == "CANDIDATE"
+    assert result.next_state == "MEASURED_GAIN"
     assert result.implementation.result == "RETEST"
     assert not result.implementation.canonical_mutation
 
