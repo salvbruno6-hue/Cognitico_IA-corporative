@@ -8,7 +8,7 @@ from typing import Any
 from elo.interface.contracts import CognitiveRequest
 
 from .agents.hermes_contract import HermesExecutionRequest
-from .interaction_runtime import build_interaction
+from elo.core.interaction_runtime import build_interaction
 from .symbiont_hermes_bridge import SymbiontHermesBridge
 
 
