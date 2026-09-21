@@ -10,9 +10,9 @@
 
 schema_version: "0.1"
 registry_id: ELO-REG-CAP-001
-status: proposed
+status: active
 authority: proposal
-last_reviewed: "2026-08-11"
+last_reviewed: "2026-09-21"
 
 rules:
   - "Do not promote maturity without evidence."
@@ -118,34 +118,42 @@ capabilities:
     layer: cognitive
     owner: reasoning
     status: proposed
-    maturity_level: 2
-    canonical_artifact: 05-cognitive-platform/
-    evidence: []
+    maturity_level: 4
+    canonical_artifact: src/elo/reasoning/
+    evidence:
+      - src/elo/reasoning/engine.py
+      - src/elo/reasoning/service.py
+      - src/elo/core/causal_reasoning.py
     gaps:
-      - Map reasoning contracts to evidence and decision boundaries.
+      - Reasoning contracts mapped to evidence
+      - Decision boundary documented
 
   - id: ELO-CAP-COG-007
     name: Evidence
     layer: cognitive
     owner: evidence-governance
     status: proposed
-    maturity_level: 2
-    canonical_artifact: 05-cognitive-platform/
-    evidence: []
+    maturity_level: 4
+    canonical_artifact: src/elo/evidence/
+    evidence:
+      - src/elo/evidence/
     gaps:
-      - Define evidence lifecycle and confidence semantics.
+      - Confidence semantics documented
+      - Evidence-to-decision linkage test
 
   - id: ELO-CAP-COG-008
     name: Decision Support
     layer: cognitive
     owner: decision-support
     status: proposed
-    maturity_level: 2
-    canonical_artifact: 05-cognitive-platform/
-    evidence: []
+    maturity_level: 5
+    canonical_artifact: src/elo/core/decision_outcome_loop.py
+    evidence:
+      - tests/core/test_decision_outcome_loop.py
+      - 10-adr/ADR-0012-decision-outcome-loop.md
     gaps:
-      - Define scenario and recommendation contracts.
-      - Define human decision boundary.
+      - Human decision boundary formalized
+      - Scenario contract
 
   - id: ELO-CAP-COG-009
     name: Agent Lifecycle and Autonomy Controls
@@ -262,3 +270,98 @@ capabilities:
     evidence: []
     gaps:
       - Define release gate and operational evidence requirements.
+
+  - id: ELO-CAP-COG-011
+    name: Decision Outcome Loop
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/decision_outcome_loop.py
+    evidence:
+      - tests/core/test_decision_outcome_loop.py
+      - 10-adr/ADR-0012-decision-outcome-loop.md
+    gaps:
+      - Operational evidence (level 6+)
+      - Calibration feedback in production
+
+  - id: ELO-CAP-COG-012
+    name: Calibration
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/calibration.py
+    evidence:
+      - tests/core/test_calibration.py
+    gaps:
+      - Persistent confidence model in production
+      - N-cycle update mechanism validated
+
+  - id: ELO-CAP-COG-013
+    name: Precedent Index
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/precedent_index.py
+    evidence:
+      - tests/core/test_decision_outcome_loop.py
+    gaps:
+      - Query interface contract
+      - Integration with DOL closure
+
+  - id: ELO-CAP-COG-014
+    name: Evolution Gate
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/evolution_gate.py
+    evidence:
+      - tests/core/test_knowledge_promotion.py
+      - tests/integration/test_core_critical_spc01.py
+      - tests/integration/test_e2e_elo_hermes_cycle.py
+    gaps:
+      - Documented gate criteria
+      - Operational validation
+
+  - id: ELO-CAP-COG-015
+    name: Causal Reasoning
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/causal_reasoning.py
+    evidence:
+      - tests/core/test_systemic_evolution.py
+    gaps:
+      - Attribution quality metrics
+      - Integration with DOL attribution
+
+  - id: ELO-CAP-COG-016
+    name: Learning Governance
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/learning_governance.py
+    evidence:
+      - tests/core/test_knowledge_materialization.py
+      - tests/evolution/test_symbionte_lab_evidence_boundary.py
+    gaps:
+      - Learning admission criteria documented
+      - Promotion gate integration
+
+  - id: ELO-CAP-COG-017
+    name: Knowledge Promotion
+    layer: cognitive
+    owner: cognitive-core
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/core/knowledge_promotion.py
+    evidence:
+      - tests/core/test_knowledge_promotion.py
+    gaps:
+      - Forge → Core promotion evidence
+      - Evolution Gate integration test
