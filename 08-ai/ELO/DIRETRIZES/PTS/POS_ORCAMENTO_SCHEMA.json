@@ -84,5 +84,13 @@
     "composicao",
     "fonte",
     "memoria_de_calculo"
-  ]
+  ],
+  "fronteira_documental": {
+    "so_atual": "obrigatório; identificador da solicitação corrente",
+    "fontes_consultivas": "permitidas na entrada para apoio do ELO, mas removidas antes da renderização",
+    "proveniencia": "quando declarada em um registro, origem_so/referencia_so deve corresponder à so atual",
+    "flags_de_seguranca": "document_safe/documento_seguro/aplicado_na_so_atual=false bloqueia o registro",
+    "historico": "registros com fonte_tipo histórico/precedente/caso/acervo/referencia_consultiva/consultiva só passam quando aplicado_na_so_atual=true",
+    "regra": "ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS"
+  }
 }
