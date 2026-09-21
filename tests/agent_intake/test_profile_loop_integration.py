@@ -2,14 +2,15 @@ from elo.agent_intake.hermes_profile_boundary import ProfileDisposition, Profile
 from elo.agent_intake.profile_loop_integration import run_profile_loop_probe
 from elo.agent_intake.implementation_loop import ImplementationStage
 
+
 def test_profile_boundary_rejects_authority_transfer():
     base = dict(profile_id="p1", tenant_scope="t1", source_refs=("ref:1",),
                 identity_digest="d1", isolated_state=True,
-                explicit_activation=True, shared_canonical_memory=False,
-                authority_transfer=False)
-    assert assess_profile(ProfileSignal(**base)).disposition is ProfileDisposition.CANDIDATE
+                explicit_activation=True, shared_canonical_memory=False)
+    assert assess_profile(ProfileSignal(**base, authority_transfer=False)).disposition is ProfileDisposition.CANDIDATE
     assert assess_profile(ProfileSignal(**base, authority_transfer=True)).disposition is ProfileDisposition.REJECTED
-    assert assess_profile(ProfileSignal(**base, shared_canonical_memory=True)).disposition is ProfileDisposition.OBSERVATION
+    assert assess_profile(ProfileSignal(**base, shared_canonical_memory=True, authority_transfer=False)).disposition is ProfileDisposition.OBSERVATION
+
 
 def test_profile_loop_has_positive_repeatable_gain_and_stops_at_review():
     decision, evidence = run_profile_loop_probe(repeats=5)
