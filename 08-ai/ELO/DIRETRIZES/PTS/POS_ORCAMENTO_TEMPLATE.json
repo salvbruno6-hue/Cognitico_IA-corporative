@@ -25,5 +25,8 @@
     "NA": "Não Atendido"
   },
   "registro_aprendizado": [],
-  "fontes_consultivas": []
+  "fontes_consultivas": [],
+  "pts_tecnica_ref": "",
+  "itens_herdados": [],
+  "consultas_abertas": []
 }
