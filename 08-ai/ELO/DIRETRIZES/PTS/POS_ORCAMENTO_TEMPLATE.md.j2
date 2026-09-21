@@ -6,6 +6,14 @@
 **Tipo de negociação:** {{ tipo_negociacao }}  
 **Revisão:** {{ revisao | default("0") }}
 
+## 0. REFERÊNCIA À PTS TÉCNICA
+
+PTS Técnica de origem: {{ pts_tecnica_ref | default("não informada") }}
+
+Itens herdados: {{ itens_herdados | default("—") }}
+
+Consultas em aberto: {{ consultas_abertas | default("—") }}
+
 ## 1. IDENTIFICAÇÃO DA SOLICITAÇÃO
 
 | Campo | Informação |
@@ -31,10 +39,10 @@
 
 ## 4. MATRIZ DE RASTREABILIDADE TÉCNICA E ORÇAMENTÁRIA
 
-| Nº | Tópico / Item | REFERÊNCIA TR / DOCUMENTO | Requisito / Descrição da SO | Solução Técnica Proposta | Quantitativo | Unid. | Composição / Escopo | Premissa / Critério | Referência do Orçamento | Valor | Inclusão no Orçamento | Atendimento | Observação / Pendência |
-|---:|---|---|---|---|---:|---|---|---|---|---:|---|---|---|
+| Nº | Ref. Técnica | Tópico | Ref. TR | Requisito/Solução | Q.Prev | Q.Orç | Ref.Orç | Valor | Status | Divergência |
+|---:|---|---|---|---|---:|---:|---|---:|---|---|
 {% for r in matriz_rastreabilidade -%}
-| {{ r.n }} | {{ r.topico_item }} | {{ r.referencia_tr_documento }} | {{ r.requisito_descricao_so }} | {{ r.solucao_tecnica_proposta }} | {{ r.quantitativo }} | {{ r.unid }} | {{ r.composicao_escopo }} | {{ r.premissa_criterio }} | {{ r.referencia_orcamento }} | {{ r.valor }} | {{ r.inclusao_no_orcamento }} | {{ r.atendimento }} | {{ r.observacao_pendencia }} |
+| {{ r.n }} | {{ r.ref_tecnica }} | {{ r.topico }} | {{ r.ref_tr }} | {{ r.requisito_solucao }} | {{ r.q_prev }} | {{ r.q_orc }} | {{ r.ref_orc }} | {{ r.valor }} | {{ r.status }} | {{ r.divergencia }} |
 {% endfor %}
 
 ## 5. MEMÓRIAS DE CÁLCULO
