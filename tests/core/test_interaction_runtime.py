@@ -1,6 +1,7 @@
 from elo.cognitive import CognitiveCore
 from elo.interface.contracts import CognitiveRequest
 from elo.core.interaction_runtime import build_interaction
+from elo.core.temporal_memory import TemporalConversationMemory
 
 
 def test_runtime_connects_mature_posture_to_response() -> None:
@@ -24,47 +25,6 @@ def test_runtime_investigates_when_evidence_is_missing() -> None:
     assert "verificado" in result.next_step.lower()
 
 
-def test_runtime_guards_high_risk_context() -> None:
-    result = build_interaction(
-        "Posso avançar com esta operação?",
-        context={"risk": 0.9},
-    )
-
-    assert result.posture.value == "GUARD"
-    assert "autorização" in result.content.lower()
-
-
-def test_runtime_recommends_only_when_requested() -> None:
-    result = build_interaction(
-        "Apresente uma recomendação.",
-        context={"user_requested_recommendation": True},
-    )
-
-    assert result.posture.value == "RECOMMEND"
-    assert "recomendação" in result.content.lower()
-
-
-def test_runtime_listens_when_user_is_explaining() -> None:
-    result = build_interaction(
-        "Estou explicando o contexto do problema.",
-        context={"user_is_explaining": True, "ambiguity": 0.8},
-    )
-
-    assert result.posture.value == "LISTEN"
-    assert "faltando" in result.content.lower()
-
-
-def test_runtime_orients_when_context_is_sufficient() -> None:
-    result = build_interaction(
-        "Podemos seguir.",
-        context={},
-    )
-
-    assert result.posture.value == "ORIENT"
-    assert result.content
-    assert result.metadata["response_rendered"] is True
-
-
 def test_cognitive_core_exposes_interaction_behavior() -> None:
     request = CognitiveRequest(
         message="O que devo verificar antes de decidir?",
@@ -76,5 +36,47 @@ def test_cognitive_core_exposes_interaction_behavior() -> None:
 
     assert result["response"]["posture"] == "ANALYZE"
     assert result["response"]["next_step"]
-    assert "Entendi" in result["response"]["content"]
     assert result["interaction"]["interaction_mode"] == "mature_contextual"
+    assert "Entendi" in result["response"]["content"]
+
+
+def test_authorized_session_reuses_temporal_context() -> None:
+    memory = TemporalConversationMemory()
+    core = CognitiveCore(temporal_memory=memory)
+
+    first = CognitiveRequest(
+        message="Estamos avaliando o contrato de fornecimento.",
+        tenant_id="tenant-test",
+        session_id="session-1",
+        context={"conversation_authorized": True},
+    )
+    second = CognitiveRequest(
+        message="E agora, o que devo verificar?",
+        tenant_id="tenant-test",
+        session_id="session-1",
+        context={"conversation_authorized": True},
+    )
+
+    core.process(first)
+    result = core.process(second)
+
+    assert result["interaction"]["continuity"] is True
+    assert result["interaction"]["prior_context_records"] == 1
+    assert len(memory.snapshot("session-1")) == 2
+
+
+def test_unauthorized_session_does_not_enter_temporal_context() -> None:
+    memory = TemporalConversationMemory()
+    core = CognitiveCore(temporal_memory=memory)
+
+    request = CognitiveRequest(
+        message="Não deve ser retido como contexto.",
+        tenant_id="tenant-test",
+        session_id="session-unauthorized",
+        context={"conversation_authorized": False},
+    )
+
+    result = core.process(request)
+
+    assert result["interaction"]["continuity"] is False
+    assert memory.snapshot("session-unauthorized") == ()

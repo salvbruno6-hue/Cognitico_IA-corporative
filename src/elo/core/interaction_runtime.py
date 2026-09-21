@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from .mature_interaction import InteractionPosture, choose_interaction_posture
+from .temporal_memory import TemporalConversationMemory
 
 
 @dataclass(frozen=True)
@@ -79,12 +80,27 @@ def build_interaction(
     *,
     context: Mapping[str, Any] | None = None,
     base_result: Mapping[str, Any] | None = None,
+    temporal_memory: TemporalConversationMemory | None = None,
 ) -> InteractionRuntimeResult:
-    """Choose a governed conversational posture and render a natural response."""
+    """Choose a governed conversational posture with optional authorized continuity."""
 
     context = context or {}
     base_result = base_result or {}
-    user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap = _signals(message, context)
+    conversation_id = str(context.get("conversation_id") or context.get("session_id") or "").strip()
+    authorized = bool(context.get("conversation_authorized", False))
+
+    prior_records = ()
+    if temporal_memory is not None and conversation_id and authorized:
+        prior_records = temporal_memory.snapshot(conversation_id)
+
+    contextual_message = message
+    if prior_records:
+        prior_text = "\n".join(record.content for record in prior_records[-5:])
+        contextual_message = f"Contexto anterior:\n{prior_text}\n\nMensagem atual:\n{message}"
+
+    user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap = _signals(
+        contextual_message, context
+    )
 
     posture = choose_interaction_posture(
         user_is_explaining=user_is_explaining,
@@ -131,5 +147,7 @@ def build_interaction(
             "decision_relevance": decision_relevance,
             "risk": risk,
             "response_rendered": rendered_content != content,
+            "continuity": bool(prior_records),
+            "prior_context_records": len(prior_records),
         },
     )
