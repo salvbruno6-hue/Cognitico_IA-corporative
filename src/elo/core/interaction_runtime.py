@@ -29,7 +29,7 @@ def _clamp(value: Any) -> float:
         return 0.0
 
 
-def _signals(message: str, context: Mapping[str, Any]) -> tuple[bool, float, float, float, float, float]:
+def _signals(message: str, context: Mapping[str, Any]) -> tuple[bool, float, float, float, float]:
     text = message.strip().lower()
     ambiguity = _clamp(context.get("ambiguity", 0.0))
     decision_relevance = _clamp(context.get("decision_relevance", 0.0))
@@ -50,7 +50,28 @@ def _signals(message: str, context: Mapping[str, Any]) -> tuple[bool, float, flo
             token in text for token in ("não sei", "sem dados", "incerto", "verificar", "investigue")
         ) else 0.0
 
-    return user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap, 0.0
+    return user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap
+
+
+def _render_response(
+    content: str,
+    *,
+    posture: InteractionPosture,
+    next_step: str,
+    base_content_is_request: bool,
+) -> str:
+    if not base_content_is_request:
+        return content
+
+    lead = {
+        InteractionPosture.LISTEN: "Entendi o contexto. Antes de concluir, preciso preservar o objetivo e identificar o que ainda está faltando.",
+        InteractionPosture.ORIENT: "Entendi o pedido. O contexto disponível é suficiente para orientar o próximo passo.",
+        InteractionPosture.INVESTIGATE: "Entendi o pedido. Há informação insuficiente para concluir, então a próxima etapa é separar evidência de lacuna.",
+        InteractionPosture.ANALYZE: "Entendi o objetivo. Antes de decidir, é preciso organizar fatos, restrições e consequências.",
+        InteractionPosture.RECOMMEND: "Entendi que você quer uma recomendação. Ela deve vir acompanhada das premissas, riscos e evidências.",
+        InteractionPosture.GUARD: "Entendi o pedido. Há uma condição de risco ou autorização que precisa ser validada antes de avançar.",
+    }[posture]
+    return f"{lead} {next_step}"
 
 
 def build_interaction(
@@ -63,7 +84,7 @@ def build_interaction(
 
     context = context or {}
     base_result = base_result or {}
-    user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap, _ = _signals(message, context)
+    user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap = _signals(message, context)
 
     posture = choose_interaction_posture(
         user_is_explaining=user_is_explaining,
@@ -76,7 +97,6 @@ def build_interaction(
 
     content = str(base_result.get("content") or message).strip()
     uncertainty = tuple(str(item) for item in (base_result.get("uncertainty") or ()))
-    next_step: str | None = None
 
     if posture is InteractionPosture.LISTEN:
         next_step = "Traga o objetivo ou a informação que falta para eu orientar o próximo passo."
@@ -91,8 +111,15 @@ def build_interaction(
     else:
         next_step = "Se quiser, seguimos para o próximo passo com o contexto já disponível."
 
+    rendered_content = _render_response(
+        content,
+        posture=posture,
+        next_step=next_step,
+        base_content_is_request=content == message.strip(),
+    )
+
     return InteractionRuntimeResult(
-        content=content,
+        content=rendered_content,
         posture=posture,
         next_step=next_step,
         uncertainty=uncertainty,
@@ -103,5 +130,6 @@ def build_interaction(
             "ambiguity": ambiguity,
             "decision_relevance": decision_relevance,
             "risk": risk,
+            "response_rendered": rendered_content != content,
         },
     )
