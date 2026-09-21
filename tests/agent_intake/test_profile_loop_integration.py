@@ -18,13 +18,13 @@ def test_profile_boundary_rejects_authority_transfer():
     ).disposition is ProfileDisposition.OBSERVATION
 
 
-def test_profile_loop_has_positive_repeatable_gain_and_stops_at_review():
-    decision, evidence = run_profile_loop_probe(repeats=5)
-    assert evidence.baseline["profile_isolation_compliance"] == 0.0
-    assert evidence.adapted["profile_isolation_compliance"] == 1.0
+def test_profile_loop_reuses_existing_evaluation_and_preserves_retest_without_gain():
+    decision, evidence = run_profile_loop_probe()
+    assert evidence.baseline["isolated_profile_candidate_rate"] == 1.0
+    assert evidence.adapted["isolated_profile_candidate_rate"] == 1.0
     assert evidence.repeatable is True
     assert evidence.boundary_integrity is True
     assert evidence.is_complete() is True
-    assert decision.stage is ImplementationStage.ELO_REVIEW
-    assert decision.result == "READY_FOR_ELO_REVIEW"
+    assert decision.stage is ImplementationStage.MEASURED_GAIN
+    assert decision.result == "RETEST"
     assert decision.canonical_mutation is False
