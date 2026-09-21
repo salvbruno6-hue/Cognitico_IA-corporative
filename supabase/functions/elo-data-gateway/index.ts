@@ -15,6 +15,7 @@ const CAPABILITY_MAP: Record<string, string> = {
   create_schema: "ADMIN",
   alter_schema: "ADMIN",
   drop_schema: "ADMIN",
+  lista_mae_insert: "LISTA_MAE_INSERT",
 };
 
 const READ_TABLES = new Set([
@@ -84,6 +85,84 @@ Deno.serve(async (req: Request) => {
     const repository = String(body.repository ?? "").trim();
     const authz = await authorize(req, operation, repository);
     if (!authz.ok) return authz.response;
+
+
+    if (operation === "lista_mae_insert") {
+      const payload = body.data && typeof body.data === "object" ? body.data : {};
+      const codItem = String(payload.cod_item ?? "").trim();
+      const descricaoOficial = String(payload.descricao_oficial ?? "").trim();
+      if (!codItem || !descricaoOficial) {
+        return json({ error: "cod_item_and_descricao_oficial_required", request_id: authz.requestId }, 400);
+      }
+
+      const insertPayload = {
+        cod_item: codItem,
+        cod_produt: payload.cod_produt ? String(payload.cod_produt).trim() : null,
+        descricao_oficial: descricaoOficial,
+        aplicacao: payload.aplicacao ? String(payload.aplicacao).trim() : null,
+        un: payload.un ? String(payload.un).trim() : null,
+        valor_unitario: payload.valor_unitario === "" || payload.valor_unitario == null ? null : Number(payload.valor_unitario),
+        curva: payload.curva ? String(payload.curva).trim() : null,
+        modelos_aplicaveis: payload.modelos_aplicaveis ? String(payload.modelos_aplicaveis).trim() : null,
+      };
+
+      if (insertPayload.valor_unitario !== null && !Number.isFinite(insertPayload.valor_unitario)) {
+        return json({ error: "valor_unitario_invalid", request_id: authz.requestId }, 400);
+      }
+
+      const authorization = req.headers.get("Authorization") ?? "";
+      const userClient = createClient(
+        SUPABASE_URL,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authorization } } },
+      );
+
+      const { data: duplicate, error: duplicateError } = await userClient
+        .from("lista_mae")
+        .select("id")
+        .eq("cod_item", codItem)
+        .limit(1);
+
+      if (duplicateError) {
+        return json({ error: "duplicate_check_failed", request_id: authz.requestId }, 500);
+      }
+      if ((duplicate ?? []).length > 0) {
+        return json({ error: "cod_item_already_exists", request_id: authz.requestId }, 409);
+      }
+
+      const { data, error } = await userClient
+        .from("lista_mae")
+        .insert(insertPayload)
+        .select("*")
+        .single();
+
+      await supabase.from("elo_audit_log").insert({
+        actor_type: "elo_control_plane",
+        operation,
+        entity_type: "lista_mae",
+        entity_id: data?.id ?? null,
+        request_summary: "Lista-Mãe INSERT " + codItem,
+        status: error ? "error" : "success",
+        metadata: {
+          capability: authz.capability,
+          request_id: authz.requestId,
+          authorization_authority: "elo-authz",
+          identity_id: authz.authorization.identity_id ?? null,
+          session_id: authz.authorization.session_id ?? null,
+          cod_item: codItem,
+        },
+      });
+
+      if (error) return json({ error: "operation_failed", request_id: authz.requestId }, 500);
+      return json({
+        ok: true,
+        operation,
+        capability: authz.capability,
+        authorization_authority: "elo-authz",
+        request_id: authz.requestId,
+        data,
+      });
+    }
 
     if (operation === "read") {
       const table = String(body.table ?? "");
