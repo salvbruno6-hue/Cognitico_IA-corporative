@@ -139,6 +139,39 @@ class FlowAdaptationEngine:
             status = "REJECT_CANDIDATE"
         return FlowAdaptation(relation_id, observations, successes, rate, status)
 
+    def learning_candidate(self, relation_id: str) -> dict[str, object] | None:
+        """Adapt persisted flow evidence into the existing ELO learning intake shape.
+
+        This is an intake adapter only. It emits a candidate for the existing
+        ELO learning/evolution pipeline; it never promotes or mutates canonical
+        knowledge. A repeatable result is required before a candidate exists.
+        """
+        adaptation = self.assess(relation_id)
+        if adaptation.status != "REPEATABLE_CANDIDATE":
+            return None
+        history = self._store.history(relation_id)
+        latest = history[-1]
+        evidence_refs = tuple(
+            dict.fromkeys(ref for item in history for ref in item.evidence_refs)
+        )
+        provenance_refs = tuple(
+            dict.fromkeys(ref for item in history for ref in item.provenance_refs)
+        )
+        if not evidence_refs or not provenance_refs:
+            return None
+        return {
+            "candidate_id": f"FLOW-{relation_id}",
+            "source": "elo-flow-complementarity",
+            "relation_id": relation_id,
+            "origin_flow": latest.origin_flow,
+            "target_flow": latest.target_flow,
+            "observations": adaptation.observations,
+            "success_rate": adaptation.success_rate,
+            "evidence_refs": evidence_refs,
+            "provenance_refs": provenance_refs,
+            "promotion_state": "candidate_only",
+        }
+
 
 __all__ = [
     "FlowAdaptation",
