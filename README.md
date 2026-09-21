@@ -223,7 +223,7 @@ A árvore canônica atual utiliza uma única pasta operacional por família nume
 - `04-knowledge-handbook/` — conhecimento e manuais
 - `05-cognitive-platform/` — plataforma cognitiva operacional
 - `06-knowledge-engineering/` — engenharia do conhecimento
-- `07-data-engineering/` — engenharia de dados operacional e owner canônico
+- `07-data-engineering/` — engenharia de dados operacional e owner canônico; inclui modelo do tenant Multiteiner
 - `08-ai/` — arquitetura e governança de IA
 - `09-governance/` — governança corporativa
 - `10-adr/` — decisões arquiteturais

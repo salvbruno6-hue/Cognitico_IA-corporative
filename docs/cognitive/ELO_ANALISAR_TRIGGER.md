@@ -114,7 +114,7 @@ Este gatilho aponta para a arquitetura e as fontes especializadas; não duplica 
 Fontes principais:
 
 - `01-meta-architecture/cognitive-architecture/ELO_ANALISE_SOLICITACOES_ARQUITETURA_CANONICA.md`
-- `00-core/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
+- `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`
 - `04-knowledge-handbook/ELO_CAMADA_EXCEDENTES_COMPOSICAO.md`
 - `04-knowledge-handbook/ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md`

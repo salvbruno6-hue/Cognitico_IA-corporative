@@ -19,7 +19,7 @@ A skill não reescreve regras existentes. Em caso de conflito, aplicar esta prec
 1. documentação vigente da SO/projeto;
 2. contratos e regras de Governança/Core vigentes;
 3. `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`;
-4. `00-core/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`;
+4. `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`;
 5. `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md` e demais documentos especializados;
 6. `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`;
 7. esta Skill, somente como orquestração e checklist;
@@ -28,7 +28,7 @@ A skill não reescreve regras existentes. Em caso de conflito, aplicar esta prec
 Fontes canônicas relacionadas:
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`
 - `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
-- `00-core/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
+- `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
 - `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
 - `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`
 - `docs/orcamento/ELO_ORCAMENTO_EXECUTION_ARCHITECTURE.md`
