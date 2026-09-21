@@ -1,401 +1,318 @@
-# PTS Técnica Pós-Orçamento — Estrutura Padrão do ELO
+# PTS Pós-Orçamento — Estrutura Canônica Evolutiva do ELO
 
-**Versão:** 2.0  
-**Status:** Proposta para incorporação como padrão oficial  
-**Responsável:** ELO
+**Versão estrutural:** 3.0  
+**Status:** Implementada e evolutiva  
+**Owner:** ELO / PTS  
+**Fonte de estrutura:** este documento + schema + template canônicos desta pasta
 
 ## 1. Finalidade
 
-A PTS Técnica Pós-Orçamento comprova a aderência entre o Termo de Referência, demais documentos da solicitação e a composição orçamentária efetivamente elaborada.
+A PTS Pós-Orçamento comprova a aderência entre a Solicitação/Termo de Referência, os demais documentos da solicitação e a composição orçamentária efetivamente desenvolvida.
 
-Seu objetivo é permitir reconstruir o raciocínio técnico e econômico utilizado no orçamento, preservando rastreabilidade entre requisito, interpretação, solução, quantitativo, composição, orçamento, premissa, justificativa, risco, pendência e validação.
-
-A PTS Pós não deve apenas repetir a PTS Técnica. Ela deve demonstrar o que efetivamente foi precificado, confrontar a previsão técnica com a composição final e identificar divergências, ausências, contradições, equivalências, excedentes e oportunidades de revisão quando houver evidência suficiente.
-
-## 2. Estrutura obrigatória
-
-A PTS Pós-Orçamento deve seguir, quando aplicável, esta sequência:
-
-1. Identificação da Solicitação;
-2. Objetivo;
-3. Escopo Técnico;
-4. Matriz de Rastreabilidade Técnica e Orçamentária;
-5. Memórias de Cálculo;
-6. Análise Geral da Composição Orçamentária;
-7. Comparação entre Orçamentos e Composições;
-8. Análise de Contradições, Ausências e Divergências;
-9. Análise de Competitividade;
-10. Resumo Executivo;
-11. Parecer Técnico;
-12. Parecer de Competitividade;
-13. Legenda e Critérios de Classificação;
-14. Registro de Aprendizado.
-
-## 3. Matriz de Rastreabilidade Técnica e Orçamentária
-
-A matriz deve conter, no mínimo:
-
-| Campo | Finalidade |
-|---|---|
-| Nº | Identificação sequencial do item analisado |
-| Tópico / Item | Sistema, serviço, material ou requisito analisado |
-| REFERÊNCIA TR / DOCUMENTO | Origem exata da exigência: TR, página, anexo, figura, esclarecimento, SO, layout ou resposta |
-| Requisito / Descrição da SO | O que efetivamente deve ser atendido |
-| Solução Técnica Proposta | Solução utilizada na composição |
-| Quantitativo | Quantidade adotada |
-| Unid. | Unidade de medição |
-| Composição / Escopo | Materiais, serviços e mão de obra envolvidos |
-| Premissa / Critério | Hipótese, método ou critério utilizado para chegar ao quantitativo/custo |
-| Referência do Orçamento | Item, código ou seção da planilha onde o requisito foi precificado |
-| Valor | Valor correspondente, quando aplicável |
-| Inclusão no Orçamento | Sim / Não / Parcial |
-| Atendimento | AI / AE / AP / NA |
-| Observação / Pendência | Divergência, risco, validação ou condição |
-
-A referência da exigência e a referência do orçamento devem permanecer separadas. Isso permite detectar quando um requisito existe na documentação, mas não possui correspondente na planilha.
-
-## 4. Raciocínio obrigatório de cada item
-
-Cada item relevante deve permitir reconstruir:
+Ela deve permitir reconstruir o raciocínio técnico e econômico:
 
 **REQUISITO → INTERPRETAÇÃO → SOLUÇÃO → QUANTITATIVO → COMPOSIÇÃO → ORÇAMENTO → PREMISSA → JUSTIFICATIVA → RISCO/PENDÊNCIA → VALIDAÇÃO**
 
-Quando alguma etapa não estiver comprovada, registrar explicitamente a ausência de evidência.
+A PTS é simultaneamente:
 
-Não preencher lacunas por inferência silenciosa.
+- documento de comprovação técnica;
+- instrumento de rastreabilidade orçamentária;
+- registro das memórias de cálculo;
+- conferência quantitativa e financeira;
+- auditoria reversa;
+- mecanismo de identificação de divergências, riscos e pendências;
+- base para análise de competitividade;
+- fonte estruturada para aprendizado governado.
 
-## 5. Memórias de Cálculo
+Não preencher lacunas por suposição silenciosa.
 
-Toda memória de cálculo relevante utilizada na formação do orçamento deve ser registrada individualmente.
+## 2. Estrutura canônica de saída
 
-### 5.1 Tabela padrão de memória de cálculo
+A PTS Pós-Orçamento utiliza **17 seções obrigatórias**, nesta ordem:
 
-| ID MC | Tópico / Item | Referência TR / Documento | Premissa | Fórmula / Desenvolvimento | Quantidade Calculada | Unidade | Material / Serviço | Quantidade Orçada | Valor Unitário | Valor Parcial | Fonte | Composição | Justificativa | Divergência | Status |
-|---|---|---|---|---|---:|---|---|---:|---:|---:|---|---|---|---|---|
+1. IDENTIFICAÇÃO E OBJETIVO
+2. DOCUMENTOS UTILIZADOS
+3. MATRIZ PRINCIPAL — TR × ORÇAMENTO
+4. CONFERÊNCIA DE QUANTITATIVOS
+5. CONFERÊNCIA DE VALORES
+6. AUDITORIA REVERSA — PRINCIPAIS CUSTOS
+7. ITENS ORÇADOS POR PREMISSA
+8. LOGÍSTICA
+9. MÃO DE OBRA
+10. EXCLUSÕES E RESPONSABILIDADES
+11. MATRIZ DE DIVERGÊNCIAS
+12. MATRIZ DE RISCOS
+13. PENDÊNCIAS
+14. ITENS NÃO ORÇADOS / NÃO CONFIRMADOS
+15. CHECKLIST DE COMPLETUDE
+16. CONCLUSÃO E VALIDAÇÃO
+17. REGRA DE RASTREABILIDADE
 
-### 5.2 Desenvolvimento da memória
+Esta estrutura é **canônica, mas não congelada**. Ela pode evoluir quando houver necessidade comprovada. Toda alteração estrutural deve ser feita no owner canônico desta pasta, com atualização coordenada de diretriz, schema, template, modelo de dados, testes e documentação.
 
-A memória deve apresentar, quando aplicável:
+Não é permitido criar uma segunda estrutura paralela de PTS para acomodar uma evolução.
 
-- dimensões de referência;
-- geometria;
-- perímetro;
+## 3. Camada de dados da PTS
+
+Cada SO possui seus próprios dados. O template não contém regras específicas de uma obra.
+
+A variação deve ocorrer no JSON da SO, preservando o mesmo template estrutural.
+
+As chaves principais são:
+
+- `so`;
+- `cliente`;
+- `objeto`;
+- `revisao`;
+- `documentos`;
+- `matriz_principal`;
+- `blocos_quantitativos`;
+- `conferencia_valores`;
+- `auditoria_reversa`;
+- `itens_premissa`;
+- `logistica`;
+- `mao_de_obra`;
+- `exclusoes`;
+- `divergencias`;
+- `riscos`;
+- `pendencias`;
+- `itens_nao_orcados`;
+- `checklist`;
+- `conclusao`.
+
+## 4. Matriz principal — TR × orçamento
+
+A matriz principal deve preservar separadamente a origem do requisito e sua correspondência no orçamento.
+
+| Nº | Tópico | Ref. TR | Requisito | Q. Prevista | Q. Orçada | Ref. Orçamento | Valor | Status | Divergência |
+|---:|---|---|---|---:|---:|---|---:|---|---|
+
+A matriz deve permitir identificar:
+
+- requisito sem correspondente no orçamento;
+- requisito parcialmente atendido;
+- solução equivalente;
+- quantidade diferente;
+- item orçado sem requisito identificável;
+- divergência entre requisito e composição.
+
+## 5. Conferência de quantitativos
+
+A conferência deve confrontar, quando aplicável:
+
+**quantidade prevista → quantidade calculada → quantidade adotada → quantidade orçada**
+
+Para cada diferença deve existir explicação ou registro de pendência.
+
+Os blocos quantitativos podem registrar:
+
 - área;
-- volume;
+- perímetro;
+- comprimento;
 - quantidade de peças;
-- comprimento por peça;
-- fator de perda;
-- consumo unitário;
+- número de módulos;
 - produtividade;
-- número de profissionais;
-- dias ou horas de execução;
-- materiais auxiliares;
-- consumíveis;
-- equipamentos;
-- transporte/logística;
-- fórmula utilizada;
-- resultado matemático;
-- quantidade efetivamente levada ao orçamento.
-
-### 5.3 Controle da memória
-
-A memória deve distinguir:
-
-- **quantidade calculada**;
-- **quantidade adotada**;
-- **quantidade orçada**.
-
-Se forem diferentes, a diferença deve ser explicada.
-
-## 6. Classificação de atendimento
-
-- **AI — Atendido Integralmente:** requisito plenamente contemplado.
-- **AE — Atendido por Solução Equivalente:** solução diferente da referência original, mas tecnicamente equivalente, com justificativa.
-- **AP — Atendido Parcialmente:** somente parte do requisito foi contemplada ou existe complementação pendente.
-- **NA — Não Atendido:** requisito sem correspondente suficiente no orçamento.
-
-A classificação não pode mascarar ausência de item.
-
-## 7. Análise Geral da Composição Orçamentária
-
-Após a matriz, consolidar a solução efetivamente orçada:
-
-- produto/módulo base;
-- adaptações;
-- estrutura;
-- arquitetura e acabamentos;
-- elétrica;
-- SPDA/aterramento;
-- climatização;
-- hidrossanitário;
-- drenagem;
-- dados;
-- mobiliário;
-- mão de obra;
+- profissionais;
+- dias;
+- ciclos;
+- perdas;
+- consumo;
 - logística;
-- projetos;
-- documentação;
-- comissionamento;
-- demais componentes relevantes.
+- demais bases de dimensionamento.
 
-## 8. Comparação entre Orçamentos e Composições
+## 6. Conferência de valores
 
-Quando existirem dois ou mais orçamentos, versões, fornecedores ou composições para o mesmo escopo, executar comparação estruturada.
+A conferência deve demonstrar os principais componentes financeiros do orçamento.
 
-### 8.1 Matriz de comparação
+| Componente | Valor |
+|---|---:|
+| Subtotal geral | |
+| Taxa administrativa | |
+| BDI | |
+| Total geral | |
 
-| Item / Sistema | Orçamento A | Orçamento B | Diferença de Quantidade | Diferença de Preço | Diferença de Composição | Contradição | Item Ausente | Explicação | Conclusão |
-|---|---|---|---:|---:|---|---|---|---|---|
+Quando houver inconsistência matemática entre os componentes, registrar a divergência em vez de corrigir silenciosamente o orçamento de origem.
 
-A comparação deve verificar:
+## 7. Auditoria reversa — principais custos
 
-1. mesmos requisitos;
-2. mesmos quantitativos;
-3. mesmas unidades;
-4. mesmos materiais;
-5. mesma solução técnica;
-6. componentes auxiliares;
-7. mão de obra;
-8. logística;
-9. impostos/encargos quando comparáveis;
-10. exclusões;
-11. itens incorporados em verbas globais;
-12. itens presentes em um orçamento e ausentes em outro.
+A auditoria reversa parte dos maiores custos do orçamento e retorna à sua origem.
 
-Diferença de preço, isoladamente, não deve ser tratada como erro.
+| Item | Referência | Valor | Base | Justificativa |
+|---|---|---:|---|---|
 
-## 9. Análise de Contradições, Ausências e Divergências
+A cadeia mínima é:
 
-Executar varredura específica procurando:
+**VALOR → ITEM → COMPOSIÇÃO → FONTE → PREMISSA → MEMÓRIA → EVIDÊNCIA**
 
-- requisito da TR sem item no orçamento;
-- item do orçamento sem requisito identificável;
-- quantitativo calculado diferente do orçado;
-- unidade incompatível;
-- composição incompleta;
-- item duplicado;
-- item necessário implicitamente para executar outro item, mas não identificado;
-- preço sem fonte;
-- composição com preço zerado;
-- premissa incompatível com a geometria;
-- conflito entre versões de orçamento;
-- divergência entre PTS Técnica e orçamento;
-- divergência entre orçamento e memória de cálculo;
-- divergência entre fornecedores;
-- solução equivalente sem justificativa;
-- verba global sem conteúdo demonstrável.
+## 8. Itens orçados por premissa
 
-### 9.1 Tabela de divergências
+Devem ser identificados os itens cuja formação depende de premissa, verba global, estimativa, condição comercial ou interpretação que não esteja integralmente demonstrada na TR.
 
-| ID | Origem | Item | Tipo de Divergência | Evidência | Impacto Técnico | Impacto Econômico | Risco | Tratamento | Status |
-|---|---|---|---|---|---|---|---|---|---|
+| Item | Origem | Premissa | Impacto | Tratamento |
+|---|---|---|---|---|
 
-## 10. Rastreabilidade de excedentes
+A premissa deve indicar claramente se foi:
 
-Para cada excedente identificado, preservar:
+- comprovada;
+- adotada;
+- estimada;
+- pendente;
+- condicionada à confirmação.
 
-**EXCEDENTE → CATEGORIA → NOME MATERIAL → QUANTIDADE → VALOR UNITÁRIO → VALOR TOTAL → COMPOSIÇÃO → FONTE → MEMÓRIA DE CÁLCULO**
+## 9. Logística
 
-O Nome Material deve ser tratado como camada semântica para análise e rastreabilidade, sem criar uma segunda identidade material.
+A logística deve ser apresentada separadamente da composição técnica quando houver impacto próprio.
 
-## 11. Análise de Competitividade
+| Componente | Cálculo | Valor | Critério |
+|---|---|---:|---|
 
-Quando houver dados suficientes, aplicar análise econômica à composição final.
+Podem ser registrados, conforme evidência:
 
-### 11.1 Curva ABC
+- alimentação;
+- deslocamento;
+- hospedagem;
+- veículo;
+- transporte;
+- frete;
+- mobilização;
+- desmobilização;
+- visitas;
+- demais custos logísticos.
 
-`peso = valor_item / valor_total_orcamento`
+## 10. Mão de obra
 
-Ordenar os itens por valor decrescente, calcular acumulado e classificar A/B/C conforme os limites parametrizados.
+A mão de obra deve preservar a separação entre frentes quando aplicável.
 
-A Curva ABC define prioridade de investigação econômica; não autoriza redução automática.
+| Frente | Função | Dias | Colaboradores | V. Unitário | Parcial |
+|---|---|---:|---:|---:|---:|
 
-### 11.2 Ordem de investigação
+Os totais devem ser apresentados por bloco quando os dados estiverem disponíveis.
 
-1. concentração financeira;
-2. excedentes;
-3. Nome Material;
-4. memória de cálculo;
-5. evidência e conhecimento disponível;
-6. flexibilidade técnica/comercial;
-7. risco;
-8. oportunidade.
+## 11. Exclusões e responsabilidades
 
-### 11.3 Estados
+| Item | Responsável | Orçado | Status |
+|---|---|---|---|
 
-**Conhecimento:** `FORTE | MEDIO | FRACO | AUSENTE | CONFLITANTE`
+Devem ser explicitadas responsabilidades, exclusões e itens que dependem de terceiros ou confirmação.
 
-**Flexibilidade:** `ALTA | MEDIA | BAIXA | INDETERMINADA`
+Não presumir responsabilidade contratual sem evidência documental.
 
-**Risco:** `BAIXO | MEDIO | ALTO | CRITICO`
+## 12. Matriz de divergências
 
-**Recomendação:** `MANTER | REVISAR | NEGOCIAR | SUBSTITUIR | REESTRUTURAR | CONFIRMAR | NAO_REDUZIR | AGUARDAR_DECISAO`
+| Nº | Item | Tipo | Previsto | Orçado | Motivo | Impacto | Ação |
+|---:|---|---|---|---|---|---|---|
 
-### 11.4 Oportunidade
+Tipos podem incluir:
 
-Só registrar oportunidade quando houver fundamento verificável:
-
-- item e classe ABC;
-- peso financeiro;
-- origem do valor;
-- memória de cálculo;
-- conhecimento relacionado;
-- evidências;
-- flexibilidade;
-- impacto econômico;
-- risco;
-- recomendação;
-- responsável pela decisão.
-
-Ausência de evidência não autoriza redução.
-
-## 12. Cenários econômicos
-
-Quando houver dados suficientes:
-
-- **BASE:** composição original;
-- **COMPETITIVO:** oportunidades apoiadas por evidência e viabilidade;
-- **MÁXIMO:** limite analítico das oportunidades tecnicamente possíveis, com riscos e premissas explícitos.
-
-Cada cenário deve apresentar:
-
-- valor total;
-- variação absoluta;
-- variação percentual;
-- itens alterados;
-- premissas alteradas;
-- risco.
-
-## 13. Autoridade e governança
-
-Fluxo obrigatório:
-
-**ANÁLISE → RECOMENDAÇÃO → ARBITRAGEM → DECISÃO**
-
-O ELO não deve alterar automaticamente orçamento, Lista-Mãe, conhecimento canônico, Core ou Soul.
-
-O Especialista de Orçamento permanece responsável pela composição técnica. A decisão final permanece com o responsável competente.
-
-## 14. Resumo Executivo
-
-Apresentar quantitativamente:
-
-- itens técnicos analisados;
-- AI;
-- AE;
-- AP;
-- NA;
-- índice de atendimento, somente quando a metodologia estiver definida;
-- memórias de cálculo identificadas;
-- memórias com divergência;
-- itens Classe A;
-- itens ausentes;
-- contradições identificadas;
-- oportunidades de competitividade;
-- riscos relevantes;
-- decisões pendentes.
-
-## 15. Parecer Técnico
-
-Concluir sobre a aderência da composição ao TR, distinguindo:
-
-- atendimento integral;
-- equivalência;
-- atendimento parcial;
-- não atendimento;
-- pendências impeditivas;
-- divergências de quantitativo/composição;
-- limitações de evidência.
-
-Não declarar 100% de atendimento quando existirem AP, NA ou equivalências ainda dependentes de aceite.
-
-## 16. Parecer de Competitividade
-
-Responder objetivamente:
-
-**QUAIS ITENS CONCENTRAM VALOR → QUAIS TÊM FUNDAMENTO PARA REVISÃO → QUAL IMPACTO → QUAL RISCO → QUAL DECISÃO É NECESSÁRIA**
-
-Não transformar automaticamente a análise em redução de preço.
-
-## 17. Evidência e origem
-
-Toda conclusão deve preservar a origem:
-
-- TR/SO;
-- projeto/layout;
-- orçamento;
+- quantitativo;
+- valor;
 - composição;
-- memória de cálculo;
-- premissa interna;
-- solução de engenharia;
+- unidade;
+- requisito;
+- escopo;
+- premissa;
+- responsabilidade;
 - fornecedor;
-- vistoria;
-- confirmação do cliente;
-- conhecimento aplicável.
+- versão;
+- ausência;
+- duplicidade.
 
-Quando a evidência não existir, registrar a limitação.
+## 13. Matriz de riscos
 
-## 18. Relação com a PTS Técnica
+| Risco | Tipo | Impacto | Condição | Tratamento |
+|---|---|---|---|---|
 
-A PTS Pós deve comparar:
+O risco deve estar vinculado a uma evidência, premissa ou lacuna identificável.
 
-**O QUE FOI IDENTIFICADO → O QUE FOI CALCULADO → O QUE FOI ORÇADO → COMO FOI ATENDIDO → O QUE DIVERGIU → POR QUE DIVERGIU → QUAL É O EFEITO.**
+## 14. Pendências
 
-Registrar especialmente:
+| Pendência | Origem | Impacto | Ação | Status |
+|---|---|---|---|---|
 
-- itens excluídos;
-- itens acrescentados;
-- alterações de quantitativo;
-- substituições;
-- equivalências;
-- premissas alteradas;
-- pendências mantidas;
-- oportunidades de revisão.
+Pendência não deve ser ocultada para produzir aparência de completude.
 
-## 19. Registro de Aprendizado
+## 15. Itens não orçados / não confirmados
 
-A PTS Pós deve transformar análises concluídas em conhecimento estruturado somente após avaliação governada.
+Registrar itens identificados na análise que:
 
-O aprendizado deve preservar:
+- não possuem correspondência no orçamento;
+- possuem correspondência insuficiente;
+- dependem de confirmação;
+- estão contidos em verba global sem detalhamento suficiente;
+- possuem origem ou composição ainda não comprovada.
 
-**CONTEXTO → PROBLEMA → PREMISSA → CÁLCULO → SOLUÇÃO → DECISÃO → RESULTADO → EVIDÊNCIA → CONDIÇÃO DE APLICAÇÃO → LIMITAÇÃO**
+## 16. Checklist de completude
 
-Não memorizar somente preço ou quantidade. O parâmetro reutilizável deve registrar como o resultado foi obtido e em quais condições pode ser aplicado novamente.
+O checklist mínimo possui 14 verificações:
 
-## 20. Regra de reutilização das memórias de cálculo
+1. Todos os requisitos principais possuem correspondência?
+2. Itens relevantes possuem origem/justificativa?
+3. Quantitativos confrontados?
+4. Áreas molhadas reavaliadas?
+5. Valores conferidos?
+6. Maiores custos justificados?
+7. Premissas registradas?
+8. Exclusões registradas?
+9. Pendências registradas?
+10. Riscos registrados?
+11. Responsabilidades verificadas?
+12. Logística conferida?
+13. Licenças/ART/RRT completamente confirmadas?
+14. BDI/taxa/total conferidos?
 
-Uma memória de cálculo pode tornar-se parâmetro consultável somente quando houver:
+O checklist não substitui a análise. Ele registra a cobertura da auditoria.
 
-- origem identificada;
-- desenvolvimento verificável;
-- unidade definida;
-- premissas conhecidas;
-- resultado conferido;
-- limitações registradas;
-- ausência de contradição não resolvida.
+## 17. Conclusão e validação
 
-Memórias com inconsistência devem permanecer disponíveis como **parâmetros com alerta**, nunca como padrão automático.
+A conclusão deve separar:
 
-## 21. Governança do aprendizado
+- atendimento técnico;
+- atendimento orçamentário;
+- divergências;
+- riscos;
+- pendências;
+- limitações de evidência;
+- validações ainda necessárias.
 
-Fluxo:
+Não declarar atendimento integral quando houver pendência material, divergência não resolvida ou requisito sem evidência suficiente.
 
-**ORÇAMENTO → PTS PÓS → VARREDURA → ANÁLISE → DECISÃO → RESULTADO → AVALIAÇÃO → LEARNING CANDIDATE → GOVERNED LEARNING**
+## 18. Regra de rastreabilidade
 
-O ELO deve distinguir conhecimento forte de conhecimento derivado de uma única solicitação.
+A PTS deve preservar a rastreabilidade:
 
-Aprendizado específico de uma SO não deve ser promovido automaticamente a regra global.
+**TR/SO → requisito → interpretação → solução → quantitativo → composição → orçamento → premissa → justificativa → risco/pêndencia → validação**
 
-## 22. Regra final
+Toda informação utilizada deve possuir origem identificável.
 
-A PTS Pós-Orçamento é simultaneamente:
+### Fronteira documental
 
-1. documento de comprovação técnica;
-2. instrumento de rastreabilidade orçamentária;
-3. registro das memórias de cálculo;
-4. mecanismo de comparação entre composições;
-5. detector de contradições e ausências;
-6. base para análise de competitividade;
-7. fonte estruturada para aprendizado governado.
+O fluxo é:
 
-O padrão deve privilegiar **evidência, rastreabilidade, reconstrução do raciocínio e identificação explícita das incertezas**, sem completar lacunas por suposição.
+**ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS**
+
+O acervo histórico pode ser consultado pelo ELO para desenvolver o orçamento corrente, mas não é fonte direta da PTS.
+
+Somente a aplicação efetivamente adotada na SO atual, com sua evidência e contexto, pode aparecer no documento corrente.
+
+### Evolução da estrutura
+
+A PTS **não deve ser congelada** após ser considerada correta.
+
+Ela deve permanecer:
+
+**CANÔNICA → VERSIONADA → TESTADA → EVOLUTIVA**
+
+Quando uma necessidade real demonstrar que a estrutura precisa mudar:
+
+1. identificar a necessidade;
+2. comparar com a estrutura existente;
+3. reutilizar antes de criar;
+4. definir a alteração no owner canônico;
+5. atualizar schema e template em conjunto;
+6. atualizar o modelo JSON;
+7. atualizar testes;
+8. validar uma SO real;
+9. registrar a mudança;
+10. promover pela governança do ELO.
+
+Assim, uma PTS correta hoje não impede uma PTS melhor amanhã e, ao mesmo tempo, nenhuma SO pode criar sua própria variante estrutural.
