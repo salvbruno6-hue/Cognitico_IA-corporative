@@ -35,6 +35,12 @@ class FlowAdaptation:
     status: str
 
 
+@dataclass(frozen=True, slots=True)
+class FlowLearningAdmission:
+    candidate_id: str
+    admission: object
+    evolution_record: object | None
+
 class FlowLearningStore(Protocol):
     def append(self, record: FlowOutcomeRecord) -> None: ...
     def history(self, relation_id: str) -> tuple[FlowOutcomeRecord, ...]: ...
@@ -175,9 +181,77 @@ class FlowAdaptationEngine:
         }
 
 
+    def admit_candidate(
+        self,
+        relation_id: str,
+        *,
+        tenant_id: str,
+        domain: str,
+        authorized: bool,
+        evolution_memory: object,
+    ) -> FlowLearningAdmission | None:
+        """Hand a repeatable candidate to the existing ELO admission/memory boundary.
+
+        Admission remains governed by KnowledgeAdmission and persistence remains
+        owned by EvolutionMemory; this adapter never promotes knowledge.
+        """
+        candidate = self.learning_candidate(relation_id)
+        if candidate is None:
+            return None
+
+        from elo.core.evolution_memory import EvolutionRecord
+        from elo.core.knowledge_admission import AdmissionRequest, KnowledgeAdmission
+
+        candidate_id = str(candidate["candidate_id"])
+        evidence_refs = tuple(str(item) for item in candidate["evidence_refs"])
+        provenance_refs = tuple(str(item) for item in candidate["provenance_refs"])
+        provenance = {
+            "source": "elo-flow-complementarity",
+            "relation_id": relation_id,
+            "provenance_refs": list(provenance_refs),
+        }
+        request = AdmissionRequest(
+            tenant_id=tenant_id,
+            domain=domain,
+            source_type="FLOW_LEARNING_CANDIDATE",
+            source_id=candidate_id,
+            content=(
+                f"flow={candidate['origin_flow']} -> {candidate['target_flow']}; "
+                f"success_rate={candidate['success_rate']}; "
+                f"observations={candidate['observations']}"
+            ),
+            provenance=provenance,
+            authorized=authorized,
+            relevant=True,
+            evidence_available=bool(evidence_refs),
+        )
+        admission = KnowledgeAdmission().evaluate(request)
+        if admission.outcome == "REJECT":
+            return FlowLearningAdmission(candidate_id, admission, None)
+
+        record = EvolutionRecord(
+            evolution_id=candidate_id,
+            tenant_id=tenant_id,
+            domain=domain,
+            source_type="FLOW_LEARNING_CANDIDATE",
+            source_id=candidate_id,
+            content=request.content,
+            status="EVIDENCE" if admission.outcome == "EVIDENCE" else "OBSERVATION",
+            confidence=float(candidate["success_rate"]),
+            tags=("FLOW_COMPLEMENTARITY", "CANDIDATE_ONLY"),
+            provenance={
+                **provenance,
+                "evidence_refs": list(evidence_refs),
+                "promotion_state": "candidate_only",
+            },
+        )
+        stored = evolution_memory.store(record)
+        return FlowLearningAdmission(candidate_id, admission, stored)
+
 __all__ = [
     "FlowAdaptation",
     "FlowAdaptationEngine",
+    "FlowLearningAdmission",
     "FlowLearningStore",
     "FlowOutcomeRecord",
     "SQLiteFlowLearningStore",
