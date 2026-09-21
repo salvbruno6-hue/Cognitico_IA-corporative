@@ -21,3 +21,13 @@ Não editar o template para atender caso específico. Variações de cada SO dev
 ## Fonte estrutural
 
 `POS_ORCAMENTO.md` permanece como referência da estrutura, rastreabilidade, memórias de cálculo, divergências, competitividade, governança e registro de aprendizado.
+
+## Fronteira documental
+
+O renderer aplica a regra **ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS** antes do Jinja2.
+
+- `fontes_consultivas`, `acervo_historico` e `historico_consultivo` podem existir na entrada para uso do ELO, mas não são renderizados.
+- Quando um registro declarar `origem_so`, `referencia_so`, `so_origem` ou `so_referencia`, o identificador deve corresponder à SO atual.
+- `document_safe=false`, `documento_seguro=false` ou `aplicado_na_so_atual=false` bloqueia o registro.
+- Registros explicitamente históricos/consultivos somente atravessam a fronteira quando `aplicado_na_so_atual=true`.
+- O template continua responsável apenas pela apresentação; a proteção ocorre antes da renderização.
