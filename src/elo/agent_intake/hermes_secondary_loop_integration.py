@@ -1,39 +1,47 @@
-"""Shared governed-loop adapters for already-evaluated Hermes secondary candidates.
+"""Shared governed-loop adapters for already-evaluated Hermes candidates.
 
-These adapters consolidate existing candidate evaluations into the canonical
-Hermes governed mediator. They do not create a new state machine, authority,
+Only candidates with an existing canonical Symbiont adaptation surface are
+routed here. This module does not create a new state machine, authority,
 Evolution Gate, execution path, or canonical mutation path.
 """
 from __future__ import annotations
 
 from .hermes_context_plugin_boundary import (
     ContextEnginePluginSignal,
-    PluginDisposition,
     assess_context_engine_plugin,
 )
 from .hermes_context_plugin_evaluation import evaluate_context_plugin_candidate
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
-from .hermes_learning_graph_evaluation import evaluate as evaluate_learning_graph
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
-from .hermes_worktree_boundary import WorktreeSignal, assess_worktree
-from .hermes_worktree_evaluation import evaluate as evaluate_worktree
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .symbiont_adaptation import refine_capability
 
 
-def _handoff(candidate_id: str, metric: str, baseline: float, adapted: float,
-             repeatable: bool, provenance_refs: tuple[str, ...],
-             boundary_integrity: bool, capability_id: str):
+def _handoff(
+    candidate_id: str,
+    metric: str,
+    baseline: float,
+    adapted: float,
+    repeatable: bool,
+    provenance_refs: tuple[str, ...],
+    boundary_integrity: bool,
+    capability_id: str,
+):
     candidate = build_candidate(candidate_id)
+    result = (
+        "EVOLUTION_GATE_REQUIRED"
+        if adapted > baseline and repeatable
+        else "RETEST"
+    )
     measurement = CandidateMeasurement(
         candidate.candidate_id,
         {metric: baseline},
         {metric: adapted},
         (),
         repeatable,
-        "EVOLUTION_GATE_REQUIRED" if adapted > baseline and repeatable else "RETEST",
+        result,
     )
     evidence = measurement_to_implementation_evidence(
         candidate,
@@ -44,7 +52,13 @@ def _handoff(candidate_id: str, metric: str, baseline: float, adapted: float,
     )
     adaptation = refine_capability(
         capability_id,
-        {"controlled_test": True, "outcome": {"boundary": boundary_integrity, "evaluation": True}},
+        {
+            "controlled_test": True,
+            "outcome": {
+                "boundary": boundary_integrity,
+                "evaluation": True,
+            },
+        },
     )
     handoff = advance_to_implementation(
         candidate,
@@ -64,14 +78,25 @@ def run_multiagent_loop_probe() -> tuple[object, object]:
     evaluation = evaluate_multiagent()
     signals = tuple(
         DelegationSignal(
-            f"secondary-loop-{i}", "multiteiner", "elo", f"worker-{i}",
-            f"goal-{i}", (f"controlled-eval:multiagent/{i}",),
-            provenance_verified=True, isolated_context=True,
+            f"secondary-loop-{i}",
+            "multiteiner",
+            "elo",
+            f"worker-{i}",
+            f"goal-{i}",
+            (f"controlled-eval:multiagent/{i}",),
+            provenance_verified=True,
+            isolated_context=True,
         )
         for i in range(1, 6)
     )
-    boundary = tuple(assess_delegation(s) for s in signals)
-    refs = tuple(ref for assessment in boundary for ref in assessment.evidence_refs)
+    assessments = tuple(assess_delegation(signal) for signal in signals)
+    refs = tuple(ref for assessment in assessments for ref in assessment.evidence_refs)
+    boundary_integrity = all(
+        not assessment.canonical_authority
+        and not assessment.execution_permitted
+        and not assessment.promotion_permitted
+        for assessment in assessments
+    )
     return _handoff(
         "EXT-MULTIAGENT-HERMES",
         "valid_delegation_recognition_rate",
@@ -79,32 +104,8 @@ def run_multiagent_loop_probe() -> tuple[object, object]:
         evaluation.adapted_rate,
         evaluation.repeatable,
         refs,
-        all(not a.canonical_authority and not a.execution_permitted and not a.promotion_permitted for a in boundary),
+        boundary_integrity,
         "HERMES-DELEGATION",
-    )
-
-
-def run_worktree_loop_probe() -> tuple[object, object]:
-    evaluation = evaluate_worktree()
-    signals = tuple(
-        WorktreeSignal(
-            f"secondary-loop-{i}", "multiteiner", f"wt/secondary/{i}",
-            (f"controlled-eval:worktree/{i}",), "main", True,
-            provenance_verified=True,
-        )
-        for i in range(1, 6)
-    )
-    boundary = tuple(assess_worktree(s) for s in signals)
-    refs = tuple(ref for assessment in boundary for ref in assessment.evidence_refs)
-    return _handoff(
-        "EXT-WORKTREE-HERMES",
-        "valid_isolation_recognition_rate",
-        evaluation.baseline_rate,
-        evaluation.adapted_rate,
-        evaluation.repeatable,
-        refs,
-        all(not a.canonical_authority and not a.merge_permitted for a in boundary),
-        "HERMES-MCP",
     )
 
 
@@ -112,13 +113,23 @@ def run_context_plugin_loop_probe() -> tuple[object, object]:
     evaluation = evaluate_context_plugin_candidate()
     signals = tuple(
         ContextEnginePluginSignal(
-            f"secondary-loop-{i}", "multiteiner", "lcm", "lcm",
-            ("controlled-eval:context-plugin",), True, provenance_verified=True,
+            f"secondary-loop-{i}",
+            "multiteiner",
+            "lcm",
+            "lcm",
+            ("controlled-eval:context-plugin",),
+            explicit_activation=True,
+            provenance_verified=True,
         )
         for i in range(5)
     )
-    boundary = tuple(assess_context_engine_plugin(s) for s in signals)
-    refs = tuple(ref for assessment in boundary for ref in assessment.evidence_refs)
+    assessments = tuple(assess_context_engine_plugin(signal) for signal in signals)
+    refs = tuple(ref for assessment in assessments for ref in assessment.evidence_refs)
+    boundary_integrity = all(
+        not assessment.canonical_authority
+        and not assessment.activation_permitted
+        for assessment in assessments
+    )
     return _handoff(
         "EXT-CONTEXT-PLUGIN-HERMES",
         "context_task_success_rate",
@@ -126,28 +137,12 @@ def run_context_plugin_loop_probe() -> tuple[object, object]:
         evaluation.adapted_success_rate,
         evaluation.repeatable,
         refs,
-        all(not a.canonical_authority and not a.activation_permitted for a in boundary),
+        boundary_integrity,
         "HERMES-CONTEXT",
-    )
-
-
-def run_learning_graph_loop_probe() -> tuple[object, object]:
-    evaluation = evaluate_learning_graph()
-    return _handoff(
-        "EXT-LEARNING-GRAPH-HERMES",
-        "valid_learning_graph_relation_rate",
-        evaluation.baseline_rate,
-        evaluation.adapted_rate,
-        evaluation.repeatable,
-        tuple(f"controlled-eval:learning-graph/{i}" for i in range(1, 6)),
-        evaluation.boundary_integrity_rate == 1.0,
-        "HERMES-MEMORY",
     )
 
 
 __all__ = [
     "run_multiagent_loop_probe",
-    "run_worktree_loop_probe",
     "run_context_plugin_loop_probe",
-    "run_learning_graph_loop_probe",
 ]
