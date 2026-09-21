@@ -1,96 +1,133 @@
 {
+  "schema_version": "3.0",
+  "estrutura_status": "canonica_evolutiva",
   "source_of_truth": "08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md",
   "secoes_obrigatorias": [
-    "identificacao_da_solicitacao",
-    "objetivo",
-    "escopo_tecnico",
-    "matriz_de_rastreabilidade_tecnica_e_orcamentaria",
-    "memorias_de_calculo",
-    "analise_geral_da_composicao_orcamentaria",
-    "comparacao_entre_orcamentos_e_composicoes",
-    "analise_de_contradicoes_ausencias_e_divergencias",
-    "analise_de_competitividade",
-    "resumo_executivo",
-    "parecer_tecnico",
-    "parecer_de_competitividade",
-    "legenda_e_criterios_de_classificacao",
-    "registro_de_aprendizado"
+    "identificacao_objetivo",
+    "documentos",
+    "matriz_principal",
+    "conferencia_quantitativos",
+    "conferencia_valores",
+    "auditoria_reversa",
+    "itens_premissa",
+    "logistica",
+    "mao_de_obra",
+    "exclusoes",
+    "divergencias",
+    "riscos",
+    "pendencias",
+    "itens_nao_orcados",
+    "checklist",
+    "conclusao",
+    "rastreabilidade"
   ],
-  "matriz_rastreabilidade_colunas": [
+  "matriz_principal_colunas": [
     "n",
-    "topico_item",
-    "referencia_tr_documento",
-    "requisito_descricao_so",
-    "solucao_tecnica_proposta",
-    "quantitativo",
-    "unid",
-    "composicao_escopo",
-    "premissa_criterio",
-    "referencia_orcamento",
+    "topico",
+    "ref_tr",
+    "requisito",
+    "q_prev",
+    "q_orc",
+    "ref_orc",
     "valor",
-    "inclusao_no_orcamento",
-    "atendimento",
-    "observacao_pendencia"
-  ],
-  "memoria_calculo_colunas": [
-    "id_mc",
-    "topico_item",
-    "referencia_tr_documento",
-    "premissa",
-    "formula_desenvolvimento",
-    "quantidade_calculada",
-    "unidade",
-    "material_servico",
-    "quantidade_orcada",
-    "valor_unitario",
-    "valor_parcial",
-    "fonte",
-    "composicao",
-    "justificativa",
-    "divergencia",
-    "status"
-  ],
-  "comparacao_colunas": [
-    "item_sistema",
-    "orcamento_a",
-    "orcamento_b",
-    "diferenca_quantidade",
-    "diferenca_preco",
-    "diferenca_composicao",
-    "contradicao",
-    "item_ausente",
-    "explicacao",
-    "conclusao"
+    "status",
+    "divergencia"
   ],
   "divergencias_colunas": [
-    "id",
-    "origem",
+    "n",
     "item",
-    "tipo_de_divergencia",
-    "evidencia",
-    "impacto_tecnico",
-    "impacto_economico",
+    "tipo",
+    "previsto",
+    "orcado",
+    "motivo",
+    "impacto",
+    "acao"
+  ],
+  "riscos_colunas": [
     "risco",
-    "tratamento",
+    "tipo",
+    "impacto",
+    "condicao",
+    "tratamento"
+  ],
+  "pendencias_colunas": [
+    "pendencia",
+    "origem",
+    "impacto",
+    "acao",
     "status"
   ],
-  "excedente_rastreabilidade": [
-    "excedente",
-    "categoria",
-    "nome_material",
-    "quantidade",
-    "valor_unitario",
-    "valor_total",
-    "composicao",
-    "fonte",
-    "memoria_de_calculo"
+  "conferencia_quantitativos_colunas": [
+    "titulo",
+    "corpo"
+  ],
+  "auditoria_reversa_colunas": [
+    "item",
+    "ref",
+    "valor",
+    "base",
+    "justificativa"
+  ],
+  "itens_premissa_colunas": [
+    "item",
+    "origem",
+    "premissa",
+    "impacto",
+    "tratamento"
+  ],
+  "logistica_colunas": [
+    "componente",
+    "calculo",
+    "valor",
+    "criterio"
+  ],
+  "mao_de_obra_colunas": [
+    "titulo",
+    "linhas",
+    "total"
+  ],
+  "mao_de_obra_linha_colunas": [
+    "funcao",
+    "dias",
+    "colab",
+    "v_unit",
+    "parcial"
+  ],
+  "exclusoes_colunas": [
+    "item",
+    "responsavel",
+    "orcado",
+    "status"
+  ],
+  "conferencia_valores_colunas": [
+    "Subtotal geral",
+    "Taxa administrativa",
+    "BDI",
+    "Total geral"
+  ],
+  "checklist_chaves": [
+    "Todos os requisitos principais possuem correspondência?",
+    "Itens relevantes possuem origem/justificativa?",
+    "Quantitativos confrontados?",
+    "Áreas molhadas reavaliadas?",
+    "Valores conferidos?",
+    "Maiores custos justificados?",
+    "Premissas registradas?",
+    "Exclusões registradas?",
+    "Pendências registradas?",
+    "Riscos registrados?",
+    "Responsabilidades verificadas?",
+    "Logística conferida?",
+    "Licenças/ART/RRT completamente confirmadas?",
+    "BDI/taxa/total conferidos?"
   ],
   "fronteira_documental": {
-    "so_atual": "obrigatório; identificador da solicitação corrente",
-    "fontes_consultivas": "permitidas na entrada para apoio do ELO, mas removidas antes da renderização",
-    "proveniencia": "quando declarada em um registro, origem_so/referencia_so deve corresponder à so atual",
-    "flags_de_seguranca": "document_safe/documento_seguro/aplicado_na_so_atual=false bloqueia o registro",
-    "historico": "registros com fonte_tipo histórico/precedente/caso/acervo/referencia_consultiva/consultiva só passam quando aplicado_na_so_atual=true",
-    "regra": "ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS"
+    "so_atual": "obrigatorio",
+    "fontes_consultivas": "consultivas_e_nao_renderizadas",
+    "regra": "ACERVO CONSULTIVO -> ELO -> SO ATUAL -> ORCAMENTO ATUAL -> PTS"
+  },
+  "evolucao": {
+    "congelada": false,
+    "regra": "alteracoes estruturais devem ocorrer somente no owner canonico e atualizar diretriz, schema, template, modelo de dados, testes e documentacao em conjunto"
   }
 }
