@@ -16,6 +16,7 @@ from .hermes_governed_loop import advance_to_implementation
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
+from .independent_review import IndependentReviewEvidence, validate_independent_review
 from .symbiont_adaptation import refine_capability
 
 
@@ -142,7 +143,46 @@ def run_context_plugin_loop_probe() -> tuple[object, object]:
     )
 
 
+def run_independent_review_loop_probe() -> tuple[object, object]:
+    """Evaluate independent review as a refinement of HERMES-DELEGATION."""
+    reviews = tuple(
+        IndependentReviewEvidence(
+            subject_id=f"candidate:HERMES-DELEGATION:{i}",
+            subject_owner_id="elo-forge",
+            reviewer_id=f"elo-reviewer-{i}",
+            review_scope="governance-contract",
+            context_snapshot_id=f"ctx-independent-review-{i}",
+            inherited_skill_ids=("skill:review",),
+            authorized_tool_ids=("tool:read",),
+            verdict="PASS",
+            evidence_ids=(f"controlled-eval:independent-review/{i}",),
+            provenance={"source": "hermes", "mode": "read_only"},
+        )
+        for i in range(1, 6)
+    )
+    valid_rate = sum(
+        validate_independent_review(review)
+        for review in reviews
+    ) / len(reviews)
+    refs = tuple(
+        evidence_id
+        for review in reviews
+        for evidence_id in review.evidence_ids
+    )
+    return _handoff(
+        "EXT-MULTIAGENT-HERMES",
+        "independent_review_validation_rate",
+        valid_rate,
+        valid_rate,
+        True,
+        refs,
+        boundary_integrity=True,
+        capability_id="HERMES-DELEGATION",
+    )
+
+
 __all__ = [
     "run_multiagent_loop_probe",
     "run_context_plugin_loop_probe",
+    "run_independent_review_loop_probe",
 ]
