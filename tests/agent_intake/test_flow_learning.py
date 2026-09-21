@@ -64,3 +64,43 @@ def test_failed_outcomes_do_not_become_repeatable():
         )
     assert result.status == "REVIEW_REQUIRED"
     assert result.success_rate == 0.5
+
+def test_repeatable_flow_becomes_learning_candidate_only():
+    store = SQLiteFlowLearningStore(":memory:")
+    learning = FlowAdaptationEngine(store)
+    for index in (1, 2):
+        learning.record(
+            FlowOutcomeRecord(
+                relation_id="r-candidate",
+                origin_flow="CONTROLLED_TEST",
+                target_flow="MEASURED_GAIN",
+                outcome="PASS",
+                success=True,
+                evidence_refs=(f"e{index}",),
+                provenance_refs=("source",),
+            )
+        )
+
+    candidate = learning.learning_candidate("r-candidate")
+    assert candidate is not None
+    assert candidate["promotion_state"] == "candidate_only"
+    assert candidate["observations"] == 2
+    assert candidate["success_rate"] == 1.0
+    assert candidate["evidence_refs"] == ("e1", "e2")
+    assert candidate["provenance_refs"] == ("source",)
+
+
+def test_flow_learning_candidate_requires_evidence_and_provenance():
+    store = SQLiteFlowLearningStore(":memory:")
+    learning = FlowAdaptationEngine(store)
+    for _ in (1, 2):
+        learning.record(
+            FlowOutcomeRecord(
+                relation_id="r-incomplete",
+                origin_flow="A",
+                target_flow="B",
+                outcome="PASS",
+                success=True,
+            )
+        )
+    assert learning.learning_candidate("r-incomplete") is None
