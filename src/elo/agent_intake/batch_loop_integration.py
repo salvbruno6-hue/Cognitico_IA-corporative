@@ -1,31 +1,54 @@
-"""Governed implementation-loop probe for EXT-BATCH-HERMES."""
+"""Governed implementation-loop probe for EXT-BATCH-HERMES.
+
+The candidate enters the shared ELO governed mediator. This adapter does not
+own an implementation state machine or approval authority.
+"""
 from __future__ import annotations
-from .hermes_current_extensions import build_candidate, CandidateMeasurement
+
+from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_batch_boundary import BatchSignal, assess_batch
 from .hermes_batch_evaluation import evaluate
+from .hermes_governed_loop import advance_to_implementation
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
-from .implementation_loop import run_implementation_loop
 from .symbiont_adaptation import refine_capability
+
 
 def run_batch_loop_probe() -> tuple[object, object]:
     candidate = build_candidate("EXT-BATCH-HERMES")
     evaluation = evaluate()
     baseline = {"bounded_batch_candidate_rate": evaluation.baseline_rate}
     adapted = {"bounded_batch_candidate_rate": evaluation.adapted_rate}
+
     signal = BatchSignal(
-        "batch-loop", "multiteiner", ("controlled-eval:batch-loop",),
-        "task-digest-v1", 5, True, True, "schema-v1", False, False,
+        "batch-loop",
+        "multiteiner",
+        ("controlled-eval:batch-loop",),
+        "task-digest-v1",
+        5,
+        True,
+        True,
+        "schema-v1",
+        False,
+        False,
     )
     boundary = assess_batch(signal)
+
     adaptation = refine_capability(
         "HERMES-DELEGATION",
         {"controlled_test": True, "outcome": {"bounded": True, "boundary": True}},
     )
+
     measurement = CandidateMeasurement(
-        candidate.candidate_id, baseline, adapted, (), evaluation.repeatable, evaluation.result
+        candidate.candidate_id,
+        baseline,
+        adapted,
+        (),
+        evaluation.repeatable,
+        evaluation.result,
     )
     evidence = measurement_to_implementation_evidence(
-        candidate, measurement,
+        candidate,
+        measurement,
         metric_directions={"bounded_batch_candidate_rate": "maximize"},
         provenance_refs=boundary.evidence_refs,
         boundary_integrity=(
@@ -34,9 +57,16 @@ def run_batch_loop_probe() -> tuple[object, object]:
             and not boundary.promotion_permitted
         ),
     )
-    decision = run_implementation_loop(
-        candidate, adaptation, evidence.baseline, evidence.adapted,
-        repeatable=evidence.repeatable, regressions=evidence.regressions,
+
+    handoff = advance_to_implementation(
+        candidate,
+        adaptation,
+        evidence.baseline,
+        evidence.adapted,
         metric_directions=evidence.metric_directions,
+        repeatable=evidence.repeatable,
+        regressions=evidence.regressions,
+        provenance_refs=evidence.provenance_refs,
+        boundary_integrity=evidence.boundary_integrity,
     )
-    return decision, evidence
+    return handoff.implementation, evidence
