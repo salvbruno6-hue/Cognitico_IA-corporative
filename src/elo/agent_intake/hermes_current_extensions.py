@@ -24,6 +24,7 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-WORKTREE-HERMES", "isolated git worktrees", "ELO Forge", "isolated technical workspaces with governed merge"),
     ("EXT-MULTIAGENT-HERMES", "subagent delegation / parallel workstreams", "ELO Agent Delegation", "bounded delegated execution with evidence and authority limits"),
     ("EXT-CRON-HERMES", "scheduled agent tasks", "ELO Workflow/Automation", "deterministic scheduled invocation with ELO governance"),
+    ("EXT-MCP-HERMES", "external MCP capabilities", "ELO External Capability Gateway", "allowlisted external capability access with governed evidence"),
 )
 
 
