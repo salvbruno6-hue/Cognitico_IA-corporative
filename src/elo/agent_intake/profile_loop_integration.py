@@ -1,56 +1,60 @@
-"""Controlled implementation-loop probe for EXT-PROFILE-HERMES."""
+"""Governed implementation-loop probe for EXT-PROFILE-HERMES.
+
+This integration reuses the existing controlled Profile evaluation and boundary.
+It adds only the ImplementationEvidence/ImplementationLoop handoff; it does
+not duplicate the Profile measurement model or create a second capability.
+"""
 from __future__ import annotations
 
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
-from .hermes_profile_boundary import ProfileDisposition, ProfileSignal, assess_profile
+from .hermes_profile_boundary import ProfileSignal, assess_profile
+from .hermes_profile_evaluation import evaluate
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .implementation_loop import run_implementation_loop
 from .symbiont_adaptation import refine_capability
 
 
-def run_profile_loop_probe(tenant_scope: str = "loop-tenant", repeats: int = 5):
-    if repeats < 1:
-        raise ValueError("repeats must be >= 1")
-
+def run_profile_loop_probe() -> tuple[object, object]:
     candidate = build_candidate("EXT-PROFILE-HERMES")
-    baseline = {"profile_isolation_compliance": 0.0}
-    adapted_values = []
+    evaluation = evaluate()
 
-    for _ in range(repeats):
-        signal = ProfileSignal(
-            "profile-loop",
-            tenant_scope,
-            ("controlled-eval:profile-loop",),
-            "profile-digest-v1",
-            True,
-            True,
-            False,
-            False,
-        )
-        assessment = assess_profile(signal)
-        adapted_values.append(
-            1.0 if assessment.disposition is ProfileDisposition.CANDIDATE else 0.0
-        )
+    baseline = {"isolated_profile_candidate_rate": evaluation.baseline_rate}
+    adapted = {"isolated_profile_candidate_rate": evaluation.adapted_rate}
 
-    adapted = {"profile_isolation_compliance": adapted_values[0]}
+    signal = ProfileSignal(
+        "profile-loop",
+        "multiteiner",
+        ("controlled-eval:profile-loop",),
+        "profile-digest-v1",
+        True,
+        True,
+        False,
+        False,
+    )
+    boundary = assess_profile(signal)
+
+    adaptation = refine_capability(
+        "HERMES-CONTEXT",
+        {"controlled_test": True, "outcome": {"isolated_state": True, "boundary": True}},
+    )
     measurement = CandidateMeasurement(
         candidate_id=candidate.candidate_id,
         baseline=baseline,
         adapted=adapted,
         regressions=(),
-        repeatable=len(set(adapted_values)) == 1,
-        result="EVOLUTION_GATE_REQUIRED",
-    )
-    adaptation = refine_capability(
-        "HERMES-DELEGATION",
-        {"controlled_test": True, "outcome": {"boundary": True}},
+        repeatable=evaluation.repeatable,
+        result=evaluation.result,
     )
     evidence = measurement_to_implementation_evidence(
         candidate,
         measurement,
-        metric_directions={"profile_isolation_compliance": "maximize"},
-        provenance_refs=("controlled-eval:profile-loop",),
-        boundary_integrity=True,
+        metric_directions={"isolated_profile_candidate_rate": "maximize"},
+        provenance_refs=boundary.evidence_refs,
+        boundary_integrity=(
+            not boundary.canonical_authority
+            and not boundary.execution_permitted
+            and not boundary.promotion_permitted
+        ),
     )
     decision = run_implementation_loop(
         candidate,
