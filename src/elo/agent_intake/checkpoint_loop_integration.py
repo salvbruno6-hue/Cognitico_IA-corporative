@@ -1,16 +1,15 @@
 """Integration probe for the first governed implementation-loop candidate.
 
 This module composes existing checkpoint evidence, the measurement harness,
-Symbiont adaptation, and the implementation loop. It remains descriptive and
-does not authorize or mutate canonical ELO state.
+Symbiont adaptation, and the shared governed mediator. It remains descriptive
+and does not authorize or mutate canonical ELO state.
 """
 from __future__ import annotations
 
 from .checkpoint_loop_harness import evaluate_checkpoint_loop_harness
 from .hermes_current_extensions import build_candidate
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
-from .hermes_governed_loop import close_approved_candidate
-from .implementation_loop import run_implementation_loop
+from .hermes_governed_loop import close_approved_candidate, advance_to_implementation
 from .symbiont_adaptation import refine_capability
 
 
@@ -38,7 +37,7 @@ def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int
         boundary_integrity=True,
     )
 
-    decision = run_implementation_loop(
+    handoff = advance_to_implementation(
         candidate,
         adaptation,
         evidence.baseline,
@@ -46,9 +45,10 @@ def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int
         repeatable=evidence.repeatable,
         regressions=evidence.regressions,
         metric_directions=evidence.metric_directions,
+        provenance_refs=evidence.provenance_refs,
+        boundary_integrity=evidence.boundary_integrity,
     )
-    return evidence, decision
-
+    return evidence, handoff.implementation
 
 
 def close_checkpoint_approved_candidate(
