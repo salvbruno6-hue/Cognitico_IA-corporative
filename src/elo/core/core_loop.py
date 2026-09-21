@@ -116,7 +116,14 @@ class CoreLoopEngine:
 
         routing: NextFlowResolution | None = None
         if request.flow_origin is not None or request.flow_outcome is not None:
-            if self._flow_router is None or request.flow_origin is None or request.flow_outcome is None:
+            if handoff:
+                # A blocked/conflicted/low-confidence Core Loop must not emit a
+                # next-flow recommendation, even when an independent relation
+                # appears eligible. The diagnostic gate remains authoritative.
+                gaps = tuple(dict.fromkeys(
+                    gaps + ("next flow withheld by core-loop diagnostic gate",)
+                ))
+            elif self._flow_router is None or request.flow_origin is None or request.flow_outcome is None:
                 gaps = tuple(dict.fromkeys(gaps + ("flow routing contract is incomplete",)))
                 handoff = True
             else:
