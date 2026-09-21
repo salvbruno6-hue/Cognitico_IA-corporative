@@ -39,19 +39,48 @@ def _signals(message: str, context: Mapping[str, Any]) -> tuple[bool, float, flo
     user_is_explaining = bool(context.get("user_is_explaining", False))
 
     if not ambiguity:
-        ambiguity = 0.55 if any(
-            token in text for token in ("como", "qual", "o que", "por que", "preciso", "ajude")
-        ) else 0.0
+        ambiguity = 0.55 if any(token in text for token in ("como", "qual", "o que", "por que", "preciso", "ajude")) else 0.0
     if not decision_relevance:
-        decision_relevance = 0.65 if any(
-            token in text for token in ("decidir", "decisão", "escolher", "aprovar", "devo")
-        ) else 0.0
+        decision_relevance = 0.65 if any(token in text for token in ("decidir", "decisão", "escolher", "aprovar", "devo")) else 0.0
     if not evidence_gap:
-        evidence_gap = 0.55 if any(
-            token in text for token in ("não sei", "sem dados", "incerto", "verificar", "investigue")
-        ) else 0.0
+        evidence_gap = 0.55 if any(token in text for token in ("não sei", "sem dados", "incerto", "verificar", "investigue")) else 0.0
 
     return user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap
+
+
+def _is_identity_request(message: str) -> bool:
+    text = " ".join(message.strip().lower().split())
+    return any(
+        phrase in text
+        for phrase in (
+            "quem é você",
+            "quem e voce",
+            "quem é vc",
+            "quem e vc",
+            "o que é você",
+            "o que e voce",
+            "o que é o elo",
+            "o que e o elo",
+            "defina o elo",
+            "defina quem você é",
+            "defina quem voce e",
+        )
+    )
+
+
+def _identity_response() -> str:
+    return (
+        "Eu sou o ELO Cognitivo. "
+        "Eu sou a autoridade cognitiva canônica do ELO: interpreto objetivos, "
+        "mantenho e contextualizo o estado da tarefa, avalio evidências, "
+        "coordeno capacidades e especialistas, conduzo análise, supervisiono "
+        "execução governada e verifico resultados para extrair aprendizado. "
+        "Eu não sou apenas um chatbot, nem substituo a decisão humana autorizada. "
+        "Meu Core materializa capacidades cognitivas; meu Forge constrói e testa "
+        "mudanças; a governança verifica os limites e a promoção. "
+        "Minha identidade, princípios e limites são definidos pelo contrato "
+        "canônico do ELO."
+    )
 
 
 def _render_response(
@@ -60,7 +89,10 @@ def _render_response(
     posture: InteractionPosture,
     next_step: str,
     base_content_is_request: bool,
+    identity_request: bool,
 ) -> str:
+    if identity_request:
+        return _identity_response()
     if not base_content_is_request:
         return content
 
@@ -82,10 +114,11 @@ def build_interaction(
     base_result: Mapping[str, Any] | None = None,
     temporal_memory: TemporalConversationMemory | None = None,
 ) -> InteractionRuntimeResult:
-    """Choose a governed conversational posture with optional authorized continuity."""
+    """Choose a governed conversational posture with authorized continuity."""
 
     context = context or {}
     base_result = base_result or {}
+    identity_request = _is_identity_request(message)
     conversation_id = str(context.get("conversation_id") or context.get("session_id") or "").strip()
     authorized = bool(context.get("conversation_authorized", False))
 
@@ -98,9 +131,7 @@ def build_interaction(
         prior_text = "\n".join(record.content for record in prior_records[-5:])
         contextual_message = f"Contexto anterior:\n{prior_text}\n\nMensagem atual:\n{message}"
 
-    user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap = _signals(
-        contextual_message, context
-    )
+    user_is_explaining, ambiguity, decision_relevance, risk, evidence_gap = _signals(contextual_message, context)
 
     posture = choose_interaction_posture(
         user_is_explaining=user_is_explaining,
@@ -132,6 +163,7 @@ def build_interaction(
         posture=posture,
         next_step=next_step,
         base_content_is_request=content == message.strip(),
+        identity_request=identity_request,
     )
 
     return InteractionRuntimeResult(
@@ -149,5 +181,6 @@ def build_interaction(
             "response_rendered": rendered_content != content,
             "continuity": bool(prior_records),
             "prior_context_records": len(prior_records),
+            "identity_request": identity_request,
         },
     )
