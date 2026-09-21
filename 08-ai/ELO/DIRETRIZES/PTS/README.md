@@ -31,3 +31,16 @@ O renderer aplica a regra **ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENT
 - `document_safe=false`, `documento_seguro=false` ou `aplicado_na_so_atual=false` bloqueia o registro.
 - Registros explicitamente históricos/consultivos somente atravessam a fronteira quando `aplicado_na_so_atual=true`.
 - O template continua responsável apenas pela apresentação; a proteção ocorre antes da renderização.
+
+
+## Fluxo de apresentação e geração de arquivo
+
+A PTS Pós segue **apresentação primeiro**:
+
+1. O ELO prepara a PTS da SO atual.
+2. A PTS completa é apresentada diretamente na tela para análise e validação.
+3. Nenhum arquivo Markdown é criado automaticamente para download.
+4. O Markdown existe como representação estrutural/cognitiva do orçamento e só deve ser persistido quando necessário para processamento, conhecimento, versionamento ou quando explicitamente solicitado.
+5. Documento final (por exemplo, DOCX/PDF) somente é gerado mediante solicitação do usuário.
+
+Portanto, **PTS exibida na tela ≠ geração automática de documento**. A visualização é a saída padrão; a persistência de arquivo é uma ação posterior e explícita.

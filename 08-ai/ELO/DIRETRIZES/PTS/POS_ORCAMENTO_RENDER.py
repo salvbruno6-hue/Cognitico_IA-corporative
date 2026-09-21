@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Gera uma PTS Pós-Orçamento em Markdown a partir de um JSON.
+"""Prepara e renderiza a PTS Pós-Orçamento a partir de um JSON.
+
+Fluxo padrão: a PTS é apresentada em tela. Nenhum arquivo Markdown é criado
+automaticamente. O arquivo Markdown só é persistido quando explicitamente
+solicitado; sua finalidade principal é estrutural/cognitiva, não de download.
 
 A entrada pode consultar acervo histórico para desenvolver o orçamento, mas
 somente dados pertencentes à SO atual podem atravessar a fronteira documental.
@@ -118,9 +122,9 @@ def render(dados: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Gera PTS Pós-Orçamento em Markdown.")
+    parser = argparse.ArgumentParser(description="Renderiza PTS Pós-Orçamento; por padrão, apresenta em tela e não cria arquivo.")
     parser.add_argument("dados", type=Path, help="Arquivo JSON com os dados da SO.")
-    parser.add_argument("-o", "--out", type=Path, default=None, help="Arquivo Markdown de saída.")
+    parser.add_argument("-o", "--out", type=Path, default=None, help="Persistir Markdown somente quando explicitamente solicitado.")
     args = parser.parse_args()
 
     try:
@@ -130,11 +134,12 @@ def main() -> int:
         dados = carregar_json(args.dados)
         markdown = render(dados)
 
-        saida = args.out or args.dados.with_suffix(".md")
-        saida.parent.mkdir(parents=True, exist_ok=True)
-        saida.write_text(markdown, encoding="utf-8")
-
-        print(f"[ok] gerado: {saida}")
+        if args.out is not None:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(markdown, encoding="utf-8")
+            print(f"[ok] arquivo solicitado: {args.out}", file=sys.stderr)
+        else:
+            print(markdown)
         return 0
     except Exception as exc:
         print(f"[erro] {exc}", file=sys.stderr)
