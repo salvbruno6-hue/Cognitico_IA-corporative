@@ -329,6 +329,10 @@ Antes de criar ou alterar qualquer artefato, consulte:
 
 Esses documentos orientam navegação, classificação, execução e revisão. Não substituem arquitetura normativa ou ADRs aprovados.
 
+## Ferramentas
+
+- [PTS Pós-Orçamento](08-ai/ELO/DIRETRIZES/PTS/README.md) — gerador e estrutura canônica evolutiva da PTS Pós-Orçamento, com 17 seções e dados específicos por SO.
+
 ## Próximo estado
 
 O ciclo de consolidação das variantes duplicadas atualmente identificadas foi concluído para as famílias auditadas. A partir deste ponto, qualquer nova duplicidade deve ser tratada pelo **Loop de Conclusão**, sem remoção automática e sem criação de novas variantes.
