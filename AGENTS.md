@@ -40,7 +40,7 @@ Before any implementation task:
 
 1. Read this file.
 2. Read `ELO_REPOSITORY_NAVIGATION_RULES.md`.
-3. Read `ELO_ARTIFACT_METADATA_STANDARD.md` when adding or relocating artifacts.
+3. Read `09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md` when adding or relocating artifacts.
 4. Inspect the target directory.
 5. Search for an existing concept, contract, class, schema, test, ADR, or document.
 6. Identify the canonical owner of the concept.

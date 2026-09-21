@@ -26,6 +26,6 @@ O snapshot de 2026-08-12 registra o estado atual como **PRE-BASELINE / NOT FROZE
 
 ## Para Codex e outros agentes
 
-Ler também `AGENTS.md`, `ELO_REPOSITORY_NAVIGATION_RULES.md`, `ELO_AI_AGENT_WORKING_RULES.md` e `ELO_ARTIFACT_METADATA_STANDARD.md`.
+Ler também `AGENTS.md`, `ELO_REPOSITORY_NAVIGATION_RULES.md`, `ELO_AI_AGENT_WORKING_RULES.md` e `09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md`.
 
 Este conjunto fornece contexto e critérios de rastreabilidade; não concede autorização automática para implementar propostas.

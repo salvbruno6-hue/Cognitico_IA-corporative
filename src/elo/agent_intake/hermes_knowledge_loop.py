@@ -4,7 +4,7 @@ Layer: cognitive
 Owner: ELO cognitive orchestrator
 Status: implemented
 Authority: implementation
-Related: ELO_HERMES_CAPABILITY_SCAN_20260912.md, ELO_ARTIFACT_METADATA_STANDARD.md
+Related: ELO_HERMES_CAPABILITY_SCAN_20260912.md, 09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md
 Depends_on: ELO governance gates, Hermes exported capability evidence
 
 The loop consumes explicitly supplied Hermes evidence. It never calls Hermes,

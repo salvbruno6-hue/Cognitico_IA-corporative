@@ -10,7 +10,7 @@ AI agents and human reviewers should read the repository governance and authorit
 
 1. `AGENTS.md`
 2. `ELO_REPOSITORY_NAVIGATION_RULES.md`
-3. `ELO_ARTIFACT_METADATA_STANDARD.md` when adding or relocating artifacts
+3. `09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md` when adding or relocating artifacts
 4. approved architecture baselines and ADRs
 5. `01-meta-architecture/cognitive-architecture/README.md` — this orientation document
 6. `ELO_COGNITIVE_EVOLUTION_ARCHITECTURE.md` — the detailed proposal

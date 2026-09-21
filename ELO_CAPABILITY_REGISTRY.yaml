@@ -4,7 +4,7 @@
 # This registry is intentionally conservative: it records the initial inventory
 # without claiming implementation maturity that has not been evidenced.
 #
-# Status vocabulary follows ELO_ARTIFACT_METADATA_STANDARD.md.
+# Status vocabulary follows 09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md.
 # Maturity: 0 absent, 1 conceptual, 2 documented, 3 contracted,
 # 4 implemented, 5 tested, 6 verified, 7 operationally evidenced.
 

@@ -12,7 +12,7 @@ Before implementation, agents must inspect and respect:
 
 - `AGENTS.md`
 - `ELO_REPOSITORY_NAVIGATION_RULES.md`
-- `ELO_ARTIFACT_METADATA_STANDARD.md`
+- `09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md`
 - `ELO_AI_AGENT_WORKING_RULES.md`
 - approved architecture baselines
 - approved ADRs

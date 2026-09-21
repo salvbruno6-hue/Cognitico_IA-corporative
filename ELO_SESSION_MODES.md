@@ -1,14 +1,8 @@
 # ELO Session Modes
 
-| Mode | Read/Search | Recommend | Write | Merge | External Actions |
-|---|---|---|---|---|---|
-| `READ_ONLY_CONSULTATION` | YES | YES | NO | NO | NO |
-| `GOVERNED_EXECUTION` | YES | YES | YES, if authorized | Only through gates | Only if authorized |
+> **Movido em 2026-09-21.**
+> Local canônico: [`09-governance/contracts/protocols/ELO_SESSION_MODES.md`](09-governance/contracts/protocols/ELO_SESSION_MODES.md)
 
-Every new Git-connected AI session starts in `READ_ONLY_CONSULTATION`.
-
-Transition requires explicit authorization:
-
-`READ_ONLY_CONSULTATION → EXPLICIT_AUTHORIZATION → GOVERNED_EXECUTION`
-
-Repository read access alone never grants write authority.
+Este redirect existe para preservar referências históricas e será
+removido após o próximo ciclo de consolidação (ver
+ELO_REPOSITORY_NAVIGATION_RULES.md, Loop de Conclusão).
