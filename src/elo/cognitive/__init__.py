@@ -8,6 +8,7 @@ from typing import Any
 from elo.interface.contracts import CognitiveRequest
 
 from .agents.hermes_contract import HermesExecutionRequest
+from elo.core.interaction_runtime import build_interaction
 from .symbiont_hermes_bridge import SymbiontHermesBridge
 
 
@@ -16,12 +17,7 @@ _RUNTIME_PROBE_CAPABILITY = "hermes:runtime_probe"
 
 
 class CognitiveCore:
-    """Canonical cognitive core with an explicit governed Hermes execution path.
-
-    Normal requests remain deterministic. Hermes is invoked only when the
-    caller supplies an explicit, already-authorized ``hermes_mission`` in the
-    request context and that mission matches the bounded runtime-probe contract.
-    """
+    """Canonical cognitive core with governed conversational behavior."""
 
     def __init__(self, *, hermes_bridge: SymbiontHermesBridge | None = None) -> None:
         self._hermes_bridge = hermes_bridge or SymbiontHermesBridge()
@@ -54,10 +50,21 @@ class CognitiveCore:
                 },
             }
 
+        interaction = build_interaction(
+            request.message,
+            context=request.context,
+            base_result={"content": request.message},
+        )
         return {
-            "response": {"type": "analysis", "content": request.message},
+            "response": {
+                "type": "analysis",
+                "content": interaction.content,
+                "posture": interaction.posture.value,
+                "next_step": interaction.next_step,
+            },
             "confidence": 1.0,
             "domain": request.domain,
+            "interaction": dict(interaction.metadata),
             "provenance": {
                 "request_id": request.request_id,
                 "correlation_id": request.correlation_id,
