@@ -24,5 +24,6 @@
     "AP": "Atendido Parcialmente",
     "NA": "Não Atendido"
   },
-  "registro_aprendizado": []
+  "registro_aprendizado": [],
+  "fontes_consultivas": []
 }
