@@ -98,5 +98,80 @@ def approval_to_implementation(
         candidate, readiness=readiness, decision=decision
     )
 
+def close_approved_candidate(
+    candidate: HermesCandidate,
+    adaptation: SymbiontAdaptation,
+    baseline: Mapping[str, float],
+    adapted: Mapping[str, float],
+    *,
+    metric_directions: Mapping[str, str],
+    repeatable: bool,
+    regressions: tuple[str, ...] = (),
+    provenance_refs: tuple[str, ...] = (),
+    boundary_integrity: bool = True,
+    evolution_gate_approved: bool = False,
+    elo_implementation_approved: bool = False,
+) -> GovernedLoopHandoff:
+    """Close an already-approved candidate through the existing implementation loop.
 
-__all__ = ["GovernedLoopHandoff", "advance_to_implementation", "approval_to_implementation"]
+    This is a handoff, not a new approval authority. Technical evidence is
+    revalidated before explicit ELO implementation authorization is passed
+    to run_implementation_loop. Canonical mutation remains false.
+    """
+    readiness = assess_loop_readiness(
+        candidate,
+        adaptation,
+        baseline,
+        adapted,
+        metric_directions=metric_directions,
+        repeatable=repeatable,
+        regressions=regressions,
+        provenance_refs=provenance_refs,
+        boundary_integrity=boundary_integrity,
+    )
+    if not readiness.ready_for_loop:
+        decision = ImplementationDecision(
+            candidate.candidate_id,
+            ImplementationStage.CANDIDATE,
+            "RETEST",
+            False,
+            "approved-candidate closure blocked by incomplete implementation evidence",
+        )
+        return GovernedLoopHandoff(
+            candidate.candidate_id, readiness, decision, None, "CANDIDATE",
+        )
+
+    if not evolution_gate_approved or not elo_implementation_approved:
+        decision = ImplementationDecision(
+            candidate.candidate_id,
+            ImplementationStage.ELO_REVIEW,
+            "READY_FOR_ELO_REVIEW",
+            False,
+            "explicit Evolution Gate approval and implementation authorization are both required",
+        )
+        return GovernedLoopHandoff(
+            candidate.candidate_id, readiness, decision, None, "ELO_REVIEW",
+        )
+
+    decision = run_implementation_loop(
+        candidate,
+        adaptation,
+        baseline,
+        adapted,
+        repeatable=repeatable,
+        elo_approved=True,
+        regressions=regressions,
+        metric_directions=metric_directions,
+    )
+    next_state = (
+        "IMPLEMENTATION_AUTHORIZED"
+        if decision.result == "IMPLEMENTATION_AUTHORIZED"
+        else decision.stage.value
+    )
+    return GovernedLoopHandoff(
+        candidate.candidate_id, readiness, decision, None, next_state,
+    )
+
+
+
+__all__ = ["GovernedLoopHandoff", "advance_to_implementation", "approval_to_implementation", "close_approved_candidate"]
