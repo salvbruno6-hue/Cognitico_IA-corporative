@@ -11,4 +11,4 @@ def test_cron_candidate_enters_shared_governed_loop_without_promotion():
     assert evidence.adapted == {"authorized_idempotent_schedule_recognition_rate": 1.0}
     assert evidence.repeatable is True
     assert evidence.boundary_integrity is True
-    assert evidence.canonical_mutation is False
+    assert implementation.canonical_mutation is False
