@@ -9,6 +9,7 @@ from elo.interface.contracts import CognitiveRequest
 
 from .agents.hermes_contract import HermesExecutionRequest
 from elo.core.interaction_runtime import build_interaction
+from elo.core.temporal_memory import TemporalConversationMemory
 from .symbiont_hermes_bridge import SymbiontHermesBridge
 
 
@@ -19,8 +20,14 @@ _RUNTIME_PROBE_CAPABILITY = "hermes:runtime_probe"
 class CognitiveCore:
     """Canonical cognitive core with governed conversational behavior."""
 
-    def __init__(self, *, hermes_bridge: SymbiontHermesBridge | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        hermes_bridge: SymbiontHermesBridge | None = None,
+        temporal_memory: TemporalConversationMemory | None = None,
+    ) -> None:
         self._hermes_bridge = hermes_bridge or SymbiontHermesBridge()
+        self._temporal_memory = temporal_memory or TemporalConversationMemory()
 
     def process(self, request: CognitiveRequest) -> dict[str, Any]:
         if not request.tenant_id:
@@ -50,11 +57,34 @@ class CognitiveCore:
                 },
             }
 
+        context = dict(request.context)
+        context.setdefault("session_id", request.session_id)
+        context.setdefault("conversation_id", context.get("conversation_id") or request.session_id)
+
         interaction = build_interaction(
             request.message,
-            context=request.context,
+            context=context,
             base_result={"content": request.message},
+            temporal_memory=self._temporal_memory,
         )
+
+        if context.get("conversation_authorized", False) and context.get("conversation_id"):
+            self._temporal_memory.append(
+                conversation_id=str(context["conversation_id"]),
+                record_id=f"temporal:{context['conversation_id']}:{request.request_id}",
+                source_type="ELO_COGNITIVE_REQUEST",
+                content=request.message,
+                provenance={
+                    "request_id": request.request_id,
+                    "correlation_id": request.correlation_id or request.request_id,
+                    "tenant_id": request.tenant_id,
+                },
+                metadata={
+                    "domain": str(request.domain or ""),
+                    "session_id": str(request.session_id or ""),
+                },
+            )
+
         return {
             "response": {
                 "type": "analysis",
