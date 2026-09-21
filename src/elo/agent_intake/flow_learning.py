@@ -49,56 +49,55 @@ class SQLiteFlowLearningStore:
             Path(self._path).parent.mkdir(parents=True, exist_ok=True)
         # Keep one connection alive for in-memory stores; each connect call would create a fresh database.
         self._connection = sqlite3.connect(self._path)
-        conn = self._connection
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS elo_flow_learning (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    relation_id TEXT NOT NULL,
-                    origin_flow TEXT NOT NULL,
-                    target_flow TEXT NOT NULL,
-                    outcome TEXT NOT NULL,
-                    success INTEGER NOT NULL,
-                    evidence_refs TEXT NOT NULL,
-                    provenance_refs TEXT NOT NULL,
-                    metrics TEXT NOT NULL
-                )
-                """
+        self._connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS elo_flow_learning (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                relation_id TEXT NOT NULL,
+                origin_flow TEXT NOT NULL,
+                target_flow TEXT NOT NULL,
+                outcome TEXT NOT NULL,
+                success INTEGER NOT NULL,
+                evidence_refs TEXT NOT NULL,
+                provenance_refs TEXT NOT NULL,
+                metrics TEXT NOT NULL
             )
-            conn.commit()
+            """
+        )
+        self._connection.commit()
 
     def append(self, record: FlowOutcomeRecord) -> None:
         self._connection.execute(
-                """
-                INSERT INTO elo_flow_learning
-                (relation_id, origin_flow, target_flow, outcome, success,
-                 evidence_refs, provenance_refs, metrics)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    record.relation_id,
-                    record.origin_flow,
-                    record.target_flow,
-                    record.outcome,
-                    int(record.success),
-                    json.dumps(record.evidence_refs),
-                    json.dumps(record.provenance_refs),
-                    json.dumps(record.metrics),
-                ),
-            )
+            """
+            INSERT INTO elo_flow_learning
+            (relation_id, origin_flow, target_flow, outcome, success,
+             evidence_refs, provenance_refs, metrics)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.relation_id,
+                record.origin_flow,
+                record.target_flow,
+                record.outcome,
+                int(record.success),
+                json.dumps(record.evidence_refs),
+                json.dumps(record.provenance_refs),
+                json.dumps(record.metrics),
+            ),
+        )
         self._connection.commit()
 
     def history(self, relation_id: str) -> tuple[FlowOutcomeRecord, ...]:
         rows = self._connection.execute(
-                """
-                SELECT relation_id, origin_flow, target_flow, outcome, success,
-                       evidence_refs, provenance_refs, metrics
-                FROM elo_flow_learning
-                WHERE relation_id = ?
-                ORDER BY id
-                """,
-                (relation_id,),
-            ).fetchall()
+            """
+            SELECT relation_id, origin_flow, target_flow, outcome, success,
+                   evidence_refs, provenance_refs, metrics
+            FROM elo_flow_learning
+            WHERE relation_id = ?
+            ORDER BY id
+            """,
+            (relation_id,),
+        ).fetchall()
         return tuple(
             FlowOutcomeRecord(
                 relation_id=row[0],
@@ -112,6 +111,9 @@ class SQLiteFlowLearningStore:
             )
             for row in rows
         )
+
+    def close(self) -> None:
+        self._connection.close()
 
 
 class FlowAdaptationEngine:
