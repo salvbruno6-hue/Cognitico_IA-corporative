@@ -12,9 +12,9 @@ date: 2026-09-18
 supersedes: null
 superseded_by: null
 related:
-  - ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md
-  - ELO_AUTHORIZED_ACCESS_POLICY.md
-  - ELO_AUTHORIZED_SPECIALIST_ACCESS_STANDARD.md
+  - 09-governance/contracts/standards/ELO_AUTHORIZATION_ENFORCEMENT_STANDARD.md
+  - 09-governance/contracts/policies/ELO_AUTHORIZED_ACCESS_POLICY.md
+  - 09-governance/contracts/standards/ELO_AUTHORIZED_SPECIALIST_ACCESS_STANDARD.md
 ---
 
 # ADR-0012 — Decision Outcome Loop
