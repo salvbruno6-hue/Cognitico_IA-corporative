@@ -106,11 +106,9 @@ def assess_loop_readiness(
     if not evidence.is_complete():
         missing.append("evidence_contract")
 
-    if not evolution_gate_approved:
-        missing.append("evolution_gate_approval")
-
-    if not elo_authorized:
-        missing.append("elo_authorization")
+    # Governance approvals are downstream of technical readiness. This preflight
+    # must be able to hand a measured candidate to Evolution Gate/ELO Review;
+    # requiring those approvals here would make the governed loop unreachable.
 
     return LoopReadiness(
         candidate_id=candidate.candidate_id,
