@@ -41,6 +41,7 @@ def advance_to_implementation(
     provenance_refs: tuple[str, ...] = (),
     boundary_integrity: bool = True,
     elo_approved: bool = False,
+    evolution_gate_approved: bool = False,
 ) -> GovernedLoopHandoff:
     """Compose preflight, measurement, repeatability and ELO-review handoff."""
     readiness = assess_loop_readiness(
@@ -58,11 +59,20 @@ def advance_to_implementation(
             candidate.candidate_id, readiness, decision, None, "CANDIDATE",
         )
 
-    decision = run_implementation_loop(
-        candidate, adaptation, baseline, adapted,
-        repeatable=repeatable, elo_approved=elo_approved,
-        regressions=regressions, metric_directions=metric_directions,
-    )
+    if not evolution_gate_approved:
+        decision = ImplementationDecision(
+            candidate.candidate_id,
+            ImplementationStage.ELO_REVIEW,
+            "READY_FOR_ELO_REVIEW",
+            False,
+            "technical evidence is ready; explicit Evolution Gate approval is still required",
+        )
+    else:
+        decision = run_implementation_loop(
+            candidate, adaptation, baseline, adapted,
+            repeatable=repeatable, elo_approved=elo_approved,
+            regressions=regressions, metric_directions=metric_directions,
+        )
     if decision.result == "READY_FOR_ELO_REVIEW":
         next_state = "ELO_REVIEW"
     elif decision.result == "IMPLEMENTATION_AUTHORIZED":
