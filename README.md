@@ -334,3 +334,7 @@ Esses documentos orientam navegação, classificação, execução e revisão. N
 O ciclo de consolidação das variantes duplicadas atualmente identificadas foi concluído para as famílias auditadas. A partir deste ponto, qualquer nova duplicidade deve ser tratada pelo **Loop de Conclusão**, sem remoção automática e sem criação de novas variantes.
 
 A próxima evolução arquitetural somente deve começar após a confirmação de que a árvore permanece coerente e que novos artefatos possuem owner canônico explícito.
+
+## Ferramentas
+
+- [PTS — Diretrizes e Geradores](08-ai/ELO/DIRETRIZES/PTS/README.md) — owner canônico da PTS Técnica, PTS Pós-Orçamento e validação do fluxo Técnica → Orçamento → Pós → Validação.
