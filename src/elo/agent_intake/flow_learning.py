@@ -47,7 +47,9 @@ class SQLiteFlowLearningStore:
         self._path = str(path)
         if self._path != ":memory:":
             Path(self._path).parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self._path) as conn:
+        # Keep one connection alive for in-memory stores; each connect call would create a fresh database.
+        self._connection = sqlite3.connect(self._path)
+        conn = self._connection
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS elo_flow_learning (
@@ -66,8 +68,7 @@ class SQLiteFlowLearningStore:
             conn.commit()
 
     def append(self, record: FlowOutcomeRecord) -> None:
-        with sqlite3.connect(self._path) as conn:
-            conn.execute(
+        self._connection.execute(
                 """
                 INSERT INTO elo_flow_learning
                 (relation_id, origin_flow, target_flow, outcome, success,
@@ -85,11 +86,10 @@ class SQLiteFlowLearningStore:
                     json.dumps(record.metrics),
                 ),
             )
-            conn.commit()
+        self._connection.commit()
 
     def history(self, relation_id: str) -> tuple[FlowOutcomeRecord, ...]:
-        with sqlite3.connect(self._path) as conn:
-            rows = conn.execute(
+        rows = self._connection.execute(
                 """
                 SELECT relation_id, origin_flow, target_flow, outcome, success,
                        evidence_refs, provenance_refs, metrics
