@@ -20,3 +20,15 @@ definida em:
 
 Tiers: `READ`, `ANALYZE`, `PROPOSE`, `OPERATE`.
 Este MCP opera no tier `READ` (read-only).
+
+---
+
+## Mapa canônico
+
+O ELO possui três superfícies MCP documentadas em:
+
+- [`05-cognitive-platform/MCP_CANONICAL_MAP.md`](../../../05-cognitive-platform/MCP_CANONICAL_MAP.md)
+
+Este é o MCP canônico de leitura empresarial (tier `READ`).
+HERMES-MCP (`ANALYZE`) e SYMBIONT-MCP (`PROPOSE`) são os
+outros dois.
