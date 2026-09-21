@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Prepara e renderiza a PTS Pós-Orçamento a partir de um JSON.
+"""Renderizador da PTS Pós-Orçamento.
 
-Fluxo padrão: a PTS é apresentada em tela. Nenhum arquivo Markdown é criado
-automaticamente. O arquivo Markdown só é persistido quando explicitamente
-solicitado; sua finalidade principal é estrutural/cognitiva, não de download.
+Fluxo padrão:
+    JSON da SO → fronteira documental → template canônico → apresentação em tela.
 
-A entrada pode consultar acervo histórico para desenvolver o orçamento, mas
-somente dados pertencentes à SO atual podem atravessar a fronteira documental.
+Uso:
+    python POS_ORCAMENTO_RENDER.py data/SO_XXX.json
+    python POS_ORCAMENTO_RENDER.py data/SO_XXX.json -o out/SO_XXX.md
+
+A estrutura da PTS é canônica e versionada, mas não congelada. Evoluções devem
+alterar o owner canônico desta pasta e manter schema, modelo, template,
+documentação e testes sincronizados.
 """
 
 import argparse
@@ -20,18 +24,64 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 ROOT = Path(__file__).parent
 TEMPLATE_NAME = "POS_ORCAMENTO_TEMPLATE.md.j2"
+ESTRUTURA_VERSION = "3.0"
+
+REQUIRED_DATA_FIELDS = (
+    "schema_version",
+    "so",
+    "cliente",
+    "objeto",
+    "revisao",
+    "documentos",
+    "matriz_principal",
+    "blocos_quantitativos",
+    "conferencia_valores",
+    "auditoria_reversa",
+    "itens_premissa",
+    "logistica",
+    "mao_de_obra",
+    "exclusoes",
+    "divergencias",
+    "riscos",
+    "pendencias",
+    "itens_nao_orcados",
+    "checklist",
+    "conclusao",
+)
 
 SOURCE_SO_FIELDS = ("origem_so", "referencia_so", "so_origem", "so_referencia")
 FALSE_DOCUMENT_FLAGS = ("document_safe", "documento_seguro", "aplicado_na_so_atual")
 HISTORICAL_SOURCE_TYPES = {
-    "historico", "historical", "precedente", "caso", "acervo",
-    "referencia_consultiva", "consultiva",
+    "historico",
+    "historical",
+    "precedente",
+    "caso",
+    "acervo",
+    "referencia_consultiva",
+    "consultiva",
 }
 
 
 def carregar_json(caminho: Path) -> dict:
+    """Carrega os dados JSON da solicitação."""
     with caminho.open(encoding="utf-8") as arquivo:
         return json.load(arquivo)
+
+
+def validar_estrutura(dados: dict) -> None:
+    """Impede que uma SO use uma estrutura parcial ou variante do template."""
+    faltantes = [campo for campo in REQUIRED_DATA_FIELDS if campo not in dados]
+    if faltantes:
+        raise ValueError(
+            "estrutura de dados incompleta; campos ausentes: "
+            + ", ".join(faltantes)
+        )
+
+    if not str(dados.get("schema_version", "")).strip():
+        raise ValueError("campo 'schema_version' é obrigatório.")
+
+    if not dados.get("so"):
+        raise ValueError("campo 'so' é obrigatório para aplicar a fronteira documental.")
 
 
 def _normalizar_so(valor: Any) -> str:
@@ -78,7 +128,6 @@ def _filtrar_registro(item: Any, so_atual: str) -> Any:
 
         resultado = {}
         for chave, valor in item.items():
-            # O acervo é consultivo. Nunca é renderizado diretamente na PTS.
             if chave in {"fontes_consultivas", "acervo_historico", "historico_consultivo"}:
                 continue
             filtrado = _filtrar_registro(valor, so_atual)
@@ -90,14 +139,14 @@ def _filtrar_registro(item: Any, so_atual: str) -> Any:
 
 
 def preparar_documento(dados: dict) -> dict:
-    """Aplica a fronteira: ACERVO → ELO → SO ATUAL → ORÇAMENTO → PTS."""
+    """Aplica a fronteira documental antes da apresentação."""
     if not isinstance(dados, dict):
         raise TypeError("os dados da PTS Pós devem ser um objeto JSON.")
 
+    validar_estrutura(dados)
+
     documento = copy.deepcopy(dados)
-    so_atual = documento.get("so")
-    if not so_atual:
-        raise ValueError("campo 'so' é obrigatório para aplicar a fronteira documental.")
+    so_atual = documento["so"]
 
     for chave in ("fontes_consultivas", "acervo_historico", "historico_consultivo"):
         documento.pop(chave, None)
@@ -110,6 +159,7 @@ def preparar_documento(dados: dict) -> dict:
 
 
 def render(dados: dict) -> str:
+    """Renderiza a PTS usando exclusivamente o template canônico."""
     dados_documentais = preparar_documento(dados)
     ambiente = Environment(
         loader=FileSystemLoader(ROOT),
@@ -122,9 +172,20 @@ def render(dados: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Renderiza PTS Pós-Orçamento; por padrão, apresenta em tela e não cria arquivo.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Renderiza PTS Pós-Orçamento; por padrão, apresenta em tela e "
+            "não cria arquivo."
+        )
+    )
     parser.add_argument("dados", type=Path, help="Arquivo JSON com os dados da SO.")
-    parser.add_argument("-o", "--out", type=Path, default=None, help="Persistir Markdown somente quando explicitamente solicitado.")
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=Path,
+        default=None,
+        help="Persistir Markdown somente quando explicitamente solicitado.",
+    )
     args = parser.parse_args()
 
     try:
