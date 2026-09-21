@@ -13,6 +13,9 @@ from typing import Any
 
 from .agents.hermes_contract import HermesExecutionRequest, HermesExecutionResult
 from .agents.hermes_runtime import Transport, execute_via_hermes
+from elo.agent_intake.elo_flow_cadence import CadenceOutcome
+from elo.agent_intake.flow_learning import FlowAdaptation, FlowAdaptationEngine, FlowOutcomeRecord
+from elo.agent_intake.governed_flow_router import GovernedFlowRouter, NextFlowResolution
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,74 @@ class SymbiontHermesBridge:
             capability=capability,
             result=result,
         )
+
+    def execute_flow_step(
+        self,
+        request: HermesExecutionRequest,
+        *,
+        capability: str,
+        endpoint: str,
+        origin_flow: str,
+        relation_id: str,
+        next_flow: str,
+        evidence: Mapping[str, object] | None,
+        provenance_refs: tuple[str, ...],
+        router: GovernedFlowRouter,
+        learning: FlowAdaptationEngine,
+        transport: Transport | None = None,
+    ) -> tuple[SymbiontExecutionReceipt, FlowAdaptation, NextFlowResolution]:
+        """Execute through Hermes, persist the outcome, then ask ELO for the next flow.
+
+        Symbiont remains the transport/execution boundary. ELO owns persistence
+        of the learning record, adaptation state and next-flow decision.
+        """
+        receipt = self.execute(
+            request,
+            capability=capability,
+            endpoint=endpoint,
+            transport=transport,
+        )
+        outcome = self._cadence_outcome(receipt.result.status)
+        adaptation = learning.record(
+            FlowOutcomeRecord(
+                relation_id=relation_id,
+                origin_flow=origin_flow,
+                target_flow=next_flow,
+                outcome=outcome.value,
+                success=outcome is CadenceOutcome.PASS,
+                evidence_refs=tuple(
+                    str(item.get("id", ""))
+                    for item in receipt.result.evidence
+                    if isinstance(item, Mapping) and item.get("id")
+                ),
+                provenance_refs=provenance_refs,
+                metrics=tuple(
+                    (str(key), float(value))
+                    for key, value in receipt.result.metrics.items()
+                    if isinstance(value, (int, float))
+                ),
+            )
+        )
+        routing = router.resolve_next(
+            origin_flow=origin_flow,
+            outcome=outcome,
+            evidence=evidence,
+            provenance_refs=provenance_refs,
+        )
+        return receipt, adaptation, routing
+
+    @staticmethod
+    def _cadence_outcome(status: str) -> CadenceOutcome:
+        mapping = {
+            "completed": CadenceOutcome.PASS,
+            "partial": CadenceOutcome.RETEST,
+            "blocked": CadenceOutcome.BLOCKED,
+            "failed": CadenceOutcome.REJECT,
+        }
+        try:
+            return mapping[status]
+        except KeyError as exc:
+            raise ValueError(f"unsupported Hermes status for flow cadence: {status}") from exc
 
     @staticmethod
     def _validate_evidence_contract(
