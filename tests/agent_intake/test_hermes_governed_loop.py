@@ -38,7 +38,7 @@ def test_explicit_elo_approval_reaches_implementation_authorized_only():
         build_candidate("EXT-CHECKPOINT-HERMES"), verified_adaptation(),
         {"latency": 10.0}, {"latency": 8.0},
         metric_directions={"latency": "minimize"}, repeatable=True,
-        provenance_refs=("eval-004", "eval-005"), elo_approved=True,
+        provenance_refs=("eval-004", "eval-005"), elo_approved=True, evolution_gate_approved=True,
     )
     assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
     assert result.implementation.result == "IMPLEMENTATION_AUTHORIZED"

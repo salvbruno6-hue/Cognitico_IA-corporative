@@ -41,8 +41,16 @@ def advance_to_implementation(
     provenance_refs: tuple[str, ...] = (),
     boundary_integrity: bool = True,
     elo_approved: bool = False,
+    evolution_gate_approved: bool = False,
 ) -> GovernedLoopHandoff:
-    """Compose preflight, measurement, repeatability and ELO-review handoff."""
+    """Compose preflight, measurement, repeatability and ELO-review handoff.
+
+    Technical evidence is evaluated by the implementation loop before the
+    downstream Evolution Gate/ELO authorization boundary. Therefore a
+    no-gain candidate remains MEASURED_GAIN/RETEST even when governance
+    approvals are absent. Positive, repeatable gain reaches ELO_REVIEW unless
+    both downstream approvals are explicitly present.
+    """
     readiness = assess_loop_readiness(
         candidate, adaptation, baseline, adapted,
         metric_directions=metric_directions,
@@ -58,15 +66,24 @@ def advance_to_implementation(
             candidate.candidate_id, readiness, decision, None, "CANDIDATE",
         )
 
+    # The shared implementation loop owns technical classification. A failed
+    # gain gate returns MEASURED_GAIN/RETEST before governance is considered.
+    # For a positive repeatable gain, final authorization requires both the
+    # Evolution Gate and explicit ELO implementation approval.
     decision = run_implementation_loop(
-        candidate, adaptation, baseline, adapted,
-        repeatable=repeatable, elo_approved=elo_approved,
-        regressions=regressions, metric_directions=metric_directions,
+        candidate,
+        adaptation,
+        baseline,
+        adapted,
+        repeatable=repeatable,
+        elo_approved=(elo_approved and evolution_gate_approved),
+        regressions=regressions,
+        metric_directions=metric_directions,
     )
-    if decision.result == "READY_FOR_ELO_REVIEW":
-        next_state = "ELO_REVIEW"
-    elif decision.result == "IMPLEMENTATION_AUTHORIZED":
+    if decision.result == "IMPLEMENTATION_AUTHORIZED":
         next_state = "IMPLEMENTATION_AUTHORIZED"
+    elif decision.result == "READY_FOR_ELO_REVIEW":
+        next_state = "ELO_REVIEW"
     else:
         next_state = decision.stage.value
     return GovernedLoopHandoff(
@@ -97,6 +114,7 @@ def approval_to_implementation(
     return ApprovedCandidateImplementationLoop.activate(
         candidate, readiness=readiness, decision=decision
     )
+
 
 def close_approved_candidate(
     candidate: HermesCandidate,
@@ -173,5 +191,9 @@ def close_approved_candidate(
     )
 
 
-
-__all__ = ["GovernedLoopHandoff", "advance_to_implementation", "approval_to_implementation", "close_approved_candidate"]
+__all__ = [
+    "GovernedLoopHandoff",
+    "advance_to_implementation",
+    "approval_to_implementation",
+    "close_approved_candidate",
+]
