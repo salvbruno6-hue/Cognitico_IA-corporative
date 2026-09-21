@@ -68,6 +68,30 @@ A regra de três composta é um **método de dimensionamento por precedente**, n
 
 O resultado matemático não substitui a premissa operacional. Quando houver conflito entre proporcionalidade e exigência contratual, SLA, histórico ou mínimo operacional, o ELO deve registrar a divergência e justificar a escolha.
 
+## Conhecimento maturado para execução
+
+O ELO deve separar memória repetitiva de conhecimento reutilizável.
+
+Conhecimento maturado deve capturar:
+- condição que determinou uma escolha;
+- função do componente;
+- motivo da decisão;
+- associação entre elementos;
+- alerta de ausência;
+- pergunta interna e resposta encontrada;
+- regra condicional;
+- exceção;
+- método de cálculo e sua aplicabilidade.
+
+Não criar conhecimento apenas porque um número, cálculo, preço ou composição apareceu novamente. Esses dados permanecem em suas estruturas próprias.
+
+Quando houver relação com Lista-Mãe, produto, EXC, serviço ou cálculo, o Markdown deve apontar para a identidade existente. Não criar nova identidade no Git.
+
+Durante novo orçamento:
+CONHECIMENTO → RELAÇÃO → EVIDÊNCIA → EQUIVALÊNCIA → VALIDAÇÃO DA SO ATUAL → APLICAÇÃO.
+
+O conhecimento pode gerar alerta, sugestão ou pergunta, mas não pode inserir automaticamente produto/serviço nem alterar a PTS atual.
+
 ## Proibição de destinos paralelos
 
 O gatilho não deve criar novos aprendizados de orçamento em `memory/solicitations/<SO>/LEARNING.md`, `memory/solicitations_learning/`, `04-knowledge-handbook/` ou qualquer outro diretório paralelo.

@@ -149,6 +149,32 @@ Preservar sempre SO e documento/item de origem.
 
 ---
 
+## 4.1 CRÍTICA COGNITIVA E CONHECIMENTO MATURADO
+
+A extração não deve acumular informações repetidas. O ELO deve procurar o entendimento que explica decisões, diferenças, associações, exceções e alertas.
+
+Quando encontrar soluções diferentes para um mesmo exercício, executar:
+
+OBSERVAR → COMPARAR → IDENTIFICAR DIFERENÇA → FORMULAR PERGUNTA → INVESTIGAR EVIDÊNCIAS → COMPREENDER MOTIVO → CONSOLIDAR EXPERIÊNCIA.
+
+A pergunta é interna ao ELO. Ela existe para descobrir evidências de escolhas que não ficaram explícitas.
+
+Exemplo:
+- abertura de vão com reforço estrutural em vão maior ou igual a 6 m;
+- abertura de vão curto em estrutura já reforçada, em que tubo 50×30 mm exerce função de acabamento e não de reforço estrutural.
+
+O ELO não deve aprender "abertura de vão = tubo 100 mm" nem "abertura de vão = tubo 50×30 mm". Deve aprender a condição, a função, o motivo e a solução correspondente.
+
+Quando uma associação recorrente for identificada, como painel PIR ↔ guia U, registrar a função entendida: fixação dos painéis e acabamento associado ao reforço estrutural. Em nova SO, a associação deve gerar alerta de verificação quando estiver ausente, e não inclusão automática.
+
+Quando a investigação produzir método de cálculo, registrar o conhecimento do método no Git e apontar para a memória quantitativa real no Supabase. Não duplicar a memória matemática no Markdown.
+
+Quando a evidência não permitir concluir o motivo, gerar pergunta interna, preservar a lacuna e não inventar resposta.
+
+O contrato detalhado desta camada está em:
+08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_CONHECIMENTO_MATURADO.md
+
+---
 ## 5. ITEM 1 — MAPA COGNITIVO DO ORÇAMENTO
 
 O Item 1 representa a visão cognitiva do orçamentista sobre a SO.

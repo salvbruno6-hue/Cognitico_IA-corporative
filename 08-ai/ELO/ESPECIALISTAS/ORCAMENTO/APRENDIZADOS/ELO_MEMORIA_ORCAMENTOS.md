@@ -140,6 +140,22 @@ NOVO REQUISITO
 
 O ELO deve apresentar o precedente como referência, não como verdade automática.
 
+## 8.1 Conhecimento maturado e crítica
+
+A memória textual não deve repetir cálculos, quantidades ou preços que já possuem persistência estruturada.
+
+O aprendizado relevante é o entendimento que explica a construção do orçamento:
+
+CONDIÇÃO → FUNÇÃO → DECISÃO → MOTIVO → SOLUÇÃO → APLICABILIDADE.
+
+Quando casos semelhantes apresentarem soluções diferentes, o ELO deve identificar a diferença determinante antes de consolidar qualquer regra.
+
+Quando uma associação recorrente exigir verificação no próximo orçamento, ela deve ser registrada como alerta. Exemplo: painel PIR ↔ guia U, considerando sua função de fixação dos painéis e acabamento associado ao reforço estrutural.
+
+Quando faltar explicação, o ELO deve formular pergunta interna, investigar as evidências e só consolidar a resposta quando sustentada.
+
+O catálogo operacional completo está em ELO_CONHECIMENTO_MATURADO.md. As relações estruturadas devem continuar utilizando as tabelas existentes, especialmente elo_orcamento_associacoes, elo_orcamento_decisoes, elo_orcamento_memoria e elo_orcamento_calculos_aprendidos.
+
 ## 8. Relações cognitivas
 
 Os aprendizados devem poder ser associados por:
