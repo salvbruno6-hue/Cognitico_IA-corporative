@@ -42,3 +42,21 @@ The adapter never executes the target flow and never promotes a relation to cano
 ## Future integration
 
 The next controlled step is wiring this adapter into the common ELO cognitive routing boundary so specialist flows stop hard-coding their own next-flow decisions. The target remains the existing ELO orchestrator, not a new orchestrator.
+
+## Persistent adaptation
+
+Complementarity is not transient routing metadata. After an authorized execution, ELO records the relation outcome through the persistent FlowLearningStore and derives a bounded adaptation state:
+
+OBSERVATION → PERSIST → ASSESS → CANDIDATE ADAPTATION → GOVERNED REVIEW
+
+The store is append-only. Adaptation does not rewrite canonical flow contracts and does not promote a relation merely because it succeeded once. Repetition and outcome quality determine whether the relation remains insufficient, requires review, or becomes a repeatable candidate for the existing Evolution Gate.
+
+## Symbiont integration
+
+The Symbiont/Hermes boundary is now part of the governed flow rather than a detached execution utility:
+
+ELO FLOW → SYMBIONT → HERMES EXECUTION → EVIDENCE/OUTCOME → ELO PERSISTENCE → ELO ADAPTATION → ELO ROUTER
+
+Symbiont transports and validates the already-authorized mission. ELO records the returned outcome, evaluates adaptation and resolves the next flow. Hermes never selects the next canonical flow and never promotes its learning candidate.
+
+A Hermes result can therefore contribute to future complementarity, but only through the ELO persistence, evidence and governance gates.
