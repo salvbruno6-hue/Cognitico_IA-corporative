@@ -118,34 +118,42 @@ capabilities:
     layer: cognitive
     owner: reasoning
     status: proposed
-    maturity_level: 2
-    canonical_artifact: 05-cognitive-platform/
-    evidence: []
+    maturity_level: 4
+    canonical_artifact: src/elo/reasoning/
+    evidence:
+      - src/elo/reasoning/engine.py
+      - src/elo/reasoning/service.py
+      - src/elo/core/causal_reasoning.py
     gaps:
-      - Map reasoning contracts to evidence and decision boundaries.
+      - Reasoning contracts mapped to evidence
+      - Decision boundary documented
 
   - id: ELO-CAP-COG-007
     name: Evidence
     layer: cognitive
     owner: evidence-governance
     status: proposed
-    maturity_level: 2
-    canonical_artifact: 05-cognitive-platform/
-    evidence: []
+    maturity_level: 4
+    canonical_artifact: src/elo/evidence/
+    evidence:
+      - src/elo/evidence/
     gaps:
-      - Define evidence lifecycle and confidence semantics.
+      - Confidence semantics documented
+      - Evidence-to-decision linkage test
 
   - id: ELO-CAP-COG-008
     name: Decision Support
     layer: cognitive
     owner: decision-support
     status: proposed
-    maturity_level: 2
-    canonical_artifact: 05-cognitive-platform/
-    evidence: []
+    maturity_level: 5
+    canonical_artifact: src/elo/core/decision_outcome_loop.py
+    evidence:
+      - tests/core/test_decision_outcome_loop.py
+      - 10-adr/ADR-0012-decision-outcome-loop.md
     gaps:
-      - Define scenario and recommendation contracts.
-      - Define human decision boundary.
+      - Human decision boundary formalized
+      - Scenario contract
 
   - id: ELO-CAP-COG-009
     name: Agent Lifecycle and Autonomy Controls
