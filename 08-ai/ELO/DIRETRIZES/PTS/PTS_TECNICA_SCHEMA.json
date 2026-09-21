@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ELO PTS Técnica",
+  "type": "object",
+  "required": ["identificacao", "objetivo", "escopo", "matriz_tecnica", "consultas", "resumo_executivo", "legenda", "rastreabilidade"],
+  "properties": {
+    "identificacao": {"type": "object"},
+    "objetivo": {"type": "string"},
+    "escopo": {"type": "array"},
+    "matriz_tecnica": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "item_tr", "trecho_tr", "exigencia", "tipo", "adequacao", "status", "curva", "motivo", "responsavel", "consulta_id"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "item_tr": {"type": "string"},
+          "trecho_tr": {"type": "string"},
+          "exigencia": {"type": "string"},
+          "tipo": {"enum": ["PAD", "EXC", "PRJ", "FOR", "CLI"]},
+          "adequacao": {"type": "string"},
+          "status": {"enum": ["🟢", "🟡", "🔴"]},
+          "curva": {"enum": ["A", "B", "C"]},
+          "motivo": {"type": "string"},
+          "responsavel": {"enum": ["ENG", "PLA", "FOR", "CONTRATADA", "FAB"]},
+          "consulta_id": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "consultas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "texto", "item_ids"],
+        "properties": {
+          "id": {"type": "string"},
+          "texto": {"type": "string"},
+          "item_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "resumo_executivo": {"type": "array"},
+    "legenda": {"type": "object"},
+    "rastreabilidade": {"type": "array"}
+  },
+  "additionalProperties": true
+}

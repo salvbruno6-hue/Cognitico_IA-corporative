@@ -1,0 +1,57 @@
+# PTS TÉCNICA — {{ identificacao.so | default("") }}
+
+## 1. IDENTIFICAÇÃO
+
+| Campo | Informação |
+|---|---|
+{% for k, v in identificacao.items() -%}
+| {{ k }} | {{ v }} |
+{% endfor %}
+
+## 2. OBJETIVO
+
+{{ objetivo }}
+
+## 3. ESCOPO
+
+{% for item in escopo -%}
+- {{ item }}
+{% endfor %}
+
+## 4. MATRIZ TÉCNICA
+
+| ID | Item TR | Trecho TR | Exigência | Tipo | Adequação | Status | Curva | Motivo | Responsável | Consulta ID |
+|---|---|---|---|---|---|---|---|---|---|---|
+{% for r in matriz_tecnica -%}
+| {{ r.id }} | {{ r.item_tr }} | {{ r.trecho_tr }} | {{ r.exigencia }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.motivo }} | {{ r.responsavel }} | {{ r.consulta_id | default("—") }} |
+{% endfor %}
+
+## 5. CONSULTAS
+
+| ID | Texto | Item IDs |
+|---|---|---|
+{% for c in consultas -%}
+| {{ c.id }} | {{ c.texto }} | {{ c.item_ids | join(", ") }} |
+{% endfor %}
+
+## 6. RESUMO EXECUTIVO
+
+{% for item in resumo_executivo -%}
+- {{ item }}
+{% endfor %}
+
+## 7. LEGENDA
+
+| Campo | Valores |
+|---|---|
+{% for k, v in legenda.items() -%}
+| {{ k }} | {{ v | join(", ") if v is iterable and v is not string else v }} |
+{% endfor %}
+
+## 8. RASTREABILIDADE
+
+{% for item in rastreabilidade -%}
+- {{ item }}
+{% endfor %}
+
+A PTS Técnica prepara o orçamento: DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO.

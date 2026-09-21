@@ -1,6 +1,7 @@
 {
   "source_of_truth": "08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md",
   "secoes_obrigatorias": [
+    "referencia_a_pts_tecnica",
     "identificacao_da_solicitacao",
     "objetivo",
     "escopo_tecnico",
@@ -18,19 +19,16 @@
   ],
   "matriz_rastreabilidade_colunas": [
     "n",
-    "topico_item",
-    "referencia_tr_documento",
-    "requisito_descricao_so",
-    "solucao_tecnica_proposta",
-    "quantitativo",
-    "unid",
-    "composicao_escopo",
-    "premissa_criterio",
-    "referencia_orcamento",
+    "ref_tecnica",
+    "topico",
+    "ref_tr",
+    "requisito_solucao",
+    "q_prev",
+    "q_orc",
+    "ref_orc",
     "valor",
-    "inclusao_no_orcamento",
-    "atendimento",
-    "observacao_pendencia"
+    "status",
+    "divergencia"
   ],
   "memoria_calculo_colunas": [
     "id_mc",
@@ -92,5 +90,22 @@
     "flags_de_seguranca": "document_safe/documento_seguro/aplicado_na_so_atual=false bloqueia o registro",
     "historico": "registros com fonte_tipo histórico/precedente/caso/acervo/referencia_consultiva/consultiva só passam quando aplicado_na_so_atual=true",
     "regra": "ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS"
+  },
+  "referencia_a_pts_tecnica": {
+    "campos": [
+      "pts_tecnica_ref",
+      "itens_herdados",
+      "consultas_abertas"
+    ],
+    "regra": "vínculo formal entre PTS Técnica e PTS Pós; consulta aberta pode virar pendência quando relevante ao orçamento"
+  },
+  "matriz_rastreabilidade_regras": {
+    "ref_tecnica": "deve apontar para ID existente da matriz_tecnica da PTS Técnica; ausência de correspondência é registrada, nunca inventada",
+    "ref_tr": "referência documental do requisito",
+    "q_prev": "quantitativo previsto na PTS Técnica/documentação, quando comprovado",
+    "q_orc": "quantitativo efetivamente orçado",
+    "ref_orc": "item/código/seção do orçamento",
+    "status": "estado da auditoria do item",
+    "divergencia": "diferença identificada entre técnica, orçamento ou evidência"
   }
 }

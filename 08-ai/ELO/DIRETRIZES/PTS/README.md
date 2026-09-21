@@ -7,6 +7,10 @@ O arquivo `POS_ORCAMENTO.md` contém a diretriz estrutural da PTS Pós-Orçament
 ## Gerador
 
 - `POS_ORCAMENTO_RENDER.py` — renderizador JSON + Jinja2.
+- `PTS_TECNICA_SCHEMA.json` — contrato estrutural da PTS Técnica.
+- `PTS_TECNICA_RENDER.py` — renderizador da PTS Técnica.
+- `pipeline.py` — validação ponta a ponta PTS Técnica → Orçamento → PTS Pós.
+- `test_pipeline.py` — testes de vínculo válido, referência órfã e consulta aberta.
 - `POS_ORCAMENTO_SCHEMA.json` — estrutura de dados e colunas.
 - `POS_ORCAMENTO_TEMPLATE.json` — modelo de dados por SO.
 - `POS_ORCAMENTO_TEMPLATE.md.j2` — template de apresentação.
@@ -44,3 +48,18 @@ A PTS Pós segue **apresentação primeiro**:
 5. Documento final (por exemplo, DOCX/PDF) somente é gerado mediante solicitação do usuário.
 
 Portanto, **PTS exibida na tela ≠ geração automática de documento**. A visualização é a saída padrão; a persistência de arquivo é uma ação posterior e explícita.
+
+
+## PTS Técnica → PTS Pós
+
+A PTS Técnica ocorre antes do orçamento e organiza DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO. A PTS Pós ocorre depois e audita o orçamento usando a PTS Técnica como referência.
+
+A matriz principal da PTS Pós usa ref_tecnica para apontar para um ID comprovável da PTS Técnica. A seção 0 declara pts_tecnica_ref, itens_herdados e consultas_abertas.
+
+### Pipeline
+
+Na pasta desta PTS:
+
+python pipeline.py data/pts_tecnica.json data/pts_pos.json
+
+O pipeline não incorpora conteúdo de nenhuma SO de exemplo; os dados são exclusivamente os dois arquivos de entrada.

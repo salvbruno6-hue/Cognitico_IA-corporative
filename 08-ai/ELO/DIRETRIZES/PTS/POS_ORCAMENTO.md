@@ -4,6 +4,16 @@
 **Status:** Proposta para incorporação como padrão oficial  
 **Responsável:** ELO
 
+## 0. Referência à PTS Técnica
+
+A PTS Pós-Orçamento deve declarar formalmente a PTS Técnica de origem, os itens herdados e as consultas ainda abertas:
+
+- `pts_tecnica_ref`
+- `itens_herdados`
+- `consultas_abertas`
+
+Uma consulta aberta na PTS Técnica pode transformar-se em pendência na PTS Pós quando tiver impacto ou relação comprovável com o orçamento. O conteúdo da consulta não deve ser inventado.
+
 ## 1. Finalidade
 
 A PTS Técnica Pós-Orçamento comprova a aderência entre o Termo de Referência, demais documentos da solicitação e a composição orçamentária efetivamente elaborada.
@@ -32,6 +42,13 @@ A PTS Pós-Orçamento deve seguir, quando aplicável, esta sequência:
 14. Registro de Aprendizado.
 
 ## 3. Matriz de Rastreabilidade Técnica e Orçamentária
+
+A matriz principal deve preservar o vínculo explícito entre técnica e orçamento:
+
+| Nº | Ref. Técnica | Tópico | Ref. TR | Requisito/Solução | Q.Prev | Q.Orç | Ref.Orç | Valor | Status | Divergência |
+|---|---|---|---|---|---:|---:|---|---:|---|---|
+
+`Ref. Técnica` deve apontar para um item existente da PTS Técnica. Se não houver correspondência comprovável, registrar a ausência, sem criar referência artificial.
 
 A matriz deve conter, no mínimo:
 

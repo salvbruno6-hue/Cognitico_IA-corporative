@@ -1,0 +1,15 @@
+{
+  "identificacao": {},
+  "objetivo": "",
+  "escopo": [],
+  "matriz_tecnica": [],
+  "consultas": [],
+  "resumo_executivo": [],
+  "legenda": {
+    "tipo": ["PAD", "EXC", "PRJ", "FOR", "CLI"],
+    "responsavel": ["ENG", "PLA", "FOR", "CONTRATADA", "FAB"],
+    "curva": ["A", "B", "C"],
+    "status": ["🟢", "🟡", "🔴"]
+  },
+  "rastreabilidade": []
+}
