@@ -32,3 +32,26 @@ O ELO possui três superfícies MCP documentadas em:
 Este é o MCP canônico de leitura empresarial (tier `READ`).
 HERMES-MCP (`ANALYZE`) e SYMBIONT-MCP (`PROPOSE`) são os
 outros dois.
+
+---
+
+## Cognitive read-only tools (v0.2.0)
+
+Além de `elo_status` e `elo_read`, o ELO-MCP expõe três tools
+cognitivas read-only:
+
+| Tool | Projeção | Fonte canônica |
+|---|---|---|
+| `elo_dol_read` | `elo_dol_projection` | `memory/` (DOL) |
+| `elo_calibration_read` | `elo_calibration_model` | `memory/calibration/` |
+| `elo_precedent_search` | `elo_precedent_index` | `memory/precedents/` |
+
+Todas passam pelo mesmo caminho de autorização (`elo-authz` +
+`elo_identity_registry`), são auditadas em `elo_audit_log` e não
+permitem escrita.
+
+As projeções são populadas por job externo a partir das fontes
+canônicas em `memory/`. Se a projeção ainda não existir, a tool
+retorna vazio com nota apontando para a fonte canônica.
+
+Refs: `10-adr/ADR-0014-cognitive-runtime-loop.md`
