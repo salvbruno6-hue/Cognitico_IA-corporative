@@ -1,65 +1,75 @@
-# PTS — Diretrizes e Gerador Pós-Orçamento
+# PTS — Diretrizes e Geradores
 
-Esta pasta é o **owner canônico da PTS** no ELO.
+Esta pasta é o **owner canônico da PTS no ELO**. Não criar outra pasta para PTS Técnica ou PTS Pós-Orçamento.
 
-O arquivo `POS_ORCAMENTO.md` contém a diretriz estrutural da PTS Pós-Orçamento. O gerador replicável utiliza essa diretriz como base e permanece nesta mesma pasta, sem criar uma árvore paralela no repositório.
+## Estrutura canônica
 
-## Gerador
-
-- `POS_ORCAMENTO_RENDER.py` — renderizador JSON + Jinja2.
-- `PTS_TECNICA_SCHEMA.json` — contrato estrutural da PTS Técnica.
+- `PTS_TECNICA_SCHEMA.json` — contrato da PTS Técnica.
+- `PTS_TECNICA_TEMPLATE.json` — modelo de dados da PTS Técnica.
+- `PTS_TECNICA_TEMPLATE.md.j2` — apresentação da PTS Técnica.
 - `PTS_TECNICA_RENDER.py` — renderizador da PTS Técnica.
-- `pipeline.py` — validação ponta a ponta PTS Técnica → Orçamento → PTS Pós.
-- `test_pipeline.py` — testes de vínculo válido, referência órfã e consulta aberta.
-- `POS_ORCAMENTO_SCHEMA.json` — estrutura de dados e colunas.
-- `POS_ORCAMENTO_TEMPLATE.json` — modelo de dados por SO.
-- `POS_ORCAMENTO_TEMPLATE.md.j2` — template de apresentação.
+- `POS_ORCAMENTO.md` — diretriz normativa da PTS Pós-Orçamento.
+- `POS_ORCAMENTO_SCHEMA.json` — contrato estrutural da PTS Pós.
+- `POS_ORCAMENTO_TEMPLATE.json` — dados-modelo por SO.
+- `POS_ORCAMENTO_TEMPLATE.md.j2` — template único da PTS Pós.
+- `POS_ORCAMENTO_RENDER.py` — renderizador JSON + Jinja2 com fronteira documental.
+- `pipeline.py` — validação PTS Técnica → Orçamento → PTS Pós.
+- `test_pipeline.py` — evidência executável da validação cruzada.
+- `test_pos_orcamento_render.py` — testes da fronteira documental.
 - `requirements-pts-pos-orcamento.txt` — dependência do gerador.
 
-## Regra de manutenção
+## Fluxo
 
-Não criar outra pasta para PTS Pós-Orçamento quando o owner canônico já existir. Alterações devem reutilizar e estender esta estrutura.
+```text
+TR
+ ↓
+PTS TÉCNICA
+ ↓
+ORÇAMENTO
+ ↓
+PTS PÓS-ORÇAMENTO
+ ↓
+┌──────────────────────────┐
+│ PTS Técnica ──────┐      │
+│                   ├──►   │ VALIDAÇÃO
+│ PTS Pós ──────────┘      │
+└──────────────┬───────────┘
+               ↓
+       RESULTADO ARBITRADO
+               ↓
+          ELO APRENDER
+```
 
-Não editar o template para atender caso específico. Variações de cada SO devem ser representadas nos dados da própria SO.
+A PTS Técnica prepara o orçamento. A PTS Pós confronta o orçamento realizado com a PTS Técnica. A validação é uma etapa cruzada entre as duas, e não uma terceira PTS.
 
-## Fonte estrutural
+## Regra de referência
 
-`POS_ORCAMENTO.md` permanece como referência da estrutura, rastreabilidade, memórias de cálculo, divergências, competitividade, governança e registro de aprendizado.
+A PTS Pós usa `ref_tecnica` para apontar para um ID comprovável da PTS Técnica. Também preserva `pts_tecnica_ref`, `itens_herdados` e `consultas_abertas`.
+
+Não inventar correspondências. Ausências devem ser registradas.
+
+## Regra de dados
+
+Um JSON representa uma SO. O mesmo template atende N SOs. Dados específicos ficam no JSON; regras e apresentação permanecem nos contratos/templates canônicos.
 
 ## Fronteira documental
 
-O renderer aplica a regra **ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS** antes do Jinja2.
+O renderer aplica:
 
-- `fontes_consultivas`, `acervo_historico` e `historico_consultivo` podem existir na entrada para uso do ELO, mas não são renderizados.
-- Quando um registro declarar `origem_so`, `referencia_so`, `so_origem` ou `so_referencia`, o identificador deve corresponder à SO atual.
-- `document_safe=false`, `documento_seguro=false` ou `aplicado_na_so_atual=false` bloqueia o registro.
-- Registros explicitamente históricos/consultivos somente atravessam a fronteira quando `aplicado_na_so_atual=true`.
-- O template continua responsável apenas pela apresentação; a proteção ocorre antes da renderização.
+**ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS PÓS**
 
+Referências históricas ou consultivas não são renderizadas como fatos da SO atual sem evidência explícita de aplicação.
 
-## Fluxo de apresentação e geração de arquivo
+## Pipeline
 
-A PTS Pós segue **apresentação primeiro**:
-
-1. O ELO prepara a PTS da SO atual.
-2. A PTS completa é apresentada diretamente na tela para análise e validação.
-3. Nenhum arquivo Markdown é criado automaticamente para download.
-4. O Markdown existe como representação estrutural/cognitiva do orçamento e só deve ser persistido quando necessário para processamento, conhecimento, versionamento ou quando explicitamente solicitado.
-5. Documento final (por exemplo, DOCX/PDF) somente é gerado mediante solicitação do usuário.
-
-Portanto, **PTS exibida na tela ≠ geração automática de documento**. A visualização é a saída padrão; a persistência de arquivo é uma ação posterior e explícita.
-
-
-## PTS Técnica → PTS Pós
-
-A PTS Técnica ocorre antes do orçamento e organiza DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO. A PTS Pós ocorre depois e audita o orçamento usando a PTS Técnica como referência.
-
-A matriz principal da PTS Pós usa ref_tecnica para apontar para um ID comprovável da PTS Técnica. A seção 0 declara pts_tecnica_ref, itens_herdados e consultas_abertas.
-
-### Pipeline
-
-Na pasta desta PTS:
-
+```bash
 python pipeline.py data/pts_tecnica.json data/pts_pos.json
+```
 
-O pipeline não incorpora conteúdo de nenhuma SO de exemplo; os dados são exclusivamente os dois arquivos de entrada.
+O pipeline valida estrutura, IDs, referências técnicas, itens herdados, consultas abertas e a relação entre PTS Técnica e PTS Pós.
+
+## Governança
+
+A PTS Pós é evidência estruturada. Ela não altera automaticamente orçamento, Lista-Mãe, Core ou conhecimento governado. O aprendizado segue a cadeia de análise, arbitragem e governança definida pelo ELO.
+
+Não criar implementação paralela em `pts-pos-orcamento/` ou em outra pasta. Estender este owner canônico.

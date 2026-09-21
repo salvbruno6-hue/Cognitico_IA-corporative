@@ -1,32 +1,83 @@
 {
   "so": "",
   "cliente": "",
-  "local": "",
   "objeto": "",
-  "tipo_negociacao": "",
   "revisao": "0",
-  "documentos": [],
-  "objetivo": "",
-  "escopo_tecnico": [],
-  "matriz_rastreabilidade": [],
-  "memorias_calculo": [],
-  "composicao_orcamentaria": [],
-  "comparacao_orcamentos": [],
-  "divergencias": [],
-  "excedentes": [],
-  "competitividade": [],
-  "resumo_executivo": [],
-  "parecer_tecnico": "",
-  "parecer_competitividade": "",
-  "legenda_criterios": {
-    "AI": "Atendido Integralmente",
-    "AE": "Atendido por Solução Equivalente",
-    "AP": "Atendido Parcialmente",
-    "NA": "Não Atendido"
-  },
-  "registro_aprendizado": [],
-  "fontes_consultivas": [],
   "pts_tecnica_ref": "",
   "itens_herdados": [],
-  "consultas_abertas": []
+  "consultas_abertas": [],
+  "documentos": [],
+  "objetivo_texto": "",
+  "matriz_principal": [
+    {
+      "n": 1,
+      "ref_tecnica": "",
+      "topico": "",
+      "ref_tr": "",
+      "requisito": "",
+      "q_prev": "",
+      "q_orc": "",
+      "ref_orc": "",
+      "valor": "",
+      "status": "",
+      "divergencia": ""
+    }
+  ],
+  "blocos_quantitativos": [
+    {"titulo": "", "corpo": ""}
+  ],
+  "conferencia_valores": {
+    "Subtotal geral": "",
+    "Taxa administrativa": "",
+    "BDI": "",
+    "Total geral": ""
+  },
+  "auditoria_reversa": [
+    {"item": "", "ref": "", "valor": "", "base": "", "justificativa": ""}
+  ],
+  "itens_premissa": [
+    {"item": "", "origem": "", "premissa": "", "impacto": "", "tratamento": ""}
+  ],
+  "logistica": [
+    {"componente": "", "calculo": "", "valor": "", "criterio": ""}
+  ],
+  "mao_de_obra": [
+    {
+      "titulo": "MO interna",
+      "linhas": [
+        {"funcao": "", "dias": "", "colab": "", "v_unit": "", "parcial": ""}
+      ],
+      "total": ""
+    }
+  ],
+  "exclusoes": [
+    {"item": "", "responsavel": "", "orcado": "", "status": ""}
+  ],
+  "divergencias": [
+    {"n": 1, "item": "", "tipo": "", "previsto": "", "orcado": "", "motivo": "", "impacto": "", "acao": ""}
+  ],
+  "riscos": [
+    {"risco": "", "tipo": "", "impacto": "", "condicao": "", "tratamento": ""}
+  ],
+  "pendencias": [
+    {"pendencia": "", "origem": "", "impacto": "", "acao": "", "status": ""}
+  ],
+  "itens_nao_orcados": "",
+  "checklist": {
+    "Todos os requisitos principais possuem correspondência?": "",
+    "Itens relevantes possuem origem/justificativa?": "",
+    "Quantitativos confrontados?": "",
+    "Áreas molhadas reavaliadas?": "",
+    "Valores conferidos?": "",
+    "Maiores custos justificados?": "",
+    "Premissas registradas?": "",
+    "Exclusões registradas?": "",
+    "Pendências registradas?": "",
+    "Riscos registrados?": "",
+    "Responsabilidades verificadas?": "",
+    "Logística conferida?": "",
+    "Licenças/ART/RRT completamente confirmadas?": "",
+    "BDI/taxa/total conferidos?": ""
+  },
+  "conclusao": ""
 }

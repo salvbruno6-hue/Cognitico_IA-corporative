@@ -1,128 +1,150 @@
 # PTS PÓS-ORÇAMENTO — {{ so }}
+{{ cliente }} | Revisão {{ revisao | default("0") }} | Auditoria pós-orçamento
 
-**Cliente:** {{ cliente }}  
-**Local:** {{ local }}  
-**Objeto:** {{ objeto }}  
-**Tipo de negociação:** {{ tipo_negociacao }}  
-**Revisão:** {{ revisao | default("0") }}
-
-## 0. REFERÊNCIA À PTS TÉCNICA
-
-PTS Técnica de origem: {{ pts_tecnica_ref | default("não informada") }}
-
-Itens herdados: {{ itens_herdados | default("—") }}
-
-Consultas em aberto: {{ consultas_abertas | default("—") }}
-
-## 1. IDENTIFICAÇÃO DA SOLICITAÇÃO
+## 1. IDENTIFICAÇÃO E OBJETIVO
 
 | Campo | Informação |
 |---|---|
 | SO | {{ so }} |
 | Cliente | {{ cliente }} |
-| Local | {{ local }} |
 | Objeto | {{ objeto }} |
-| Tipo de negociação | {{ tipo_negociacao }} |
-| Revisão | {{ revisao }} |
+| Revisão | {{ revisao | default("0") }} |
+| PTS Técnica de origem | {{ pts_tecnica_ref | default("não informada") }} |
+| Objetivo | {{ objetivo_texto | default("não informado") }} |
 
-## 2. OBJETIVO
+Itens herdados: {{ itens_herdados | default("—") }}  
+Consultas em aberto: {{ consultas_abertas | default("—") }}
 
-{{ objetivo }}
+## 2. DOCUMENTOS UTILIZADOS
 
-## 3. ESCOPO TÉCNICO
-
-| Nº | Tópico / Sistema | Requisito / Escopo | Fonte |
-|---:|---|---|---|
-{% for i in escopo_tecnico -%}
-| {{ i.n }} | {{ i.topico }} | {{ i.requisito }} | {{ i.fonte }} |
+{% for d in documentos -%}
+- {{ d }}
 {% endfor %}
 
-## 4. MATRIZ DE RASTREABILIDADE TÉCNICA E ORÇAMENTÁRIA
+## 3. MATRIZ PRINCIPAL — TR × ORÇAMENTO
 
-| Nº | Ref. Técnica | Tópico | Ref. TR | Requisito/Solução | Q.Prev | Q.Orç | Ref.Orç | Valor | Status | Divergência |
+A matriz confronta PTS Técnica, TR e orçamento. Ela não substitui a PTS Técnica.
+
+| Nº | Ref. Técnica | Tópico | Ref. TR | Requisito | Q.Prev | Q.Orç | Ref.Orç | Valor | Status | Divergência |
 |---:|---|---|---|---|---:|---:|---|---:|---|---|
-{% for r in matriz_rastreabilidade -%}
-| {{ r.n }} | {{ r.ref_tecnica }} | {{ r.topico }} | {{ r.ref_tr }} | {{ r.requisito_solucao }} | {{ r.q_prev }} | {{ r.q_orc }} | {{ r.ref_orc }} | {{ r.valor }} | {{ r.status }} | {{ r.divergencia }} |
+{% for r in matriz_principal -%}
+| {{ r.n }} | {{ r.ref_tecnica }} | {{ r.topico }} | {{ r.ref_tr }} | {{ r.requisito }} | {{ r.q_prev }} | {{ r.q_orc }} | {{ r.ref_orc }} | {{ r.valor }} | {{ r.status }} | {{ r.divergencia }} |
 {% endfor %}
 
-## 5. MEMÓRIAS DE CÁLCULO
+## 4. CONFERÊNCIA DE QUANTITATIVOS
 
-| ID MC | Tópico / Item | Referência TR / Documento | Premissa | Fórmula / Desenvolvimento | Quantidade Calculada | Unidade | Material / Serviço | Quantidade Orçada | Valor Unitário | Valor Parcial | Fonte | Composição | Justificativa | Divergência | Status |
-|---|---|---|---|---|---:|---|---|---:|---:|---:|---|---|---|---|---|
-{% for m in memorias_calculo -%}
-| {{ m.id_mc }} | {{ m.topico_item }} | {{ m.referencia_tr_documento }} | {{ m.premissa }} | {{ m.formula_desenvolvimento }} | {{ m.quantidade_calculada }} | {{ m.unidade }} | {{ m.material_servico }} | {{ m.quantidade_orcada }} | {{ m.valor_unitario }} | {{ m.valor_parcial }} | {{ m.fonte }} | {{ m.composicao }} | {{ m.justificativa }} | {{ m.divergencia }} | {{ m.status }} |
+{% for b in blocos_quantitativos -%}
+### {{ b.titulo }}
+{{ b.corpo }}
 {% endfor %}
 
-## 6. ANÁLISE GERAL DA COMPOSIÇÃO ORÇAMENTÁRIA
+## 5. CONFERÊNCIA DE VALORES
 
-| Categoria | Composição / Itens Identificados | Referência do Orçamento | Valor | Observação |
-|---|---|---|---:|---|
-{% for c in composicao_orcamentaria -%}
-| {{ c.categoria }} | {{ c.composicao }} | {{ c.referencia_orcamento }} | {{ c.valor }} | {{ c.observacao }} |
+| Componente | Valor |
+|---|---:|
+{% for k, v in conferencia_valores.items() -%}
+| {{ k }} | {{ v }}
 {% endfor %}
 
-## 7. COMPARAÇÃO ENTRE ORÇAMENTOS E COMPOSIÇÕES
+## 6. AUDITORIA REVERSA — PRINCIPAIS CUSTOS
 
-| Item / Sistema | Orçamento A | Orçamento B | Diferença de Quantidade | Diferença de Preço | Diferença de Composição | Contradição | Item Ausente | Explicação | Conclusão |
-|---|---|---|---:|---:|---|---|---|---|---|
-{% for c in comparacao_orcamentos -%}
-| {{ c.item_sistema }} | {{ c.orcamento_a }} | {{ c.orcamento_b }} | {{ c.diferenca_quantidade }} | {{ c.diferenca_preco }} | {{ c.diferenca_composicao }} | {{ c.contradicao }} | {{ c.item_ausente }} | {{ c.explicacao }} | {{ c.conclusao }} |
+| Item | Ref. Orçamento | Valor | Base | Justificativa |
+|---|---|---:|---|---|
+{% for a in auditoria_reversa -%}
+| {{ a.item }} | {{ a.ref }} | {{ a.valor }} | {{ a.base }} | {{ a.justificativa }} |
 {% endfor %}
 
-## 8. ANÁLISE DE CONTRADIÇÕES, AUSÊNCIAS E DIVERGÊNCIAS
+## 7. ITENS ORÇADOS POR PREMISSA
 
-| ID | Origem | Item | Tipo de Divergência | Evidência | Impacto Técnico | Impacto Econômico | Risco | Tratamento | Status |
-|---|---|---|---|---|---|---|---|---|---|
+| Item | Origem | Premissa | Impacto | Tratamento |
+|---|---|---|---|---|
+{% for p in itens_premissa -%}
+| {{ p.item }} | {{ p.origem }} | {{ p.premissa }} | {{ p.impacto }} | {{ p.tratamento }} |
+{% endfor %}
+
+## 8. LOGÍSTICA
+
+| Componente | Cálculo | Valor | Critério |
+|---|---|---:|---|
+{% for l in logistica -%}
+| {{ l.componente }} | {{ l.calculo }} | {{ l.valor }} | {{ l.criterio }} |
+{% endfor %}
+
+## 9. MÃO DE OBRA
+
+{% for grupo in mao_de_obra -%}
+### {{ grupo.titulo }}
+
+| Função | Dias | Colab. | V. Unit. | Parcial |
+|---|---:|---:|---:|---:|
+{% for l in grupo.linhas -%}
+| {{ l.funcao }} | {{ l.dias }} | {{ l.colab }} | {{ l.v_unit }} | {{ l.parcial }} |
+{% endfor %}
+
+**Total:** {{ grupo.total }}
+
+{% endfor %}
+
+## 10. EXCLUSÕES E RESPONSABILIDADES
+
+| Item | Responsável | Orçado | Status |
+|---|---|---|---|
+{% for e in exclusoes -%}
+| {{ e.item }} | {{ e.responsavel }} | {{ e.orcado }} | {{ e.status }} |
+{% endfor %}
+
+## 11. MATRIZ DE DIVERGÊNCIAS
+
+| Nº | Item | Tipo | Previsto | Orçado | Motivo | Impacto | Ação |
+|---:|---|---|---|---|---|---|---|
 {% for d in divergencias -%}
-| {{ d.id }} | {{ d.origem }} | {{ d.item }} | {{ d.tipo_de_divergencia }} | {{ d.evidencia }} | {{ d.impacto_tecnico }} | {{ d.impacto_economico }} | {{ d.risco }} | {{ d.tratamento }} | {{ d.status }} |
+| {{ d.n }} | {{ d.item }} | {{ d.tipo }} | {{ d.previsto }} | {{ d.orcado }} | {{ d.motivo }} | {{ d.impacto }} | {{ d.acao }} |
 {% endfor %}
 
-### Rastreabilidade de excedentes
+## 12. MATRIZ DE RISCOS
 
-| EXCEDENTE | CATEGORIA | NOME MATERIAL | QUANTIDADE | VALOR UNITÁRIO | VALOR TOTAL | COMPOSIÇÃO | FONTE | MEMÓRIA DE CÁLCULO |
-|---|---|---|---:|---:|---:|---|---|---|
-{% for e in excedentes -%}
-| {{ e.excedente }} | {{ e.categoria }} | {{ e.nome_material }} | {{ e.quantidade }} | {{ e.valor_unitario }} | {{ e.valor_total }} | {{ e.composicao }} | {{ e.fonte }} | {{ e.memoria_de_calculo }} |
+| Risco | Tipo | Impacto | Condição | Tratamento |
+|---|---|---|---|---|
+{% for r in riscos -%}
+| {{ r.risco }} | {{ r.tipo }} | {{ r.impacto }} | {{ r.condicao }} | {{ r.tratamento }} |
 {% endfor %}
 
-## 9. ANÁLISE DE COMPETITIVIDADE
+## 13. PENDÊNCIAS
 
-| Item / Classe | Peso financeiro | Conhecimento | Flexibilidade | Risco | Evidência | Oportunidade / Recomendação | Decisão necessária |
-|---|---:|---|---|---|---|---|---|
-{% for c in competitividade -%}
-| {{ c.item_classe }} | {{ c.peso_financeiro }} | {{ c.conhecimento }} | {{ c.flexibilidade }} | {{ c.risco }} | {{ c.evidencia }} | {{ c.recomendacao }} | {{ c.decisao }} |
+| Pendência | Origem | Impacto | Ação | Status |
+|---|---|---|---|---|
+{% for p in pendencias -%}
+| {{ p.pendencia }} | {{ p.origem }} | {{ p.impacto }} | {{ p.acao }} | {{ p.status }} |
 {% endfor %}
 
-## 10. RESUMO EXECUTIVO
+## 14. ITENS NÃO ORÇADOS / NÃO CONFIRMADOS
 
-| Indicador | Resultado |
+{{ itens_nao_orcados | default("não informado") }}
+
+## 15. CHECKLIST DE COMPLETUDE
+
+| Verificação | Resultado |
 |---|---|
-{% for r in resumo_executivo -%}
-| {{ r.indicador }} | {{ r.resultado }} |
+{% for k, v in checklist.items() -%}
+| {{ k }} | {{ v }}
 {% endfor %}
 
-## 11. PARECER TÉCNICO
+## 16. CONCLUSÃO E VALIDAÇÃO
 
-{{ parecer_tecnico }}
+{{ conclusao | default("não informada") }}
 
-## 12. PARECER DE COMPETITIVIDADE
+A validação deve confirmar, sem inferência silenciosa:
 
-{{ parecer_competitividade }}
+PTS Técnica → requisito → solução → quantitativo previsto → orçamento → quantitativo orçado → valor → divergência → justificativa → risco/pendência → validação.
 
-## 13. LEGENDA E CRITÉRIOS DE CLASSIFICAÇÃO
+A PTS Pós não aprova automaticamente alteração de orçamento nem promove aprendizado ao Core.
 
-| Código | Critério |
-|---|---|
-{% for k,v in legenda_criterios.items() -%}
-| {{ k }} | {{ v }} |
-{% endfor %}
+## 17. REGRA DE RASTREABILIDADE
 
-## 14. REGISTRO DE APRENDIZADO
+A cadeia canônica é:
 
-| Contexto | Problema | Premissa | Cálculo | Solução | Decisão | Resultado | Evidência | Condição de Aplicação | Limitação |
-|---|---|---|---|---|---|---|---|---|---|
-{% for l in registro_aprendizado -%}
-| {{ l.contexto }} | {{ l.problema }} | {{ l.premissa }} | {{ l.calculo }} | {{ l.solucao }} | {{ l.decisao }} | {{ l.resultado }} | {{ l.evidencia }} | {{ l.condicao_aplicacao }} | {{ l.limitacao }} |
-{% endfor %}
+**TR → item_tr → PTS Técnica → ref_tecnica → orçamento → ref_orc → PTS Pós → validação → resultado arbitrado → ELO APRENDER.**
 
-A PTS Pós deve preservar a cadeia REQUISITO → INTERPRETAÇÃO → SOLUÇÃO → QUANTITATIVO → COMPOSIÇÃO → ORÇAMENTO → PREMISSA → JUSTIFICATIVA → RISCO/PENDÊNCIA → VALIDAÇÃO e não preencher lacunas por suposição.
+Quando não houver correspondência comprovável, registrar a ausência. Nunca criar referência artificial.
+
+O ELO APRENDER somente recebe resultado após análise e governança; a PTS Pós é evidência estruturada, não autoridade automática de aprendizado.

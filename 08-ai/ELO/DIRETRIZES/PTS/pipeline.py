@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Valida a ligação PTS Técnica -> Orçamento -> PTS Pós-Orçamento.
+"""Valida a relação PTS Técnica → Orçamento → PTS Pós → Validação.
 
 Uso:
     python pipeline.py data/pts_tecnica.json data/pts_pos.json
 
-Nenhum dado de SO de exemplo é embutido no pipeline.
+O pipeline valida estrutura, referências e coerência mínima entre as duas PTS.
+Nenhum dado de SO é embutido.
 """
 import argparse
 import json
@@ -18,10 +19,10 @@ STATUS = {"🟢", "🟡", "🔴"}
 
 
 class ValidationError(Exception):
-    pass
+    """Erro de validação estrutural ou de rastreabilidade."""
 
 
-def load(path):
+def load(path: Path):
     with path.open(encoding="utf-8") as f:
         return json.load(f)
 
@@ -43,10 +44,12 @@ def as_ids(value, field):
 
 
 def validate_tecnica(data):
-    require_keys(data, [
-        "identificacao", "objetivo", "escopo", "matriz_tecnica",
-        "consultas", "resumo_executivo", "legenda", "rastreabilidade"
-    ], "PTS Técnica")
+    require_keys(
+        data,
+        ["identificacao", "objetivo", "escopo", "matriz_tecnica", "consultas",
+         "resumo_executivo", "legenda", "rastreabilidade"],
+        "PTS Técnica",
+    )
     if not isinstance(data["matriz_tecnica"], list):
         raise ValidationError("PTS Técnica: matriz_tecnica deve ser lista")
     if not isinstance(data["consultas"], list):
@@ -55,16 +58,20 @@ def validate_tecnica(data):
     item_ids = set()
     for i, row in enumerate(data["matriz_tecnica"]):
         where = f"PTS Técnica.matriz_tecnica[{i}]"
-        require_keys(row, [
-            "id", "item_tr", "trecho_tr", "exigencia", "tipo", "adequacao",
-            "status", "curva", "motivo", "responsavel", "consulta_id"
-        ], where)
+        require_keys(
+            row,
+            ["id", "item_tr", "trecho_tr", "exigencia", "tipo", "adequacao",
+             "status", "curva", "motivo", "responsavel", "consulta_id"],
+            where,
+        )
         if row["id"] in item_ids:
             raise ValidationError(f"{where}: ID duplicado {row['id']}")
         item_ids.add(row["id"])
         for key, allowed in [
-            ("tipo", TECH_TYPES), ("responsavel", RESPONSAVEIS),
-            ("curva", CURVAS), ("status", STATUS)
+            ("tipo", TECH_TYPES),
+            ("responsavel", RESPONSAVEIS),
+            ("curva", CURVAS),
+            ("status", STATUS),
         ]:
             if row[key] not in allowed:
                 raise ValidationError(f"{where}: {key} inválido: {row[key]}")
@@ -78,7 +85,9 @@ def validate_tecnica(data):
         consulta_ids.add(query["id"])
         unknown = set(query["item_ids"]) - item_ids
         if unknown:
-            raise ValidationError(f"{where}: item_ids órfãos: {', '.join(sorted(unknown))}")
+            raise ValidationError(
+                f"{where}: item_ids órfãos: {', '.join(sorted(unknown))}"
+            )
 
     for row in data["matriz_tecnica"]:
         cid = row.get("consulta_id")
@@ -88,33 +97,60 @@ def validate_tecnica(data):
     return item_ids, consulta_ids
 
 
-def validate_pos(data):
-    require_keys(data, [
-        "so", "pts_tecnica_ref", "itens_herdados", "consultas_abertas",
-        "objetivo", "escopo_tecnico", "matriz_rastreabilidade",
-        "resumo_executivo", "legenda_criterios", "registro_aprendizado"
-    ], "PTS Pós-Orçamento")
-    if not isinstance(data["matriz_rastreabilidade"], list):
-        raise ValidationError("PTS Pós-Orçamento: matriz_rastreabilidade deve ser lista")
+def validate_pos(data, tecnica_ids):
+    require_keys(
+        data,
+        [
+            "so", "pts_tecnica_ref", "itens_herdados", "consultas_abertas",
+            "documentos", "objetivo_texto", "matriz_principal",
+            "blocos_quantitativos", "conferencia_valores", "auditoria_reversa",
+            "itens_premissa", "logistica", "mao_de_obra", "exclusoes",
+            "divergencias", "riscos", "pendencias", "itens_nao_orcados",
+            "checklist", "conclusao",
+        ],
+        "PTS Pós-Orçamento",
+    )
+    if not data["pts_tecnica_ref"]:
+        raise ValidationError("PTS Pós-Orçamento: pts_tecnica_ref ausente")
+    if not isinstance(data["matriz_principal"], list):
+        raise ValidationError("PTS Pós-Orçamento: matriz_principal deve ser lista")
 
     refs = set()
-    for i, row in enumerate(data["matriz_rastreabilidade"]):
-        where = f"PTS Pós-Orçamento.matriz_rastreabilidade[{i}]"
-        require_keys(row, [
-            "n", "ref_tecnica", "topico_item", "referencia_tr_documento",
-            "requisito_descricao_so", "quantidade_prevista", "quantidade_orcada",
-            "referencia_orcamento", "valor", "status", "divergencia"
-        ], where)
-        if row["ref_tecnica"] in (None, "", "—"):
+    for i, row in enumerate(data["matriz_principal"]):
+        where = f"PTS Pós-Orçamento.matriz_principal[{i}]"
+        require_keys(
+            row,
+            ["n", "ref_tecnica", "topico", "ref_tr", "requisito", "q_prev",
+             "q_orc", "ref_orc", "valor", "status", "divergencia"],
+            where,
+        )
+        ref = str(row["ref_tecnica"]).strip()
+        if not ref:
             raise ValidationError(f"{where}: ref_tecnica ausente")
-        refs.add(str(row["ref_tecnica"]))
+        refs.add(ref)
 
-    return refs
+    orphan_refs = sorted(refs - tecnica_ids)
+    if orphan_refs:
+        raise ValidationError(
+            "PTS Pós-Orçamento: referências técnicas órfãs: "
+            + ", ".join(orphan_refs)
+        )
+
+    inherited = as_ids(data["itens_herdados"], "itens_herdados")
+    orphan_inherited = sorted(inherited - tecnica_ids)
+    if orphan_inherited:
+        raise ValidationError(
+            "PTS Pós-Orçamento: itens_herdados órfãos: "
+            + ", ".join(orphan_inherited)
+        )
+
+    open_queries = as_ids(data["consultas_abertas"], "consultas_abertas")
+    return open_queries
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Valida PTS Técnica -> Orçamento -> PTS Pós-Orçamento."
+        description="Valida PTS Técnica → Orçamento → PTS Pós → Validação."
     )
     parser.add_argument("pts_tecnica", type=Path)
     parser.add_argument("pts_pos", type=Path)
@@ -125,24 +161,9 @@ def main():
         pos = load(args.pts_pos)
 
         tecnica_ids, consulta_ids = validate_tecnica(tecnica)
-        pos_refs = validate_pos(pos)
+        open_queries = validate_pos(pos, tecnica_ids)
 
-        orphan_refs = sorted(pos_refs - tecnica_ids)
-        inherited = as_ids(pos["itens_herdados"], "itens_herdados")
-        orphan_inherited = sorted(inherited - tecnica_ids)
-        open_queries = as_ids(pos["consultas_abertas"], "consultas_abertas")
         unknown_queries = sorted(open_queries - consulta_ids)
-
-        if orphan_refs:
-            raise ValidationError(
-                "PTS Pós-Orçamento: referências técnicas órfãs: "
-                + ", ".join(orphan_refs)
-            )
-        if orphan_inherited:
-            raise ValidationError(
-                "PTS Pós-Orçamento: itens_herdados órfãos: "
-                + ", ".join(orphan_inherited)
-            )
         if unknown_queries:
             raise ValidationError(
                 "PTS Pós-Orçamento: consultas_abertas inexistentes na PTS Técnica: "
@@ -152,9 +173,13 @@ def main():
         print("[OK] PTS Técnica: estrutura válida")
         print("[OK] PTS Pós-Orçamento: estrutura válida")
         print("[OK] ref_tecnica: presente e sem referências órfãs")
-        print(f"[OK] consultas abertas: {', '.join(sorted(open_queries)) if open_queries else '—'}")
+        print(
+            "[OK] consultas abertas: "
+            + (", ".join(sorted(open_queries)) if open_queries else "—")
+        )
         print("[OK] itens herdados: sem referências órfãs")
-        print("[OK] rastreabilidade: TR -> PTS Técnica -> Orçamento -> PTS Pós validada")
+        print("[OK] validação cruzada: PTS Técnica ↔ Orçamento ↔ PTS Pós")
+        print("[OK] rastreabilidade: TR → PTS Técnica → Orçamento → PTS Pós → Validação")
         return 0
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         print(f"[ERRO] {exc}", file=sys.stderr)

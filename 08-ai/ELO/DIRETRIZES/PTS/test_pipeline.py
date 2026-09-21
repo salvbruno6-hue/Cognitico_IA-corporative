@@ -9,7 +9,6 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 PIPELINE = ROOT / "pipeline.py"
 
-
 TECHNICA = {
     "identificacao": {"so": "SO-TESTE"},
     "objetivo": "validar vínculo",
@@ -25,15 +24,45 @@ TECHNICA = {
 }
 
 POS = {
-    "so": "SO-TESTE", "pts_tecnica_ref": "PTS-TESTE",
-    "itens_herdados": ["T-001"], "consultas_abertas": ["C-001"],
-    "objetivo": "auditoria de teste", "escopo_tecnico": [],
-    "matriz_rastreabilidade": [{
+    "so": "SO-TESTE",
+    "pts_tecnica_ref": "PTS-TESTE",
+    "itens_herdados": ["T-001"],
+    "consultas_abertas": ["C-001"],
+    "documentos": [],
+    "objetivo_texto": "auditoria de teste",
+    "matriz_principal": [{
         "n": 1, "ref_tecnica": "T-001", "topico": "teste", "ref_tr": "TR-1",
-        "requisito_solucao": "solução de teste", "q_prev": 1, "q_orc": 1,
-        "ref_orc": "ORC-001", "valor": 0, "status": "🟢", "divergencia": "—"
+        "requisito": "solução de teste", "q_prev": 1, "q_orc": 1,
+        "ref_orc": "ORC-001", "valor": 0, "status": "VALIDAR", "divergencia": "—"
     }],
-    "resumo_executivo": [], "legenda_criterios": {}, "registro_aprendizado": []
+    "blocos_quantitativos": [{"titulo": "teste", "corpo": "teste"}],
+    "conferencia_valores": {"Subtotal geral": "", "Taxa administrativa": "", "BDI": "", "Total geral": ""},
+    "auditoria_reversa": [{"item": "", "ref": "", "valor": "", "base": "", "justificativa": ""}],
+    "itens_premissa": [{"item": "", "origem": "", "premissa": "", "impacto": "", "tratamento": ""}],
+    "logistica": [{"componente": "", "calculo": "", "valor": "", "criterio": ""}],
+    "mao_de_obra": [{"titulo": "MO interna", "linhas": [{"funcao": "", "dias": "", "colab": "", "v_unit": "", "parcial": ""}], "total": ""}],
+    "exclusoes": [{"item": "", "responsavel": "", "orcado": "", "status": ""}],
+    "divergencias": [{"n": 1, "item": "", "tipo": "", "previsto": "", "orcado": "", "motivo": "", "impacto": "", "acao": ""}],
+    "riscos": [{"risco": "", "tipo": "", "impacto": "", "condicao": "", "tratamento": ""}],
+    "pendencias": [{"pendencia": "", "origem": "", "impacto": "", "acao": "", "status": ""}],
+    "itens_nao_orcados": "",
+    "checklist": {
+        "Todos os requisitos principais possuem correspondência?": "",
+        "Itens relevantes possuem origem/justificativa?": "",
+        "Quantitativos confrontados?": "",
+        "Áreas molhadas reavaliadas?": "",
+        "Valores conferidos?": "",
+        "Maiores custos justificados?": "",
+        "Premissas registradas?": "",
+        "Exclusões registradas?": "",
+        "Pendências registradas?": "",
+        "Riscos registrados?": "",
+        "Responsabilidades verificadas?": "",
+        "Logística conferida?": "",
+        "Licenças/ART/RRT completamente confirmadas?": "",
+        "BDI/taxa/total conferidos?": ""
+    },
+    "conclusao": ""
 }
 
 
@@ -53,10 +82,11 @@ class PipelineTests(unittest.TestCase):
     def test_valid_link(self):
         result = self.run_pipeline(POS)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("validação cruzada", result.stdout)
 
     def test_orphan_ref_fails(self):
         pos = json.loads(json.dumps(POS))
-        pos["matriz_rastreabilidade"][0]["ref_tecnica"] = "T-999"
+        pos["matriz_principal"][0]["ref_tecnica"] = "T-999"
         result = self.run_pipeline(pos)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("referências técnicas", result.stderr)
@@ -66,7 +96,7 @@ class PipelineTests(unittest.TestCase):
         pos["consultas_abertas"] = ["C-999"]
         result = self.run_pipeline(pos)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("consultas abertas", result.stderr)
+        self.assertIn("consultas_abertas", result.stderr)
 
 
 if __name__ == "__main__":
