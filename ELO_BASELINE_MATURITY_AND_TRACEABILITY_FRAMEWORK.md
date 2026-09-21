@@ -1447,7 +1447,7 @@ Para promovê-lo a `normative` devem ser confirmados:
 - hierarquia de autoridade;
 - gates;
 - critérios de evidência;
-- relação com `ELO_ARTIFACT_METADATA_STANDARD.md`;
+- relação com `09-governance/contracts/standards/ELO_ARTIFACT_METADATA_STANDARD.md`;
 - relação com `ELO_REPOSITORY_NAVIGATION_RULES.md`;
 - compatibilidade com ADRs existentes;
 - compatibilidade com a arquitetura-base vigente.
