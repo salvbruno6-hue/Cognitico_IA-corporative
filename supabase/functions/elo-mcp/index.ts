@@ -121,6 +121,47 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "elo_dol_read",
+    title: "Read Decision Outcome Loop",
+    description: "Reads Decision Outcome Loop records from the cognitive projection. Read-only and audited.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        decision_id: { type: "string" },
+        state: {
+          type: "string",
+          enum: [
+            "proposed", "approved", "executed", "observing", "evaluated",
+            "attributed", "learned", "closed", "escalated", "reverted",
+          ],
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "elo_calibration_read",
+    title: "Read calibration model",
+    description: "Reads the current confidence calibration model projection. Read-only and audited.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "elo_precedent_search",
+    title: "Search decision precedents",
+    description: "Searches the decision precedent index projection. Read-only and audited.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sector: { type: "string" },
+        decision_type: { type: "string" },
+        confidence_band: { type: "string" },
+        limit: { type: "integer", minimum: 1, maximum: 50 },
+      },
+      additionalProperties: false,
+    },
+  },
 ];
 
 Deno.serve(async (req: Request) => {
@@ -140,12 +181,13 @@ Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
     return json({
       name: "ELO MCP",
-      version: "0.1.0",
+      version: "0.2.0",
       protocolVersion: MCP_PROTOCOL_VERSION,
       authentication: "Supabase Auth OAuth 2.1 / Bearer JWT",
       mode: "read-only",
       endpoint: `${SUPABASE_URL}${RESOURCE_PATH}`,
       oauthProtectedResourceMetadata: `${SUPABASE_URL}${RESOURCE_METADATA_PATH}`,
+      tools: TOOLS.map((t) => t.name),
     });
   }
 
@@ -174,8 +216,8 @@ Deno.serve(async (req: Request) => {
     return rpc(id, {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
-      serverInfo: { name: "ELO MCP", version: "0.1.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection.",
+      serverInfo: { name: "ELO MCP", version: "0.2.0" },
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -202,6 +244,7 @@ Deno.serve(async (req: Request) => {
         writes_enabled: false,
         schema_changes_enabled: false,
         authorization_authority: "elo-authz",
+        tools_available: TOOLS.map((t) => t.name),
       }) }] });
     }
 
@@ -223,6 +266,81 @@ Deno.serve(async (req: Request) => {
       await audit(auth.user.id, "elo_read", "success", { table, row_count: data?.length ?? 0 });
       return rpc(id, { content: [{ type: "text", text: JSON.stringify({ table, count: data?.length ?? 0, rows: data ?? [] }) }] });
     }
+
+    if (name === "elo_dol_read") {
+      const decisionId = typeof args.decision_id === "string" ? args.decision_id : null;
+      const state = typeof args.state === "string" ? args.state : null;
+      const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 100);
+
+      let query = supabase.from("elo_dol_projection").select("*").limit(limit);
+      if (decisionId) query = query.eq("decision_id", decisionId);
+      if (state) query = query.eq("state", state);
+
+      const { data, error } = await query;
+      if (error) {
+        await audit(auth.user.id, "elo_dol_read", "error", { decision_id: decisionId, state, error: error.message });
+        return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+          decision_id: decisionId,
+          state,
+          count: 0,
+          records: [],
+          note: "DOL projection not available. Canonical source: memory/ in the repository.",
+        }) }] });
+      }
+      await audit(auth.user.id, "elo_dol_read", "success", { decision_id: decisionId, state, row_count: data?.length ?? 0 });
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        decision_id: decisionId,
+        state,
+        count: data?.length ?? 0,
+        records: data ?? [],
+      }) }] });
+    }
+
+    if (name === "elo_calibration_read") {
+      const { data, error } = await supabase
+        .from("elo_calibration_model")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        await audit(auth.user.id, "elo_calibration_read", "error", { error: error.message });
+        return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+          count: 0,
+          model: null,
+          note: "Calibration model projection not available. Canonical source: memory/calibration/ in the repository.",
+        }) }] });
+      }
+      await audit(auth.user.id, "elo_calibration_read", "success");
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({ count: data ? 1 : 0, model: data ?? null }) }] });
+    }
+
+    if (name === "elo_precedent_search") {
+      const sector = typeof args.sector === "string" ? args.sector : null;
+      const decisionType = typeof args.decision_type === "string" ? args.decision_type : null;
+      const confidenceBand = typeof args.confidence_band === "string" ? args.confidence_band : null;
+      const limit = Math.min(Math.max(Number(args.limit ?? 10), 1), 50);
+
+      let query = supabase.from("elo_precedent_index").select("*").limit(limit);
+      if (sector) query = query.eq("sector", sector);
+      if (decisionType) query = query.eq("decision_type", decisionType);
+      if (confidenceBand) query = query.eq("confidence_band", confidenceBand);
+
+      const { data, error } = await query;
+      if (error) {
+        await audit(auth.user.id, "elo_precedent_search", "error", { sector, decision_type: decisionType, error: error.message });
+        return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+          count: 0,
+          precedents: [],
+          note: "Precedent index projection not available. Canonical source: memory/precedents/ in the repository.",
+        }) }] });
+      }
+      await audit(auth.user.id, "elo_precedent_search", "success", { sector, decision_type: decisionType, confidence_band: confidenceBand, row_count: data?.length ?? 0 });
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        count: data?.length ?? 0,
+        precedents: data ?? [],
+      }) }] });
+    }
+
     return rpcError(id, -32601, `Unknown tool: ${String(name)}`);
   }
 
