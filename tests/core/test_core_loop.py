@@ -123,3 +123,49 @@ def test_core_loop_uses_governed_complementarity_for_the_next_flow():
     assert result.next_flow == "MEASURED_GAIN"
     assert result.flow_routing_status == "ELIGIBLE"
     assert result.can_execute is False
+
+def test_core_loop_withholds_next_flow_when_diagnostics_require_handoff():
+    profiles = (
+        FlowProfile(
+            "CONTROLLED_TEST", "ELO", ("candidate",), ("controlled_evidence",),
+            success_outcomes=("PASS",),
+            allowed_next_relations=(RelationKind.FEEDS,),
+        ),
+        FlowProfile(
+            "MEASURED_GAIN", "ELO", ("controlled_evidence",), ("measured_gain",),
+            prerequisites=("baseline",), success_outcomes=("PASS",),
+        ),
+    )
+    relation = hermes_relation(
+        relation_id="r-core-loop-gated-1",
+        origin_flow="CONTROLLED_TEST",
+        target_flow="MEASURED_GAIN",
+        kind=RelationKind.FEEDS,
+        evidence_refs=("h-core-gated",),
+        provenance_refs=("p-core-gated",),
+        confidence=1.0,
+    )
+    router = GovernedFlowRouter(
+        complementarity=ComplementarityEngine(profiles, (relation,))
+    )
+    observations = (
+        observation("e1", DiagnosticLens.OPERATIONAL),
+        observation("e1", DiagnosticLens.CAPACITY, status=DiagnosticStatus.CONFLICTING),
+    )
+    scenario = DiagnosticScenario("s-flow-gated", "avaliar fluxo conflitante", observations=observations)
+    result = CoreLoopEngine(flow_router=router).run(
+        CoreLoopRequest(
+            context(),
+            scenario,
+            observations,
+            flow_origin="CONTROLLED_TEST",
+            flow_outcome=CadenceOutcome.PASS,
+            flow_relation_kind=RelationKind.FEEDS,
+            flow_evidence={"baseline": True},
+            flow_provenance_refs=("p-core-gated",),
+        )
+    )
+    assert result.status == "HANDOFF"
+    assert result.next_flow is None
+    assert result.flow_routing_status is None
+    assert "next flow withheld by core-loop diagnostic gate" in result.gaps
