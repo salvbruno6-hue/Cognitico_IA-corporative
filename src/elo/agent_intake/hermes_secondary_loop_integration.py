@@ -13,6 +13,7 @@ from .hermes_context_plugin_boundary import (
 from .hermes_context_plugin_evaluation import evaluate_context_plugin_candidate
 from .hermes_cron_boundary import ScheduleSignal, assess_schedule
 from .hermes_cron_evaluation import evaluate as evaluate_cron
+from .hermes_mcp_evaluation import evaluate as evaluate_mcp
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
@@ -182,6 +183,23 @@ def run_cron_loop_probe() -> tuple[object, object]:
     )
 
 
+
+def run_mcp_loop_probe() -> tuple[object, object]:
+    """Route EXT-MCP-HERMES through the existing HERMES-MCP gateway surface."""
+    evaluation = evaluate_mcp()
+    refs = tuple(f"controlled-eval:mcp/{i}" for i in range(1, 6))
+    return _handoff(
+        "EXT-MCP-HERMES",
+        "governed_mcp_benchmark_pass_rate",
+        evaluation.baseline_rate,
+        evaluation.adapted_rate,
+        evaluation.repeatable,
+        refs,
+        evaluation.boundary_integrity_rate == 1.0,
+        "HERMES-MCP",
+    )
+
+
 def run_independent_review_loop_probe() -> tuple[object, object]:
     """Evaluate independent review as a refinement of HERMES-DELEGATION."""
     reviews = tuple(
@@ -224,5 +242,6 @@ __all__ = [
     "run_multiagent_loop_probe",
     "run_context_plugin_loop_probe",
     "run_cron_loop_probe",
+    "run_mcp_loop_probe",
     "run_independent_review_loop_probe",
 ]
