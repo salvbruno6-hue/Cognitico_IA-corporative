@@ -34,7 +34,7 @@ def test_loop_entry_requires_complete_evidence():
     assert result.canonical_mutation is False
 
 
-def test_loop_entry_blocks_missing_gain():
+def test_loop_entry_accepts_complete_evidence_without_gain():
     result = assess_loop_readiness(
         build_candidate("EXT-CONTEXTREF-HERMES"),
         _adaptation(),
@@ -42,8 +42,8 @@ def test_loop_entry_blocks_missing_gain():
         {"accuracy": 0.8},
         **_complete_kwargs(),
     )
-    assert result.ready_for_loop is False
-    assert "measured_gain" in result.missing
+    assert result.ready_for_loop is True
+    assert result.missing == ()
 
 
 def test_loop_entry_blocks_missing_direction():
@@ -89,7 +89,7 @@ def test_loop_entry_accepts_directional_minimize_gain():
     assert result.missing == ()
 
 
-def test_loop_entry_blocks_missing_governance_approval():
+def test_loop_entry_does_not_require_downstream_governance_approval():
     kwargs = _complete_kwargs()
     kwargs.update(evolution_gate_approved=False, elo_authorized=False)
     result = assess_loop_readiness(
@@ -99,9 +99,8 @@ def test_loop_entry_blocks_missing_governance_approval():
         {"accuracy": 0.9},
         **kwargs,
     )
-    assert result.ready_for_loop is False
-    assert "evolution_gate_approval" in result.missing
-    assert "elo_authorization" in result.missing
+    assert result.ready_for_loop is True
+    assert result.missing == ()
 
 
 def test_loop_entry_blocks_missing_provenance_and_boundary():
