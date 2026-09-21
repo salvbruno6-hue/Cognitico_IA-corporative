@@ -22,22 +22,6 @@ class LoopReadiness:
     canonical_mutation: bool = False
 
 
-def _has_positive_gain(
-    baseline: Mapping[str, float],
-    adapted: Mapping[str, float],
-    metric_directions: Mapping[str, str],
-) -> bool:
-    """Require at least one strictly positive, direction-correct metric delta."""
-    for metric in baseline.keys() & adapted.keys():
-        direction = metric_directions[metric]
-        delta = adapted[metric] - baseline[metric]
-        if (direction == "maximize" and delta > 0) or (
-            direction == "minimize" and delta < 0
-        ):
-            return True
-    return False
-
-
 def assess_loop_readiness(
     candidate: HermesCandidate,
     adaptation: SymbiontAdaptation,
@@ -52,7 +36,13 @@ def assess_loop_readiness(
     evolution_gate_approved: bool = False,
     elo_authorized: bool = False,
 ) -> LoopReadiness:
-    """Check entry evidence without deciding or performing implementation."""
+    """Check technical entry evidence without deciding or performing implementation.
+
+    Gain is deliberately not a preflight blocker. The implementation loop owns
+    the measured-gain decision so a candidate with complete evidence but no
+    incremental gain can be classified as MEASURED_GAIN/RETEST rather than
+    being incorrectly stopped at CANDIDATE.
+    """
     missing: list[str] = []
 
     if candidate.promotion_state != "candidate_only" or candidate.canonical_mutation:
@@ -75,11 +65,6 @@ def assess_loop_readiness(
     ]
     if invalid_directions:
         missing.extend(f"metric_direction:{metric}" for metric in invalid_directions)
-
-    if common and not invalid_directions and not _has_positive_gain(
-        baseline, adapted, metric_directions
-    ):
-        missing.append("measured_gain")
 
     if regressions:
         missing.append("regression_free")
@@ -107,8 +92,9 @@ def assess_loop_readiness(
         missing.append("evidence_contract")
 
     # Governance approvals are downstream of technical readiness. This preflight
-    # must be able to hand a measured candidate to Evolution Gate/ELO Review;
-    # requiring those approvals here would make the governed loop unreachable.
+    # must be able to hand measured evidence to the implementation loop and then
+    # to Evolution Gate/ELO Review; requiring those approvals here would make the
+    # governed loop unreachable.
 
     return LoopReadiness(
         candidate_id=candidate.candidate_id,
