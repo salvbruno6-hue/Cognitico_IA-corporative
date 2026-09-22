@@ -16,6 +16,7 @@ import re
 import unicodedata
 from typing import Any
 
+from .directives import DirectiveGenerator
 from .types import DeltaItem, SynthesisDelta
 
 
@@ -59,7 +60,6 @@ class SynthesisEngine:
         external_tokens = _tokenize(external_analysis)
         learning_tags = {_normalize(t) for t in learning.get("tags", [])}
 
-        # --- aligned: tags do aprendizado presentes na análise ---
         for tag in sorted(learning_tags):
             if tag in external_tokens:
                 delta.aligned.append(DeltaItem(
@@ -71,7 +71,6 @@ class SynthesisEngine:
                 if len(delta.aligned) >= max_items_per_category:
                     break
 
-        # --- improvements: tags do aprendizado ausentes na análise ---
         for tag in sorted(learning_tags):
             if tag not in external_tokens:
                 delta.improvements.append(DeltaItem(
@@ -83,7 +82,6 @@ class SynthesisEngine:
                 if len(delta.improvements) >= max_items_per_category:
                     break
 
-        # --- handbook: docs cujas tags não aparecem na análise ---
         for doc in handbook[:3]:
             doc_tags = {_normalize(t) for t in doc.get("tags", [])}
             missing = doc_tags - external_tokens
@@ -100,11 +98,9 @@ class SynthesisEngine:
                 ))
                 delta.handbook_used.append(doc["id"])
 
-        # --- precedents ---
         for p in precedents[:3]:
             delta.precedents_used.append(p["decision_id"])
 
-        # --- confidence ---
         total = (
             len(delta.aligned)
             + len(delta.improvements)
@@ -120,5 +116,11 @@ class SynthesisEngine:
             )
 
         delta.learning_used = learning.get("so_id")
+
+        generator = DirectiveGenerator()
+        delta.directives = generator.generate(
+            so_context=so_context,
+            delta=delta.to_dict(),
+        )
 
         return delta
