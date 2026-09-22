@@ -1,8 +1,12 @@
-"""Deterministic resolution of governed Forge specialist skills.
+"""Deterministic resolution and pre-intake assessment of governed Forge specialist skills.
 
 The Forge Specialist Skill Registry remains the source of truth. This module
-resolves an explicitly supplied registry snapshot and does not create a second
-registry, router, authority, permission model, or persistent state.
+resolves an explicitly supplied registry snapshot and provides a read-only
+pre-intake assessment that checks whether the components required by a proposed
+skill already exist before Symbiont intake proceeds.
+
+The pre-intake assessment never creates a skill, registry entry, capability,
+permission, persistence record, or learning promotion.
 """
 
 from dataclasses import dataclass
@@ -17,6 +21,8 @@ _MATURITY_ORDER = {
     "GOVERNED": 4,
     "CANDIDATE_FOR_CORE_PROMOTION": 5,
 }
+
+_COMPONENT_STATUS = {"FOUND", "PARTIAL", "MISSING"}
 
 
 @dataclass(frozen=True)
@@ -46,8 +52,50 @@ class SpecialistSkillResolution:
         return self.status == "RESOLVED"
 
 
+@dataclass(frozen=True)
+class SkillPreIntakeComponent:
+    """Evidence about one component required by a proposed skill."""
+
+    name: str
+    status: str
+    path: str = ""
+    gap: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("pre-intake component name is required")
+        if self.status not in _COMPONENT_STATUS:
+            raise ValueError(f"unknown pre-intake component status: {self.status}")
+
+
+@dataclass(frozen=True)
+class SkillPreIntakeResult:
+    """Read-only composition/readiness result consumed by Symbiont intake."""
+
+    skill_id: str
+    domain_family: str
+    status: str
+    decision: str
+    readiness_score: float
+    components: tuple[SkillPreIntakeComponent, ...]
+    existing_skill_id: str | None = None
+    evidence: tuple[dict[str, object], ...] = ()
+
+    @property
+    def ready_for_intake(self) -> bool:
+        return self.decision == "READY_FOR_INTAKE"
+
+    @property
+    def develop_first(self) -> bool:
+        return self.decision == "DEVELOP_FIRST"
+
+    @property
+    def reuse_existing(self) -> bool:
+        return self.decision == "REUSE_EXISTING"
+
+
 class SpecialistSkillResolver:
-    """Resolve a skill from the canonical Forge registry snapshot.
+    """Resolve skills and assess proposed-skill pre-intake.
 
     Resolution is deterministic: exact domain match, minimum maturity,
     authorization callback, then a stable skill-id tie-break. The resolver
@@ -114,7 +162,6 @@ class SpecialistSkillResolver:
                 reason="no candidate is authorized for this context",
             )
 
-        # Stable tie-break: highest maturity first, then lexical skill id.
         selected = min(
             authorized_candidates,
             key=lambda skill: (-self._maturity_level(skill.maturity), skill.skill_id),
@@ -125,6 +172,104 @@ class SpecialistSkillResolver:
             domain_family=selected.domain_family,
             maturity=selected.maturity,
             reason="resolved from governed Forge registry snapshot",
+        )
+
+    def pre_intake(
+        self,
+        *,
+        skill_id: str,
+        domain_family: str,
+        required_components: Iterable[SkillPreIntakeComponent],
+        authorized: Callable[[SpecialistSkill], bool] | None = None,
+        minimum_maturity: str = "STRUCTURED",
+    ) -> SkillPreIntakeResult:
+        """Check composition readiness before Symbiont creates/absorbs a skill.
+
+        The supplied component inventory is evidence only. Existing governed
+        skills are checked first so an equivalent capability is reused instead
+        of producing a duplicate skill.
+        """
+        if not skill_id.strip():
+            raise ValueError("skill_id is required")
+        if not domain_family.strip():
+            raise ValueError("domain_family is required")
+
+        components = tuple(required_components)
+        if not components:
+            return SkillPreIntakeResult(
+                skill_id=skill_id,
+                domain_family=domain_family,
+                status="BLOCKED",
+                decision="DEVELOP_FIRST",
+                readiness_score=0.0,
+                components=(),
+                evidence=(
+                    {"reason": "no required components were supplied"},
+                ),
+            )
+
+        duplicate = self._resolve_existing_for_pre_intake(
+            domain_family=domain_family,
+            authorized=authorized,
+            minimum_maturity=minimum_maturity,
+        )
+        if duplicate.resolved:
+            return SkillPreIntakeResult(
+                skill_id=skill_id,
+                domain_family=domain_family,
+                status="REUSE_EXISTING",
+                decision="REUSE_EXISTING",
+                readiness_score=1.0,
+                components=components,
+                existing_skill_id=duplicate.skill_id,
+                evidence=(
+                    {"reason": "existing governed specialist skill matches the domain"},
+                    {"existing_skill_id": duplicate.skill_id, "maturity": duplicate.maturity},
+                ),
+            )
+
+        found = sum(component.status == "FOUND" for component in components)
+        readiness = round(found / len(components), 3)
+        missing_or_partial = tuple(
+            component
+            for component in components
+            if component.status != "FOUND"
+        )
+
+        if missing_or_partial:
+            status = "BLOCKED"
+            decision = "DEVELOP_FIRST"
+            reason = "required components are missing or only partially available"
+        else:
+            status = "READY"
+            decision = "READY_FOR_INTAKE"
+            reason = "required components are available and no governed duplicate was resolved"
+
+        return SkillPreIntakeResult(
+            skill_id=skill_id,
+            domain_family=domain_family,
+            status=status,
+            decision=decision,
+            readiness_score=readiness,
+            components=components,
+            evidence=(
+                {"reason": reason},
+                {"required_components": len(components), "found_components": found},
+            ),
+        )
+
+    def _resolve_existing_for_pre_intake(
+        self,
+        *,
+        domain_family: str,
+        authorized: Callable[[SpecialistSkill], bool] | None,
+        minimum_maturity: str,
+    ) -> SpecialistSkillResolution:
+        """Resolve only a reusable existing skill; never invent one."""
+        return self.resolve(
+            domain_family=domain_family,
+            authorized=authorized,
+            minimum_maturity=minimum_maturity,
         )
 
 
