@@ -1,9 +1,16 @@
 ---
 id: ELO-DATA-MULTITEINER-001
 name: Multiteiner ELO Virtual Data Model
-type: canonical-reference
+type: reference
 layer: data
+owner: data-engineering / Multiteiner tenant
 status: draft
+authority: reference
+version: 1.0.0
+related:
+  - MULTITEINER_ORGANIZATIONAL_CONTEXT
+  - MULTITEINER_END_TO_END_PROCESS_FLOW
+depends_on: []
 ---
 
 # MULTITEINER — MODELO CONCEITUAL DE DADOS DO ELO

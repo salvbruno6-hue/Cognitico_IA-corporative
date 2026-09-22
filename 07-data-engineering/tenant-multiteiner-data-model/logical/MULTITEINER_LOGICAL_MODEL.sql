@@ -1,6 +1,15 @@
 -- ELO / MULTITEINER
+-- artifact_id: ELO-DATA-MULTITEINER-LOGICAL-001
+-- name: Multiteiner Logical Data Model
+-- type: reference
+-- layer: data
+-- owner: data-engineering / Multiteiner tenant
+-- status: draft
+-- authority: reference
+-- version: 1.0.0
+-- related: ELO-DATA-MULTITEINER-001
 -- Logical model: process-integrated data architecture
--- Status: conceptual/logical; physical implementation requires validation.
+-- Physical implementation requires validation.
 
 create schema if not exists multiteiner;
 
