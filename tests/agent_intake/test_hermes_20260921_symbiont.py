@@ -99,5 +99,6 @@ def test_symbiont_loop_retests_when_gain_is_not_repeatable():
     )
     assert handoff.next_state == "CANDIDATE"
     assert handoff.implementation.result == "RETEST"
-    assert "repeatability" in handoff.loop_readiness.missing
+    assert "evidence_contract" in handoff.loop_readiness.missing
+    assert "repeatability" not in handoff.loop_readiness.missing
     assert handoff.canonical_mutation is False
