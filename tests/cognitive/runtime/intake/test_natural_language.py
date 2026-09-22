@@ -73,7 +73,6 @@ def test_unknown_intent_returns_error():
     assert "suggestions" in result
 
 
-
 def test_confere_analise_includes_question():
     """Regressão: confere_analise deve gerar 'question'."""
     result = parse_natural_request(
