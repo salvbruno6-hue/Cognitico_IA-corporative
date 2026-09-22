@@ -30,6 +30,7 @@ class SynthesisDelta:
     handbook_used: list[str] = field(default_factory=list)
     learning_used: str | None = None
     overall_confidence: float = 0.0
+    directives: list[Any] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -42,4 +43,8 @@ class SynthesisDelta:
             "handbook_used": self.handbook_used,
             "learning_used": self.learning_used,
             "overall_confidence": self.overall_confidence,
+            "directives": [
+                d.to_dict() if hasattr(d, "to_dict") else d
+                for d in self.directives
+            ],
         }
