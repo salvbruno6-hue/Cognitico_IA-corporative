@@ -149,13 +149,32 @@ class Humanizer:
                 "aponta alinhamentos e divergências."
             )
 
+        directives = delta.get("directives", [])
+        if directives:
+            lines.append("")
+            lines.append("**O que preciso confirmar antes de prosseguir:**")
+            for d in directives:
+                question = d.get("question", "")
+                why = d.get("why", "")
+                priority = d.get("priority", "")
+                marker = " 🔴" if priority == "high" else ""
+                lines.append(f"-{marker} {question}")
+                if why:
+                    lines.append(f"  → {why}")
+
         recommendation = (result.get("decision_brief") or {}).get(
             "recommendation", ""
         )
         lines.append("")
-        lines.append(
-            "**Próximo passo:** " + self._next_step(recommendation)
-        )
+        if directives:
+            lines.append(
+                "**Próximo passo:** responda os pontos acima e eu "
+                "processo com o contexto completo."
+            )
+        else:
+            lines.append(
+                "**Próximo passo:** " + self._next_step(recommendation)
+            )
         return "\n".join(lines)
 
     def _next_step(self, recommendation: str) -> str:
