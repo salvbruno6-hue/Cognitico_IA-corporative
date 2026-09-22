@@ -71,3 +71,43 @@ def test_unknown_intent_returns_error():
     assert "error" in result
     assert result["error"] == "intent_not_recognized"
     assert "suggestions" in result
+
+
+def test_confere_analise_includes_question():
+    """Regressão: confere_analise deve gerar 'question'."""
+    result = parse_natural_request(
+        "ELO, confere essa análise da SO 155.26: "
+        "o orçamento contempla 30 módulos."
+    )
+    assert result["intent"] == "confere_analise"
+    assert "question" in result
+    assert result["question"] != ""
+
+
+def test_guarda_aprendizado_includes_question():
+    """Regressão: guarda_aprendizado deve gerar 'question'."""
+    result = parse_natural_request(
+        "ELO, guarda isso da SO 155.26: premissa de 30%"
+    )
+    assert result["intent"] == "guarda_aprendizado"
+    assert "question" in result
+    assert result["question"] != ""
+
+
+def test_busca_precedente_includes_question():
+    """Regressão: busca_precedente deve gerar 'question'."""
+    result = parse_natural_request(
+        "ELO, já vimos algo parecido com a SO 155.26"
+    )
+    assert result["intent"] == "busca_precedente"
+    assert "question" in result
+    assert result["question"] != ""
+
+
+def test_o_que_sabe_includes_question():
+    """o_que_sabe também deve ter question."""
+    result = parse_natural_request(
+        "ELO, o que você sabe sobre a SO 155.26"
+    )
+    assert result["intent"] == "o_que_sabe"
+    assert "question" in result
