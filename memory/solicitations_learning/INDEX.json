@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "domain": "solicitations-learning",
+  "last_updated": "2026-09-22",
+  "solicitations": [
+    {
+      "so_id": "SO-155.26",
+      "canonical_key": "SO_155_26",
+      "path": "SO-155.26.md",
+      "domain": "orcamento",
+      "tags": [
+        "modulos",
+        "manutencao",
+        "esquadrias",
+        "art-rrt",
+        "acoplamento",
+        "responsabilidades"
+      ],
+      "summary": "Aprendizado da SO 155.26: 24 módulos (20 principais + 4 sanitários), manutenção 6 meses, premissas de 30%, ART/RRT 4% só em projetos, acoplamento."
+    }
+  ]
+}
