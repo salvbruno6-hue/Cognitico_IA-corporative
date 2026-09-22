@@ -1,4 +1,5 @@
 from elo.core.specialist_skill_resolution import (
+    SkillPreIntakeComponent,
     SpecialistSkill,
     SpecialistSkillResolver,
     skill_from_registry_record,
@@ -54,3 +55,77 @@ def test_record_adapter_requires_identity_fields() -> None:
     assert skill.skill_id == "FORGE-BUDGETING-001"
     assert skill.domain_family == "BUDGETING"
     assert skill.maturity == "GOVERNED"
+
+
+def test_pre_intake_develops_first_when_a_required_component_is_missing() -> None:
+    result = SpecialistSkillResolver([]).pre_intake(
+        skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        domain_family="BUDGETING",
+        required_components=(
+            SkillPreIntakeComponent("memory", "FOUND", "src/elo/cognitive/memory"),
+            SkillPreIntakeComponent(
+                "precedent_search",
+                "MISSING",
+                gap="no reusable precedent search mechanism found",
+            ),
+        ),
+    )
+    assert result.status == "BLOCKED"
+    assert result.decision == "DEVELOP_FIRST"
+    assert result.readiness_score == 0.5
+    assert result.develop_first is True
+
+
+def test_pre_intake_is_ready_when_all_components_exist_and_no_duplicate_exists() -> None:
+    result = SpecialistSkillResolver([]).pre_intake(
+        skill_id="ELO-KE-SKILL-NEW-001",
+        domain_family="BUDGETING",
+        required_components=(
+            SkillPreIntakeComponent("memory", "FOUND", "memory"),
+            SkillPreIntakeComponent("precedent_search", "FOUND", "precedent"),
+            SkillPreIntakeComponent("human_response", "FOUND", "humanizer"),
+            SkillPreIntakeComponent("evolution_gate", "FOUND", "gate"),
+        ),
+    )
+    assert result.status == "READY"
+    assert result.decision == "READY_FOR_INTAKE"
+    assert result.readiness_score == 1.0
+    assert result.ready_for_intake is True
+
+
+def test_pre_intake_reuses_existing_governed_skill_instead_of_creating_duplicate() -> None:
+    existing = SpecialistSkill(
+        "FORGE-BUDGETING-001",
+        "BUDGETING",
+        "GOVERNED",
+        authorization_required=False,
+    )
+    result = SpecialistSkillResolver([existing]).pre_intake(
+        skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        domain_family="BUDGETING",
+        required_components=(
+            SkillPreIntakeComponent("memory", "FOUND"),
+            SkillPreIntakeComponent("precedent_search", "FOUND"),
+        ),
+    )
+    assert result.status == "REUSE_EXISTING"
+    assert result.decision == "REUSE_EXISTING"
+    assert result.existing_skill_id == "FORGE-BUDGETING-001"
+    assert result.reuse_existing is True
+
+
+def test_pre_intake_detects_duplicate_even_when_execution_is_not_authorized() -> None:
+    existing = SpecialistSkill(
+        "FORGE-BUDGETING-002",
+        "BUDGETING",
+        "GOVERNED",
+        authorization_required=True,
+    )
+    result = SpecialistSkillResolver([existing]).pre_intake(
+        skill_id="ELO-KE-SKILL-EXAMPLE-002",
+        domain_family="BUDGETING",
+        required_components=(SkillPreIntakeComponent("memory", "FOUND"),),
+        authorized=lambda _: False,
+    )
+    assert result.decision == "REUSE_EXISTING"
+    assert result.existing_skill_id == "FORGE-BUDGETING-002"
