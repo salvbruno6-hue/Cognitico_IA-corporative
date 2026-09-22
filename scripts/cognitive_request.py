@@ -17,37 +17,55 @@ from typing import Any
 from elo.cognitive.runtime.bootstrap import build_default_crl
 from elo.cognitive.runtime.crl import CRLContext
 from elo.cognitive.runtime.intake.natural_language import parse_natural_request
+from elo.cognitive.runtime.humanization.humanizer import Humanizer
 
 
 def parse_issue_body(body: str) -> dict[str, Any]:
     return parse_natural_request(body)
 
 
+def _attach_human_response(result: dict) -> dict:
+    """Adiciona campo 'human_response' ao resultado."""
+    try:
+        humanizer = Humanizer()
+        result["human_response"] = humanizer.humanize(result)
+    except Exception as exc:
+        result["human_response"] = (
+            "Houve uma falha ao formatar a resposta. "
+            "O resultado bruto permanece disponível."
+        )
+        result["humanization_error"] = str(exc)
+    return result
+
+
 def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
     if "error" in payload:
-        return payload
+        return _attach_human_response(payload)
 
     intent = payload.get("intent")
 
     if intent == "o_que_sabe":
         from elo.cognitive.runtime.knowledge.so_resolver import SOResolver
         resolver = SOResolver()
-        return {
+        return _attach_human_response({
             "intent": intent,
             "so_context": resolver.resolve(payload.get("so_id", "")),
-        }
+        })
 
     if intent == "status_decisao":
         from elo.cognitive.runtime.store.memory_store import DecisionStore
         lifecycle = DecisionStore().load(payload.get("decision_id", ""))
         if lifecycle is None:
-            return {"intent": intent, "found": False}
-        return {
+            return _attach_human_response({
+                "intent": intent,
+                "found": False,
+            })
+        return _attach_human_response({
             "intent": intent,
             "found": True,
             "state": lifecycle.state.value,
             "decision_id": lifecycle.decision.decision_id,
-        }
+        })
 
     if intent == "lista_abertas":
         from elo.cognitive.runtime.store import paths
@@ -63,7 +81,11 @@ def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
                             "decision_id": data.get("canonical_key"),
                             "state": data.get("state"),
                         })
-        return {"intent": intent, "count": len(items), "items": items}
+        return _attach_human_response({
+            "intent": intent,
+            "count": len(items),
+            "items": items,
+        })
 
     # confere_analise / guarda_aprendizado / busca_precedente
     # rodam o CRL completo
@@ -74,7 +96,7 @@ def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
     crl = build_default_crl()
     result = crl.run(ctx)
 
-    return {
+    return _attach_human_response({
         "request_id": request_id,
         "intent": intent,
         "decision_id": result.stage_results.get("decision_id"),
@@ -91,7 +113,7 @@ def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
             else None
         ),
         "stages": result.audit,
-    }
+    })
 
 
 def main() -> int:
@@ -102,7 +124,10 @@ def main() -> int:
         payload = parse_issue_body(body)
         result = run_cognitive_request(payload)
     except Exception as exc:
-        result = {"error": str(exc), "request_id": "issue-request"}
+        result = _attach_human_response({
+            "error": str(exc),
+            "request_id": "issue-request",
+        })
         output_path.write_text(
             json.dumps(result, indent=2, ensure_ascii=False),
             encoding="utf-8",
