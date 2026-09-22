@@ -69,8 +69,8 @@ def assess_loop_readiness(
     if regressions:
         missing.append("regression_free")
 
-    if not repeatable:
-        missing.append("repeatability")
+    # Repeatability is evaluated by the implementation loop after measured
+    # gain; readiness must not make the REPEATABLE/RETEST stage unreachable.
 
     if not provenance_refs:
         missing.append("provenance")
