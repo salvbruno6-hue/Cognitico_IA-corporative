@@ -78,3 +78,25 @@ def test_symbiont_loop_reaches_elo_review_only_after_repeatable_gain():
     assert handoff.next_state == "ELO_REVIEW"
     assert handoff.implementation.result == "READY_FOR_ELO_REVIEW"
     assert handoff.implementation.canonical_mutation is False
+
+
+def test_symbiont_loop_retests_when_gain_is_not_repeatable():
+    from elo.agent_intake.hermes_governed_loop import advance_to_implementation
+
+    candidate = build_candidate("EXT-SESSION-SEARCH-BOUNDS-HERMES")
+    adaptation = refine_capability(
+        "HERMES-CONTEXT",
+        {"controlled_test": True, "outcome": {"boundary": True}, "source_reference": REV},
+    )
+    handoff = advance_to_implementation(
+        candidate,
+        adaptation,
+        {"bounded_misses": 10.0},
+        {"bounded_misses": 7.0},
+        metric_directions={"bounded_misses": "minimize"},
+        repeatable=False,
+        provenance_refs=(REV,),
+    )
+    assert handoff.next_state == "REPEATABLE"
+    assert handoff.implementation.result == "RETEST"
+    assert handoff.canonical_mutation is False
