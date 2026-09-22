@@ -60,7 +60,7 @@ def test_loop_entry_blocks_missing_direction():
     assert "metric_direction:accuracy" in result.missing
 
 
-def test_loop_entry_blocks_regression_and_nonrepeatability():
+def test_loop_entry_blocks_regression_but_defers_nonrepeatability():
     kwargs = _complete_kwargs()
     kwargs.update(repeatable=False, regressions=("scope",))
     result = assess_loop_readiness(
@@ -72,7 +72,7 @@ def test_loop_entry_blocks_regression_and_nonrepeatability():
     )
     assert result.ready_for_loop is False
     assert "regression_free" in result.missing
-    assert "repeatability" in result.missing
+    assert "repeatability" not in result.missing
 
 
 def test_loop_entry_accepts_directional_minimize_gain():
