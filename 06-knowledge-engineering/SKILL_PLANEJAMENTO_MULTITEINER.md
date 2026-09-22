@@ -447,6 +447,81 @@ Quando aplicada a um cenário, a skill deve poder produzir:
 
 ---
 
+## Integração ELO ↔ Supabase ↔ GitHub
+
+A arquitetura de planejamento deve separar três responsabilidades:
+
+**ELO**
+- executa o raciocínio;
+- identifica o que precisa saber;
+- consulta conhecimento contextual;
+- calcula;
+- compara conhecimento histórico com dados atuais;
+- registra a decisão e sua evidência.
+
+**Supabase**
+- mantém o estado e o conhecimento persistente de PCP;
+- armazena demanda, estoque, capacidade, planos, execução e aprendizado estruturado;
+- fornece conceitos, experiências e padrões de raciocínio conforme status de validação.
+
+**GitHub**
+- mantém a definição versionada da skill;
+- documenta regras, contratos, prompts e testes;
+- registra mudanças e governança de engenharia;
+- não substitui o estado operacional do Supabase.
+
+### Ordem de consulta
+
+`ELO → Supabase (conhecimento/dados relevantes) → GitHub (skill/regra vigente) → dados atuais → cálculo → análise → decisão → validação → registro → aprendizado`
+
+A ordem acima é cognitiva, não uma licença para usar conhecimento histórico contra um dado atual. Para a situação corrente, **dado operacional atual** prevalece; para comportamento da skill, **regra versionada no GitHub** prevalece; para conhecimento estruturado e memória persistente, **Supabase** é a fonte.
+
+### Governança da informação
+
+| Tipo | Fonte |
+|---|---|
+| Demanda atual | Supabase / dados operacionais |
+| Estoque atual | Supabase / movimentos e lotes |
+| Capacidade atual | Supabase / capacidade e regras |
+| Plano PCP atual | Supabase |
+| Execução real | Supabase |
+| Fórmula e método analítico da Skill | GitHub + conceito correspondente no Supabase |
+| Experiência histórica | Supabase |
+| Padrão de raciocínio validado | Supabase + Skill no GitHub |
+| Código/teste/contrato | GitHub |
+| Decisão executada | Supabase, com referência ao comportamento/versão da Skill |
+| Aprendizado novo | Supabase, promovido a regra/skill somente após validação |
+
+### Regra de versionamento cruzado
+
+Toda decisão de planejamento derivada dessa skill deve, quando possível, registrar:
+- `skill_id`/nome da skill;
+- versão da skill;
+- conceito/regra consultado;
+- valores de entrada;
+- fórmula aplicada;
+- resultado;
+- impacto;
+- fonte dos dados;
+- status de validação.
+
+Quando houver alteração do método no GitHub, o aprendizado persistido no Supabase deve continuar identificando a versão anterior para preservar rastreabilidade histórica.
+
+### Regra de promoção
+
+`CANDIDATO → TESTADO → VALIDADO → CONSOLIDADO`
+
+Somente conhecimento marcado como **VALIDADO/CONSOLIDADO** pode ser recuperado como regra operacional automática. Candidatos servem para análise e teste e devem ser identificados como tal.
+
+### Regra de divergência
+
+Se GitHub e Supabase apresentarem versões diferentes da mesma regra:
+1. não esconder a divergência;
+2. identificar qual versão está vigente;
+3. bloquear promoção automática da regra conflitante;
+4. registrar a pendência;
+5. validar antes de consolidar.
+
 ## 12. Motor analítico de demanda e planejamento PCP
 
 O planejamento deve converter dados em decisão por uma cadeia analítica rastreável:
