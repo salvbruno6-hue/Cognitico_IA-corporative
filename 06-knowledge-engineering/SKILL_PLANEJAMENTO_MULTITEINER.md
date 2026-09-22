@@ -444,6 +444,90 @@ Quando aplicada a um cenário, a skill deve poder produzir:
 - relação criada;
 - condição de aplicabilidade.
 
+
+---
+
+## 12. Motor analítico de demanda e planejamento PCP
+
+O planejamento deve converter dados em decisão por uma cadeia analítica rastreável:
+
+`DEMANDA → CAPACIDADE → CARGA → UTILIZAÇÃO → RESTRIÇÃO → GARGALO → BOM → NECESSIDADE BRUTA → ESTOQUE DISPONÍVEL → NECESSIDADE LÍQUIDA → LEAD TIME → DATA DE NECESSIDADE → DATA DE PEDIDO → DATA DE ENTREGA → RISCO → IMPACTO → DECISÃO → CONTINGÊNCIA`
+
+### 12.1 Fórmulas-base
+
+| Código | Fórmula | Finalidade |
+|---|---|---|
+| NL | `NL = D - (EA - ES)` | Necessidade líquida considerando estoque de segurança. |
+| NM | `NM = NecessidadeProduto × ConsumoUnitário` | Converter demanda de produto em demanda de componente pela BOM. |
+| NLM | `NLM = NM - (EM - ESM)` | Necessidade líquida de material. |
+| COB | `COB = EstoqueDisponível / ConsumoPorPeríodo` | Transformar estoque físico em cobertura temporal. |
+| ICL | `ICL = COB / LeadTime` | Comparar cobertura com tempo de reposição. |
+| DP | `DP = DN - LeadTime` | Determinar a data-limite de pedido. |
+| DE | `DE = DP + LeadTime` | Projetar a data de entrega. |
+| RUP | `RUP = DE > DN` | Detectar risco de chegada após a necessidade. |
+| ATR | `ATR = DE - DN` | Medir atraso potencial. |
+| CAP | `CAP = TDA / CT` | Estimar capacidade a partir de tempo disponível e ciclo. |
+| UTI | `UTI = Demanda / Capacidade` | Medir pressão da demanda sobre o recurso. |
+| GARG | `GARG = argmax(Carga_i / Capacidade_i)` | Identificar o recurso mais pressionado. |
+| WIP | `ΔWIP = Entrada - Saída` | Identificar acumulação de estoque em processo. |
+| SETUP | `TsetupTotal = Σ(Tsetup_j)` | Medir capacidade consumida por trocas/setup. |
+
+### 12.2 Regras de cálculo
+
+1. Não calcular uma fórmula quando faltar uma variável necessária; registrar **NÃO LOCALIZADO**.
+2. Registrar sempre os valores de entrada, unidade, período, fonte e resultado.
+3. Não tratar exemplo didático como regra universal sem validação operacional.
+4. Dados atuais de demanda, estoque, capacidade e prazo comandam a decisão operacional; histórico serve para recuperar padrões de raciocínio e conhecimento validado.
+5. Quando `DE > DN`, abrir análise de contingência e impacto na produção.
+6. Quando produtos ou rotas possuírem capacidades diferentes, não aplicar uma capacidade média única sem segmentação.
+7. O cálculo deve distinguir claramente **dado**, **fonte visual**, **aprendizado validado**, **inferência controlada** e **NÃO LOCALIZADO**.
+
+### 12.3 Modelo de decisão
+
+A decisão de planejamento deve ser explicável como:
+
+`DECISÃO = DADOS DE ENTRADA + FÓRMULA/RELAÇÃO + RESULTADO + IMPACTO + CONDIÇÃO DE APLICAÇÃO`
+
+O objetivo não é apenas produzir um número, mas recuperar **o caminho da escolha**.
+
+### 12.4 Fonte cognitiva no Supabase
+
+O conhecimento-base desta camada foi registrado como **candidato** no domínio `planejamento_pcp`, especialização `planejamento_pcp_planejamento`, nas estruturas:
+
+- `elo_aprendizado_conceitos`;
+- `elo_aprendizado_pcp_planejamento`.
+
+A fonte de aprendizagem é composta pelos casos didáticos **GlassVibe** e **Urnas Eternidade**, fornecidos para a construção da Skill. Esse registro não substitui dados operacionais atuais.
+
+### 12.5 Regra de consulta ELO → Supabase → GitHub
+
+A interação entre os três componentes deve obedecer:
+
+`ELO → identificar necessidade de conhecimento → consultar Supabase → confrontar com fonte operacional atual → consultar GitHub para regra/skill/código vigente → analisar → decidir → registrar evidência/resultado → aprender`
+
+**Supabase** é a autoridade cognitiva/persistente para conhecimento estruturado, experiências, conceitos, padrões de raciocínio e dados operacionais de PCP.
+
+**GitHub** é a autoridade de engenharia para skills, regras documentadas, contratos, prompts, código, testes e histórico de mudanças.
+
+**ELO** é a camada cognitiva de execução: faz a pergunta certa, seleciona as fontes relevantes, confronta conhecimento histórico com dados atuais, calcula, explica a decisão e registra o resultado.
+
+Nenhuma das três fontes deve ser tratada como substituta automática das demais.
+
+### 12.6 Fluxo de governança
+
+`DEMANDA → RETRIEVAL SUPABASE → REGRA/SKILL GITHUB → DADOS ATUAIS → CÁLCULO → ANÁLISE → DECISÃO → VALIDAÇÃO → REGISTRO → APRENDIZADO`
+
+Quando houver divergência:
+
+1. dado operacional atual prevalece para a situação corrente;
+2. regra/skill vigente no GitHub define o comportamento de engenharia;
+3. conhecimento do Supabase orienta o raciocínio histórico e estruturado;
+4. a divergência deve ser registrada como evidência/pendência, nunca ocultada.
+
+### 12.7 Estado de validação
+
+Os cálculos acima estão registrados como **CANDIDATO / não consolidado**. A promoção para regra operacional exige validação dos casos, das variáveis disponíveis no Supabase e da aplicação em cenários reais de PCP.
+
 ---
 
 ## 10. Limites atuais identificados
