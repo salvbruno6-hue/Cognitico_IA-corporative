@@ -1,0 +1,331 @@
+{
+  "schema_version": "1.0",
+  "domain": "knowledge-handbook",
+  "last_updated": "2026-09-22",
+  "documents": [
+    {
+      "id": "KB-README",
+      "path": "README.md",
+      "title": "Knowledge Handbook",
+      "domain": "meta",
+      "tags": [
+        "handbook",
+        "knowledge",
+        "index"
+      ],
+      "summary": "Diretório raiz de conhecimento corporativo do ELO."
+    },
+    {
+      "id": "KB-CAPACIDADES-CARGAS-MODELOS",
+      "path": "CAPACIDADES_CARGAS_MODELOS.md",
+      "title": "CAPACIDADES E CARGAS — BASE TÉCNICA ELO",
+      "domain": "tecnico",
+      "tags": [
+        "capacidade",
+        "cargas",
+        "modelos",
+        "MLT"
+      ],
+      "summary": "Registra capacidades e cargas específicas dos modelos MLT com exigência de evidência."
+    },
+    {
+      "id": "KB-ELO-CAMADA-EXCEDENTES-COMPOSICAO",
+      "path": "ELO_CAMADA_EXCEDENTES_COMPOSICAO.md",
+      "title": "ELO — CAMADA DE EXCEDENTES E COMPOSIÇÃO",
+      "domain": "orcamento",
+      "tags": [
+        "excedentes",
+        "composicao",
+        "quantitativos",
+        "orcamento"
+      ],
+      "summary": "Define a transformação de requisitos em excedentes, quantitativos e composição orçamentária."
+    },
+    {
+      "id": "KB-ELO-ESPECIALISTA-ORCAMENTO-DIRETRIZES-PROJETO-ANALISE-SOLICITACOES",
+      "path": "ELO_ESPECIALISTA_ORCAMENTO_DIRETRIZES_PROJETO_ANALISE_SOLICITACOES.md",
+      "title": "ELO — ESPECIALISTA DE ORÇAMENTO",
+      "domain": "orcamento",
+      "tags": [
+        "orcamento",
+        "PTS",
+        "solicitacoes",
+        "aprendizado"
+      ],
+      "summary": "Integra análise de SO, PTS Técnica, solução, orçamento, PTS Pós e aprendizado."
+    },
+    {
+      "id": "KB-ELO-ESPECIALISTA-ORCAMENTO-INTEGRACAO-PTS",
+      "path": "ELO_ESPECIALISTA_ORCAMENTO_INTEGRACAO_PTS.md",
+      "title": "ELO — ESPECIALISTA DE ORÇAMENTO — INTEGRAÇÃO PTS",
+      "domain": "pt",
+      "tags": [
+        "PTS",
+        "orcamento",
+        "rastreabilidade",
+        "especialista"
+      ],
+      "summary": "Estabelece a integração entre PTS Técnica, orçamento e PTS Pós."
+    },
+    {
+      "id": "KB-ELO-ESPECIALISTA-ORCAMENTO-METODOLOGIA-V2",
+      "path": "ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md",
+      "title": "ELO — ESPECIALISTA DE ORÇAMENTO — METODOLOGIA V2",
+      "domain": "orcamento",
+      "tags": [
+        "orcamento",
+        "escopo",
+        "excedentes",
+        "quantitativos",
+        "logistica"
+      ],
+      "summary": "Define método ponta a ponta para análise, composição, orçamento e conferência."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-CONTAINERES-V2",
+      "path": "ELO_LICITACOES_CONTAINERES_V2.md",
+      "title": "ELO — LICITAÇÕES — CONTÊINERES V2",
+      "domain": "licitacao",
+      "tags": [
+        "licitacao",
+        "containers",
+        "tecnico",
+        "fontes"
+      ],
+      "summary": "Biblioteca técnica para respostas de licitações sobre contêineres e suas fontes."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-CANONICO-REGRAS-CONSULTA-V2",
+      "path": "ELO_Licitacoes_CANONICO_REGRAS_CONSULTA_V2.md",
+      "title": "ELO — Regras Canônicas de Consulta V2",
+      "domain": "licitacao",
+      "tags": [
+        "licitacao",
+        "canonico",
+        "consulta",
+        "precedencia"
+      ],
+      "summary": "Define a precedência entre fichas, composições, regras, catálogo e fontes externas."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-CATALOGO-CONSTRUTIVO-MLT-V1",
+      "path": "ELO_Licitacoes_Catalogo_Construtivo_MLT_V1.md",
+      "title": "ELO — Catálogo Construtivo MLT — BASE NORMALIZADA",
+      "domain": "modelo",
+      "tags": [
+        "MLT",
+        "catalogo",
+        "construtivo",
+        "padrao"
+      ],
+      "summary": "Consolida o padrão construtivo geral MLT e a precedência de fichas específicas."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-CONTAINER-MARITIMO-40HC-ORIGINAL",
+      "path": "ELO_Licitacoes_Container_Maritimo_40HC_Original.md",
+      "title": "Contêiner Marítimo 40 HC — Conhecimento de Origem",
+      "domain": "modelo",
+      "tags": [
+        "container",
+        "40HC",
+        "maritimo",
+        "origem"
+      ],
+      "summary": "Registra características do contêiner marítimo 40 HC original e seus limites de adaptação."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-CONTEINERES-COMPOSICOES-V2-1",
+      "path": "ELO_Licitacoes_Conteineres_Composicoes_V2_1.md",
+      "title": "ELO — Licitações — Composições de Contêineres V2.1",
+      "domain": "composicao",
+      "tags": [
+        "composicao",
+        "materiais",
+        "fabricacao",
+        "pintura",
+        "quantitativos"
+      ],
+      "summary": "Registra composições técnicas e quantitativos de contêineres por revisão."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-CONTEINERES-V2-1",
+      "path": "ELO_Licitacoes_Conteineres_V2_1.md",
+      "title": "ELO — Base Técnica de Contêineres para Licitações — V2.1",
+      "domain": "tecnico",
+      "tags": [
+        "container",
+        "tecnico",
+        "Dry",
+        "Reefer",
+        "adaptacoes"
+      ],
+      "summary": "Consolida conhecimento técnico de contêineres e adaptações com limites e divergências."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-HIERARQUIA-CANONICA-DADOS-MLT",
+      "path": "ELO_Licitacoes_HIERARQUIA_CANONICA_DADOS_MLT.md",
+      "title": "ELO — Hierarquia Canônica de Dados MLT",
+      "domain": "licitacao",
+      "tags": [
+        "hierarquia",
+        "canonico",
+        "dados",
+        "MLT",
+        "precedencia"
+      ],
+      "summary": "Estabelece a hierarquia de precedência entre dados técnicos e fontes."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-MLT-M01-FICHA-TECNICA",
+      "path": "ELO_Licitacoes_MLT_M01_Ficha_Tecnica.md",
+      "title": "MLT.M01 — Módulo Amplo 20 pés — FICHA NORMALIZADA",
+      "domain": "modelo",
+      "tags": [
+        "MLT.M01",
+        "ficha",
+        "modulo",
+        "eletrica",
+        "dimensoes"
+      ],
+      "summary": "Fornece a ficha específica do MLT.M01 com dimensões, construção e instalações."
+    },
+    {
+      "id": "KB-ELO-LICITACOES-REGRAS-PRODUTO-ORCAMENTO-NORMATIVAS-MLT",
+      "path": "ELO_Licitacoes_Regras_Produto_Orcamento_Normativas_MLT.md",
+      "title": "ELO — Regras de Produto, Orçamento, Normativas e Produção MLT",
+      "domain": "orcamento",
+      "tags": [
+        "produto",
+        "orcamento",
+        "producao",
+        "normativas",
+        "regras"
+      ],
+      "summary": "Reúne regras internas de produto, orçamento, produção e referências normativas."
+    },
+    {
+      "id": "KB-ELO-MEMORIA-CALCULO-ESPECIALISTA-ORCAMENTO",
+      "path": "ELO_MEMORIA_CALCULO_ESPECIALISTA_ORCAMENTO.md",
+      "title": "ELO — MEMÓRIA DE CÁLCULO DO ESPECIALISTA DE ORÇAMENTO",
+      "domain": "orcamento",
+      "tags": [
+        "memoria",
+        "calculo",
+        "premissas",
+        "orcamento",
+        "validacao"
+      ],
+      "summary": "Define o registro de entradas, premissas, cálculos, resultados e validação do orçamento."
+    },
+    {
+      "id": "KB-ELO-TAXONOMIA-CATALOGO-SERVICOS-PRODUTOS-SQL",
+      "path": "ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md",
+      "title": "ELO — TAXONOMIA, CATÁLOGO E CONSULTA SQL",
+      "domain": "tecnico",
+      "tags": [
+        "taxonomia",
+        "catalogo",
+        "SQL",
+        "produtos",
+        "servicos"
+      ],
+      "summary": "Define taxonomia e consulta estruturada para produtos, serviços e composições."
+    },
+    {
+      "id": "KB-MT001-COGNITIVE-CYCLE-TEST",
+      "path": "MT001_COGNITIVE_CYCLE_TEST.md",
+      "title": "ELO-023 — MT-001 Cognitive Cycle Test",
+      "domain": "aprendizado",
+      "tags": [
+        "MT001",
+        "ciclo",
+        "evidencia",
+        "gaps",
+        "decisao"
+      ],
+      "summary": "Testa o ciclo cognitivo com fatos, inferências permitidas, gaps e decisão condicional."
+    },
+    {
+      "id": "KB-MT001-POST-CYCLE-REPORT",
+      "path": "MT001_POST_CYCLE_REPORT.md",
+      "title": "ELO-023 — MT-001 Post-Cycle Report",
+      "domain": "aprendizado",
+      "tags": [
+        "MT001",
+        "post-cycle",
+        "learning",
+        "experiencia"
+      ],
+      "summary": "Registra o resultado pós-ciclo e preserva aprendizados como experiência contextual."
+    },
+    {
+      "id": "KB-MULTITEINER-ELO-CONTEXT-GAPS-AND-STRUCTURE-PLAN",
+      "path": "MULTITEINER_ELO_CONTEXT_GAPS_AND_STRUCTURE_PLAN.md",
+      "title": "MULTITEINER — ELO CONTEXT GAP ANALYSIS & STRUCTURE PLAN",
+      "domain": "contexto",
+      "tags": [
+        "contexto",
+        "gaps",
+        "estrutura",
+        "maturidade",
+        "governanca"
+      ],
+      "summary": "Define como identificar gaps, relações, maturidade e prioridades do contexto Multiteiner."
+    },
+    {
+      "id": "KB-MULTITEINER-METODOLOGIA-ORCAMENTO-ELO",
+      "path": "MULTITEINER_METODOLOGIA_ORCAMENTO_ELO.md",
+      "title": "MULTITEINER — METODOLOGIA DE ORÇAMENTO ELO",
+      "domain": "orcamento",
+      "tags": [
+        "orcamento",
+        "Multiteiner",
+        "SO",
+        "metodologia"
+      ],
+      "summary": "Adapta fundamentos de orçamento ao processo diário de SO da Multiteiner."
+    },
+    {
+      "id": "KB-MULTITEINER-MT001-SAZONAL-PLANNING-EXPERIENCE",
+      "path": "MULTITEINER_MT001_SAZONAL_PLANNING_EXPERIENCE.md",
+      "title": "Multiteiner MT-001 — Experiência de Planejamento Sazonal",
+      "domain": "contexto",
+      "tags": [
+        "MT001",
+        "sazonal",
+        "planejamento",
+        "experiencia",
+        "demanda"
+      ],
+      "summary": "Preserva o MT-001 como experiência contextual não validada para planejamento sazonal."
+    },
+    {
+      "id": "KB-MULTITEINER-ORGANIZATIONAL-CONTEXT",
+      "path": "MULTITEINER_ORGANIZATIONAL_CONTEXT.md",
+      "title": "MULTITEINER — CONTEXTO ORGANIZACIONAL",
+      "domain": "contexto",
+      "tags": [
+        "organizacional",
+        "fluxo",
+        "setores",
+        "entidades",
+        "governanca"
+      ],
+      "summary": "Descreve contexto organizacional, fluxo end-to-end, setores, riscos e governança."
+    },
+    {
+      "id": "KB-SO134-26-UFU-POST-CYCLE-LEARNING",
+      "path": "SO134_26_UFU_POST_CYCLE_LEARNING.md",
+      "title": "SO 134.26 — UFU/MG — Post-Cycle Learning",
+      "domain": "aprendizado",
+      "tags": [
+        "SO134.26",
+        "PTS",
+        "orcamento",
+        "escopo",
+        "aprendizado"
+      ],
+      "summary": "Registra aprendizado da SO 134.26 sobre escopo, PTS, adaptações e pós-orçamento."
+    }
+  ]
+}
