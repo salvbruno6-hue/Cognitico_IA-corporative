@@ -87,8 +87,6 @@ def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
             "items": items,
         })
 
-    # confere_analise / guarda_aprendizado / busca_precedente
-    # rodam o CRL completo
     request_id = payload.get("request_id", "issue-request")
     ctx = CRLContext(request_id=request_id)
     ctx.payload.update(payload)
@@ -111,6 +109,12 @@ def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
             result.stage_results["delta"].to_dict()
             if result.stage_results.get("delta") is not None
             else None
+        ),
+        "directives": (
+            [d.to_dict() for d in result.stage_results["delta"].directives]
+            if result.stage_results.get("delta") is not None
+            and hasattr(result.stage_results["delta"], "directives")
+            else []
         ),
         "stages": result.audit,
     })
