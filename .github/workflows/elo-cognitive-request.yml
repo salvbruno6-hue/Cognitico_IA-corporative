@@ -43,19 +43,24 @@ jobs:
 
       - name: Extract issue body
         id: extract
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          INPUT_SO_ID: ${{ github.event.inputs.so_id }}
+          INPUT_QUESTION: ${{ github.event.inputs.question }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            cat > /tmp/issue_body.txt << 'EOF'
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            cat > /tmp/issue_body.txt << EOF
           <!-- elo-request-payload
           {
-            "so_id": "${{ github.event.inputs.so_id }}",
-            "question": "${{ github.event.inputs.question }}",
+            "so_id": "$INPUT_SO_ID",
+            "question": "$INPUT_QUESTION",
             "domain": "orcamento"
           }
           -->
           EOF
           else
-            printf '%s' "${{ github.event.issue.body }}" > /tmp/issue_body.txt
+            printf '%s' "$ISSUE_BODY" > /tmp/issue_body.txt
           fi
 
       - name: Run cognitive request
@@ -65,6 +70,9 @@ jobs:
           ISSUE_BODY="$(cat /tmp/issue_body.txt)"
           export ISSUE_BODY
           python scripts/cognitive_request.py || true
+          if [ ! -f /tmp/cognitive_result.json ]; then
+            echo '{"error":"result_file_missing"}' > /tmp/cognitive_result.json
+          fi
 
       - name: Commit cognitive state
         run: |
@@ -90,7 +98,7 @@ jobs:
                 fs.readFileSync('/tmp/cognitive_result.json', 'utf8')
               );
             } catch (e) {
-              result = { error: 'result not found' };
+              result = { error: 'result not found', exception: String(e) };
             }
             const body = [
               '## ELO Cognitive Response',
