@@ -15,3 +15,5 @@ def decision_readme_path(decision_id: str) -> Path: return decision_dir(decision
 def decisions_index_path() -> Path: return DECISIONS_DIR / "index.json"
 def precedents_index_path() -> Path: return PRECEDENTS_DIR / "index.json"
 def calibration_path() -> Path: return CALIBRATION_DIR / "index.json"
+def decision_analysis_path(decision_id: str) -> Path: return decision_dir(decision_id) / "chatgpt_analysis.md"
+def decision_delta_path(decision_id: str) -> Path: return decision_dir(decision_id) / "delta.json"

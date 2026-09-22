@@ -21,6 +21,28 @@ class DecisionStore:
         paths.decision_lifecycle_path(decision_id).write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self._update_index(lifecycle)
 
+    def save_analysis(
+        self,
+        decision_id: str,
+        external_analysis: str,
+        delta: dict,
+    ) -> None:
+        """Persiste análise bruta do ChatGPT + delta calculado.
+
+        Ref: decisão A+C (persistir bruto + delta).
+        """
+        import json
+        d = paths.decision_dir(decision_id)
+        d.mkdir(parents=True, exist_ok=True)
+
+        paths.decision_analysis_path(decision_id).write_text(
+            external_analysis, encoding="utf-8",
+        )
+        paths.decision_delta_path(decision_id).write_text(
+            json.dumps(delta, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
     def load(self, decision_id: str) -> DecisionLifecycle | None:
         p = paths.decision_lifecycle_path(decision_id)
         if not p.exists(): return None

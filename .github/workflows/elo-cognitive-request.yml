@@ -1,0 +1,109 @@
+name: ELO Cognitive Request
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      so_id:
+        description: "SO ID (ex: SO 155.26)"
+        required: false
+        type: string
+      question:
+        description: "Pergunta / contexto"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  cognitive-request:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       contains(github.event.issue.labels.*.name, 'elo-request'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+
+      - name: Extract issue body
+        id: extract
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            cat > /tmp/issue_body.txt << 'EOF'
+          <!-- elo-request-payload
+          {
+            "so_id": "${{ github.event.inputs.so_id }}",
+            "question": "${{ github.event.inputs.question }}",
+            "domain": "orcamento"
+          }
+          -->
+          EOF
+          else
+            printf '%s' "${{ github.event.issue.body }}" > /tmp/issue_body.txt
+          fi
+
+      - name: Run cognitive request
+        env:
+          OUTPUT_PATH: /tmp/cognitive_result.json
+        run: |
+          ISSUE_BODY="$(cat /tmp/issue_body.txt)"
+          export ISSUE_BODY
+          python scripts/cognitive_request.py || true
+
+      - name: Commit cognitive state
+        run: |
+          git config user.name "elo-cognitive-bot"
+          git config user.email "elo-cognitive-bot@users.noreply.github.com"
+          git add memory/cognitive/ || true
+          if git diff --cached --quiet; then
+            echo "Nenhuma mudança no estado cognitivo."
+          else
+            git commit -m "chore(cognitive): state from issue request"
+            git push
+          fi
+
+      - name: Comment on issue
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let result = {};
+            try {
+              result = JSON.parse(
+                fs.readFileSync('/tmp/cognitive_result.json', 'utf8')
+              );
+            } catch (e) {
+              result = { error: 'result not found' };
+            }
+            const body = [
+              '## ELO Cognitive Response',
+              '',
+              '```json',
+              JSON.stringify(result, null, 2),
+              '```',
+              '',
+              `_Workflow run: ${{ github.run_id }}_`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
