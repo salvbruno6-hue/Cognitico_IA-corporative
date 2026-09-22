@@ -1,8 +1,10 @@
 """Entrada do workflow cognitivo via issue.
 
-Lê payload da issue, roda CRL, devolve delta.
+Aceita:
+  - JSON block (retrocompatível)
+  - Linguagem natural (protocolo ELO)
 
-Refs: ADR-0014, ADR-0015.
+Refs: ELO-NATURAL-LANGUAGE-PROTOCOL, ADR-0014, ADR-0015.
 """
 from __future__ import annotations
 
@@ -14,22 +16,57 @@ from typing import Any
 
 from elo.cognitive.runtime.bootstrap import build_default_crl
 from elo.cognitive.runtime.crl import CRLContext
+from elo.cognitive.runtime.intake.natural_language import parse_natural_request
 
 
 def parse_issue_body(body: str) -> dict[str, Any]:
-    start = body.find("<!-- elo-request-payload")
-    end = body.find("-->", start)
-    if start == -1 or end == -1:
-        return {"question": body.strip()}
-
-    raw = body[start + len("<!-- elo-request-payload"):end].strip()
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"payload inválido: {exc}") from exc
+    return parse_natural_request(body)
 
 
 def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
+    if "error" in payload:
+        return payload
+
+    intent = payload.get("intent")
+
+    if intent == "o_que_sabe":
+        from elo.cognitive.runtime.knowledge.so_resolver import SOResolver
+        resolver = SOResolver()
+        return {
+            "intent": intent,
+            "so_context": resolver.resolve(payload.get("so_id", "")),
+        }
+
+    if intent == "status_decisao":
+        from elo.cognitive.runtime.store.memory_store import DecisionStore
+        lifecycle = DecisionStore().load(payload.get("decision_id", ""))
+        if lifecycle is None:
+            return {"intent": intent, "found": False}
+        return {
+            "intent": intent,
+            "found": True,
+            "state": lifecycle.state.value,
+            "decision_id": lifecycle.decision.decision_id,
+        }
+
+    if intent == "lista_abertas":
+        from elo.cognitive.runtime.store import paths
+        decisions_dir = paths.DECISIONS_DIR
+        items = []
+        if decisions_dir.exists():
+            for d in decisions_dir.iterdir():
+                p = d / "lifecycle.json"
+                if p.exists():
+                    data = json.loads(p.read_text(encoding="utf-8"))
+                    if data.get("state") in payload.get("state_filter", []):
+                        items.append({
+                            "decision_id": data.get("canonical_key"),
+                            "state": data.get("state"),
+                        })
+        return {"intent": intent, "count": len(items), "items": items}
+
+    # confere_analise / guarda_aprendizado / busca_precedente
+    # rodam o CRL completo
     request_id = payload.get("request_id", "issue-request")
     ctx = CRLContext(request_id=request_id)
     ctx.payload.update(payload)
@@ -39,6 +76,7 @@ def run_cognitive_request(payload: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "request_id": request_id,
+        "intent": intent,
         "decision_id": result.stage_results.get("decision_id"),
         "final_state": (
             result.stage_results["lifecycle"].state.value
