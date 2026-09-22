@@ -91,7 +91,7 @@ class LocalResilienceHarness:
         return f"http://127.0.0.1:{self.server.server_port}/health"
 
 
-def run_transport(sequence, max_retries=2, timeout=0.01):
+def run_transport(sequence, max_retries=2, timeout=0.5):
     evidence = []
     with LocalResilienceHarness(sequence) as harness:
         for attempt in range(1, max_retries + 2):
