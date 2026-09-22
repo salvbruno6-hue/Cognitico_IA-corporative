@@ -4,17 +4,16 @@ Compara a análise externa (do ChatGPT) com o contexto do ELO
 (aprendizado de SO, handbook, precedentes) e produz um delta
 estruturado.
 
-Heurística:
-- Termos em comum entre análise e contexto → aligned
-- Termos no contexto mas ausentes na análise → improvements
-- Contradições explícitas → corrections
-- Política do cânone violada → conflicts
+Normalização:
+- texto é normalizado (lowercase + remoção de acentos) antes de
+  tokenizar, para comparar 'módulos' com 'modulos' sem erro.
 
 Refs: ADR-0014.
 """
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 from .types import DeltaItem, SynthesisDelta
@@ -27,8 +26,19 @@ STOPWORDS = {
 }
 
 
+def _strip_accents(text: str) -> str:
+    """Remove acentos: 'módulos' -> 'modulos'."""
+    normalized = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in normalized if not unicodedata.combining(c))
+
+
+def _normalize(text: str) -> str:
+    return _strip_accents(text).lower()
+
+
 def _tokenize(text: str) -> set[str]:
-    tokens = re.findall(r"\b[a-zà-ú]{4,}\b", text.lower())
+    normalized = _normalize(text)
+    tokens = re.findall(r"\b[a-z]{4,}\b", normalized)
     return {t for t in tokens if t not in STOPWORDS}
 
 
@@ -47,10 +57,10 @@ class SynthesisEngine:
         delta = SynthesisDelta(so_id=so_id)
 
         external_tokens = _tokenize(external_analysis)
-        learning_tags = set(learning.get("tags", []))
+        learning_tags = {_normalize(t) for t in learning.get("tags", [])}
 
         # --- aligned: tags do aprendizado presentes na análise ---
-        for tag in learning_tags:
+        for tag in sorted(learning_tags):
             if tag in external_tokens:
                 delta.aligned.append(DeltaItem(
                     category="aligned",
@@ -62,7 +72,7 @@ class SynthesisEngine:
                     break
 
         # --- improvements: tags do aprendizado ausentes na análise ---
-        for tag in learning_tags:
+        for tag in sorted(learning_tags):
             if tag not in external_tokens:
                 delta.improvements.append(DeltaItem(
                     category="improvements",
@@ -75,7 +85,7 @@ class SynthesisEngine:
 
         # --- handbook: docs cujas tags não aparecem na análise ---
         for doc in handbook[:3]:
-            doc_tags = set(doc.get("tags", []))
+            doc_tags = {_normalize(t) for t in doc.get("tags", [])}
             missing = doc_tags - external_tokens
             if missing:
                 delta.improvements.append(DeltaItem(
@@ -90,11 +100,11 @@ class SynthesisEngine:
                 ))
                 delta.handbook_used.append(doc["id"])
 
-        # --- precedents: usa como referência ---
+        # --- precedents ---
         for p in precedents[:3]:
             delta.precedents_used.append(p["decision_id"])
 
-        # --- confidence combinada ---
+        # --- confidence ---
         total = (
             len(delta.aligned)
             + len(delta.improvements)
