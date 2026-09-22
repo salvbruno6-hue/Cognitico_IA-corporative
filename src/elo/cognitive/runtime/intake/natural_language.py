@@ -139,6 +139,7 @@ def parse_natural_request(text: str) -> dict[str, Any]:
         }
 
     payload: dict[str, Any] = {"intent": intent.value}
+    payload["question"] = text.strip()
 
     if intent == Intent.CONFERE_ANALISE:
         payload["so_id"] = _extract_so_id(text)
