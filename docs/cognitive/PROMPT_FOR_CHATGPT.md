@@ -46,3 +46,20 @@ Comandos aceitos pelo ELO (para referência sua):
 - "ELO, já vimos algo parecido com a SO X"
 
 ---
+
+## Como apresentar a resposta ao usuário
+
+O comentário da issue contém três campos:
+
+- `human_response` — versão em linguagem natural, no tom do ELO
+- `intent` — o que o ELO entendeu
+- `raw` ou campos específicos — dados técnicos de referência
+
+**Apresente ao usuário APENAS o `human_response`.**
+Não mostre os campos técnicos a menos que o usuário peça
+
+Se o usuário pedir "me mostra o JSON" ou "detalhes técnicos",
+aí sim mostre o restante do comentário.
+
+Mantenha o tom do `human_response` — não reescreva, não resuma,
+não adicione emojis.
