@@ -210,7 +210,6 @@ class SpecialistSkillResolver:
 
         duplicate = self._resolve_existing_for_pre_intake(
             domain_family=domain_family,
-            authorized=authorized,
             minimum_maturity=minimum_maturity,
         )
         if duplicate.resolved:
@@ -262,14 +261,46 @@ class SpecialistSkillResolver:
         self,
         *,
         domain_family: str,
-        authorized: Callable[[SpecialistSkill], bool] | None,
         minimum_maturity: str,
     ) -> SpecialistSkillResolution:
-        """Resolve only a reusable existing skill; never invent one."""
-        return self.resolve(
-            domain_family=domain_family,
-            authorized=authorized,
-            minimum_maturity=minimum_maturity,
+        """Find an existing governed skill without granting authorization.
+
+        Authorization remains a separate execution concern. Pre-intake must
+        detect an existing identity even when execution is not currently
+        authorized, otherwise it could incorrectly recommend creating a
+        duplicate skill.
+        """
+        if minimum_maturity not in _MATURITY_ORDER:
+            return SpecialistSkillResolution(
+                "BLOCKED",
+                domain_family=domain_family,
+                reason="unknown minimum_maturity",
+            )
+
+        required_level = self._maturity_level(minimum_maturity)
+        candidates = tuple(
+            skill
+            for skill in self._skills
+            if skill.domain_family == domain_family
+            and self._maturity_level(skill.maturity) >= required_level
+        )
+        if not candidates:
+            return SpecialistSkillResolution(
+                "GAP",
+                domain_family=domain_family,
+                reason="no governed specialist skill is registered for the domain",
+            )
+
+        selected = min(
+            candidates,
+            key=lambda skill: (-self._maturity_level(skill.maturity), skill.skill_id),
+        )
+        return SpecialistSkillResolution(
+            "RESOLVED",
+            skill_id=selected.skill_id,
+            domain_family=selected.domain_family,
+            maturity=selected.maturity,
+            reason="existing governed skill detected for pre-intake reconciliation",
         )
 
 
