@@ -25,6 +25,9 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-MULTIAGENT-HERMES", "subagent delegation / parallel workstreams", "ELO Agent Delegation", "bounded delegated execution with evidence and authority limits"),
     ("EXT-CRON-HERMES", "scheduled agent tasks", "ELO Workflow/Automation", "deterministic scheduled invocation with ELO governance"),
     ("EXT-MCP-HERMES", "external MCP capabilities", "ELO External Capability Gateway", "allowlisted external capability access with governed evidence"),
+    # Hermes v0.21.4 refinements: reuse existing owners; no new authority.
+    ("EXT-SKILL-AUTOLOAD-HERMES", "skills.auto_load", "ELO Skills", "contextual skill continuity behind existing skill governance"),
+    ("EXT-SESSION-SEARCH-BOUNDS-HERMES", "session_search after/before + OR-relaxed retry", "ELO Context", "bounded historical retrieval behind existing context authority"),
 )
 
 
