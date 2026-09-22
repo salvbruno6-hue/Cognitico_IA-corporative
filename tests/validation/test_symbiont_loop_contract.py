@@ -3,7 +3,7 @@
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 LOOP_DOC = ROOT / "06-knowledge-engineering" / "LOOP_SIMBIONTE_ELO.md"
 PLANNING_SKILL = ROOT / "06-knowledge-engineering" / "SKILL_PLANEJAMENTO_MULTITEINER.md"
 
