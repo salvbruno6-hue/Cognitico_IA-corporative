@@ -8,6 +8,7 @@ by the canonical Evolution Gate before any learning candidate can be created.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterable
 
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
 from elo.cognitive.symbionte_lab import SymbiontLabObservation
@@ -48,11 +49,78 @@ class PatternIntakeDecision:
         return self.classification is EvolutionClassification.COMPATIBLE
 
 
+
+@dataclass(frozen=True)
+class SkillComponent:
+    """Evidence-only component inventory used before a new Skill is proposed."""
+
+    name: str
+    status: str
+    path: str = ""
+    gap: str = ""
+
+    def __post_init__(self) -> None:
+        if self.status not in {"FOUND", "PARTIAL", "MISSING"}:
+            raise ValueError(f"invalid component status: {self.status}")
+        if not self.name.strip():
+            raise ValueError("component name is required")
+
+
+@dataclass(frozen=True)
+class SkillCreationAssessment:
+    """Pre-intake result attached to the existing Symbiont Pattern Intake."""
+
+    proposed_skill_id: str
+    existing_owner: str | None
+    components: tuple[SkillComponent, ...]
+    readiness_score: float
+    disposition: str
+    rationale: str
+
+    @property
+    def ready_for_intake(self) -> bool:
+        return self.disposition == "READY_FOR_INTAKE"
+
+
 class SymbiontPatternIntake:
     """Attach external pattern discovery to the existing ELO cognitive spine."""
 
     def __init__(self, gate: EvolutionGate | None = None) -> None:
         self.gate = gate or EvolutionGate()
+
+
+    def assess_skill_creation(
+        self,
+        *,
+        proposed_skill_id: str,
+        existing_owner: str | None,
+        components: Iterable[SkillComponent],
+    ) -> SkillCreationAssessment:
+        """Reconcile a proposed Skill before intake using the existing Symbiont flow."""
+        if not proposed_skill_id.strip():
+            raise ValueError("proposed_skill_id is required")
+        inventory = tuple(components)
+        if not inventory:
+            return SkillCreationAssessment(
+                proposed_skill_id, existing_owner, (), 0.0, "DEVELOP_FIRST",
+                "required components were not supplied; develop the base before intake"
+            )
+        if existing_owner:
+            return SkillCreationAssessment(
+                proposed_skill_id, existing_owner, inventory, 1.0, "REUSE",
+                "an existing owner is already identified; do not create a duplicate Skill"
+            )
+        found = sum(item.status == "FOUND" for item in inventory)
+        readiness = round(found / len(inventory), 3)
+        if found != len(inventory):
+            return SkillCreationAssessment(
+                proposed_skill_id, None, inventory, readiness, "DEVELOP_FIRST",
+                "one or more required components are missing or partial"
+            )
+        return SkillCreationAssessment(
+            proposed_skill_id, None, inventory, 1.0, "READY_FOR_INTAKE",
+            "required components are evidenced and no existing owner was identified"
+        )
 
     def classify(self, pattern: ExternalPatternInput) -> PatternIntakeDecision:
         self._validate(pattern)

@@ -88,3 +88,22 @@ A Simbionte somente entrega um candidato para aprendizado governado quando houve
 `proveniência + contexto + baseline + mecanismo + adaptação + experimento + resultado + métricas + regressão + generalização + risco + owner`
 
 **Regra final:** a Simbionte observa e refina; o ELO Cognitivo governa; o Core incorpora somente o que for validado e promovido pelo caminho canônico.
+
+
+## 3.1 Pré-intake de criação de Skill dentro do fluxo existente
+
+Antes de propor uma nova Skill, a própria `SIMBIONTE-ADAPT-001` deve reconciliar:
+
+1. `existing_owner`: existe owner/capability/skill adequada?
+2. componentes requeridos: `FOUND | PARTIAL | MISSING`;
+3. prontidão da base para intake.
+
+Disposições:
+
+`REUSE` → owner existente; não criar duplicidade.  
+`DEVELOP_FIRST` → componente ausente/parcial; desenvolver a base antes do intake.  
+`READY_FOR_INTAKE` → componentes evidenciados e nenhum owner existente identificado.
+
+Essa avaliação é somente evidência de pré-intake. Não cria Skill, Registry, Capability, autorização ou aprendizado e não substitui o Evolution Gate.
+
+O mecanismo é implementado dentro de `SymbiontPatternIntake`; não existe um segundo resolver de pré-intake.

@@ -1,7 +1,7 @@
 import pytest
 
 from elo.core.evolution_gate import EvolutionClassification
-from elo.cognitive.symbiont_pattern_intake import ExternalPatternInput, SymbiontPatternIntake
+from elo.cognitive.symbiont_pattern_intake import ExternalPatternInput, SkillComponent, SymbiontPatternIntake
 
 
 def pattern(**overrides):
@@ -59,3 +59,44 @@ def test_pattern_can_be_translated_to_existing_lab_schema():
     assert observation.source_ref == "NousResearch/hermes-agent"
     assert observation.source_commit == "abc123"
     assert observation.scope == "symbiont-lab"
+
+
+def test_skill_assessment_reuses_existing_owner_before_creation():
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner="ELO Cognitive / Budgeting",
+        components=(
+            SkillComponent("memory", "FOUND"),
+            SkillComponent("precedent_search", "MISSING"),
+        ),
+    )
+    assert assessment.disposition == "REUSE"
+    assert assessment.ready_for_intake is False
+
+
+def test_skill_assessment_requires_base_when_components_are_partial():
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner=None,
+        components=(
+            SkillComponent("memory", "FOUND"),
+            SkillComponent("precedent_search", "MISSING", gap="develop search"),
+            SkillComponent("renderer", "PARTIAL"),
+        ),
+    )
+    assert assessment.disposition == "DEVELOP_FIRST"
+    assert assessment.readiness_score == 0.333
+
+
+def test_skill_assessment_allows_existing_flow_when_components_are_found():
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner=None,
+        components=(
+            SkillComponent("memory", "FOUND"),
+            SkillComponent("precedent_search", "FOUND"),
+            SkillComponent("renderer", "FOUND"),
+        ),
+    )
+    assert assessment.disposition == "READY_FOR_INTAKE"
+    assert assessment.ready_for_intake is True
