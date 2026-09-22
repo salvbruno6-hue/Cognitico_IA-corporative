@@ -6,6 +6,12 @@ successful response. No production provider, credential, or second executor
 is introduced.
 """
 
+# RUN-06 harness stability note:
+# O cliente usa timeout curto para acionar o caminho de retry.
+# O servidor dorme mais que o timeout para garantir que cada
+# tentativa seja observada de forma determinística.
+# Alterações de timing neste harness devem ser validadas em CI.
+
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import socket
@@ -27,6 +33,7 @@ class TransportEvidence:
 
 
 class _SequenceHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.0"
     sequence = []
     attempts = 0
     lock = threading.Lock()
@@ -38,10 +45,9 @@ class _SequenceHandler(BaseHTTPRequestHandler):
             outcome = self.sequence[index] if index < len(self.sequence) else "success"
 
         if outcome == "timeout":
-            self.connection.settimeout(0.1)
             try:
                 import time
-                time.sleep(0.08)
+                time.sleep(1.0)
             except Exception:
                 pass
             return
@@ -91,7 +97,7 @@ class LocalResilienceHarness:
         return f"http://127.0.0.1:{self.server.server_port}/health"
 
 
-def run_transport(sequence, max_retries=2, timeout=0.01):
+def run_transport(sequence, max_retries=2, timeout=0.5):
     evidence = []
     with LocalResilienceHarness(sequence) as harness:
         for attempt in range(1, max_retries + 2):
