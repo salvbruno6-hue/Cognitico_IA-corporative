@@ -1,3 +1,18 @@
+---
+id: ELO-AI-DIRETRIZ-ORCAMENTO-001
+name: ELO Diretriz Mestra do Especialista de Orçamento
+type: normative
+layer: ai
+owner: ELO / Especialista de Orçamento
+status: normative
+authority: baseline
+version: 1.0.0
+related:
+  - ELO_EXTERNAL_AI_AUTHORITY_CONTRACT
+  - ELO_NATURAL_LANGUAGE_PROTOCOL
+depends_on: []
+---
+
 # ELO — DIRETRIZ MESTRA DO ESPECIALISTA DE ORÇAMENTO
 
 **Camada:** `08-ai/ELO/DIRETRIZES`  
