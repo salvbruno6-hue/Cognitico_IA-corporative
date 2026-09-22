@@ -1,4 +1,4 @@
-"""Canonical runtime adapter for the governed Symbiont skills.
+"""Canonical runtime adapter for the four governed Symbiont skills.
 
 This module is a thin dispatch boundary only. It does not own authorization,
 memory, Evolution Gate, persistence or promotion. Each skill delegates to its
@@ -7,15 +7,9 @@ existing canonical implementation.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from elo.core.decision_outcome_loop import DecisionLifecycle
-from elo.core.specialist_skill_resolution import (
-    SpecialistSkill,
-    SpecialistSkillResolver,
-    SkillPreIntakeComponent,
-    SkillPreIntakeResult,
-)
 from .capability_absorption import CapabilityCandidate, NativeCapabilityAbsorption
 from .symbionte_lab import SymbiontLabEvaluation, SymbiontLabObservation
 from .symbiont_operational_contract import SymbiontRequestGuard, validate_operation
@@ -68,26 +62,6 @@ class SymbiontSkillRuntime:
             observation,
             principal_id=principal_id,
             dataset_version=dataset_version,
-        )
-
-    @staticmethod
-    def pre_intake_skill(
-        *,
-        skills: Iterable[SpecialistSkill],
-        skill_id: str,
-        domain_family: str,
-        required_components: Iterable[SkillPreIntakeComponent],
-        authorized: Any = None,
-        minimum_maturity: str = "STRUCTURED",
-    ) -> SkillPreIntakeResult:
-        """Run the read-only pre-intake gate before Symbiont skill intake."""
-        resolver = SpecialistSkillResolver(skills)
-        return resolver.pre_intake(
-            skill_id=skill_id,
-            domain_family=domain_family,
-            required_components=required_components,
-            authorized=authorized,
-            minimum_maturity=minimum_maturity,
         )
 
     def propose_capability(self, observation: SymbiontLabObservation) -> CapabilityCandidate:
