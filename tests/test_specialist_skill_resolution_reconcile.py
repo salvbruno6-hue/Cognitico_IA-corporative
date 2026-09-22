@@ -112,3 +112,20 @@ def test_pre_intake_reuses_existing_governed_skill_instead_of_creating_duplicate
     assert result.decision == "REUSE_EXISTING"
     assert result.existing_skill_id == "FORGE-BUDGETING-001"
     assert result.reuse_existing is True
+
+
+def test_pre_intake_detects_duplicate_even_when_execution_is_not_authorized() -> None:
+    existing = SpecialistSkill(
+        "FORGE-BUDGETING-002",
+        "BUDGETING",
+        "GOVERNED",
+        authorization_required=True,
+    )
+    result = SpecialistSkillResolver([existing]).pre_intake(
+        skill_id="ELO-KE-SKILL-EXAMPLE-002",
+        domain_family="BUDGETING",
+        required_components=(SkillPreIntakeComponent("memory", "FOUND"),),
+        authorized=lambda _: False,
+    )
+    assert result.decision == "REUSE_EXISTING"
+    assert result.existing_skill_id == "FORGE-BUDGETING-002"
