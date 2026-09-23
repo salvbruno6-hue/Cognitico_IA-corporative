@@ -196,27 +196,6 @@ class SymbiontPatternIntake:
 
         inventory = tuple(components)
         resolved_owner = None
-        if authorization_decision is not None:
-            if authorization_decision.authority != "elo-authz":
-                return SkillCreationAssessment(
-                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                    "authorization decision provenance is not canonical"
-                )
-            if not authorization_decision.authorized:
-                return SkillCreationAssessment(
-                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                    "canonical authorization decision was not granted"
-                )
-            if not authorization_decision.evidence_ref.strip():
-                return SkillCreationAssessment(
-                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                    "canonical authorization decision has no evidence reference"
-                )
-        else:
-            return SkillCreationAssessment(
-                proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                "canonical authorization decision is required for pre-intake evaluation"
-            )
         for component in inventory:
             if component.authorization_status == "COMPATIBLE" and (
                 component.authorization_authority != authorization_decision.authority
@@ -249,6 +228,27 @@ class SymbiontPatternIntake:
             return SkillCreationAssessment(
                 proposed_skill_id, resolved_owner, inventory, 0.0, "REUSE",
                 "canonical SpecialistSkillResolver identified an existing owner; do not create a duplicate Skill"
+            )
+        if authorization_decision is not None:
+            if authorization_decision.authority != "elo-authz":
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "authorization decision provenance is not canonical"
+                )
+            if not authorization_decision.authorized:
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "canonical authorization decision was not granted"
+                )
+            if not authorization_decision.evidence_ref.strip():
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "canonical authorization decision has no evidence reference"
+                )
+        else:
+            return SkillCreationAssessment(
+                proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                "canonical authorization decision is required for pre-intake evaluation"
             )
         complete = all(
             item.status == "FOUND"
