@@ -82,3 +82,45 @@ def test_material_delay_is_recomputed_from_dates():
 
     assert result.status == "CALCULADO"
     assert result.value == 5
+
+
+def test_pcp_existing_owner_reaches_evolution_gate_as_reuse():
+    from elo.cognitive.symbionte_lab import SymbiontLabObservation, SymbiontLabAdapter
+    from elo.core.evolution_gate import EvolutionClassification
+
+    class LearningStub:
+        def capture_outcome(self, **kwargs):
+            raise AssertionError("reuse must not capture a new experience")
+
+        def propose_candidate(self, *args, **kwargs):
+            raise AssertionError("reuse must not propose a candidate")
+
+    observation = SymbiontLabObservation(
+        observation_id="PCP-GATE-001",
+        tenant_id="pcp",
+        domain="PCP",
+        decision_id="PCP-GATE-001",
+        expected_outcome="reuse existing PCP owner",
+        observed_outcome="existing owner identified",
+        evidence_ids=("v_elo_pcp_inteligente", "d82857cffd467b9346f017962d6d68f4b22d6e5c"),
+        source_ref="github:SKILL_PLANEJAMENTO_MULTITEINER",
+        source_commit="d82857cffd467b9346f017962d6d68f4b22d6e5c",
+        hypothesis="PCP mechanism is already owned by the canonical Skill",
+        baseline="existing PCP Skill and Symbiont mechanisms",
+        experiment="submit controlled observation to the existing lab adapter",
+        result="reuse",
+        regression_status="PASS",
+        generalization_status="PARTIAL",
+        risk="LOW",
+        existing_owner="SKILL_PLANEJAMENTO_MULTITEINER",
+        scope="controlled_pcp",
+        tenant_scope="pcp",
+        source_kind="benchmark",
+    )
+    result = SymbiontLabAdapter(LearningStub()).evaluate(
+        observation, principal_id="planner", dataset_version="pcp-controlled-v1"
+    )
+    assert result.evolution_classification == EvolutionClassification.DUPLICATE_SUPERSEDED.value
+    assert result.disposition == "REUSE"
+    assert result.experience is None
+    assert result.candidate is None
