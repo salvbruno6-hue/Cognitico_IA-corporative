@@ -100,10 +100,26 @@ Antes de propor uma nova Skill, a própria `SIMBIONTE-ADAPT-001` deve reconcilia
 
 Disposições:
 
-`REUSE` → owner existente; não criar duplicidade.  
-`DEVELOP_FIRST` → componente ausente/parcial; desenvolver a base antes do intake.  
-`READY_FOR_INTAKE` → componentes evidenciados e nenhum owner existente identificado.
+`REUSE` → owner identificado pelo `SpecialistSkillResolver` canônico; não criar duplicidade.  
+`DEVELOP_FIRST` → componente ou evidência obrigatória ausente, parcial, bloqueada ou não comprovada.  
+`READY_FOR_INTAKE` → componentes e evidências mínimas completas e nenhum owner existente identificado independentemente.
 
-Essa avaliação é somente evidência de pré-intake. Não cria Skill, Registry, Capability, autorização ou aprendizado e não substitui o Evolution Gate.
+### Evidência mínima de prontidão
 
-O mecanismo é implementado dentro de `SymbiontPatternIntake`; não existe um segundo resolver de pré-intake.
+Cada componente requerido deve declarar, além de `FOUND | PARTIAL | MISSING`:
+
+- documentação: `FOUND | PARTIAL | MISSING`;
+- teste: `TESTED | PARTIAL | UNTESTED | FAILED`;
+- autorização: `COMPATIBLE | BLOCKED | UNKNOWN`;
+- compatibilidade: `COMPATIBLE | CONFLICT | UNKNOWN`;
+- baseline: `PRESENT | MISSING`;
+- medição: `PRESENT | MISSING`;
+- regressão: `PASS | FAIL | UNKNOWN`.
+
+O `readiness_score` representa **cobertura de evidência do pré-intake**, não qualidade global, maturidade ou probabilidade de sucesso. A qualidade e a generalização continuam sendo avaliadas no laboratório e no Evolution Gate.
+
+`existing_owner` fornecido manualmente não é suficiente para `REUSE` quando a resolução canônica não foi executada. O owner precisa ser independentemente resolvido pelo `SpecialistSkillResolver` quando essa verificação for necessária.
+
+A avaliação é somente evidência de pré-intake. Não cria Skill, Registry, Capability, autorização ou aprendizado e não substitui o Evolution Gate.
+
+O mecanismo é implementado dentro de `SymbiontPatternIntake`, reutilizando o `SpecialistSkillResolver`; não existe um segundo resolver de pré-intake.
