@@ -87,6 +87,21 @@ def test_not_measured_review_is_not_ready_for_analysis():
     assert review.ready_for_analysis is False
 
 
+def test_implementation_evidence_shape_is_reused_without_new_measurement_owner():
+    metrics = CapabilityMetric.from_implementation_evidence(
+        item="implementation_loop",
+        baseline={"success_rate": 0.80},
+        adapted={"success_rate": 0.88},
+        metric_directions={"success_rate": "maximize"},
+        provenance_refs=("implementation-run-1",),
+        measurement_period="2026-09",
+    )
+    assert len(metrics) == 1
+    assert metrics[0].item == "implementation_loop:success_rate"
+    assert metrics[0].evidence_refs == ("implementation-run-1",)
+    assert curvature(metrics[0]) is Curvature.POSITIVE
+
+
 def test_production_metric_feed_reuses_explicit_metrics_only():
     runs = (
         {
