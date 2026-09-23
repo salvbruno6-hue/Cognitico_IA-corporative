@@ -1,6 +1,7 @@
 import pytest
 
 from elo.core.evolution_gate import EvolutionClassification
+from elo.core.specialist_skill_resolution import SpecialistSkill, SpecialistSkillResolver
 from elo.cognitive.symbiont_pattern_intake import ExternalPatternInput, SkillComponent, SymbiontPatternIntake
 
 
@@ -102,3 +103,32 @@ def test_skill_assessment_allows_existing_flow_when_components_are_found():
     )
     assert assessment.disposition == "READY_FOR_INTAKE"
     assert assessment.ready_for_intake is True
+
+
+def test_skill_assessment_uses_existing_canonical_skill_resolver():
+    resolver = SpecialistSkillResolver(
+        [SpecialistSkill("FORGE-BUDGETING-001", "BUDGETING", "GOVERNED", authorization_required=False)]
+    )
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner=None,
+        domain_family="BUDGETING",
+        skill_resolver=resolver,
+        components=(SkillComponent("precedent_search", "MISSING"),),
+    )
+    assert assessment.disposition == "REUSE"
+    assert assessment.existing_owner == "FORGE-BUDGETING-001"
+    assert assessment.readiness_score == 0.0
+
+
+def test_skill_assessment_keeps_gap_when_canonical_skill_resolver_finds_none():
+    resolver = SpecialistSkillResolver([])
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner=None,
+        domain_family="BUDGETING",
+        skill_resolver=resolver,
+        components=(SkillComponent("precedent_search", "MISSING"),),
+    )
+    assert assessment.existing_owner is None
+    assert assessment.disposition == "DEVELOP_FIRST"
