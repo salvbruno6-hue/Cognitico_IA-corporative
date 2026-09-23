@@ -44,13 +44,15 @@ def confront_stock(rows: Sequence[Mapping[str, object]]) -> tuple[PCPConfrontati
 def confront_flow(rows: Sequence[Mapping[str, object]]) -> tuple[PCPConfrontation, ...]:
     result = []
     for row in rows:
-        planned = row.get("inicio")
-        actual = row.get("fim")
+        planned = row.get("duracao_planejada")
+        actual = row.get("duracao_real")
+        variance = actual - planned if isinstance(actual, (int, float)) and isinstance(planned, (int, float)) else None
         result.append(confront(
             dimension="FLUXO",
             key=str(row.get("id", "")),
             planned=planned if isinstance(planned, (int, float)) else None,
             actual=actual if isinstance(actual, (int, float)) else None,
+            variance=variance,
             evidence_ids=tuple(str(v) for v in row.get("evidence_ids", ())),
         ))
     return tuple(result)
