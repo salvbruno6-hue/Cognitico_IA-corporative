@@ -40,12 +40,14 @@ class AuthorizationDecision:
     authority: str
     identity_id: str
     role: str
+    evidence_ref: str
 
     def is_canonical(self) -> bool:
         return (
             self.authority == "elo-authz"
             and bool(self.identity_id)
             and bool(self.role)
+            and bool(self.evidence_ref.strip())
         )
 
 
