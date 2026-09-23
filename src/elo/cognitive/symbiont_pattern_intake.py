@@ -122,6 +122,28 @@ class SymbiontPatternIntake:
             "required components are evidenced and no existing owner was identified"
         )
 
+    def classify_skill_intake(
+        self,
+        *,
+        pattern: ExternalPatternInput,
+        proposed_skill_id: str,
+        components: Iterable[SkillComponent],
+    ) -> tuple[SkillCreationAssessment, PatternIntakeDecision | None]:
+        """Run readiness first, then reuse the canonical pattern classifier.
+
+        This is orchestration inside the existing intake boundary, not a new
+        gate. A Skill is never created here. If an owner exists or a required
+        component is missing/partial, the Evolution Gate is not invoked.
+        """
+        assessment = self.assess_skill_creation(
+            proposed_skill_id=proposed_skill_id,
+            existing_owner=pattern.existing_owner,
+            components=components,
+        )
+        if not assessment.ready_for_intake:
+            return assessment, None
+        return assessment, self.classify(pattern)
+
     def classify(self, pattern: ExternalPatternInput) -> PatternIntakeDecision:
         self._validate(pattern)
         proposal = EvolutionProposal(
