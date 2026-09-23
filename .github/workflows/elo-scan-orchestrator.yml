@@ -29,6 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Checkout canonical ELO
+        uses: actions/checkout@v4
+
       - name: Run governed scan
         shell: bash
         env:
@@ -127,10 +130,18 @@ jobs:
             --argjson budget_assoc_total "${budget_assoc_total:-0}" \
             --argjson budget_decision_total "${budget_decision_total:-0}" \
             --argjson missions "$(printf '%s\n' "${missions[@]}" | jq -R . | jq -s .)" \
-            '{scan_id:$scan_id,execution_timestamp:$timestamp,project_ref:"fxbpevjrkwhbicpmecow",schedule:$schedule,weekly_missions:$weekly,missions_due:$missions,source_coverage:{registered:$source_total,active:$active_sources,never_scanned:$stale_sources},learning:{extractions:$extraction_total,experiences:$experience_total,observed_experiences:$observed_total,reasoning_patterns:$reasoning_total,specializations:$specialization_total,evolution_events:$evolution_total},budget:{budgets:$budget_total,memory:$budget_memory_total,calculations:$budget_calc_total,evidence:$budget_evidence_total,similarities:$budget_similarity_total,associations:$budget_assoc_total,decisions:$budget_decision_total},governance:{discovery_is_learning:false,canonical_mutation:false,automatic_learning_promotion:false,historical_records_immutable:true,provenance_required:true}}')"
+            '{scan_id:$scan_id,execution_timestamp:$timestamp,project_ref:"fxbpevjrkwhbicpmecow",schedule:$schedule,weekly_missions:$weekly,missions_due:$missions,source_coverage:{registered:$source_total,active:$active_sources,never_scanned:$stale_sources},learning:{extractions:$extraction_total,experiences:$experience_total,observed_experiences:$observed_total,reasoning_patterns:$reasoning_total,specializations:$specialization_total,evolution_events:$evolution_total},budget:{budgets:$budget_total,memory:$budget_memory_total,calculations:$budget_calc_total,evidence:$budget_evidence_total,similarities:$budget_similarity_total,associations:$budget_assoc_total,decisions:$budget_decision_total},governance:{discovery_is_learning:false,canonical_mutation:false,automatic_learning_promotion:false,historical_records_immutable:true,provenance_required:true},capability_metrics:[],evidence_refs:[]}')"
 
           printf '%s\n' "${report}" | tee scan-report.json
+
+          # Reuse the canonical Symbiont read model at the existing scan boundary.
+          # No capability metrics are fabricated: until a governed production metric feed exists,
+          # EVOLUÇÃO_DE_CAPACIDADES must return NOT_MEASURED and prescribe instrumentation.
+          capability_review="$(python scripts/run_symbiont_capability_evolution.py --report scan-report.json)"
+          printf '%s\n' "${capability_review}" | tee capability-evolution-review.json
           cat scan-report.json >> "$GITHUB_STEP_SUMMARY"
+          echo '### EVOLUÇÃO_DE_CAPACIDADES' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "${capability_review}" >> "$GITHUB_STEP_SUMMARY"
 
           # Route only evidence-supported conditions; never promote learning here.
           corrections=()
@@ -138,7 +149,7 @@ jobs:
           [[ "${observed_total}" -gt 0 ]] && corrections+=(extraction_gap)
           if ((${#corrections[@]} > 0)); then action='CORRECT'; else action='CONTINUE'; fi
 
-          final_details="$(jq -n --argjson report "${report}" --arg action "${action}" --argjson corrections "$(printf '%s\n' "${corrections[@]:-}" | jq -R 'select(length>0)' | jq -s .)" '{orchestrator:"ELO-SCAN-ORCHESTRATOR",report:$report,next_action:$action,corrections:$corrections,learning_promotion:false,canonical_mutation:false}')"
+          final_details="$(jq -n --argjson report "${report}" --argjson review "${capability_review}" --arg action "${action}" --argjson corrections "$(printf '%s\n' "${corrections[@]:-}" | jq -R 'select(length>0)' | jq -s .)" '{orchestrator:"ELO-SCAN-ORCHESTRATOR",report:$report,next_action:$action,corrections:$corrections,capability_evolution:$review,learning_promotion:false,canonical_mutation:false}')"
 
           curl -fsS -X PATCH "${auth[@]}" "${api}/elo_automation_runs?id=eq.${run_id}" \
             -H 'Content-Type: application/json' -H 'Prefer: return=minimal' \
