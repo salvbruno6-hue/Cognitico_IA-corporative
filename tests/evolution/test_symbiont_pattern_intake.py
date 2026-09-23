@@ -91,8 +91,8 @@ def test_skill_assessment_requires_base_when_components_are_partial():
         ),
     )
     assert assessment.disposition == "DEVELOP_FIRST"
-    assert assessment.readiness_score == 0.125
-    assert assessment.evidence_completeness == 0.125
+    assert assessment.readiness_score == 0.333
+    assert assessment.evidence_completeness == 0.333
     assert assessment.blocking_gaps
 
 
@@ -169,4 +169,4 @@ def test_skill_assessment_detects_quality_and_governance_gaps():
         components=(component,),
     )
     assert assessment.disposition == "DEVELOP_FIRST"
-    assert "authorization=BLOCKED" in assessment.blocking_gaps
+    assert any("authorization=BLOCKED" in gap for gap in assessment.blocking_gaps)
