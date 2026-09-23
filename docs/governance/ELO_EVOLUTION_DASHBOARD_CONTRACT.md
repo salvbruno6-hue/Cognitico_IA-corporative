@@ -41,3 +41,25 @@ Store immutable monthly snapshots so technical evolution can be compared with ad
 ## Relationship to Evolution Gate
 
 The dashboard reports the state produced by governed processes. It does not approve promotions, alter the Soul or change canonical architecture.
+
+
+## Symbiont trigger — EVOLUÇÃO_DE_CAPACIDADES
+
+During production observation, the Symbiont may invoke the read-only trigger
+EVOLUÇÃO_DE_CAPACIDADES. It consumes capability metrics that were explicitly
+emitted by existing governed production mechanisms.
+
+The diagnostic returns:
+
+CURVATURA → ITEM → ESTADO → EVIDÊNCIA → AÇÃO EXATA → PRIORIDADE → ONDE COMEÇAR
+
+Curvature is derived only from baseline/current values, declared metric
+direction, measurement period and evidence. Missing or invalid evidence remains
+NOT_MEASURED and is never converted into zero or an assumed trend.
+
+The trigger is analytical only. An approved analyst may interpret its output,
+but any proposed improvement must return to the existing governed path:
+
+DIAGNÓSTICO → PROPOSTA → EVIDÊNCIA → TESTE → EVOLUTION GATE → GOVERNANÇA → EVENTUAL PROMOÇÃO
+
+The trigger has no canonical mutation, learning-promotion or deployment authority.
