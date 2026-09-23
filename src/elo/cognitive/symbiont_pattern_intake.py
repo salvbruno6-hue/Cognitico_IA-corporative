@@ -8,7 +8,7 @@ by the canonical Evolution Gate before any learning candidate can be created.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Protocol
 
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
 from elo.core.specialist_skill_resolution import SpecialistSkillResolver
@@ -49,6 +49,15 @@ class PatternIntakeDecision:
         """Only compatible proposals may continue to the existing lab pipeline."""
         return self.classification is EvolutionClassification.COMPATIBLE
 
+
+
+
+class CanonicalAuthorizationEvidence(Protocol):
+    """Transport contract for an already-evaluated elo-authz decision."""
+
+    authorized: bool
+    authority: str
+    evidence_ref: str
 
 
 @dataclass(frozen=True)
@@ -179,12 +188,44 @@ class SymbiontPatternIntake:
         components: Iterable[SkillComponent],
         domain_family: str | None = None,
         skill_resolver: SpecialistSkillResolver | None = None,
+        authorization_decision: CanonicalAuthorizationEvidence | None = None,
     ) -> SkillCreationAssessment:
         """Reconcile a proposed Skill before intake using the existing Symbiont flow."""
         if not proposed_skill_id.strip():
             raise ValueError("proposed_skill_id is required")
+
         inventory = tuple(components)
         resolved_owner = None
+        if authorization_decision is not None:
+            if authorization_decision.authority != "elo-authz":
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "authorization decision provenance is not canonical"
+                )
+            if not authorization_decision.authorized:
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "canonical authorization decision was not granted"
+                )
+            if not authorization_decision.evidence_ref.strip():
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "canonical authorization decision has no evidence reference"
+                )
+        else:
+            return SkillCreationAssessment(
+                proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                "canonical authorization decision is required for pre-intake evaluation"
+            )
+        for component in inventory:
+            if component.authorization_status == "COMPATIBLE" and (
+                component.authorization_authority != authorization_decision.authority
+                or component.authorization_evidence_ref != authorization_decision.evidence_ref
+            ):
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    f"authorization evidence for {component.name} does not match the canonical decision"
+                )
         if skill_resolver is not None and domain_family:
             resolution = skill_resolver.resolve(domain_family=domain_family)
             if resolution.resolved:
