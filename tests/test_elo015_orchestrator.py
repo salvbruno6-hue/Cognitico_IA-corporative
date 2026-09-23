@@ -28,6 +28,7 @@ def canonical_authorization(**overrides: object) -> AuthorizationDecision:
         "authority": "elo-authz",
         "identity_id": "identity-a",
         "role": "ELO_ADMIN",
+        "evidence_ref": "authz-req-001",
     }
     values.update(overrides)
     return AuthorizationDecision(**values)  # type: ignore[arg-type]
@@ -67,6 +68,14 @@ def test_non_canonical_authority_never_executes() -> None:
     assert result.stage is OrchestrationStage.HANDOFF
     assert result.status == "RECOMMENDATION"
     assert "provenance" in result.reason
+
+
+def test_missing_authorization_evidence_never_executes() -> None:
+    result = ORCHESTRATOR.decide_execution(
+        request(authorization=canonical_authorization(evidence_ref=""))
+    )
+    assert result.stage is OrchestrationStage.HANDOFF
+    assert result.status == "RECOMMENDATION"
 
 
 def test_partial_provenance_never_executes() -> None:
