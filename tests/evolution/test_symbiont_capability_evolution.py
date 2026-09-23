@@ -4,6 +4,7 @@ from elo.cognitive.symbiont_capability_evolution import (
     curvature,
     review_capabilities,
 )
+from scripts.run_symbiont_capability_evolution import metrics_from_production_runs
 
 
 def test_positive_curvature_uses_measured_gain():
@@ -84,3 +85,38 @@ def test_not_measured_review_is_not_ready_for_analysis():
     metric = CapabilityMetric(item="coverage", baseline=None, current=None, direction="")
     review = review_capabilities(metrics=(metric,))
     assert review.ready_for_analysis is False
+
+
+def test_production_metric_feed_reuses_explicit_metrics_only():
+    runs = (
+        {
+            "id": "run-001",
+            "details": {
+                "report": {
+                    "capability_metrics": [
+                        {
+                            "item": "validated_learning",
+                            "baseline": 0.62,
+                            "current": 0.74,
+                            "direction": "maximize",
+                            "evidence_refs": ["ev-001"],
+                            "measurement_period": "2026-09",
+                        }
+                    ]
+                }
+            },
+        },
+        {
+            "id": "run-002",
+            "details": {
+                "report": {
+                    "learning": {"experiences": 999},
+                    "capability_metrics": [],
+                }
+            },
+        },
+    )
+    metrics = metrics_from_production_runs(runs)
+    assert len(metrics) == 1
+    assert metrics[0].item == "validated_learning"
+    assert "elo_automation_runs:run-001" in metrics[0].evidence_refs
