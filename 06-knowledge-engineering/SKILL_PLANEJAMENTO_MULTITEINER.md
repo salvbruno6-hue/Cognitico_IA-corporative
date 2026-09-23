@@ -680,3 +680,68 @@ Consequentemente, nesta primeira passagem:
 - o conhecimento permanece candidato.
 
 **Estado do ciclo:** `RETRIEVE/EVIDÊNCIA concluídos → CONFRONTAÇÃO iniciada → EXECUÇÃO controlada pendente de cenário quantitativo`.
+
+
+## 24. Capacidades desenvolvidas sem depender de dados operacionais
+
+Para permitir que a alimentação futura do PCP complete o sistema sem exigir novo desenho estrutural, foram adicionadas utilidades determinísticas em `src/elo/cognitive/pcp_control.py`.
+
+### 24.1 Planejado × realizado
+
+O módulo compara, sem inferência:
+
+- quantidade planejada × realizada;
+- tempo planejado × realizado;
+- data planejada × realizada.
+
+Quando o realizado não existir, o resultado permanece `NAO_LOCALIZADO`.
+
+Isso permite alimentar posteriormente as tabelas canônicas:
+
+- `mt_planos_pcp`;
+- `mt_linhas_plano_pcp`;
+- `mt_ordens_producao`;
+- `mt_operacoes_ordem_producao`;
+- `mt_eventos_fluxo_modular`.
+
+### 24.2 Data Readiness
+
+A função `assess_data_readiness()` verifica se as fontes operacionais necessárias estão disponíveis antes de executar análises que dependam delas.
+
+Fontes consideradas no conjunto mínimo:
+
+`mt_planos_pcp`, `mt_linhas_plano_pcp`, `mt_ordens_producao`, `mt_operacoes_ordem_producao`, `mt_capacidade_diaria`, `mt_necessidades_materiais`, `mt_lotes_estoque`, `mt_eventos_fluxo_modular`.
+
+Ela não cria dados ausentes e retorna explicitamente `PENDENTE_DADOS` quando houver lacunas.
+
+### 24.3 Pacote de evidência PCP
+
+`build_pcp_evidence()` padroniza:
+
+`proveniência + evidências + baseline + experimento + esperado + observado + resultado + regressão + generalização + risco + owner + métricas`.
+
+Não persiste, não aprende e não promove.
+
+### 24.4 Evolution Gate
+
+`evaluate_pcp_evolution()` não cria um Gate PCP. Ele instancia e utiliza o `EvolutionGate` canônico.
+
+Regra:
+
+`PCP → proposta/evidência → EvolutionGate → classificação`.
+
+A função não executa mutação canônica nem promoção.
+
+### 24.5 Alimentação futura
+
+A próxima alimentação de dados pode ser feita diretamente nas estruturas PCP já existentes. O desenvolvimento de código não precisa aguardar os dados reais para essas capacidades.
+
+Dados reais continuam necessários para comprovar:
+
+- execução automática com dados operacionais;
+- planejado × realizado real;
+- persistência completa do ciclo;
+- generalização;
+- evolução validada;
+- promoção governada.
+
