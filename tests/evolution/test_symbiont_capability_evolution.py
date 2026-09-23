@@ -135,3 +135,27 @@ def test_production_metric_feed_reuses_explicit_metrics_only():
     assert len(metrics) == 1
     assert metrics[0].item == "validated_learning"
     assert "elo_automation_runs:run-001" in metrics[0].evidence_refs
+
+
+def test_production_feed_rejects_incomplete_metrics_without_fabricating_values():
+    runs = (
+        {
+            "id": "run-invalid",
+            "details": {
+                "report": {
+                    "capability_metrics": [
+                        {
+                            "item": "coverage",
+                            "baseline": 0.8,
+                            "current": 0.7,
+                            "direction": "maximize",
+                            "evidence_refs": [],
+                            "measurement_period": "",
+                        }
+                    ]
+                }
+            },
+        },
+    )
+    metrics = metrics_from_production_runs(runs)
+    assert metrics == ()
