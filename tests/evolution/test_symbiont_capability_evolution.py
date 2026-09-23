@@ -63,3 +63,24 @@ def test_review_never_grants_canonical_mutation():
     review = review_capabilities(metrics=())
     assert review.trigger_id == "EVOLUÇÃO_DE_CAPACIDADES"
     assert review.canonical_mutation is False
+
+
+def test_existing_evolution_measurement_shape_is_reused():
+    metrics = CapabilityMetric.from_evolution_measurement(
+        item="route",
+        baseline={"success_rate": 0.80},
+        adapted={"success_rate": 0.88},
+        metric_directions={"success_rate": "maximize"},
+        evidence_refs=("evolution-run-1",),
+        measurement_period="2026-09",
+    )
+    assert len(metrics) == 1
+    review = review_capabilities(metrics=metrics)
+    assert review.status == "ANALYSIS_READY"
+    assert review.actions[0].priority == "P3"
+
+
+def test_not_measured_review_is_not_ready_for_analysis():
+    metric = CapabilityMetric(item="coverage", baseline=None, current=None, direction="")
+    review = review_capabilities(metrics=(metric,))
+    assert review.ready_for_analysis is False
