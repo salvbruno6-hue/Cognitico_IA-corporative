@@ -214,3 +214,39 @@ O cenário permanece simulado. As tabelas operacionais consultadas continuam sem
 - `mt_capacidade_diaria`: 0.
 
 Portanto, não se deve promover os resultados quantitativos acima para regra operacional consolidada.
+
+
+## 8. Validação do Evolution Gate
+
+Foi acrescentado um teste controlado que envia a evidência ao mecanismo existente `SymbiontLabAdapter → EvolutionGate`, sem criar uma nova via de aprendizado.
+
+Como o proprietário canônico informado é:
+
+`SKILL_PLANEJAMENTO_MULTITEINER`
+
+o `EvolutionGate` classifica a proposta como:
+
+`DUPLICATE/SUPERSEDED`
+
+e o adaptador retorna:
+
+`REUSE`
+
+Sem:
+
+- novo `ExperienceRecord`;
+- novo `LearningCandidate`;
+- mutação canônica;
+- promoção.
+
+Isso confirma, no cenário controlado, a regra de reutilização da capacidade já existente.
+
+O teste foi registrado em:
+
+`tests/validation/test_pcp_diagnose_confrontation.py`
+
+O commit do teste é:
+
+`8f14fad248b597c9a0b5ea44f9d122694af38ffc`
+
+O workflow associado ainda não apresentou execução retornada pela integração no momento desta verificação; portanto, o teste não é declarado como executado em CI.
