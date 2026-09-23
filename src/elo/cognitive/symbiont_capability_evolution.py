@@ -59,6 +59,32 @@ class CapabilityMetric:
             for metric in sorted(common)
         )
 
+    @classmethod
+    def from_implementation_evidence(
+        cls,
+        *,
+        item: str,
+        baseline: Mapping[str, float],
+        adapted: Mapping[str, float],
+        metric_directions: Mapping[str, str],
+        provenance_refs: Sequence[str],
+        measurement_period: str,
+    ) -> tuple["CapabilityMetric", ...]:
+        """Adapt the existing ImplementationEvidence shape without creating a measurement owner.
+
+        The measurement period is supplied by the production observation boundary;
+        this adapter never invents it and never converts operational counters into
+        capability metrics.
+        """
+        return cls.from_evolution_measurement(
+            item=item,
+            baseline=baseline,
+            adapted=adapted,
+            metric_directions=metric_directions,
+            evidence_refs=provenance_refs,
+            measurement_period=measurement_period,
+        )
+
     @property
     def delta(self) -> float | None:
         if self.baseline is None or self.current is None:
