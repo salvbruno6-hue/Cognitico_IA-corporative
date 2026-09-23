@@ -84,7 +84,9 @@ Fonte estruturada principal:
 
 ### PM-02 — Identificar o fluxo aplicável
 
-Localizar o fluxo produtivo aplicável antes de montar uma programação.
+Localizar somente o segmento do fluxo produtivo necessário para a meta atual antes de montar uma programação. O ELO não deve percorrer todo o fluxo Multiteiner quando a meta puder ser respondida por um subfluxo comprovado.
+
+A seleção do caminho deve considerar a meta, os dados disponíveis e as dependências comprovadas. Ausência de dados não autoriza inventar o caminho.
 
 Fonte:
 
@@ -264,6 +266,40 @@ O fluxo deve distinguir:
 `produção concluída → conferência/liberação → expedição`
 
 A existência e os critérios de cada gate devem ser obtidos das fontes.
+
+### PM-16 — Avaliar suficiência orientada à meta
+
+A Skill não exige banco de dados completo para responder. Exige dados suficientes para o objetivo analisado.
+
+Classificar cada requisito como:
+
+- **ESSENCIAL** — necessário para concluir o objetivo ou um subobjetivo definido;
+- **CONDICIONAL** — necessário somente se a análise avançar para determinado subfluxo;
+- **COMPLEMENTAR** — aprofunda a resposta, mas sua ausência não impede o cálculo ou conclusão já sustentados.
+
+Estados obrigatórios:
+
+- `DADOS_SUFICIENTES` — dados suficientes para a meta;
+- `RESPOSTA_PARCIAL` — parte da meta pode ser respondida e outra parte permanece bloqueada;
+- `ANALISE_BLOQUEADA` — falta evidência essencial para qualquer resposta útil daquela meta;
+- `DADOS_NAO_LOCALIZADOS` — nenhuma evidência relevante foi localizada;
+- `DIVERGENCIA_DE_FONTES` — fontes relevantes apresentam valores conflitantes;
+- `CAUSA_NAO_LOCALIZADA` — o desvio é calculável, mas a causa não possui evidência causal explícita;
+- `EVIDENCIA_VALIDADA` — resultado validado segundo o gate canônico.
+
+Regra central:
+
+> **dados ausentes não bloqueiam por si só; bloqueia somente a ausência da evidência necessária ao próximo resultado pretendido.**
+
+### PM-17 — Delimitar o caminho analítico
+
+A sequência operacional deve ser orientada pela meta:
+
+`META → ESCOPO → DADOS LOCALIZADOS → DADOS AUSENTES → SUFICIÊNCIA → CÁLCULOS → CONFRONTAÇÃO → CONCLUSÃO → LIMITAÇÕES → PRÓXIMA EVIDÊNCIA`
+
+O caminho pode parar quando a meta já estiver sustentada. Só deve expandir para capacidade, materiais, qualidade, execução, campo ou aprendizado quando a pergunta exigir essas dimensões.
+
+Sem evidência causal, a Skill pode calcular o desvio, mas não deve declarar sua causa.
 
 ### PM-15 — Produzir aprendizado
 
@@ -704,15 +740,28 @@ Isso permite alimentar posteriormente as tabelas canônicas:
 - `mt_operacoes_ordem_producao`;
 - `mt_eventos_fluxo_modular`.
 
-### 24.2 Data Readiness
+### 24.2 Suficiência de dados orientada à meta
 
-A função `assess_data_readiness()` verifica se as fontes operacionais necessárias estão disponíveis antes de executar análises que dependam delas.
+A função `evaluate_goal()` em `pcp_data_questions.py` avalia se os dados localizados são suficientes para o objetivo, sem exigir que todas as fontes operacionais estejam preenchidas.
 
-Fontes consideradas no conjunto mínimo:
+A avaliação separa:
 
-`mt_planos_pcp`, `mt_linhas_plano_pcp`, `mt_ordens_producao`, `mt_operacoes_ordem_producao`, `mt_capacidade_diaria`, `mt_necessidades_materiais`, `mt_lotes_estoque`, `mt_eventos_fluxo_modular`.
+- requisitos essenciais;
+- requisitos condicionais;
+- requisitos complementares;
+- grupos mínimos de evidência;
+- lacunas bloqueantes;
+- próxima evidência mínima.
 
-Ela não cria dados ausentes e retorna explicitamente `PENDENTE_DADOS` quando houver lacunas.
+A resposta pode ser total ou parcial. A ausência de uma fonte complementar não transforma automaticamente o cenário em `ANALISE_BLOQUEADA`.
+
+A regra de governança é:
+
+`DADO AUSENTE ≠ ANÁLISE BLOQUEADA`
+
+Somente a ausência de evidência necessária ao próximo resultado pretendido bloqueia aquele avanço.
+
+O mecanismo não cria dados, não infere valores e não persiste decisões.
 
 ### 24.3 Pacote de evidência PCP
 
@@ -745,3 +794,32 @@ Dados reais continuam necessários para comprovar:
 - evolução validada;
 - promoção governada.
 
+
+
+## 25. Contrato de resposta orientado à meta
+
+Toda execução da Skill deve organizar a resposta, quando aplicável, em:
+
+1. **META**
+2. **ESCOPO**
+3. **DADOS LOCALIZADOS**
+4. **DADOS AUSENTES**
+5. **SUFICIÊNCIA**
+6. **CÁLCULOS**
+7. **CONFRONTAÇÃO**
+8. **CONCLUSÃO**
+9. **LIMITAÇÕES**
+10. **PRÓXIMA EVIDÊNCIA**
+
+Se uma parte da meta estiver respondível e outra não, entregar a parte sustentada e registrar explicitamente o bloqueio restante. Não substituir lacunas por plausibilidade.
+
+## 26. Monotonicidade e reanálise
+
+Quando nova evidência for incorporada:
+
+- se for compatível, preservar a conclusão anterior e aprofundar a análise;
+- se preencher uma lacuna, elevar o nível de resposta;
+- se contradizer um dado anterior, registrar a divergência e recalcular;
+- se alterar a conclusão, registrar qual evidência provocou a mudança.
+
+O mesmo conjunto de dados, meta e versão da Skill deve produzir o mesmo resultado quantitativo determinístico.
