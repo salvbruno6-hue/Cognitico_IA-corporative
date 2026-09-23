@@ -63,15 +63,18 @@ def test_pattern_can_be_translated_to_existing_lab_schema():
 
 
 def test_skill_assessment_reuses_existing_owner_before_creation():
+    resolver = SpecialistSkillResolver(
+        [SpecialistSkill("FORGE-BUDGETING-001", "BUDGETING", "GOVERNED", authorization_required=False)]
+    )
     assessment = SymbiontPatternIntake().assess_skill_creation(
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner="ELO Cognitive / Budgeting",
-        components=(
-            SkillComponent("memory", "FOUND"),
-            SkillComponent("precedent_search", "MISSING"),
-        ),
+        domain_family="BUDGETING",
+        skill_resolver=resolver,
+        components=(SkillComponent("memory", "FOUND"), SkillComponent("precedent_search", "MISSING")),
     )
     assert assessment.disposition == "REUSE"
+    assert assessment.existing_owner == "FORGE-BUDGETING-001"
     assert assessment.ready_for_intake is False
     assert assessment.readiness_score == 0.0
     assert assessment.evidence[0].startswith("memory:")
@@ -82,13 +85,15 @@ def test_skill_assessment_requires_base_when_components_are_partial():
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner=None,
         components=(
-            SkillComponent("memory", "FOUND"),
+            SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
             SkillComponent("precedent_search", "MISSING", gap="develop search"),
             SkillComponent("renderer", "PARTIAL"),
         ),
     )
     assert assessment.disposition == "DEVELOP_FIRST"
     assert assessment.readiness_score == 0.333
+    assert assessment.evidence_completeness == 0.333
+    assert assessment.blocking_gaps
 
 
 def test_skill_assessment_allows_existing_flow_when_components_are_found():
@@ -96,13 +101,15 @@ def test_skill_assessment_allows_existing_flow_when_components_are_found():
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner=None,
         components=(
-            SkillComponent("memory", "FOUND"),
-            SkillComponent("precedent_search", "FOUND"),
-            SkillComponent("renderer", "FOUND"),
+            SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
+            SkillComponent("precedent_search", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
+            SkillComponent("renderer", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
         ),
     )
     assert assessment.disposition == "READY_FOR_INTAKE"
     assert assessment.ready_for_intake is True
+    assert assessment.evidence_completeness == 1.0
+    assert assessment.blocking_gaps == ()
 
 
 def test_skill_assessment_uses_existing_canonical_skill_resolver():
@@ -132,3 +139,34 @@ def test_skill_assessment_keeps_gap_when_canonical_skill_resolver_finds_none():
     )
     assert assessment.existing_owner is None
     assert assessment.disposition == "DEVELOP_FIRST"
+
+
+def test_skill_assessment_rejects_unverified_manual_owner():
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner="claimed-owner",
+        components=(),
+    )
+    assert assessment.disposition == "DEVELOP_FIRST"
+    assert assessment.existing_owner is None
+
+
+def test_skill_assessment_detects_quality_and_governance_gaps():
+    component = SkillComponent(
+        "precedent_search",
+        "FOUND",
+        documentation_status="FOUND",
+        test_status="TESTED",
+        authorization_status="BLOCKED",
+        compatibility_status="COMPATIBLE",
+        baseline_status="PRESENT",
+        measurement_status="PRESENT",
+        regression_status="PASS",
+    )
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner=None,
+        components=(component,),
+    )
+    assert assessment.disposition == "DEVELOP_FIRST"
+    assert any("authorization=BLOCKED" in gap for gap in assessment.blocking_gaps)
