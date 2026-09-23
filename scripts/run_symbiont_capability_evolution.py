@@ -10,15 +10,20 @@ from elo.cognitive.symbiont_capability_evolution import CapabilityMetric, review
 
 
 def _valid_metric(item: Any) -> bool:
-    return (
-        isinstance(item, Mapping)
-        and isinstance(item.get("item"), str)
-        and "baseline" in item
-        and "current" in item
-        and isinstance(item.get("direction"), str)
-        and isinstance(item.get("evidence_refs"), (list, tuple))
-        and isinstance(item.get("measurement_period"), str)
-    )
+    """Accept only complete, evidence-bearing production capability metrics."""
+    if not isinstance(item, Mapping):
+        return False
+    if not isinstance(item.get("item"), str) or not item["item"].strip():
+        return False
+    if "baseline" not in item or "current" not in item:
+        return False
+    if not isinstance(item.get("direction"), str) or item["direction"].strip().lower() not in {"maximize", "minimize"}:
+        return False
+    refs = item.get("evidence_refs")
+    if not isinstance(refs, (list, tuple)) or not refs or any(not str(ref).strip() for ref in refs):
+        return False
+    period = item.get("measurement_period")
+    return isinstance(period, str) and bool(period.strip())
 
 
 def metrics_from_production_runs(runs: Sequence[Mapping[str, Any]]) -> tuple[CapabilityMetric, ...]:
@@ -59,6 +64,31 @@ def metrics_from_production_runs(runs: Sequence[Mapping[str, Any]]) -> tuple[Cap
     return tuple(metrics)
 
 
+def metric_feed_diagnostics(runs: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    """Report feed completeness without converting operational counters into metrics."""
+    runs_with_metrics = 0
+    valid_metrics = 0
+    rejected_metrics = 0
+    for run in runs:
+        details = run.get("details")
+        report = details.get("report") if isinstance(details, Mapping) else None
+        raw_metrics = report.get("capability_metrics") if isinstance(report, Mapping) else None
+        if not isinstance(raw_metrics, list):
+            continue
+        if raw_metrics:
+            runs_with_metrics += 1
+        for item in raw_metrics:
+            if _valid_metric(item):
+                valid_metrics += 1
+            else:
+                rejected_metrics += 1
+    return {
+        "runs_with_capability_metrics": runs_with_metrics,
+        "valid_metrics": valid_metrics,
+        "rejected_metrics": rejected_metrics,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", required=True)
@@ -67,6 +97,7 @@ def main() -> int:
 
     payload = json.loads(Path(args.report).read_text(encoding="utf-8"))
 
+    feed_diagnostics = {"runs_with_capability_metrics": 0, "valid_metrics": 0, "rejected_metrics": 0}
     metrics = tuple(
         CapabilityMetric(
             item=str(item["item"]),
@@ -82,6 +113,7 @@ def main() -> int:
     if args.production_runs:
         runs = json.loads(Path(args.production_runs).read_text(encoding="utf-8"))
         if isinstance(runs, list):
+            feed_diagnostics = metric_feed_diagnostics(runs)
             metrics = metrics_from_production_runs(runs)
 
     review = review_capabilities(
@@ -115,6 +147,7 @@ def main() -> int:
             for a in review.actions
         ],
         "evidence_refs": list(review.evidence_refs),
+        "production_feed": feed_diagnostics,
     }
     print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
     return 0
