@@ -447,6 +447,124 @@ Quando aplicada a um cenário, a skill deve poder produzir:
 
 ---
 
+
+## 22. Integração com o Loop Simbionte — sem duplicação
+
+A implementação desta Skill deve operar **dentro do Loop Simbionte existente**, usando a seguinte regra:
+
+`RETRIEVE → EVIDÊNCIA → CONFRONTAÇÃO → ANÁLISE PCP → DECISÃO → EXECUÇÃO/TESTE → RESULTADO → VALIDAÇÃO → EVOLUTION GATE → APRENDIZADO`
+
+### 22.1 Donos dos mecanismos
+
+| Mecanismo | Função na Skill | Implementação/autoridade |
+|---|---|---|
+| `analise_estruturar` | estruturar antes de calcular/decidir | Skill PCP + padrão existente |
+| `planejamento_restricoes` | testar restrições críticas antes da programação | Skill PCP + padrão existente |
+| `pcp_motor_analitico_demanda_planejamento` | fornecer fórmulas e sequência analítica | Skill PCP + kernel executável integrado |
+| `produto_contexto` | determinar aplicabilidade do produto pelo contexto | Specialist Skill Registry |
+| `modulacao_por_contexto` | adaptar módulo ao contexto sem criar autoridade paralela | SIMBIONTE-ADAPT-001 |
+| `analise_validar` | validar evidência, teste, conflito e confiança | Loop Simbionte / Evolution Gate |
+| `diagnose()` | diagnóstico já existente de atraso material e gargalo | `elo-virtual-core/regras/orquestrador.py` — REUSE |
+| `v_elo_pcp_inteligente` | fonte integrada de cenário | Supabase — fonte, não Skill |
+| `SymbiontLabAdapter` | transformar resultado validável em experiência/candidato governado | Loop Simbionte existente |
+
+### 22.2 Conhecimento exclusivo preservado
+
+A Skill mantém como conhecimento próprio, sem substituir por mecanismos já existentes:
+
+- `NL = D - (EA - ES)`;
+- `NM = NecessidadeProduto × ConsumoUnitário`;
+- `NLM = NM - (EM - ESM)`;
+- `COB = EstoqueDisponível / ConsumoPorPeríodo`;
+- `ICL = COB / LeadTime`;
+- `DP = DN - LeadTime`;
+- `DE = DP + LeadTime`;
+- `RUP = DE > DN`;
+- `ATR = DE - DN`;
+- `CAP = TDA / CT`;
+- `UTI = Demanda / Capacidade`;
+- `GARG = argmax(Carga_i / Capacidade_i)`;
+- `ΔWIP = Entrada - Saída`;
+- `TsetupTotal = Σ(Tsetup_j)`.
+
+Essas fórmulas não devem ser descartadas apenas porque existem mecanismos de capacidade/gargalo em outras partes do ELO. Elas fornecem **granularidade analítica adicional** para materiais, cobertura, sincronização temporal, necessidade líquida, WIP e setup.
+
+### 22.3 Regra de composição
+
+Quando mais de um mecanismo puder responder à mesma pergunta:
+
+1. reutilizar o mecanismo existente;
+2. acrescentar o cálculo da Skill somente quando ele fornecer informação adicional;
+3. confrontar resultados quando houver sobreposição;
+4. registrar divergência como evidência, nunca ocultá-la;
+5. não duplicar autoridade;
+6. não promover uma fórmula apenas porque produziu um resultado coerente;
+7. usar o resultado no Loop Simbionte para teste controlado e validação.
+
+### 22.4 Diagnóstico existente × kernel PCP
+
+O `diagnose()` existente já identifica, em cenário controlado:
+
+- `ATRASO_MATERIAL`;
+- `DEFICIT_MATERIAL`;
+- `GARGALO_CAPACIDADE`;
+- `REFERENCIA_INVALIDA`.
+
+O kernel PCP acrescenta a explicação quantitativa que o diagnóstico não contém, quando os dados existem:
+
+`déficit → NLM → cobertura → ICL → DP → DE → RUP → ATR`
+
+e:
+
+`demanda → CAP → UTI → GARG`
+
+Assim, o diagnóstico responde **o que sinalizar** e o kernel responde **como quantificar e rastrear a decisão**.
+
+### 22.5 Entrada no Simbionte
+
+O kernel é determinístico e não persiste aprendizado. Quando um cenário for candidato a aprendizado:
+
+- preservar `source_ref`;
+- preservar `source_commit`;
+- preservar evidências;
+- preservar baseline;
+- preservar experimento;
+- preservar resultado;
+- registrar regressão;
+- registrar generalização;
+- informar o proprietário existente da capacidade;
+- encaminhar a observação ao `SymbiontLabAdapter` existente;
+- deixar Evolution Gate/Governed Learning decidirem a evolução.
+
+A automação não promove.
+
+### 22.6 Status de implementação
+
+**IMPLEMENTADO / NÃO VALIDADO OPERACIONALMENTE**:
+
+- kernel das fórmulas exclusivas da Skill;
+- bindings dos mecanismos existentes;
+- preparação de evidência compatível com o laboratório do Simbionte;
+- testes unitários do kernel e da proveniência.
+
+**REUSE, não duplicação**:
+
+- diagnóstico de capacidade/material existente;
+- runtime do Simbionte;
+- laboratório do Simbionte;
+- Evolution Gate;
+- fontes persistentes do Supabase.
+
+**PENDENTE**:
+
+- executar testes no ambiente CI;
+- executar cenário PCP controlado contra dados do Supabase;
+- comparar kernel × `diagnose()`;
+- validar relações entre os candidatos;
+- avaliar generalização;
+- somente depois considerar promoção de conhecimento.
+
+
 ## Integração ELO ↔ Supabase ↔ GitHub
 
 A arquitetura de planejamento deve separar três responsabilidades:
