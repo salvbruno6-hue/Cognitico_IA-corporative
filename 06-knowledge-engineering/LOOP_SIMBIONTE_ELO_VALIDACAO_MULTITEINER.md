@@ -119,3 +119,98 @@ Não valida ainda:
 Portanto, o status permanece:
 
 `V0.1 — EM VALIDAÇÃO`
+
+
+## 5. Confrontação quantitativa controlada
+
+Foi criado o teste `tests/validation/test_pcp_diagnose_confrontation.py` para confrontar, sobre os mesmos dados simulados do `elo-virtual-core`:
+
+`diagnose() × kernel analítico da SKILL_PLANEJAMENTO_MULTITEINER`
+
+### 5.1 Capacidade
+
+Para `REC-001`:
+
+- capacidade: 160 h;
+- comprometido: 145 h;
+- `DEM-001`: +20 h;
+- `DEM-003`: +30 h.
+
+A projeção do diagnóstico existente é:
+
+- `DEM-001`: 165/160 = **1,03125**;
+- `DEM-003`: 175/160 = **1,09375**.
+
+O kernel PCP calcula, no agregado do recurso:
+
+- carga: 195 h;
+- capacidade: 160 h;
+- `GARG = 195/160 = 1,21875`;
+- recurso identificado: `REC-001`.
+
+**Confrontação:** os dois mecanismos apontam para o mesmo recurso como restrição, mas operam em escopos diferentes: `diagnose()` sinaliza por demanda; `GARG` consolida a carga do recurso. Não devem ser tratados como fórmulas duplicadas.
+
+### 5.2 Material
+
+Para `MAT-003`:
+
+- necessidade: 8;
+- estoque disponível: 2;
+- déficit bruto observado pelo diagnóstico: **6**.
+
+Entretanto, o cálculo `NLM = NM - (EM - ESM)` exige `ESM) (estoque de segurança), inexistente no conjunto controlado.
+
+Resultado do kernel:
+
+`NLM = NÃO LOCALIZADO`
+
+Isso demonstra o bloqueio de inferência previsto na Skill.
+
+### 5.3 Atraso material
+
+O diagnóstico existente calcula o atraso pelas datas:
+
+- disponibilidade: 2026-09-08;
+- necessidade: 2026-09-03;
+- atraso calculado: **5 dias**.
+
+A visão `v_elo_pcp_inteligente` apresenta `atraso_dias = 6` para `MAT-003`.
+
+A divergência é registrada como evidência de confronto:
+
+`CAMPO DERIVADO DO SUPABASE: 6 × CÁLCULO REPRODUZÍVEL PELAS DATAS: 5`
+
+Não há base, neste ciclo, para declarar qual valor operacional deve prevalecer fora do escopo do cenário. O ponto deve permanecer aberto para validação da origem do campo `atraso_dias`.
+
+### 5.4 Resultado do confronto
+
+O cenário demonstrou:
+
+1. reutilização do diagnóstico existente;
+2. execução das fórmulas exclusivas do kernel PCP quando as variáveis existem;
+3. bloqueio de `NLM` quando falta `ESM`;
+4. identificação explícita de divergência entre fontes/camadas;
+5. ausência de promoção automática.
+
+O teste é **estruturalmente útil**, mas ainda não constitui validação operacional real.
+
+## 6. Estado após a segunda passagem
+
+`RETRIEVE → EVIDENCIAR → CONFRONTAR → EXECUTAR (CENÁRIO CONTROLADO) → OBSERVAR`
+
+Próximo gate:
+
+`VALIDAR → EVOLUTION GATE → REGISTRAR → EVOLUIR`
+
+A passagem pelo `DecisionLifecycle → SymbiontSkillRuntime → SymbiontLabAdapter` ainda depende de uma observação de ciclo com estado `ATTRIBUTED` e evidência de execução compatível. O teste atual não deve fabricar esse estado.
+
+## 7. Limitação atual
+
+O cenário permanece simulado. As tabelas operacionais consultadas continuam sem registros:
+
+- `mt_planos_pcp`: 0;
+- `mt_ordens_producao`: 0;
+- `mt_necessidades_materiais`: 0;
+- `mt_capacidade_diaria`: 0.
+
+Portanto, não se deve promover os resultados quantitativos acima para regra operacional consolidada.
