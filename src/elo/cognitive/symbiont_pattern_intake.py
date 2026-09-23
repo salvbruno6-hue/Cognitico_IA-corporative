@@ -196,15 +196,6 @@ class SymbiontPatternIntake:
 
         inventory = tuple(components)
         resolved_owner = None
-        for component in inventory:
-            if component.authorization_status == "COMPATIBLE" and (
-                component.authorization_authority != authorization_decision.authority
-                or component.authorization_evidence_ref != authorization_decision.evidence_ref
-            ):
-                return SkillCreationAssessment(
-                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                    f"authorization evidence for {component.name} does not match the canonical decision"
-                )
         if skill_resolver is not None and domain_family:
             resolution = skill_resolver.resolve(domain_family=domain_family)
             if resolution.resolved:
@@ -244,6 +235,16 @@ class SymbiontPatternIntake:
                 return SkillCreationAssessment(
                     proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
                     "canonical authorization decision has no evidence reference"
+                )
+
+        for component in inventory:
+            if component.authorization_status == "COMPATIBLE" and (
+                component.authorization_authority != authorization_decision.authority
+                or component.authorization_evidence_ref != authorization_decision.evidence_ref
+            ):
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    f"authorization evidence for {component.name} does not match the canonical decision"
                 )
         else:
             return SkillCreationAssessment(
