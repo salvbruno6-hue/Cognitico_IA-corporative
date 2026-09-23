@@ -1,8 +1,21 @@
 import pytest
 
 from elo.core.evolution_gate import EvolutionClassification
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 from elo.core.specialist_skill_resolution import SpecialistSkill, SpecialistSkillResolver
 from elo.cognitive.symbiont_pattern_intake import ExternalPatternInput, SkillComponent, SymbiontPatternIntake
+
+
+def canonical_authorization(**overrides):
+    values = {
+        "authorized": True,
+        "authority": "elo-authz",
+        "identity_id": "identity-a",
+        "role": "ELO_ADMIN",
+        "evidence_ref": "authz-ev-001",
+    }
+    values.update(overrides)
+    return AuthorizationDecision(**values)
 
 
 def pattern(**overrides):
@@ -84,6 +97,7 @@ def test_skill_assessment_requires_base_when_components_are_partial():
     assessment = SymbiontPatternIntake().assess_skill_creation(
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner=None,
+        authorization_decision=canonical_authorization(),
         components=(
             SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
             SkillComponent("precedent_search", "MISSING", gap="develop search"),
@@ -100,6 +114,7 @@ def test_skill_assessment_allows_existing_flow_when_components_are_found():
     assessment = SymbiontPatternIntake().assess_skill_creation(
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner=None,
+        authorization_decision=canonical_authorization(),
         components=(
             SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
             SkillComponent("precedent_search", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
@@ -149,6 +164,35 @@ def test_skill_assessment_rejects_unverified_manual_owner():
     )
     assert assessment.disposition == "DEVELOP_FIRST"
     assert assessment.existing_owner is None
+
+
+def test_skill_assessment_requires_canonical_authorization_decision():
+    component = SkillComponent(
+        "precedent_search", "FOUND", documentation_status="FOUND", test_status="TESTED",
+        authorization_status="COMPATIBLE", authorization_authority="elo-authz",
+        authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE",
+        baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS",
+    )
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001", existing_owner=None, components=(component,)
+    )
+    assert assessment.disposition == "DEVELOP_FIRST"
+    assert "authorization decision is required" in assessment.rationale
+
+
+def test_skill_assessment_rejects_mismatched_authorization_evidence():
+    component = SkillComponent(
+        "precedent_search", "FOUND", documentation_status="FOUND", test_status="TESTED",
+        authorization_status="COMPATIBLE", authorization_authority="elo-authz",
+        authorization_evidence_ref="authz-ev-other", compatibility_status="COMPATIBLE",
+        baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS",
+    )
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001", existing_owner=None,
+        authorization_decision=canonical_authorization(), components=(component,)
+    )
+    assert assessment.disposition == "DEVELOP_FIRST"
+    assert "does not match" in assessment.rationale
 
 
 def test_skill_assessment_requires_canonical_authorization_provenance():

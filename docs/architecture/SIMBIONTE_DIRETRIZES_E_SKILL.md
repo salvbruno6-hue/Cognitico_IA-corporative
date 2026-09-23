@@ -127,7 +127,7 @@ O mecanismo é implementado dentro de `SymbiontPatternIntake`, reutilizando o `S
 
 ### 3.2 Fronteira de autorização no pré-intake
 
-O pré-intake não cria nem resolve autorização. A decisão autorizativa deve vir da autoridade canônica existente, `elo-authz`, e ser transportada como evidência verificável para o componente avaliado.
+O pré-intake não cria nem resolve autorização. A decisão autorizativa deve vir da autoridade canônica existente, `elo-authz`, e ser transportada como evidência verificável para o componente avaliado. A decisão deve ser transportada pelo contrato existente `AuthorizationDecision`, incluindo sua referência de evidência; o `SymbiontPatternIntake` consome esse resultado por contrato estrutural, sem consultar ou reimplementar `elo-authz`.
 
 Para um componente ser considerado `authorization_status=COMPATIBLE`, são obrigatórios:
 
