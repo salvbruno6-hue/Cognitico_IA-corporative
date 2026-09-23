@@ -62,6 +62,8 @@ class SkillComponent:
     documentation_status: str = "MISSING"
     test_status: str = "UNTESTED"
     authorization_status: str = "UNKNOWN"
+    authorization_authority: str = ""
+    authorization_evidence_ref: str = ""
     compatibility_status: str = "UNKNOWN"
     baseline_status: str = "MISSING"
     measurement_status: str = "MISSING"
@@ -76,6 +78,10 @@ class SkillComponent:
             raise ValueError("invalid test status")
         if self.authorization_status not in {"COMPATIBLE", "BLOCKED", "UNKNOWN"}:
             raise ValueError("invalid authorization status")
+        if self.authorization_status == "COMPATIBLE" and self.authorization_authority != "elo-authz":
+            raise ValueError("compatible authorization requires canonical elo-authz authority")
+        if self.authorization_status == "COMPATIBLE" and not self.authorization_evidence_ref.strip():
+            raise ValueError("compatible authorization requires evidence reference")
         if self.compatibility_status not in {"COMPATIBLE", "CONFLICT", "UNKNOWN"}:
             raise ValueError("invalid compatibility status")
         if self.baseline_status not in {"PRESENT", "MISSING"}:
@@ -143,6 +149,10 @@ class SkillCreationAssessment:
                 gaps.append(f"{component.name}: test={component.test_status}")
             if component.authorization_status != "COMPATIBLE":
                 gaps.append(f"{component.name}: authorization={component.authorization_status}")
+            if component.authorization_status == "COMPATIBLE" and component.authorization_authority != "elo-authz":
+                gaps.append(f"{component.name}: authorization_authority={component.authorization_authority or 'MISSING'}")
+            if component.authorization_status == "COMPATIBLE" and not component.authorization_evidence_ref.strip():
+                gaps.append(f"{component.name}: authorization_evidence_ref=MISSING")
             if component.compatibility_status != "COMPATIBLE":
                 gaps.append(f"{component.name}: compatibility={component.compatibility_status}")
             if component.baseline_status != "PRESENT":

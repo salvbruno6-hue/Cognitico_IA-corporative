@@ -85,7 +85,7 @@ def test_skill_assessment_requires_base_when_components_are_partial():
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner=None,
         components=(
-            SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
+            SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
             SkillComponent("precedent_search", "MISSING", gap="develop search"),
             SkillComponent("renderer", "PARTIAL"),
         ),
@@ -101,9 +101,9 @@ def test_skill_assessment_allows_existing_flow_when_components_are_found():
         proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
         existing_owner=None,
         components=(
-            SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
-            SkillComponent("precedent_search", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
-            SkillComponent("renderer", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
+            SkillComponent("memory", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
+            SkillComponent("precedent_search", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
+            SkillComponent("renderer", "FOUND", documentation_status="FOUND", test_status="TESTED", authorization_status="COMPATIBLE", authorization_authority="elo-authz", authorization_evidence_ref="authz-ev-001", compatibility_status="COMPATIBLE", baseline_status="PRESENT", measurement_status="PRESENT", regression_status="PASS"),
         ),
     )
     assert assessment.disposition == "READY_FOR_INTAKE"
@@ -149,6 +149,27 @@ def test_skill_assessment_rejects_unverified_manual_owner():
     )
     assert assessment.disposition == "DEVELOP_FIRST"
     assert assessment.existing_owner is None
+
+
+def test_skill_assessment_requires_canonical_authorization_provenance():
+    with pytest.raises(ValueError, match="canonical elo-authz authority"):
+        SkillComponent(
+            "precedent_search",
+            "FOUND",
+            authorization_status="COMPATIBLE",
+            authorization_authority="caller",
+            authorization_evidence_ref="authz-ev-001",
+        )
+
+
+def test_skill_assessment_requires_authorization_evidence_reference():
+    with pytest.raises(ValueError, match="evidence reference"):
+        SkillComponent(
+            "precedent_search",
+            "FOUND",
+            authorization_status="COMPATIBLE",
+            authorization_authority="elo-authz",
+        )
 
 
 def test_skill_assessment_detects_quality_and_governance_gaps():
