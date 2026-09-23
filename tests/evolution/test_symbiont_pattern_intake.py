@@ -100,3 +100,45 @@ def test_skill_assessment_allows_existing_flow_when_components_are_found():
     )
     assert assessment.disposition == "READY_FOR_INTAKE"
     assert assessment.ready_for_intake is True
+
+def test_skill_intake_orchestrates_readiness_before_canonical_gate():
+    assessment, decision = SymbiontPatternIntake().classify_skill_intake(
+        pattern=pattern(),
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-002",
+        components=(
+            SkillComponent("memory", "FOUND"),
+            SkillComponent("precedent_search", "FOUND"),
+        ),
+    )
+
+    assert assessment.disposition == "READY_FOR_INTAKE"
+    assert decision is not None
+    assert decision.classification is EvolutionClassification.COMPATIBLE
+
+
+def test_skill_intake_stops_before_gate_when_base_is_incomplete():
+    assessment, decision = SymbiontPatternIntake().classify_skill_intake(
+        pattern=pattern(),
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-003",
+        components=(
+            SkillComponent("memory", "FOUND"),
+            SkillComponent("precedent_search", "PARTIAL"),
+        ),
+    )
+
+    assert assessment.disposition == "DEVELOP_FIRST"
+    assert decision is None
+
+
+def test_skill_intake_stops_before_gate_when_existing_owner_is_found():
+    assessment, decision = SymbiontPatternIntake().classify_skill_intake(
+        pattern=pattern(existing_owner="ELO Cognitive"),
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-004",
+        components=(
+            SkillComponent("memory", "FOUND"),
+            SkillComponent("precedent_search", "FOUND"),
+        ),
+    )
+
+    assert assessment.disposition == "REUSE"
+    assert decision is None
