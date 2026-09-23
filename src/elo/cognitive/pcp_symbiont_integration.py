@@ -18,6 +18,10 @@ from datetime import date, timedelta
 from math import inf
 from typing import Mapping, Sequence
 
+from elo.core.decision_outcome_loop import DecisionLifecycle
+from .symbiont_skill_runtime import SymbiontSkillRuntime
+from .symbionte_lab import SymbiontLabObservation
+
 
 @dataclass(frozen=True)
 class CalculationResult:
@@ -278,3 +282,47 @@ def prepare_symbiont_evidence(*, request_id: str, source_ref: str,
         "tenant_scope": tenant_id,
         "source_kind": "benchmark",
     }
+
+
+def handoff_symbiont_evidence(
+    lifecycle: DecisionLifecycle,
+    *,
+    adapter: object,
+    evidence_payload: Mapping[str, object],
+    principal_id: str,
+    dataset_version: str,
+):
+    """Route a PCP laboratory observation through the canonical Symbiont handoff.
+
+    The PCP Skill supplies the analytical evidence; DecisionLifecycle and the
+    existing Symbiont runtime remain the authorities for governed learning.
+    """
+    observation = SymbiontLabObservation(
+        observation_id=str(evidence_payload["observation_id"]),
+        tenant_id=str(evidence_payload["tenant_id"]),
+        domain=str(evidence_payload["domain"]),
+        decision_id=str(evidence_payload["decision_id"]),
+        expected_outcome=str(evidence_payload["expected_outcome"]),
+        observed_outcome=str(evidence_payload["observed_outcome"]),
+        evidence_ids=tuple(evidence_payload["evidence_ids"]),
+        source_ref=str(evidence_payload["source_ref"]),
+        source_commit=str(evidence_payload["source_commit"]),
+        hypothesis=str(evidence_payload["hypothesis"]),
+        baseline=str(evidence_payload["baseline"]),
+        experiment=str(evidence_payload["experiment"]),
+        result=str(evidence_payload["result"]),
+        regression_status=str(evidence_payload["regression_status"]),
+        generalization_status=str(evidence_payload["generalization_status"]),
+        risk=str(evidence_payload["risk"]),
+        existing_owner=str(evidence_payload["existing_owner"]),
+        scope=str(evidence_payload["scope"]),
+        tenant_scope=str(evidence_payload.get("tenant_scope")) if evidence_payload.get("tenant_scope") is not None else None,
+        source_kind=str(evidence_payload.get("source_kind")) if evidence_payload.get("source_kind") is not None else None,
+    )
+    return SymbiontSkillRuntime.handoff_decision(
+        lifecycle,
+        adapter=adapter,
+        observation=observation,
+        principal_id=principal_id,
+        dataset_version=dataset_version,
+    )
