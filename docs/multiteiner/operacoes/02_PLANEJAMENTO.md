@@ -8,6 +8,38 @@ Transforma a demanda recebida em uma configuração operacional: padrão ou pers
 
 `Analisar AF → módulo padrão ou personalizado → gerar L.M. e O.S. → enviar lista de excedentes → eventualmente gerar O.S. de reparo`
 
+## Ponto crítico: fabricação customizada
+
+A decisão **padrão × customizado** é uma decisão de planejamento que altera o caminho posterior da produção.
+
+Quando o item é customizado, o ELO deve preservar a cadeia:
+
+`pedido/item → evidência da customização → versão do roteiro personalizado → operações personalizadas → aprovação → produção`
+
+Não é permitido registrar uma customização apenas porque o especialista considera que “é diferente”. O motivo, origem e aprovação devem ser identificáveis.
+
+### Tabelas diretamente envolvidas
+
+- `mt_pedidos_venda_itens`
+- `mt_versoes_roteiro_personalizado`
+- `mt_operacoes_roteiro_personalizado`
+- `mt_planos_pcp`
+- `mt_linhas_plano_pcp`
+- `mt_ordens_producao`
+
+### Perguntas ao especialista
+
+1. Qual característica da AF/projeto determina que o módulo será customizado?
+2. Onde essa característica é documentada?
+3. Quem valida a customização?
+4. Como a versão personalizada é identificada?
+5. Como se decide quais operações padrão permanecem?
+6. Como novas operações são descritas?
+7. Como materiais adicionais entram na L.M.?
+8. Como o prazo e a capacidade são reavaliados?
+9. Qual aprovação libera a fabricação?
+10. Como uma mudança posterior na customização é versionada?
+
 ## Tabelas primárias
 
 - `mt_planos_pcp`
