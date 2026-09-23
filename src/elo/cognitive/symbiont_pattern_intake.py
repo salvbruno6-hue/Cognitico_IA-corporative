@@ -81,6 +81,15 @@ class SkillCreationAssessment:
     def ready_for_intake(self) -> bool:
         return self.disposition == "READY_FOR_INTAKE"
 
+    @property
+    def evidence(self) -> tuple[str, ...]:
+        """Expose only evidence supplied by the component inventory."""
+        return tuple(
+            f"{component.name}: {component.path or component.status}"
+            + (f" — {component.gap}" if component.gap else "")
+            for component in self.components
+        )
+
 
 class SymbiontPatternIntake:
     """Attach external pattern discovery to the existing ELO cognitive spine."""
@@ -107,7 +116,7 @@ class SymbiontPatternIntake:
             )
         if existing_owner:
             return SkillCreationAssessment(
-                proposed_skill_id, existing_owner, inventory, 1.0, "REUSE",
+                proposed_skill_id, existing_owner, inventory, 0.0, "REUSE",
                 "an existing owner is already identified; do not create a duplicate Skill"
             )
         found = sum(item.status == "FOUND" for item in inventory)
