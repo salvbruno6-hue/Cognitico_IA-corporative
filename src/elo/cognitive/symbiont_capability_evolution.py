@@ -34,6 +34,31 @@ class CapabilityMetric:
     evidence_refs: tuple[str, ...] = ()
     measurement_period: str = ""
 
+    @classmethod
+    def from_evolution_measurement(
+        cls,
+        *,
+        item: str,
+        baseline: Mapping[str, float],
+        adapted: Mapping[str, float],
+        metric_directions: Mapping[str, str],
+        evidence_refs: Sequence[str],
+        measurement_period: str,
+    ) -> tuple["CapabilityMetric", ...]:
+        """Adapt existing EvolutionMeasurement-shaped evidence without creating a new measurement owner."""
+        common = baseline.keys() & adapted.keys()
+        return tuple(
+            cls(
+                item=f"{item}:{metric}",
+                baseline=baseline[metric],
+                current=adapted[metric],
+                direction=metric_directions.get(metric, ""),
+                evidence_refs=tuple(evidence_refs),
+                measurement_period=measurement_period,
+            )
+            for metric in sorted(common)
+        )
+
     @property
     def delta(self) -> float | None:
         if self.baseline is None or self.current is None:
@@ -61,7 +86,7 @@ class CapabilityEvolutionReview:
 
     @property
     def ready_for_analysis(self) -> bool:
-        return bool(self.metrics)
+        return self.status == "ANALYSIS_READY"
 
 
 def _curvature(metric: CapabilityMetric) -> Curvature:
@@ -110,7 +135,17 @@ def review_capabilities(
     actions: list[CapabilityAction] = []
     for metric in normalized:
         state = _curvature(metric)
-        if state is Curvature.NOT_MEASURED:
+        if state is Curvature.POSITIVE:
+            actions.append(
+                CapabilityAction(
+                    item=metric.item,
+                    exact_action="Preserve the verified gain and repeat the same measurement to confirm durability.",
+                    priority="P3",
+                    start_here="Repeat the measurement with the same baseline rule, source and metric direction.",
+                    rationale="A positive result is evidence of improvement, not authorization for automatic promotion.",
+                )
+            )
+        elif state is Curvature.NOT_MEASURED:
             actions.append(
                 CapabilityAction(
                     item=metric.item,
