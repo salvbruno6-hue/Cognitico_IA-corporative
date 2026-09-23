@@ -70,3 +70,40 @@ def test_symbiont_payload_preserves_provenance():
     assert payload["source_commit"] == "test-commit"
     assert payload["evidence_ids"] == ("E1", "E2")
     assert payload["tenant_scope"] == "pcp"
+
+
+
+def test_pcp_evidence_uses_canonical_symbiont_handoff():
+    from elo.cognitive.pcp_symbiont_integration import handoff_symbiont_evidence
+
+    class FakeLifecycle:
+        def handoff_to_symbiont(self, *, adapter, observation, principal_id, dataset_version):
+            assert observation.source_ref.startswith("github:")
+            assert observation.existing_owner == "SKILL_PLANEJAMENTO_MULTITEINER"
+            assert observation.evidence_ids == ("E1", "E2")
+            assert principal_id == "planner"
+            assert dataset_version == "pcp-test-v1"
+            return "CANONICAL_HANDOFF"
+
+    payload = prepare_symbiont_evidence(
+        request_id="PCP-TEST-002",
+        source_ref="github:SKILL_PLANEJAMENTO_MULTITEINER",
+        source_commit="b534b624a44818a45d067b81b91aa8aec21fb8c7",
+        evidence_ids=["E1", "E2"],
+        baseline="baseline",
+        experiment="compare diagnose and kernel",
+        result="compatible",
+        expected_outcome="signals align",
+        observed_outcome="signals align",
+        regression_status="PASS",
+        generalization_status="PARTIAL",
+        existing_owner="SKILL_PLANEJAMENTO_MULTITEINER",
+        scope="controlled_pcp",
+    )
+    assert handoff_symbiont_evidence(
+        FakeLifecycle(),
+        adapter=object(),
+        evidence_payload=payload,
+        principal_id="planner",
+        dataset_version="pcp-test-v1",
+    ) == "CANONICAL_HANDOFF"
