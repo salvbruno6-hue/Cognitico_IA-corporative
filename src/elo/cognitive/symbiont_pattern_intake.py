@@ -220,7 +220,10 @@ class SymbiontPatternIntake:
                 proposed_skill_id, resolved_owner, inventory, 0.0, "REUSE",
                 "canonical SpecialistSkillResolver identified an existing owner; do not create a duplicate Skill"
             )
-        if authorization_decision is not None:
+        requires_authorization_decision = any(
+            component.authorization_status == "COMPATIBLE" for component in inventory
+        )
+        if requires_authorization_decision and authorization_decision is not None:
             if authorization_decision.authority != "elo-authz":
                 return SkillCreationAssessment(
                     proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
@@ -238,14 +241,14 @@ class SymbiontPatternIntake:
                 )
 
         for component in inventory:
-            if component.authorization_status == "COMPATIBLE" and (
-                component.authorization_authority != authorization_decision.authority
-                or component.authorization_evidence_ref != authorization_decision.evidence_ref
-            ):
-                return SkillCreationAssessment(
-                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                    f"authorization evidence for {component.name} does not match the canonical decision"
-                )
+                if component.authorization_status == "COMPATIBLE" and (
+                    component.authorization_authority != authorization_decision.authority
+                    or component.authorization_evidence_ref != authorization_decision.evidence_ref
+                ):
+                    return SkillCreationAssessment(
+                        proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                        f"authorization evidence for {component.name} does not match the canonical decision"
+                    )
         else:
             return SkillCreationAssessment(
                 proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
