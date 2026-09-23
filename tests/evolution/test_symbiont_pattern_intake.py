@@ -100,3 +100,16 @@ def test_skill_assessment_allows_existing_flow_when_components_are_found():
     )
     assert assessment.disposition == "READY_FOR_INTAKE"
     assert assessment.ready_for_intake is True
+
+
+def test_skill_assessment_integrates_existing_but_unwired_capability_before_creation():
+    assessment = SymbiontPatternIntake().assess_skill_creation(
+        proposed_skill_id="ELO-KE-SKILL-EXAMPLE-001",
+        existing_owner=None,
+        components=(
+            SkillComponent("learning_extractor", "EXISTING_BUT_UNWIRED", gap="wire scan orchestrator"),
+            SkillComponent("provenance", "FOUND"),
+        ),
+    )
+    assert assessment.disposition == "INTEGRATE_EXISTING"
+    assert assessment.ready_for_intake is False
