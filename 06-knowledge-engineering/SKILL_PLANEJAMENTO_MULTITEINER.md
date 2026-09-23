@@ -749,3 +749,129 @@ O próximo ciclo deve validar, um a um:
 `demanda → fluxo → etapa → dependência → capacidade → estoque → paralelismo → sincronização → programação → execução → recuperação → qualidade → expedição → aprendizado`
 
 Somente após essa validação a habilidade deverá ser promovida de modelo cognitivo para conhecimento operacional consolidado.
+
+
+## 23. Fluxo de implementação da Skill com o Loop Simbionte
+
+A implementação da Skill deve ser executada em ciclos controlados, sem transformar a própria Skill em autoridade de aprendizagem.
+
+### 23.1 Ordem obrigatória
+
+`ATIVAR → RETRIEVE → EVIDENCIAR → CONFRONTAR → EXECUTAR → OBSERVAR → VALIDAR → GATE → REGISTRAR → EVOLUIR`
+
+### 23.2 Gate 1 — ATIVAR
+
+Identificar:
+- Skill: `SKILL_PLANEJAMENTO_MULTITEINER`;
+- versão/commit vigente;
+- domínio: PCP / Produção Modular;
+- objetivo do ciclo;
+- identificador da demanda ou cenário.
+
+Nenhuma fórmula ou regra nova é promovida nesta etapa.
+
+### 23.3 Gate 2 — RETRIEVE
+
+Consultar obrigatoriamente:
+
+1. GitHub — Skill, código e testes vigentes;
+2. Supabase — dados operacionais e conhecimento persistente;
+3. mecanismos ELO existentes que respondam à mesma pergunta.
+
+Para o ciclo PCP, o ponto de partida atual é `v_elo_pcp_inteligente`.
+
+### 23.4 Gate 3 — EVIDENCIAR
+
+Classificar cada informação como:
+
+`DADO | FONTE VISUAL | APRENDIZADO VALIDADO | INFERÊNCIA CONTROLADA | NÃO LOCALIZADO`
+
+Campos ausentes permanecem `NÃO LOCALIZADO`. Não preencher lacunas por plausibilidade.
+
+### 23.5 Gate 4 — CONFRONTAR
+
+Para cada decisão, identificar se já existe mecanismo equivalente.
+
+Regra:
+
+`MECANISMO EXISTENTE → REUSAR`
+
+`CONHECIMENTO PCP EXCLUSIVO → EXECUTAR`
+
+`SOBREPOSIÇÃO → CONFRONTAR RESULTADOS`
+
+`DIVERGÊNCIA → REGISTRAR E BLOQUEAR PROMOÇÃO`
+
+### 23.6 Gate 5 — EXECUTAR
+
+Aplicar o kernel PCP somente quando as variáveis necessárias estiverem disponíveis e executar o diagnóstico existente quando houver cenário compatível.
+
+A execução deve preservar:
+- entradas;
+- unidade/período;
+- fonte;
+- fórmula;
+- versão da Skill;
+- resultado.
+
+### 23.7 Gate 6 — OBSERVAR
+
+Comparar resultado esperado × resultado observado.
+
+Quando não houver execução real, registrar `NÃO LOCALIZADO` para o realizado. Cenário simulado deve permanecer identificado como cenário controlado.
+
+### 23.8 Gate 7 — VALIDAR
+
+Encaminhar evidência elegível ao mecanismo canônico do Simbionte:
+
+`DecisionLifecycle → SymbiontSkillRuntime → SymbiontLabAdapter`
+
+O Simbionte verifica proveniência, evidência, regressão, generalização, risco e proprietário existente.
+
+### 23.9 Gate 8 — EVOLUTION GATE
+
+A classificação deve determinar a disposição da evidência:
+
+- reutilizar capacidade existente;
+- fortalecer/adaptar capacidade existente;
+- manter candidato governado;
+- bloquear por conflito/incompatibilidade.
+
+A Skill não executa promoção por conta própria.
+
+### 23.10 Gate 9 — REGISTRAR
+
+Persistir somente no mecanismo canônico correspondente:
+
+- experiência → `elo_aprendizado_experiencias`;
+- conceito → `elo_aprendizado_conceitos`;
+- padrão → `elo_aprendizado_padroes_raciocinio`;
+- PCP → `elo_aprendizado_pcp_planejamento`;
+- relação → `elo_aprendizado_relacoes`.
+
+### 23.11 Gate 10 — EVOLUIR
+
+Somente após validação suficiente:
+
+`CANDIDATO → TESTADO → VALIDADO → CONSOLIDADO`
+
+A evolução deve reutilizar o proprietário existente. Não criar uma segunda autoridade para uma capacidade que já existe.
+
+### 23.12 Primeiro ciclo iniciado
+
+O primeiro ciclo controlado foi iniciado com o cenário atualmente disponível no Supabase.
+
+Evidências recuperadas:
+- existem demandas simuladas abertas;
+- existe o fluxo produtivo modular de referência;
+- o fluxo possui etapas estruturadas;
+- o próprio registro do fluxo informa que tempos, capacidades e recursos específicos devem ser preenchidos somente com evidência operacional validada.
+
+Consequentemente, nesta primeira passagem:
+- fluxo e etapas podem ser analisados;
+- capacidade quantitativa não deve ser inventada;
+- gargalo não deve ser declarado sem carga/capacidade suficiente;
+- planejado × realizado não deve ser calculado sem execução real;
+- o conhecimento permanece candidato.
+
+**Estado do ciclo:** `RETRIEVE/EVIDÊNCIA concluídos → CONFRONTAÇÃO iniciada → EXECUÇÃO controlada pendente de cenário quantitativo`.
