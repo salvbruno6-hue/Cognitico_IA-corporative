@@ -90,7 +90,7 @@ jobs:
           sources="$(get_json elo_aprendizado_fontes 'select=id,schema_name,table_name,dominio_codigo,extracao_ativa,enabled,extraction_mode,ultima_varredura&order=prioridade.asc,table_name.asc')"
           source_total="$(jq 'length' <<<"${sources}")"
           active_sources="$(jq '[.[] | select((.extracao_ativa // true) == true and (.enabled // true) == true)] | length' <<<"${sources}")"
-          stale_sources="$(jq '[.[] | select(.ultima_varredura == null)] | length' <<<"${sources}")"
+          never_scanned_sources="$(jq '[.[] | select(.ultima_varredura == null)] | length' <<<"${sources}")"
 
           extraction_total="$(count_rows elo_aprendizado_extracoes)"
           experience_total="$(count_rows elo_aprendizado_experiencias)"
@@ -121,7 +121,7 @@ jobs:
             --argjson weekly "${run_weekly}" \
             --argjson source_total "${source_total}" \
             --argjson active_sources "${active_sources}" \
-            --argjson stale_sources "${stale_sources}" \
+            --argjson never_scanned_sources "${never_scanned_sources}" \
             --argjson extraction_total "${extraction_total:-0}" \
             --argjson experience_total "${experience_total:-0}" \
             --argjson observed_total "${observed_total:-0}" \
@@ -136,7 +136,7 @@ jobs:
             --argjson budget_assoc_total "${budget_assoc_total:-0}" \
             --argjson budget_decision_total "${budget_decision_total:-0}" \
             --argjson missions "$(printf '%s\n' "${missions[@]}" | jq -R . | jq -s .)" \
-            '{scan_id:$scan_id,execution_timestamp:$timestamp,project_ref:"fxbpevjrkwhbicpmecow",schedule:$schedule,weekly_missions:$weekly,missions_due:$missions,source_coverage:{registered:$source_total,active:$active_sources,never_scanned:$stale_sources},learning:{extractions:$extraction_total,experiences:$experience_total,observed_experiences:$observed_total,reasoning_patterns:$reasoning_total,specializations:$specialization_total,evolution_events:$evolution_total},budget:{budgets:$budget_total,memory:$budget_memory_total,calculations:$budget_calc_total,evidence:$budget_evidence_total,similarities:$budget_similarity_total,associations:$budget_assoc_total,decisions:$budget_decision_total},governance:{discovery_is_learning:false,canonical_mutation:false,automatic_learning_promotion:false,historical_records_immutable:true,provenance_required:true},capability_metrics:[],evidence_refs:[]}')"
+            '{scan_id:$scan_id,execution_timestamp:$timestamp,project_ref:"fxbpevjrkwhbicpmecow",schedule:$schedule,weekly_missions:$weekly,missions_due:$missions,source_coverage:{registered:$source_total,active:$active_sources,never_scanned:$never_scanned_sources},learning:{extractions:$extraction_total,experiences:$experience_total,observed_experiences:$observed_total,reasoning_patterns:$reasoning_total,specializations:$specialization_total,evolution_events:$evolution_total},budget:{budgets:$budget_total,memory:$budget_memory_total,calculations:$budget_calc_total,evidence:$budget_evidence_total,similarities:$budget_similarity_total,associations:$budget_assoc_total,decisions:$budget_decision_total},governance:{discovery_is_learning:false,canonical_mutation:false,automatic_learning_promotion:false,historical_records_immutable:true,provenance_required:true},capability_metrics:[],evidence_refs:[]}')"
 
           printf '%s\n' "${report}" | tee scan-report.json
 
@@ -155,7 +155,7 @@ jobs:
 
           # Route only evidence-supported conditions; never promote learning here.
           corrections=()
-          [[ "${stale_sources}" -gt 0 ]] && corrections+=(stale_source)
+          [[ "${never_scanned_sources}" -gt 0 ]] && corrections+=(source_never_scanned)
           [[ "${observed_total}" -gt 0 ]] && corrections+=(extraction_gap)
           [[ "${capability_status}" == "NOT_MEASURED" ]] && corrections+=(capability_instrumentation_gap)
           [[ "${capability_p0}" -gt 0 ]] && corrections+=(capability_critical_regression)
