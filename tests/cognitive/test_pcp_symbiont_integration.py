@@ -10,10 +10,13 @@ from elo.cognitive.pcp_symbiont_integration import (
     net_requirement,
     order_date,
     potential_delay,
-    prepare_symbiont_evidence,
     rupture_risk,
     utilization,
     wip_delta,
+)
+from elo.cognitive.pcp_evidence_bridge import (
+    handoff_symbiont_evidence,
+    prepare_symbiont_evidence,
 )
 
 
@@ -74,8 +77,6 @@ def test_symbiont_payload_preserves_provenance():
 
 
 def test_pcp_evidence_uses_canonical_symbiont_handoff():
-    from elo.cognitive.pcp_symbiont_integration import handoff_symbiont_evidence
-
     class FakeLifecycle:
         def handoff_to_symbiont(self, *, adapter, observation, principal_id, dataset_version):
             assert observation.source_ref.startswith("github:")
@@ -107,3 +108,12 @@ def test_pcp_evidence_uses_canonical_symbiont_handoff():
         principal_id="planner",
         dataset_version="pcp-test-v1",
     ) == "CANONICAL_HANDOFF"
+
+
+def test_pcp_kernel_has_no_symbiont_import_dependency():
+    from pathlib import Path
+
+    source = Path("src/elo/cognitive/pcp_symbiont_integration.py").read_text(encoding="utf-8")
+    assert "SymbiontSkillRuntime" not in source
+    assert "SymbiontLabObservation" not in source
+    assert "DecisionLifecycle" not in source
