@@ -223,7 +223,12 @@ class SymbiontPatternIntake:
         requires_authorization_decision = any(
             component.authorization_status == "COMPATIBLE" for component in inventory
         )
-        if requires_authorization_decision and authorization_decision is not None:
+        if requires_authorization_decision:
+            if authorization_decision is None:
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "canonical authorization decision is required for pre-intake evaluation"
+                )
             if authorization_decision.authority != "elo-authz":
                 return SkillCreationAssessment(
                     proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
@@ -239,8 +244,7 @@ class SymbiontPatternIntake:
                     proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
                     "canonical authorization decision has no evidence reference"
                 )
-
-        for component in inventory:
+            for component in inventory:
                 if component.authorization_status == "COMPATIBLE" and (
                     component.authorization_authority != authorization_decision.authority
                     or component.authorization_evidence_ref != authorization_decision.evidence_ref
@@ -249,11 +253,7 @@ class SymbiontPatternIntake:
                         proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
                         f"authorization evidence for {component.name} does not match the canonical decision"
                     )
-        else:
-            return SkillCreationAssessment(
-                proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
-                "canonical authorization decision is required for pre-intake evaluation"
-            )
+
         complete = all(
             item.status == "FOUND"
             and item.documentation_status == "FOUND"
