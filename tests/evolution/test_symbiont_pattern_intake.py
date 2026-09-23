@@ -72,6 +72,8 @@ def test_skill_assessment_reuses_existing_owner_before_creation():
     )
     assert assessment.disposition == "REUSE"
     assert assessment.ready_for_intake is False
+    assert assessment.readiness_score == 0.0
+    assert assessment.evidence[0].startswith("memory:")
 
 
 def test_skill_assessment_requires_base_when_components_are_partial():
