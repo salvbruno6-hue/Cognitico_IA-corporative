@@ -1,12 +1,15 @@
-"""PCP analytical integration with the existing Symbiont boundary.
+"""PCP analytical kernel, independent from the Symbiont runtime.
 
-This module does not create a new loop, memory, router, registry or evolution gate.
-It integrates the PCP Skill's unique analytical knowledge with existing ELO mechanisms:
-- existing virtual diagnosis is reused, not reimplemented;
-- existing Supabase PCP views/tables remain data authorities;
-- existing Symbiont runtime remains the governed handoff;
-- formulas from the PCP Skill are implemented here because they were not found as
-  an equivalent executable analytical kernel in the existing runtime.
+This module owns only PCP analytical calculations and mechanism bindings.
+It has no import, call or persistence dependency on Symbiont, learning, memory,
+or Evolution Gate components.
+
+The domain boundary is:
+    PCP / Comercial / Engenharia -> EVIDENCIA -> Symbiont
+
+The evidence bridge lives separately in pcp_evidence_bridge.py. This separation
+allows PCP to run without Symbiont while preserving the existing ELO evidence
+and governed-learning architecture.
 
 All functions are deterministic and side-effect free.
 """
@@ -17,10 +20,6 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from math import inf
 from typing import Mapping, Sequence
-
-from elo.core.decision_outcome_loop import DecisionLifecycle
-from .symbiont_skill_runtime import SymbiontSkillRuntime
-from .symbionte_lab import SymbiontLabObservation
 
 
 @dataclass(frozen=True)
@@ -246,83 +245,3 @@ MECHANISM_BINDINGS: tuple[PCPMechanismBinding, ...] = (
 def mechanism_bindings() -> tuple[PCPMechanismBinding, ...]:
     return MECHANISM_BINDINGS
 
-
-def prepare_symbiont_evidence(*, request_id: str, source_ref: str,
-                              source_commit: str, evidence_ids: Sequence[str],
-                              baseline: str, experiment: str, result: str,
-                              expected_outcome: str, observed_outcome: str,
-                              regression_status: str, generalization_status: str,
-                              existing_owner: str,
-                              scope: str, tenant_id: str = "pcp",
-                              domain: str = "PCP") -> dict[str, object]:
-    """Prepare the evidence payload for the existing SymbiontLabAdapter.
-
-    This function does not call the adapter and does not persist learning.
-    The canonical runtime remains responsible for the governed handoff.
-    """
-    return {
-        "observation_id": request_id,
-        "tenant_id": tenant_id,
-        "domain": domain,
-        "decision_id": request_id,
-        "expected_outcome": expected_outcome,
-        "observed_outcome": observed_outcome,
-        "evidence_ids": tuple(evidence_ids),
-        "source_ref": source_ref,
-        "source_commit": source_commit,
-        "hypothesis": result,
-        "baseline": baseline,
-        "experiment": experiment,
-        "result": result,
-        "regression_status": regression_status,
-        "generalization_status": generalization_status,
-        "risk": "LOW",
-        "existing_owner": existing_owner,
-        "scope": scope,
-        "tenant_scope": tenant_id,
-        "source_kind": "benchmark",
-    }
-
-
-def handoff_symbiont_evidence(
-    lifecycle: DecisionLifecycle,
-    *,
-    adapter: object,
-    evidence_payload: Mapping[str, object],
-    principal_id: str,
-    dataset_version: str,
-):
-    """Route a PCP laboratory observation through the canonical Symbiont handoff.
-
-    The PCP Skill supplies the analytical evidence; DecisionLifecycle and the
-    existing Symbiont runtime remain the authorities for governed learning.
-    """
-    observation = SymbiontLabObservation(
-        observation_id=str(evidence_payload["observation_id"]),
-        tenant_id=str(evidence_payload["tenant_id"]),
-        domain=str(evidence_payload["domain"]),
-        decision_id=str(evidence_payload["decision_id"]),
-        expected_outcome=str(evidence_payload["expected_outcome"]),
-        observed_outcome=str(evidence_payload["observed_outcome"]),
-        evidence_ids=tuple(evidence_payload["evidence_ids"]),
-        source_ref=str(evidence_payload["source_ref"]),
-        source_commit=str(evidence_payload["source_commit"]),
-        hypothesis=str(evidence_payload["hypothesis"]),
-        baseline=str(evidence_payload["baseline"]),
-        experiment=str(evidence_payload["experiment"]),
-        result=str(evidence_payload["result"]),
-        regression_status=str(evidence_payload["regression_status"]),
-        generalization_status=str(evidence_payload["generalization_status"]),
-        risk=str(evidence_payload["risk"]),
-        existing_owner=str(evidence_payload["existing_owner"]),
-        scope=str(evidence_payload["scope"]),
-        tenant_scope=str(evidence_payload.get("tenant_scope")) if evidence_payload.get("tenant_scope") is not None else None,
-        source_kind=str(evidence_payload.get("source_kind")) if evidence_payload.get("source_kind") is not None else None,
-    )
-    return SymbiontSkillRuntime.handoff_decision(
-        lifecycle,
-        adapter=adapter,
-        observation=observation,
-        principal_id=principal_id,
-        dataset_version=dataset_version,
-    )
