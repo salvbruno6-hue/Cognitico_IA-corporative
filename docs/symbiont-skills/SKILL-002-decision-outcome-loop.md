@@ -5,6 +5,8 @@
 - **executor:** `DecisionLifecycle`
 - **authority:** ELO Core + contratos existentes
 - **status:** CORE_PATTERN
+- **evolution_type:** STRENGTHEN
+- **evolution_scope:** governance / composition / traceability / learning-handoff boundary
 - **composition:** existing canonical components only
 - **canonicality:** this skill is a reusable procedure, not a new authority
 
@@ -13,6 +15,20 @@
 Organizar o ciclo de uma decisão desde proposta até outcome, avaliação, atribuição, aprendizado candidato e fechamento.
 
 A Skill existe porque há uma sequência operacional recorrente que compõe capacidades já canônicas. Ela **não substitui nem duplica** essas capacidades.
+
+## Classificação da evolução
+
+Esta formalização **não cria uma nova capacidade cognitiva, memória, autoridade ou mecanismo de aprendizagem**.
+
+O tipo correto de evolução é `STRENGTHEN`.
+
+O ganho é principalmente arquitetural e de governança: composição explícita, fronteira clara entre decisão/outcome/laboratório/learning governance/Evolution Gate, maior rastreabilidade e menor risco de Skills duplicadas.
+
+### Ganhos que não devem ser contabilizados
+
+Esta implementação não representa nova memória, novo Core cognitivo, nova autoridade de aprendizagem, novo Evolution Gate, nova autoridade de promoção, aprendizagem automaticamente promovida, nova autoridade de execução ou nova capacidade de raciocínio independente.
+
+Portanto, a evolução deve ser registrada como **fortalecimento de governança/composição**, e não como criação de nova capacidade cognitiva.
 
 ## Composição canônica
 
@@ -126,7 +142,9 @@ Se 1–3 forem verdadeiros, **evoluir esta Skill ou o componente responsável**.
 
 ## Maturidade
 
-A Skill é um `CORE_PATTERN` porque o procedimento e seus limites já possuem implementação e testes no ELO.
+A Skill permanece `CORE_PATTERN` porque o procedimento e seus limites já possuem implementação e testes no ELO.
+
+**CORE_PATTERN aqui significa padrão canônico de composição, não nova capacidade cognitiva promovida.**
 
 Qualquer extensão nova deve seguir:
 
