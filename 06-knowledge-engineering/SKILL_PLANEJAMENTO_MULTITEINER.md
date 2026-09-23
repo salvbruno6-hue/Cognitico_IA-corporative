@@ -448,308 +448,113 @@ Quando aplicada a um cenário, a skill deve poder produzir:
 ---
 
 
-## 22. Integração com o Loop Simbionte — sem duplicação
+## 22. Integração com o Loop Simbionte — fronteira PCP → evidência
 
-A implementação desta Skill deve operar **dentro do Loop Simbionte existente**, usando a seguinte regra:
+A Skill PCP permanece independente do Symbiont.
 
-`RETRIEVE → EVIDÊNCIA → CONFRONTAÇÃO → ANÁLISE PCP → DECISÃO → EXECUÇÃO/TESTE → RESULTADO → VALIDAÇÃO → EVOLUTION GATE → APRENDIZADO`
+A separação obrigatória é:
 
-### 22.1 Donos dos mecanismos
+`PCP / Comercial / Engenharia → EVIDÊNCIA → SYMBIONT → aprender/adaptar → EVOLUTION GATE`
 
-| Mecanismo | Função na Skill | Implementação/autoridade |
-|---|---|---|
-| `analise_estruturar` | estruturar antes de calcular/decidir | Skill PCP + padrão existente |
-| `planejamento_restricoes` | testar restrições críticas antes da programação | Skill PCP + padrão existente |
-| `pcp_motor_analitico_demanda_planejamento` | fornecer fórmulas e sequência analítica | Skill PCP + kernel executável integrado |
-| `produto_contexto` | determinar aplicabilidade do produto pelo contexto | Specialist Skill Registry |
-| `modulacao_por_contexto` | adaptar módulo ao contexto sem criar autoridade paralela | SIMBIONTE-ADAPT-001 |
-| `analise_validar` | validar evidência, teste, conflito e confiança | Loop Simbionte / Evolution Gate |
-| `diagnose()` | diagnóstico já existente de atraso material e gargalo | `elo-virtual-core/regras/orquestrador.py` — REUSE |
-| `v_elo_pcp_inteligente` | fonte integrada de cenário | Supabase — fonte, não Skill |
-| `SymbiontLabAdapter` | transformar resultado validável em experiência/candidato governado | Loop Simbionte existente |
+O PCP calcula e analisa seus próprios resultados sem importar, chamar ou persistir diretamente em mecanismos do Symbiont.
 
-### 22.2 Conhecimento exclusivo preservado
+### 22.1 Owners
 
-A Skill mantém como conhecimento próprio, sem substituir por mecanismos já existentes:
-
-- `NL = D - (EA - ES)`;
-- `NM = NecessidadeProduto × ConsumoUnitário`;
-- `NLM = NM - (EM - ESM)`;
-- `COB = EstoqueDisponível / ConsumoPorPeríodo`;
-- `ICL = COB / LeadTime`;
-- `DP = DN - LeadTime`;
-- `DE = DP + LeadTime`;
-- `RUP = DE > DN`;
-- `ATR = DE - DN`;
-- `CAP = TDA / CT`;
-- `UTI = Demanda / Capacidade`;
-- `GARG = argmax(Carga_i / Capacidade_i)`;
-- `ΔWIP = Entrada - Saída`;
-- `TsetupTotal = Σ(Tsetup_j)`.
-
-Essas fórmulas não devem ser descartadas apenas porque existem mecanismos de capacidade/gargalo em outras partes do ELO. Elas fornecem **granularidade analítica adicional** para materiais, cobertura, sincronização temporal, necessidade líquida, WIP e setup.
-
-### 22.3 Regra de composição
-
-Quando mais de um mecanismo puder responder à mesma pergunta:
-
-1. reutilizar o mecanismo existente;
-2. acrescentar o cálculo da Skill somente quando ele fornecer informação adicional;
-3. confrontar resultados quando houver sobreposição;
-4. registrar divergência como evidência, nunca ocultá-la;
-5. não duplicar autoridade;
-6. não promover uma fórmula apenas porque produziu um resultado coerente;
-7. usar o resultado no Loop Simbionte para teste controlado e validação.
-
-### 22.4 Diagnóstico existente × kernel PCP
-
-O `diagnose()` existente já identifica, em cenário controlado:
-
-- `ATRASO_MATERIAL`;
-- `DEFICIT_MATERIAL`;
-- `GARGALO_CAPACIDADE`;
-- `REFERENCIA_INVALIDA`.
-
-O kernel PCP acrescenta a explicação quantitativa que o diagnóstico não contém, quando os dados existem:
-
-`déficit → NLM → cobertura → ICL → DP → DE → RUP → ATR`
-
-e:
-
-`demanda → CAP → UTI → GARG`
-
-Assim, o diagnóstico responde **o que sinalizar** e o kernel responde **como quantificar e rastrear a decisão**.
-
-### 22.5 Entrada no Simbionte
-
-O kernel é determinístico e não persiste aprendizado. Quando um cenário for candidato a aprendizado:
-
-- preservar `source_ref`;
-- preservar `source_commit`;
-- preservar evidências;
-- preservar baseline;
-- preservar experimento;
-- preservar resultado;
-- registrar regressão;
-- registrar generalização;
-- informar o proprietário existente da capacidade;
-- encaminhar a observação ao `SymbiontLabAdapter` existente;
-- deixar Evolution Gate/Governed Learning decidirem a evolução.
-
-A automação não promove.
-
-### 22.6 Status de implementação
-
-**IMPLEMENTADO / NÃO VALIDADO OPERACIONALMENTE**:
-
-- kernel das fórmulas exclusivas da Skill;
-- bindings dos mecanismos existentes;
-- preparação de evidência compatível com o laboratório do Simbionte;
-- testes unitários do kernel e da proveniência.
-
-**REUSE, não duplicação**:
-
-- diagnóstico de capacidade/material existente;
-- runtime do Simbionte;
-- laboratório do Simbionte;
-- Evolution Gate;
-- fontes persistentes do Supabase.
-
-**PENDENTE**:
-
-- executar testes no ambiente CI;
-- executar cenário PCP controlado contra dados do Supabase;
-- comparar kernel × `diagnose()`;
-- validar relações entre os candidatos;
-- avaliar generalização;
-- somente depois considerar promoção de conhecimento.
-
-
-## Integração ELO ↔ Supabase ↔ GitHub
-
-A arquitetura de planejamento deve separar três responsabilidades:
-
-**ELO**
-- executa o raciocínio;
-- identifica o que precisa saber;
-- consulta conhecimento contextual;
-- calcula;
-- compara conhecimento histórico com dados atuais;
-- registra a decisão e sua evidência.
-
-**Supabase**
-- mantém o estado e o conhecimento persistente de PCP;
-- armazena demanda, estoque, capacidade, planos, execução e aprendizado estruturado;
-- fornece conceitos, experiências e padrões de raciocínio conforme status de validação.
-
-**GitHub**
-- mantém a definição versionada da skill;
-- documenta regras, contratos, prompts e testes;
-- registra mudanças e governança de engenharia;
-- não substitui o estado operacional do Supabase.
-
-### Ordem de consulta
-
-`ELO → Supabase (conhecimento/dados relevantes) → GitHub (skill/regra vigente) → dados atuais → cálculo → análise → decisão → validação → registro → aprendizado`
-
-A ordem acima é cognitiva, não uma licença para usar conhecimento histórico contra um dado atual. Para a situação corrente, **dado operacional atual** prevalece; para comportamento da skill, **regra versionada no GitHub** prevalece; para conhecimento estruturado e memória persistente, **Supabase** é a fonte.
-
-### Governança da informação
-
-| Tipo | Fonte |
+| Responsabilidade | Owner |
 |---|---|
-| Demanda atual | Supabase / dados operacionais |
-| Estoque atual | Supabase / movimentos e lotes |
-| Capacidade atual | Supabase / capacidade e regras |
-| Plano PCP atual | Supabase |
-| Execução real | Supabase |
-| Fórmula e método analítico da Skill | GitHub + conceito correspondente no Supabase |
-| Experiência histórica | Supabase |
-| Padrão de raciocínio validado | Supabase + Skill no GitHub |
-| Código/teste/contrato | GitHub |
-| Decisão executada | Supabase, com referência ao comportamento/versão da Skill |
-| Aprendizado novo | Supabase, promovido a regra/skill somente após validação |
+| análise, fórmulas e diagnóstico PCP | `SKILL_PLANEJAMENTO_MULTITEINER` + mecanismos PCP existentes |
+| dados operacionais e conhecimento persistente | Supabase |
+| transformação de resultado em evidência | `pcp_evidence_bridge.py` |
+| handoff governado | `DecisionLifecycle → SymbiontSkillRuntime` |
+| observação/confrontação | `SymbiontLabAdapter` |
+| aprender/adaptar | mecanismos canônicos do Symbiont |
+| decisão de evolução | `EvolutionGate` |
 
-### Regra de versionamento cruzado
+### 22.2 Regra de independência
 
-Toda decisão de planejamento derivada dessa skill deve, quando possível, registrar:
-- `skill_id`/nome da skill;
-- versão da skill;
-- conceito/regra consultado;
-- valores de entrada;
-- fórmula aplicada;
+O módulo analítico PCP deve continuar executável sem Symbiont.
+
+O Symbiont não deve conhecer detalhes das fórmulas PCP para funcionar.
+
+O domínio entrega somente uma evidência estruturada na fronteira:
+
+`resultado PCP → evidência`
+
+A ponte `pcp_evidence_bridge.py` é um adapter de tradução, não um novo motor de aprendizado.
+
+### 22.3 Fluxo canônico
+
+```
+                     ELO
+                      │
+       ┌──────────────┼──────────────┐
+       ▼              ▼              ▼
+      PCP         Comercial      Engenharia
+       │              │              │
+       └──────────────┼──────────────┘
+                      ▼
+                   EVIDÊNCIA
+                      │
+                      ▼
+                  SYMBIONT
+                      │
+               ┌──────┴──────┐
+               ▼             ▼
+            aprender       adaptar
+               │             │
+               └──────┬──────┘
+                      ▼
+                EVOLUTION GATE
+```
+
+O fluxo preserva a autonomia dos domínios e concentra no Symbiont apenas a governança da evidência, aprendizagem/adaptação e evolução.
+
+### 22.4 Regra contra duplicação
+
+`MECANISMO EXISTENTE → REUSAR`
+
+`CONHECIMENTO PCP EXCLUSIVO → EXECUTAR NO KERNEL PCP`
+
+`RESULTADO DO DOMÍNIO → TRANSFORMAR EM EVIDÊNCIA`
+
+`EVIDÊNCIA → HANDOFF CANÔNICO`
+
+`CONFLITO → EVOLUTION GATE`
+
+Não criar:
+- novo Lifecycle;
+- novo Adapter de aprendizagem;
+- nova memória;
+- novo Router;
+- novo Evolution Gate;
+- nova autoridade para decisão já pertencente a outro mecanismo.
+
+### 22.5 Evidência não é aprendizado
+
+A produção de evidência não promove conhecimento.
+
+A ponte deve somente transportar:
 - resultado;
-- impacto;
-- fonte dos dados;
-- status de validação.
+- fonte;
+- versão;
+- evidências;
+- baseline;
+- experimento;
+- resultado observado;
+- regressão;
+- generalização;
+- risco;
+- owner existente.
 
-Quando houver alteração do método no GitHub, o aprendizado persistido no Supabase deve continuar identificando a versão anterior para preservar rastreabilidade histórica.
+A promoção continua dependente da governança canônica.
 
-### Regra de promoção
+### 22.6 Regra de independência testável
 
-`CANDIDATO → TESTADO → VALIDADO → CONSOLIDADO`
-
-Somente conhecimento marcado como **VALIDADO/CONSOLIDADO** pode ser recuperado como regra operacional automática. Candidatos servem para análise e teste e devem ser identificados como tal.
-
-### Regra de divergência
-
-Se GitHub e Supabase apresentarem versões diferentes da mesma regra:
-1. não esconder a divergência;
-2. identificar qual versão está vigente;
-3. bloquear promoção automática da regra conflitante;
-4. registrar a pendência;
-5. validar antes de consolidar.
-
-## 12. Motor analítico de demanda e planejamento PCP
-
-O planejamento deve converter dados em decisão por uma cadeia analítica rastreável:
-
-`DEMANDA → CAPACIDADE → CARGA → UTILIZAÇÃO → RESTRIÇÃO → GARGALO → BOM → NECESSIDADE BRUTA → ESTOQUE DISPONÍVEL → NECESSIDADE LÍQUIDA → LEAD TIME → DATA DE NECESSIDADE → DATA DE PEDIDO → DATA DE ENTREGA → RISCO → IMPACTO → DECISÃO → CONTINGÊNCIA`
-
-### 12.1 Fórmulas-base
-
-| Código | Fórmula | Finalidade |
-|---|---|---|
-| NL | `NL = D - (EA - ES)` | Necessidade líquida considerando estoque de segurança. |
-| NM | `NM = NecessidadeProduto × ConsumoUnitário` | Converter demanda de produto em demanda de componente pela BOM. |
-| NLM | `NLM = NM - (EM - ESM)` | Necessidade líquida de material. |
-| COB | `COB = EstoqueDisponível / ConsumoPorPeríodo` | Transformar estoque físico em cobertura temporal. |
-| ICL | `ICL = COB / LeadTime` | Comparar cobertura com tempo de reposição. |
-| DP | `DP = DN - LeadTime` | Determinar a data-limite de pedido. |
-| DE | `DE = DP + LeadTime` | Projetar a data de entrega. |
-| RUP | `RUP = DE > DN` | Detectar risco de chegada após a necessidade. |
-| ATR | `ATR = DE - DN` | Medir atraso potencial. |
-| CAP | `CAP = TDA / CT` | Estimar capacidade a partir de tempo disponível e ciclo. |
-| UTI | `UTI = Demanda / Capacidade` | Medir pressão da demanda sobre o recurso. |
-| GARG | `GARG = argmax(Carga_i / Capacidade_i)` | Identificar o recurso mais pressionado. |
-| WIP | `ΔWIP = Entrada - Saída` | Identificar acumulação de estoque em processo. |
-| SETUP | `TsetupTotal = Σ(Tsetup_j)` | Medir capacidade consumida por trocas/setup. |
-
-### 12.2 Regras de cálculo
-
-1. Não calcular uma fórmula quando faltar uma variável necessária; registrar **NÃO LOCALIZADO**.
-2. Registrar sempre os valores de entrada, unidade, período, fonte e resultado.
-3. Não tratar exemplo didático como regra universal sem validação operacional.
-4. Dados atuais de demanda, estoque, capacidade e prazo comandam a decisão operacional; histórico serve para recuperar padrões de raciocínio e conhecimento validado.
-5. Quando `DE > DN`, abrir análise de contingência e impacto na produção.
-6. Quando produtos ou rotas possuírem capacidades diferentes, não aplicar uma capacidade média única sem segmentação.
-7. O cálculo deve distinguir claramente **dado**, **fonte visual**, **aprendizado validado**, **inferência controlada** e **NÃO LOCALIZADO**.
-
-### 12.3 Modelo de decisão
-
-A decisão de planejamento deve ser explicável como:
-
-`DECISÃO = DADOS DE ENTRADA + FÓRMULA/RELAÇÃO + RESULTADO + IMPACTO + CONDIÇÃO DE APLICAÇÃO`
-
-O objetivo não é apenas produzir um número, mas recuperar **o caminho da escolha**.
-
-### 12.4 Fonte cognitiva no Supabase
-
-O conhecimento-base desta camada foi registrado como **candidato** no domínio `planejamento_pcp`, especialização `planejamento_pcp_planejamento`, nas estruturas:
-
-- `elo_aprendizado_conceitos`;
-- `elo_aprendizado_pcp_planejamento`.
-
-A fonte de aprendizagem é composta pelos casos didáticos **GlassVibe** e **Urnas Eternidade**, fornecidos para a construção da Skill. Esse registro não substitui dados operacionais atuais.
-
-### 12.5 Regra de consulta ELO → Supabase → GitHub
-
-A interação entre os três componentes deve obedecer:
-
-`ELO → identificar necessidade de conhecimento → consultar Supabase → confrontar com fonte operacional atual → consultar GitHub para regra/skill/código vigente → analisar → decidir → registrar evidência/resultado → aprender`
-
-**Supabase** é a autoridade cognitiva/persistente para conhecimento estruturado, experiências, conceitos, padrões de raciocínio e dados operacionais de PCP.
-
-**GitHub** é a autoridade de engenharia para skills, regras documentadas, contratos, prompts, código, testes e histórico de mudanças.
-
-**ELO** é a camada cognitiva de execução: faz a pergunta certa, seleciona as fontes relevantes, confronta conhecimento histórico com dados atuais, calcula, explica a decisão e registra o resultado.
-
-Nenhuma das três fontes deve ser tratada como substituta automática das demais.
-
-### 12.6 Fluxo de governança
-
-`DEMANDA → RETRIEVAL SUPABASE → REGRA/SKILL GITHUB → DADOS ATUAIS → CÁLCULO → ANÁLISE → DECISÃO → VALIDAÇÃO → REGISTRO → APRENDIZADO`
-
-Quando houver divergência:
-
-1. dado operacional atual prevalece para a situação corrente;
-2. regra/skill vigente no GitHub define o comportamento de engenharia;
-3. conhecimento do Supabase orienta o raciocínio histórico e estruturado;
-4. a divergência deve ser registrada como evidência/pendência, nunca ocultada.
-
-### 12.7 Estado de validação
-
-Os cálculos acima estão registrados como **CANDIDATO / não consolidado**. A promoção para regra operacional exige validação dos casos, das variáveis disponíveis no Supabase e da aplicação em cenários reais de PCP.
-
----
-
-## 10. Limites atuais identificados
-
-A estrutura do Supabase já possui o domínio `planejamento_pcp` e as especializações:
-
-- `planejamento_pcp_planejamento`;
-- `planejamento_pcp_programacao`.
-
-Também existem as estruturas de conhecimento específicas de PCP e produção modular.
-
-Na consulta realizada, entretanto, não foram encontrados padrões de raciocínio associados diretamente à especialização de planejamento PCP. Portanto, esta skill **não deve declarar que tais padrões já estão consolidados**.
-
-A próxima etapa de engenharia é transformar os elementos das imagens e os registros existentes em padrões de raciocínio validados, mantendo a distinção entre fonte visual, dado operacional e aprendizado.
-
----
-
-## 11. Estado desta versão
-
-Esta é a **V0.1 — modelo cognitivo inicial**.
-
-Ainda não representa uma regra operacional final.
-
-O próximo ciclo deve validar, um a um:
-
-`demanda → fluxo → etapa → dependência → capacidade → estoque → paralelismo → sincronização → programação → execução → recuperação → qualidade → expedição → aprendizado`
-
-Somente após essa validação a habilidade deverá ser promovida de modelo cognitivo para conhecimento operacional consolidado.
-
+O teste arquitetural deve confirmar que:
+1. `pcp_symbiont_integration.py` não importa `DecisionLifecycle`, `SymbiontSkillRuntime` ou `SymbiontLabObservation`;
+2. as fórmulas PCP podem ser executadas sem o runtime Symbiont;
+3. o bridge pode encaminhar a evidência ao handoff canônico;
+4. o Evolution Gate continua sendo o owner da decisão de evolução.
 
 ## 23. Fluxo de implementação da Skill com o Loop Simbionte
 
@@ -822,9 +627,9 @@ Quando não houver execução real, registrar `NÃO LOCALIZADO` para o realizado
 
 ### 23.8 Gate 7 — VALIDAR
 
-Encaminhar evidência elegível ao mecanismo canônico do Simbionte:
+Encaminhar evidência elegível pelo adapter de domínio `pcp_evidence_bridge.py` ao mecanismo canônico do Simbionte:
 
-`DecisionLifecycle → SymbiontSkillRuntime → SymbiontLabAdapter`
+`pcp_evidence_bridge → DecisionLifecycle → SymbiontSkillRuntime → SymbiontLabAdapter`
 
 O Simbionte verifica proveniência, evidência, regressão, generalização, risco e proprietário existente.
 
