@@ -25,6 +25,7 @@ class DataGap:
     responsible_area: str
     impact: str
     question: str
+    priority: int
 
 
 REQUIREMENTS: dict[str, tuple[DataRequirement, ...]] = {
@@ -45,14 +46,24 @@ REQUIREMENTS: dict[str, tuple[DataRequirement, ...]] = {
         DataRequirement("quantidade_comprada", "Quantidade comprada", "mt_necessidades_materiais", "Compras", "Impede avaliar cobertura por compra.", "Quanto do material foi efetivamente comprado?"),
         DataRequirement("quantidade_disponivel", "Estoque disponível", "mt_lotes_estoque", "Almoxarifado", "Impede confrontar necessidade com estoque físico.", "Qual quantidade está fisicamente disponível por lote/local?"),
     ),
+    "atendimento_multiteiner": (
+        DataRequirement("demanda", "Demanda comercial", "fonte_comercial", "Comercial", "Sem demanda não existe alvo de atendimento.", "Qual é a demanda, modelo/família, quantidade e prazo comprometido?"),
+        DataRequirement("plano", "Plano PCP vigente", "mt_planos_pcp", "PCP", "Sem plano não há horizonte formal de planejamento.", "Qual plano PCP e versão estão vigentes para esse atendimento?"),
+        DataRequirement("ordem_producao", "Ordem de produção", "mt_ordens_producao", "PCP", "Sem OP não é possível vincular a demanda à execução.", "Qual OP atende a demanda e qual sua quantidade/data planejada?"),
+        DataRequirement("capacidade", "Capacidade disponível", "mt_capacidade_diaria", "PCP/Capacidade", "Sem capacidade não é possível testar a viabilidade operacional.", "Qual capacidade está disponível nos centros e datas relevantes?"),
+        DataRequirement("material_necessidade", "Necessidade de material", "mt_necessidades_materiais", "PCP/Suprimentos", "Sem necessidade não é possível testar restrição de material.", "Quais materiais e quantidades são necessários para a OP?"),
+        DataRequirement("estoque", "Estoque físico", "mt_lotes_estoque", "Almoxarifado", "Sem saldo físico não é possível medir cobertura material.", "Quais lotes e saldos disponíveis atendem às necessidades?"),
+        DataRequirement("operacoes", "Operações planejadas", "mt_operacoes_ordem_producao", "Produção", "Sem roteiro operacional não é possível localizar restrições por etapa.", "Quais operações, sequências e quantidades estão planejadas?"),
+        DataRequirement("eventos_reais", "Eventos de execução", "mt_eventos_fluxo_modular", "Produção/Operação", "Sem execução real não é possível confrontar plano com realizado.", "Quais eventos reais comprovam o andamento da OP/unidade?"),
+    ),
 }
 
 
 def project_questions(target: str, available: dict[str, object]) -> tuple[DataGap, ...]:
-    """Retorna somente as perguntas necessárias para os dados ausentes."""
+    """Retorna perguntas dos requisitos ausentes, ordenadas por impacto no alvo."""
     gaps: list[DataGap] = []
 
-    for req in REQUIREMENTS.get(target, ()):
+    for index, req in enumerate(REQUIREMENTS.get(target, ()), start=1):
         value = available.get(req.key)
         if value is None or (isinstance(value, str) and not value.strip()):
             gaps.append(DataGap(
@@ -62,6 +73,7 @@ def project_questions(target: str, available: dict[str, object]) -> tuple[DataGa
                 responsible_area=req.responsible_area,
                 impact=req.impact,
                 question=req.question,
+                priority=index,
             ))
 
     return tuple(gaps)
