@@ -145,6 +145,10 @@ jobs:
           # EVOLUÇÃO_DE_CAPACIDADES must return NOT_MEASURED and prescribe instrumentation.
           capability_review="$(python scripts/run_symbiont_capability_evolution.py --report scan-report.json --production-runs production-capability-runs.json)"
           printf '%s\n' "${capability_review}" | tee capability-evolution-review.json
+          capability_status="$(jq -r '.status' <<<"${capability_review}")"
+          capability_p0="$(jq '[.actions[] | select(.priority=="P0")] | length' <<<"${capability_review}")"
+          capability_p1="$(jq '[.actions[] | select(.priority=="P1")] | length' <<<"${capability_review}")"
+          capability_rejected="$(jq -r '.production_feed.rejected_metrics' <<<"${capability_review}")"
           cat scan-report.json >> "$GITHUB_STEP_SUMMARY"
           echo '### EVOLUÇÃO_DE_CAPACIDADES' >> "$GITHUB_STEP_SUMMARY"
           printf '%s\n' "${capability_review}" >> "$GITHUB_STEP_SUMMARY"
@@ -153,6 +157,10 @@ jobs:
           corrections=()
           [[ "${stale_sources}" -gt 0 ]] && corrections+=(stale_source)
           [[ "${observed_total}" -gt 0 ]] && corrections+=(extraction_gap)
+          [[ "${capability_status}" == "NOT_MEASURED" ]] && corrections+=(capability_instrumentation_gap)
+          [[ "${capability_p0}" -gt 0 ]] && corrections+=(capability_critical_regression)
+          [[ "${capability_status}" == "ANALYSIS_READY" && "${capability_p1}" -gt 0 ]] && corrections+=(capability_measurement_or_regression)
+          [[ "${capability_rejected}" -gt 0 ]] && corrections+=(capability_feed_contract_violation)
           if ((${#corrections[@]} > 0)); then action='CORRECT'; else action='CONTINUE'; fi
 
           final_details="$(jq -n --argjson report "${report}" --argjson review "${capability_review}" --arg action "${action}" --argjson corrections "$(printf '%s\n' "${corrections[@]:-}" | jq -R 'select(length>0)' | jq -s .)" '{orchestrator:"ELO-SCAN-ORCHESTRATOR",report:$report,next_action:$action,corrections:$corrections,capability_evolution:$review,learning_promotion:false,canonical_mutation:false}')"
@@ -164,3 +172,5 @@ jobs:
           echo "ELO_SCAN_ACTION=${action}"
           echo "ELO_SCAN_RUN_ID=${run_id}"
           echo "ELO_SCAN_MISSIONS=${#missions[@]}"
+          echo "ELO_CAPABILITY_STATUS=${capability_status}"
+          echo "ELO_CAPABILITY_REJECTED=${capability_rejected}"
