@@ -110,7 +110,7 @@ Cada componente requerido deve declarar, além de `FOUND | PARTIAL | MISSING`:
 
 - documentação: `FOUND | PARTIAL | MISSING`;
 - teste: `TESTED | PARTIAL | UNTESTED | FAILED`;
-- autorização: `COMPATIBLE | BLOCKED | UNKNOWN`;
+- autorização: `COMPATIBLE | BLOCKED | UNKNOWN`; quando `COMPATIBLE`, a evidência deve identificar a autoridade canônica `elo-authz` e possuir referência de evidência;
 - compatibilidade: `COMPATIBLE | CONFLICT | UNKNOWN`;
 - baseline: `PRESENT | MISSING`;
 - medição: `PRESENT | MISSING`;
@@ -123,3 +123,17 @@ O `readiness_score` representa **cobertura de evidência do pré-intake**, não 
 A avaliação é somente evidência de pré-intake. Não cria Skill, Registry, Capability, autorização ou aprendizado e não substitui o Evolution Gate.
 
 O mecanismo é implementado dentro de `SymbiontPatternIntake`, reutilizando o `SpecialistSkillResolver`; não existe um segundo resolver de pré-intake.
+
+
+### 3.2 Fronteira de autorização no pré-intake
+
+O pré-intake não cria nem resolve autorização. A decisão autorizativa deve vir da autoridade canônica existente, `elo-authz`, e ser transportada como evidência verificável para o componente avaliado.
+
+Para um componente ser considerado `authorization_status=COMPATIBLE`, são obrigatórios:
+
+- `authorization_authority=elo-authz`;
+- `authorization_evidence_ref` não vazio.
+
+Ausência, bloqueio ou autoridade diferente de `elo-authz` impede a suficiência da evidência. O `SymbiontPatternIntake` não interpreta role, sessão, capability ou scope e não substitui a decisão de `elo-authz`.
+
+Essa fronteira mantém a separação: `elo-authz` autoriza; `SpecialistSkillResolver` resolve owner; `SymbiontPatternIntake` avalia evidência de pré-intake; o Evolution Gate governa evolução.
