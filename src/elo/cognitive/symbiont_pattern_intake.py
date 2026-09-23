@@ -53,23 +53,44 @@ class PatternIntakeDecision:
 
 @dataclass(frozen=True)
 class SkillComponent:
-    """Evidence-only component inventory used before a new Skill is proposed."""
+    """Evidence inventory for a required Skill component before intake."""
 
     name: str
     status: str
     path: str = ""
     gap: str = ""
+    documentation_status: str = "MISSING"
+    test_status: str = "UNTESTED"
+    authorization_status: str = "UNKNOWN"
+    compatibility_status: str = "UNKNOWN"
+    baseline_status: str = "MISSING"
+    measurement_status: str = "MISSING"
+    regression_status: str = "UNKNOWN"
 
     def __post_init__(self) -> None:
         if self.status not in {"FOUND", "PARTIAL", "MISSING"}:
             raise ValueError(f"invalid component status: {self.status}")
+        if self.documentation_status not in {"FOUND", "PARTIAL", "MISSING"}:
+            raise ValueError("invalid documentation status")
+        if self.test_status not in {"TESTED", "PARTIAL", "UNTESTED", "FAILED"}:
+            raise ValueError("invalid test status")
+        if self.authorization_status not in {"COMPATIBLE", "BLOCKED", "UNKNOWN"}:
+            raise ValueError("invalid authorization status")
+        if self.compatibility_status not in {"COMPATIBLE", "CONFLICT", "UNKNOWN"}:
+            raise ValueError("invalid compatibility status")
+        if self.baseline_status not in {"PRESENT", "MISSING"}:
+            raise ValueError("invalid baseline status")
+        if self.measurement_status not in {"PRESENT", "MISSING"}:
+            raise ValueError("invalid measurement status")
+        if self.regression_status not in {"PASS", "FAIL", "UNKNOWN"}:
+            raise ValueError("invalid regression status")
         if not self.name.strip():
             raise ValueError("component name is required")
 
 
 @dataclass(frozen=True)
 class SkillCreationAssessment:
-    """Pre-intake result attached to the existing Symbiont Pattern Intake."""
+    """Evidence-based pre-intake result attached to the existing Pattern Intake."""
 
     proposed_skill_id: str
     existing_owner: str | None
@@ -90,6 +111,47 @@ class SkillCreationAssessment:
             + (f" — {component.gap}" if component.gap else "")
             for component in self.components
         )
+
+    @property
+    def evidence_completeness(self) -> float:
+        """Coverage of all required evidence dimensions, not a quality score."""
+        if not self.components:
+            return 0.0
+        checks = []
+        for component in self.components:
+            checks.extend((
+                component.status == "FOUND",
+                component.documentation_status == "FOUND",
+                component.test_status == "TESTED",
+                component.authorization_status == "COMPATIBLE",
+                component.compatibility_status == "COMPATIBLE",
+                component.baseline_status == "PRESENT",
+                component.measurement_status == "PRESENT",
+                component.regression_status == "PASS",
+            ))
+        return round(sum(checks) / len(checks), 3)
+
+    @property
+    def blocking_gaps(self) -> tuple[str, ...]:
+        gaps: list[str] = []
+        for component in self.components:
+            if component.status != "FOUND":
+                gaps.append(f"{component.name}: component={component.status}")
+            if component.documentation_status != "FOUND":
+                gaps.append(f"{component.name}: documentation={component.documentation_status}")
+            if component.test_status != "TESTED":
+                gaps.append(f"{component.name}: test={component.test_status}")
+            if component.authorization_status != "COMPATIBLE":
+                gaps.append(f"{component.name}: authorization={component.authorization_status}")
+            if component.compatibility_status != "COMPATIBLE":
+                gaps.append(f"{component.name}: compatibility={component.compatibility_status}")
+            if component.baseline_status != "PRESENT":
+                gaps.append(f"{component.name}: baseline={component.baseline_status}")
+            if component.measurement_status != "PRESENT":
+                gaps.append(f"{component.name}: measurement={component.measurement_status}")
+            if component.regression_status != "PASS":
+                gaps.append(f"{component.name}: regression={component.regression_status}")
+        return tuple(gaps)
 
 
 class SymbiontPatternIntake:
@@ -112,11 +174,21 @@ class SymbiontPatternIntake:
         if not proposed_skill_id.strip():
             raise ValueError("proposed_skill_id is required")
         inventory = tuple(components)
-        resolved_owner = existing_owner
-        if resolved_owner is None and domain_family and skill_resolver is not None:
+        resolved_owner = None
+        if skill_resolver is not None and domain_family:
             resolution = skill_resolver.resolve(domain_family=domain_family)
             if resolution.resolved:
                 resolved_owner = resolution.skill_id
+            elif existing_owner:
+                return SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                    "caller-supplied owner was not independently resolved by the canonical SpecialistSkillResolver"
+                )
+        elif existing_owner:
+            return SkillCreationAssessment(
+                proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST",
+                "existing_owner requires independent verification through the canonical SpecialistSkillResolver"
+            )
         if not inventory:
             return SkillCreationAssessment(
                 proposed_skill_id, resolved_owner, (), 0.0, "DEVELOP_FIRST",
@@ -125,18 +197,31 @@ class SymbiontPatternIntake:
         if resolved_owner:
             return SkillCreationAssessment(
                 proposed_skill_id, resolved_owner, inventory, 0.0, "REUSE",
-                "an existing owner is already identified; do not create a duplicate Skill"
+                "canonical SpecialistSkillResolver identified an existing owner; do not create a duplicate Skill"
             )
-        found = sum(item.status == "FOUND" for item in inventory)
-        readiness = round(found / len(inventory), 3)
-        if found != len(inventory):
+        complete = all(
+            item.status == "FOUND"
+            and item.documentation_status == "FOUND"
+            and item.test_status == "TESTED"
+            and item.authorization_status == "COMPATIBLE"
+            and item.compatibility_status == "COMPATIBLE"
+            and item.baseline_status == "PRESENT"
+            and item.measurement_status == "PRESENT"
+            and item.regression_status == "PASS"
+            for item in inventory
+        )
+        if not complete:
             return SkillCreationAssessment(
-                proposed_skill_id, None, inventory, readiness, "DEVELOP_FIRST",
-                "one or more required components are missing or partial"
+                proposed_skill_id, None, inventory,
+                SkillCreationAssessment(
+                    proposed_skill_id, None, inventory, 0.0, "DEVELOP_FIRST", ""
+                ).evidence_completeness,
+                "DEVELOP_FIRST",
+                "required component, documentation, test, authorization, compatibility, baseline, measurement or regression evidence is incomplete"
             )
         return SkillCreationAssessment(
             proposed_skill_id, None, inventory, 1.0, "READY_FOR_INTAKE",
-            "required components are evidenced and no existing owner was identified"
+            "required components and pre-intake evidence are complete; no existing owner was independently identified"
         )
 
     def classify(self, pattern: ExternalPatternInput) -> PatternIntakeDecision:
