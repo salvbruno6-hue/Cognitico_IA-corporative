@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
+from elo.core.specialist_skill_resolution import SpecialistSkillResolver
 from elo.cognitive.symbionte_lab import SymbiontLabObservation
 
 
@@ -104,19 +105,26 @@ class SymbiontPatternIntake:
         proposed_skill_id: str,
         existing_owner: str | None,
         components: Iterable[SkillComponent],
+        domain_family: str | None = None,
+        skill_resolver: SpecialistSkillResolver | None = None,
     ) -> SkillCreationAssessment:
         """Reconcile a proposed Skill before intake using the existing Symbiont flow."""
         if not proposed_skill_id.strip():
             raise ValueError("proposed_skill_id is required")
         inventory = tuple(components)
+        resolved_owner = existing_owner
+        if resolved_owner is None and domain_family and skill_resolver is not None:
+            resolution = skill_resolver.resolve(domain_family=domain_family)
+            if resolution.resolved:
+                resolved_owner = resolution.skill_id
         if not inventory:
             return SkillCreationAssessment(
-                proposed_skill_id, existing_owner, (), 0.0, "DEVELOP_FIRST",
+                proposed_skill_id, resolved_owner, (), 0.0, "DEVELOP_FIRST",
                 "required components were not supplied; develop the base before intake"
             )
-        if existing_owner:
+        if resolved_owner:
             return SkillCreationAssessment(
-                proposed_skill_id, existing_owner, inventory, 0.0, "REUSE",
+                proposed_skill_id, resolved_owner, inventory, 0.0, "REUSE",
                 "an existing owner is already identified; do not create a duplicate Skill"
             )
         found = sum(item.status == "FOUND" for item in inventory)
