@@ -60,7 +60,7 @@ class SkillComponent:
     gap: str = ""
 
     def __post_init__(self) -> None:
-        if self.status not in {"FOUND", "PARTIAL", "MISSING"}:
+        if self.status not in {"FOUND", "PARTIAL", "MISSING", "EXISTING_BUT_UNWIRED"}:
             raise ValueError(f"invalid component status: {self.status}")
         if not self.name.strip():
             raise ValueError("component name is required")
@@ -109,6 +109,11 @@ class SymbiontPatternIntake:
             return SkillCreationAssessment(
                 proposed_skill_id, existing_owner, inventory, 1.0, "REUSE",
                 "an existing owner is already identified; do not create a duplicate Skill"
+            )
+        if any(item.status == "EXISTING_BUT_UNWIRED" for item in inventory):
+            return SkillCreationAssessment(
+                proposed_skill_id, None, inventory, 0.5, "INTEGRATE_EXISTING",
+                "an existing capability owner was evidenced but is not wired into the required flow; integrate it before creating a new Skill"
             )
         found = sum(item.status == "FOUND" for item in inventory)
         readiness = round(found / len(inventory), 3)
