@@ -7,7 +7,7 @@ mutation.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 
 from .automation_execution_contract import (
@@ -37,16 +37,16 @@ def authorize_execution(
     if authorization.scope != request.scope:
         raise ValueError("authorization scope does not match request")
     if not authorization.authorized:
-        return ExecutionRequest(
-            **{**request.__dict__, "status": ExecutionStatus.BLOCKED, "authorization_status": "REJECTED"}
+        return replace(
+            request,
+            status=ExecutionStatus.BLOCKED,
+            authorization_status="REJECTED",
         )
-    return ExecutionRequest(
-        **{
-            **request.__dict__,
-            "authorized_by": authorization.authorized_by,
-            "authorization_status": "AUTHORIZED",
-            "status": ExecutionStatus.AUTHORIZED,
-        }
+    return replace(
+        request,
+        authorized_by=authorization.authorized_by,
+        authorization_status="AUTHORIZED",
+        status=ExecutionStatus.AUTHORIZED,
     )
 
 
@@ -56,11 +56,18 @@ def execute_automation(
 ) -> AutomationExecution:
     if request.authorization_status != "AUTHORIZED" or request.status is not ExecutionStatus.AUTHORIZED:
         raise ValueError("automation execution requires explicit authorization")
+
     outcome = executor(request)
+
     if outcome.result.execution_id != request.execution_id:
         raise ValueError("execution result does not match request")
     if outcome.result.automation_id != request.automation_id:
         raise ValueError("execution result does not match automation")
+
+    evidence_ids = tuple(ev.evidence_id for ev in outcome.evidence)
+    if outcome.result.evidence_ids != evidence_ids:
+        raise ValueError("execution result evidence_ids do not match returned evidence")
+
     if outcome.result.status is ExecutionStatus.COMPLETED and not outcome.evidence:
         raise ValueError("completed automation requires returned evidence")
     if any(ev.execution_id != request.execution_id for ev in outcome.evidence):
