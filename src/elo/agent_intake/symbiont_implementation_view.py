@@ -53,6 +53,11 @@ class SymbiontImplementationView:
     runtime_status: str
     view_version: str = "1"
 
+    @property
+    def tree_path(self) -> tuple[str, ...]:
+        parts = tuple(part.strip() for part in self.functional_branch.split("/") if part.strip())
+        return ("ELO", *parts, self.capability)
+
     def as_dict(self) -> dict[str, object]:
         return {
             "implementation_id": self.implementation_id,
@@ -60,6 +65,7 @@ class SymbiontImplementationView:
             "candidate_id": self.candidate_id,
             "owner": self.owner,
             "functional_branch": self.functional_branch,
+            "tree_path": list(self.tree_path),
             "capability": self.capability,
             "specialization": self.specialization,
             "ownership": self.ownership.value,
@@ -215,10 +221,24 @@ def create_loop_views(
     return start, end
 
 
+def render_tree(view: SymbiontImplementationView) -> str:
+    """Render the governance tree and mark the implementation location."""
+    nodes = list(view.tree_path)
+    lines: list[str] = []
+    for index, node in enumerate(nodes):
+        prefix = "├── " if index < len(nodes) - 1 else "└── "
+        lines.append(("    " * index) + prefix + node)
+    lines.append(("    " * len(nodes)) + f"◄ IMPLEMENTAÇÃO {view.implementation_id}")
+    lines.append(("    " * len(nodes)) + f"   NÍVEL/ESTADO: {view.loop_stage}")
+    lines.append(("    " * len(nodes)) + f"   OWNERSHIP: {view.ownership.value}")
+    return "\n".join(lines)
+
+
 __all__ = [
     "ImplementationOwnership",
     "ImplementationViewPhase",
     "SymbiontImplementationView",
     "create_implementation_view",
     "create_loop_views",
+    "render_tree",
 ]
