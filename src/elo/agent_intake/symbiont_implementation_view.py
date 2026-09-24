@@ -159,7 +159,7 @@ def create_loop_views(
     source_ref: str,
     source_commit: str,
     end_stage: str,
-    end_result: str,
+    end_result: str | None,
     specialization: str | None = None,
     ownership: ImplementationOwnership = ImplementationOwnership.UNRESOLVED,
     related_contracts: tuple[str, ...] = (),
