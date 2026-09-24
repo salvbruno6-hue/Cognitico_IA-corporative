@@ -70,7 +70,7 @@ def _views(
     context: ImplementationGovernanceContext,
     *,
     stage: str,
-    result: str,
+    result: str | None,
 ) -> tuple[SymbiontImplementationView, SymbiontImplementationView]:
     return create_loop_views(
         implementation_id=f"symbiont:{candidate.candidate_id}",
@@ -86,7 +86,7 @@ def _views(
         ownership=context.ownership,
         related_contracts=context.related_contracts,
         dependencies=context.dependencies,
-        evidence_refs=(),
+        evidence_refs=tuple(provenance_refs),
         environment=context.environment,
         evolution_gate_status=context.evolution_gate_status,
         governance_status=context.governance_status,
