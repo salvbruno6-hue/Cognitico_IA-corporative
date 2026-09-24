@@ -141,7 +141,7 @@ def advance_to_implementation(
             candidate.candidate_id, ImplementationStage.CANDIDATE,
             "RETEST", False, "implementation-loop entry evidence is incomplete",
         )
-        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result, evidence_refs=provenance_refs)
         return GovernedLoopHandoff(
             candidate.candidate_id, readiness, decision, None, "CANDIDATE",
             start_view, end_view,
@@ -166,6 +166,7 @@ def advance_to_implementation(
 
     _, end_view = _views(
         candidate, context, stage=decision.stage.value, result=decision.result,
+        evidence_refs=provenance_refs,
     )
     return GovernedLoopHandoff(
         candidate.candidate_id, readiness, decision, None, next_state,
@@ -215,7 +216,7 @@ def close_approved_candidate(
 ) -> GovernedLoopHandoff:
     """Close an approved candidate while emitting both governance views."""
     context = governance_context or _unresolved_context()
-    start_view, _ = _views(candidate, context, stage="OBSERVED", result=None)
+    start_view, _ = _views(candidate, context, stage="OBSERVED", result=None, evidence_refs=provenance_refs)
 
     readiness = assess_loop_readiness(
         candidate,
