@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from .implementation_loop import ImplementationStage
+
 
 class ImplementationViewPhase(str, Enum):
     START = "START"
@@ -54,6 +56,15 @@ class SymbiontImplementationView:
     view_version: str = "1"
 
     @property
+    def evolution_level(self) -> int:
+        """Ordinal of the existing implementation stage; not a new scale."""
+        return list(ImplementationStage).index(ImplementationStage(self.loop_stage)) + 1
+
+    @property
+    def evolution_levels_total(self) -> int:
+        return len(ImplementationStage)
+
+    @property
     def tree_path(self) -> tuple[str, ...]:
         parts = tuple(part.strip() for part in self.functional_branch.split("/") if part.strip())
         return ("ELO", *parts, self.capability)
@@ -76,6 +87,8 @@ class SymbiontImplementationView:
             "evidence_refs": list(self.evidence_refs),
             "environment": self.environment,
             "loop_stage": self.loop_stage,
+            "evolution_level": self.evolution_level,
+            "evolution_levels_total": self.evolution_levels_total,
             "loop_result": self.loop_result,
             "canonical_mutation": self.canonical_mutation,
             "evolution_gate_status": self.evolution_gate_status,
@@ -229,7 +242,7 @@ def render_tree(view: SymbiontImplementationView) -> str:
         prefix = "├── " if index < len(nodes) - 1 else "└── "
         lines.append(("    " * index) + prefix + node)
     lines.append(("    " * len(nodes)) + f"◄ IMPLEMENTAÇÃO {view.implementation_id}")
-    lines.append(("    " * len(nodes)) + f"   NÍVEL/ESTADO: {view.loop_stage}")
+    lines.append(("    " * len(nodes)) + f"   NÍVEL: {view.evolution_level}/{view.evolution_levels_total} | ESTADO: {view.loop_stage}")
     lines.append(("    " * len(nodes)) + f"   OWNERSHIP: {view.ownership.value}")
     return "\n".join(lines)
 
