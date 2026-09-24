@@ -98,3 +98,21 @@ def test_approved_candidate_closure_reaches_authorized_without_canonical_mutatio
     assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
     assert result.implementation.result == "IMPLEMENTATION_AUTHORIZED"
     assert not result.implementation.canonical_mutation
+
+def test_approved_candidate_closure_requires_governance_linkage():
+    result = close_approved_candidate(
+        build_candidate("EXT-CHECKPOINT-HERMES"),
+        verified_adaptation(),
+        {"recovery_success": 0.0},
+        {"recovery_success": 1.0},
+        metric_directions={"recovery_success": "maximize"},
+        repeatable=True,
+        provenance_refs=("controlled-eval:checkpoint-loop-harness",),
+        evolution_gate_approved=True,
+        elo_implementation_approved=True,
+    )
+    assert result.next_state == "GOVERNANCE_LINK_REQUIRED"
+    assert result.implementation.result == "RETEST"
+    assert result.start_view.ownership is ImplementationOwnership.UNRESOLVED
+    assert result.end_view.ownership is ImplementationOwnership.UNRESOLVED
+
