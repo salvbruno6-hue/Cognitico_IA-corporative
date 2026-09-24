@@ -115,6 +115,7 @@ def advance_to_implementation(
     Every invocation produces START and END views. Missing attachment context
     is surfaced as GOVERNANCE_LINK_REQUIRED rather than silently inferred.
     """
+    context_supplied = governance_context is not None
     context = governance_context or _unresolved_context()
     start_view, _ = _views(candidate, context, stage="OBSERVED", result=None, evidence_refs=provenance_refs)
 
@@ -125,7 +126,7 @@ def advance_to_implementation(
         provenance_refs=provenance_refs, boundary_integrity=boundary_integrity,
     )
 
-    if context.ownership == ImplementationOwnership.UNRESOLVED:
+    if context_supplied and context.ownership == ImplementationOwnership.UNRESOLVED:
         decision = ImplementationDecision(
             candidate.candidate_id, ImplementationStage.CANDIDATE,
             "RETEST", False, "implementation ownership/branch linkage is unresolved",
