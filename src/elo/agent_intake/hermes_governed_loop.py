@@ -1,8 +1,9 @@
 """Single governed handoff across the existing ELO capability loops.
 
-This module only composes existing gates. It does not create a new approval
-authority, Evolution Gate, promotion engine, or canonical mutation path.
+This module composes existing gates and now exposes mandatory governance
+read views at the start and end of each Symbiont implementation handoff.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,6 +18,29 @@ from .implementation_loop import ImplementationDecision, ImplementationStage, ru
 from .implementation_loop_readiness import LoopReadiness, assess_loop_readiness
 from .hermes_current_extensions import HermesCandidate
 from .symbiont_adaptation import SymbiontAdaptation
+from .symbiont_implementation_view import (
+    ImplementationOwnership,
+    SymbiontImplementationView,
+    create_loop_views,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ImplementationGovernanceContext:
+    """Canonical attachment information supplied by the caller."""
+
+    functional_branch: str
+    capability: str
+    source_ref: str
+    source_commit: str
+    specialization: str | None = None
+    ownership: ImplementationOwnership = ImplementationOwnership.EXTENSION
+    related_contracts: tuple[str, ...] = ()
+    dependencies: tuple[str, ...] = ()
+    environment: str = "CONTROLLED_TEST"
+    evolution_gate_status: str = "NOT_EVALUATED"
+    governance_status: str = "NOT_EVALUATED"
+    runtime_status: str = "NOT_DEPLOYED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,7 +50,48 @@ class GovernedLoopHandoff:
     implementation: ImplementationDecision
     approval_readiness: ApprovalReadiness | None
     next_state: str
+    start_view: SymbiontImplementationView
+    end_view: SymbiontImplementationView
     canonical_mutation: bool = False
+
+
+def _unresolved_context() -> ImplementationGovernanceContext:
+    return ImplementationGovernanceContext(
+        functional_branch="UNRESOLVED",
+        capability="UNRESOLVED",
+        source_ref="UNRESOLVED",
+        source_commit="UNRESOLVED",
+        ownership=ImplementationOwnership.UNRESOLVED,
+    )
+
+
+def _views(
+    candidate: HermesCandidate,
+    context: ImplementationGovernanceContext,
+    *,
+    stage: str,
+    result: str,
+) -> tuple[SymbiontImplementationView, SymbiontImplementationView]:
+    return create_loop_views(
+        implementation_id=f"symbiont:{candidate.candidate_id}",
+        candidate_id=candidate.candidate_id,
+        owner=candidate.owner,
+        functional_branch=context.functional_branch,
+        capability=context.capability,
+        source_ref=context.source_ref,
+        source_commit=context.source_commit,
+        end_stage=stage,
+        end_result=result,
+        specialization=context.specialization,
+        ownership=context.ownership,
+        related_contracts=context.related_contracts,
+        dependencies=context.dependencies,
+        evidence_refs=(),
+        environment=context.environment,
+        evolution_gate_status=context.evolution_gate_status,
+        governance_status=context.governance_status,
+        runtime_status=context.runtime_status,
+    )
 
 
 def advance_to_implementation(
@@ -42,34 +107,45 @@ def advance_to_implementation(
     boundary_integrity: bool = True,
     elo_approved: bool = False,
     evolution_gate_approved: bool = False,
+    governance_context: ImplementationGovernanceContext | None = None,
 ) -> GovernedLoopHandoff:
-    """Compose preflight, measurement, repeatability and ELO-review handoff.
+    """Compose preflight, implementation and governance read views.
 
-    Technical evidence is evaluated by the implementation loop before the
-    downstream Evolution Gate/ELO authorization boundary. Therefore a
-    no-gain candidate remains MEASURED_GAIN/RETEST even when governance
-    approvals are absent. Positive, repeatable gain reaches ELO_REVIEW unless
-    both downstream approvals are explicitly present.
+    Every invocation produces START and END views. Missing attachment context
+    is surfaced as GOVERNANCE_LINK_REQUIRED rather than silently inferred.
     """
+    context = governance_context or _unresolved_context()
+    start_view, _ = _views(candidate, context, stage="OBSERVED", result=None)
+
     readiness = assess_loop_readiness(
         candidate, adaptation, baseline, adapted,
         metric_directions=metric_directions,
         repeatable=repeatable, regressions=regressions,
         provenance_refs=provenance_refs, boundary_integrity=boundary_integrity,
     )
+
+    if context.ownership == ImplementationOwnership.UNRESOLVED:
+        decision = ImplementationDecision(
+            candidate.candidate_id, ImplementationStage.CANDIDATE,
+            "RETEST", False, "implementation ownership/branch linkage is unresolved",
+        )
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
+        return GovernedLoopHandoff(
+            candidate.candidate_id, readiness, decision, None,
+            "GOVERNANCE_LINK_REQUIRED", start_view, end_view,
+        )
+
     if not readiness.ready_for_loop:
         decision = ImplementationDecision(
             candidate.candidate_id, ImplementationStage.CANDIDATE,
             "RETEST", False, "implementation-loop entry evidence is incomplete",
         )
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
         return GovernedLoopHandoff(
             candidate.candidate_id, readiness, decision, None, "CANDIDATE",
+            start_view, end_view,
         )
 
-    # The shared implementation loop owns technical classification. A failed
-    # gain gate returns MEASURED_GAIN/RETEST before governance is considered.
-    # For a positive repeatable gain, final authorization requires both the
-    # Evolution Gate and explicit ELO implementation approval.
     decision = run_implementation_loop(
         candidate,
         adaptation,
@@ -86,8 +162,13 @@ def advance_to_implementation(
         next_state = "ELO_REVIEW"
     else:
         next_state = decision.stage.value
+
+    _, end_view = _views(
+        candidate, context, stage=decision.stage.value, result=decision.result,
+    )
     return GovernedLoopHandoff(
         candidate.candidate_id, readiness, decision, None, next_state,
+        start_view, end_view,
     )
 
 
@@ -129,13 +210,12 @@ def close_approved_candidate(
     boundary_integrity: bool = True,
     evolution_gate_approved: bool = False,
     elo_implementation_approved: bool = False,
+    governance_context: ImplementationGovernanceContext | None = None,
 ) -> GovernedLoopHandoff:
-    """Close an already-approved candidate through the existing implementation loop.
+    """Close an approved candidate while emitting both governance views."""
+    context = governance_context or _unresolved_context()
+    start_view, _ = _views(candidate, context, stage="OBSERVED", result=None)
 
-    This is a handoff, not a new approval authority. Technical evidence is
-    revalidated before explicit ELO implementation authorization is passed
-    to run_implementation_loop. Canonical mutation remains false.
-    """
     readiness = assess_loop_readiness(
         candidate,
         adaptation,
@@ -147,6 +227,21 @@ def close_approved_candidate(
         provenance_refs=provenance_refs,
         boundary_integrity=boundary_integrity,
     )
+
+    if context.ownership == ImplementationOwnership.UNRESOLVED:
+        decision = ImplementationDecision(
+            candidate.candidate_id,
+            ImplementationStage.CANDIDATE,
+            "RETEST",
+            False,
+            "implementation ownership/branch linkage is unresolved",
+        )
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
+        return GovernedLoopHandoff(
+            candidate.candidate_id, readiness, decision, None,
+            "GOVERNANCE_LINK_REQUIRED", start_view, end_view,
+        )
+
     if not readiness.ready_for_loop:
         decision = ImplementationDecision(
             candidate.candidate_id,
@@ -155,8 +250,10 @@ def close_approved_candidate(
             False,
             "approved-candidate closure blocked by incomplete implementation evidence",
         )
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
         return GovernedLoopHandoff(
             candidate.candidate_id, readiness, decision, None, "CANDIDATE",
+            start_view, end_view,
         )
 
     if not evolution_gate_approved or not elo_implementation_approved:
@@ -167,8 +264,10 @@ def close_approved_candidate(
             False,
             "explicit Evolution Gate approval and implementation authorization are both required",
         )
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
         return GovernedLoopHandoff(
             candidate.candidate_id, readiness, decision, None, "ELO_REVIEW",
+            start_view, end_view,
         )
 
     decision = run_implementation_loop(
@@ -186,13 +285,18 @@ def close_approved_candidate(
         if decision.result == "IMPLEMENTATION_AUTHORIZED"
         else decision.stage.value
     )
+    _, end_view = _views(
+        candidate, context, stage=decision.stage.value, result=decision.result,
+    )
     return GovernedLoopHandoff(
         candidate.candidate_id, readiness, decision, None, next_state,
+        start_view, end_view,
     )
 
 
 __all__ = [
     "GovernedLoopHandoff",
+    "ImplementationGovernanceContext",
     "advance_to_implementation",
     "approval_to_implementation",
     "close_approved_candidate",
