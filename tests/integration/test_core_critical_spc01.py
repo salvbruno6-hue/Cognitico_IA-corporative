@@ -114,8 +114,13 @@ def test_spc01_specialist_skill_feedback_learning_governed_chain():
     assert decision.classification is EvolutionClassification.COMPATIBLE
     assert decision.canonical_mutation_allowed is False
 
+    approved_candidate = learning.approve_for_promotion(
+        candidate, evaluation, human_approved=True
+    )
+    assert approved_candidate.state == "APPROVED"
+
     package = learning.prepare_knowledge_promotion(
-        learning_id=candidate.candidate_id,
+        learning_id=approved_candidate.candidate_id,
         knowledge_key="operations.bounded-specialist-procedure",
         title="Bounded specialist procedure",
         concept="evidence-first specialist feedback",
@@ -125,6 +130,7 @@ def test_spc01_specialist_skill_feedback_learning_governed_chain():
         confidence=evaluation.score,
         evolution_decision=decision,
         faculty_relevant=False,
+        learning_candidate=approved_candidate,
     )
     assert package.status == "PROMOTABLE_KNOWLEDGE"
     assert package.payload["source_learning_id"] == candidate.candidate_id
