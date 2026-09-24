@@ -92,7 +92,7 @@ def test_promotion_package_requires_gate_decision_and_never_grants_mutation_auth
     )
 
     package = learning.prepare_knowledge_promotion(
-        learning_id="learning-1",
+        learning_id=approved_candidate.candidate_id,
         knowledge_key="ELO.LAB.AJUSTE.001",
         title="Ajuste laboratorial validado",
         concept="Ajuste controlado com evidência",
