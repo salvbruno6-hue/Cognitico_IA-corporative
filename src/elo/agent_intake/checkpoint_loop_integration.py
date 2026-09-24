@@ -9,8 +9,13 @@ from __future__ import annotations
 from .checkpoint_loop_harness import evaluate_checkpoint_loop_harness
 from .hermes_current_extensions import build_candidate
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
-from .hermes_governed_loop import close_approved_candidate, advance_to_implementation
+from .hermes_governed_loop import (
+    ImplementationGovernanceContext,
+    close_approved_candidate,
+    advance_to_implementation,
+)
 from .symbiont_adaptation import refine_capability
+from .symbiont_implementation_view import ImplementationOwnership
 
 
 def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int = 5):
@@ -95,6 +100,16 @@ def close_checkpoint_approved_candidate(
         boundary_integrity=evidence.boundary_integrity,
         evolution_gate_approved=evolution_gate_approved,
         elo_implementation_approved=elo_implementation_approved,
+        governance_context=ImplementationGovernanceContext(
+            functional_branch="Cognitive/Symbiont/Implementation",
+            capability="ELO State Recovery",
+            source_ref="hermes:checkpoint",
+            source_commit="controlled-eval:checkpoint-loop-harness",
+            specialization="pre-mutation checkpoint contract",
+            ownership=ImplementationOwnership.EXTENSION,
+            related_contracts=("Evolution Gate", "Implementation Loop"),
+            dependencies=("ELO State Recovery",),
+        ),
     )
     return evidence, handoff
 
