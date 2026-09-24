@@ -6,7 +6,7 @@ from elo.agent_intake.hermes_governed_loop import (
     advance_to_implementation,
 )
 from elo.agent_intake.symbiont_adaptation import SymbiontAdaptation
-from elo.agent_intake.symbiont_implementation_view import ImplementationOwnership, ImplementationViewPhase
+from elo.agent_intake.symbiont_implementation_view import ImplementationOwnership, ImplementationViewPhase, render_tree
 
 
 def _adaptation() -> SymbiontAdaptation:
@@ -91,3 +91,16 @@ def test_view_cannot_claim_canonical_mutation():
         pass
     else:
         raise AssertionError("governance view must never authorize mutation")
+
+
+def test_view_exposes_tree_path_and_rendered_location():
+    handoff = advance_to_implementation(
+        build_candidate("EXT-HOOK-HERMES"), _adaptation(),
+        {"latency": 10.0}, {"latency": 8.0},
+        metric_directions={"latency": "minimize"}, repeatable=True,
+        provenance_refs=("evidence:test",), governance_context=_context(),
+    )
+    assert handoff.start_view.tree_path == ("ELO", "Cognitive", "Symbiont", "Implementation", "ELO Workflow/Automation")
+    tree = render_tree(handoff.end_view)
+    assert "◄ IMPLEMENTAÇÃO symbiont:EXT-HOOK-HERMES" in tree
+    assert "NÍVEL/ESTADO:" in tree
