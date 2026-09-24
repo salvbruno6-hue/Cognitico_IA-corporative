@@ -300,3 +300,30 @@ def test_relocation_with_residual_legacy_reference_waits_for_evidence(tmp_path: 
     assert evidence.transformation == "RELOCATE"
     assert evidence.references_reconciled is False
     assert evidence.waiting_for_evidence
+
+
+def test_relocation_with_identity_change_is_not_classified(tmp_path: Path):
+    old = tmp_path / "old" / "artifact.md"
+    new = tmp_path / "new" / "artifact.md"
+    old.parent.mkdir(parents=True)
+    new.parent.mkdir(parents=True)
+
+    old.write_text(
+        "id: ARTIFACT-001\n"
+        "responsibility: canonical artifact\n",
+        encoding="utf-8",
+    )
+    new.write_text(
+        "id: ARTIFACT-002\n"
+        "responsibility: canonical artifact\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["old/artifact.md", "new/artifact.md"],
+    )
+
+    assert evidence.transformation is None
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
