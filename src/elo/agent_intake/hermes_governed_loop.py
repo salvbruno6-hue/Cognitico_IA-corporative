@@ -71,6 +71,7 @@ def _views(
     *,
     stage: str,
     result: str | None,
+    evidence_refs: tuple[str, ...] = (),
 ) -> tuple[SymbiontImplementationView, SymbiontImplementationView]:
     return create_loop_views(
         implementation_id=f"symbiont:{candidate.candidate_id}",
@@ -86,7 +87,7 @@ def _views(
         ownership=context.ownership,
         related_contracts=context.related_contracts,
         dependencies=context.dependencies,
-        evidence_refs=tuple(provenance_refs),
+        evidence_refs=tuple(evidence_refs),
         environment=context.environment,
         evolution_gate_status=context.evolution_gate_status,
         governance_status=context.governance_status,
@@ -115,7 +116,7 @@ def advance_to_implementation(
     is surfaced as GOVERNANCE_LINK_REQUIRED rather than silently inferred.
     """
     context = governance_context or _unresolved_context()
-    start_view, _ = _views(candidate, context, stage="OBSERVED", result=None)
+    start_view, _ = _views(candidate, context, stage="OBSERVED", result=None, evidence_refs=provenance_refs)
 
     readiness = assess_loop_readiness(
         candidate, adaptation, baseline, adapted,
@@ -129,7 +130,7 @@ def advance_to_implementation(
             candidate.candidate_id, ImplementationStage.CANDIDATE,
             "RETEST", False, "implementation ownership/branch linkage is unresolved",
         )
-        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result, evidence_refs=provenance_refs)
         return GovernedLoopHandoff(
             candidate.candidate_id, readiness, decision, None,
             "GOVERNANCE_LINK_REQUIRED", start_view, end_view,
