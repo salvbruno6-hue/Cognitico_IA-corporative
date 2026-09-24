@@ -213,3 +213,90 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+def test_relocation_preserves_identity_and_semantics(tmp_path: Path):
+    old = tmp_path / "old" / "artifact.md"
+    new = tmp_path / "new" / "artifact.md"
+    old.parent.mkdir(parents=True)
+    new.parent.mkdir(parents=True)
+
+    artifact = (
+        "id: ARTIFACT-001\n"
+        "owner: domain\n"
+        "responsibility: canonical artifact\n"
+        "purpose: preserve governed knowledge\n"
+    )
+    old.write_text(artifact, encoding="utf-8")
+    new.write_text(artifact, encoding="utf-8")
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["old/artifact.md", "new/artifact.md"],
+    )
+
+    assert evidence.transformation == "RELOCATE"
+    assert evidence.identity_continuity is True
+    assert evidence.responsibility_continuity is True
+    assert evidence.semantic_continuity is True
+
+
+def test_relocation_does_not_trust_changed_file_as_canonical_authority(tmp_path: Path):
+    old = tmp_path / "old" / "artifact.md"
+    new = tmp_path / "new" / "artifact.md"
+    old.parent.mkdir(parents=True)
+    new.parent.mkdir(parents=True)
+
+    old.write_text(
+        "id: ARTIFACT-001\n"
+        "owner: domain\n"
+        "responsibility: canonical artifact\n",
+        encoding="utf-8",
+    )
+    new.write_text(
+        "id: ARTIFACT-001\n"
+        "owner: domain\n"
+        "responsibility: canonical artifact\n"
+        "canonical owner: new/artifact.md\n"
+        "source of truth: new/artifact.md\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["old/artifact.md", "new/artifact.md"],
+    )
+
+    assert evidence.transformation == "RELOCATE"
+    assert evidence.identity_continuity is True
+    assert evidence.source_of_truth != "new/artifact.md"
+    assert evidence.waiting_for_evidence
+
+
+def test_relocation_with_residual_legacy_reference_waits_for_evidence(tmp_path: Path):
+    old = tmp_path / "old" / "artifact.md"
+    new = tmp_path / "new" / "artifact.md"
+    refs = tmp_path / "references.md"
+    old.parent.mkdir(parents=True)
+    new.parent.mkdir(parents=True)
+
+    artifact = (
+        "id: ARTIFACT-001\n"
+        "owner: domain\n"
+        "responsibility: canonical artifact\n"
+    )
+    old.write_text(artifact, encoding="utf-8")
+    new.write_text(artifact, encoding="utf-8")
+    refs.write_text(
+        "legacy reference: old/artifact.md\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        ["old/artifact.md", "new/artifact.md"],
+    )
+
+    assert evidence.transformation == "RELOCATE"
+    assert evidence.references_reconciled is False
+    assert evidence.waiting_for_evidence
