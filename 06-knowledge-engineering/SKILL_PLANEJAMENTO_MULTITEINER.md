@@ -14,6 +14,12 @@ Desenvolver no ELO a habilidade de **entender planejamento como um sistema integ
 
 A skill deve interpretar a relação entre:
 
+`DEMANDA → FLUXO → ETAPAS → DEPENDÊNCIAS`
+
+A cadeia resumida acima é a âncora mínima para identificar o caminho de planejamento antes de aprofundar capacidade, materiais, estoque, programação, execução, qualidade, exceções, recuperação, expedição e aprendizado.
+
+A cadeia completa é:
+
 `demanda → modelo → fluxo → etapas → dependências → capacidade → materiais → estoque → programação → execução → qualidade → exceções → recuperação → expedição → aprendizado`
 
 O objetivo é permitir que o ELO reconstrua a lógica de planejamento apresentada nos fluxogramas e a confronte com os dados estruturados do Supabase.
