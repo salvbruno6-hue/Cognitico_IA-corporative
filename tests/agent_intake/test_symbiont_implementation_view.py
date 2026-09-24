@@ -106,4 +106,4 @@ def test_view_exposes_tree_path_and_rendered_location():
     assert handoff.start_view.tree_path == ("ELO", "Cognitive", "Symbiont", "Implementation", "ELO Workflow/Automation")
     tree = render_tree(handoff.end_view)
     assert "◄ IMPLEMENTAÇÃO symbiont:EXT-HOOK-HERMES" in tree
-    assert "NÍVEL/ESTADO:" in tree
+    assert "NÍVEL:" in tree
