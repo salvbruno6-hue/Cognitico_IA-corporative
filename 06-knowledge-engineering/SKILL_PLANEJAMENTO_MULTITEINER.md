@@ -14,6 +14,9 @@ Desenvolver no ELO a habilidade de **entender planejamento como um sistema integ
 
 A skill deve interpretar a relação entre:
 
+`DEMANDA → FLUXO → ETAPAS → DEPENDÊNCIAS`
+
+`demanda → modelo → fluxo → etapas → dependências → capacidade → materiais → estoque → programação → execução → qualidade → exceções → recuperação → expedição → aprendizado`
 `demanda → modelo → fluxo → etapas → dependências → capacidade → materiais → estoque → programação → execução → qualidade → exceções → recuperação → expedição → aprendizado`
 
 O objetivo é permitir que o ELO reconstrua a lógica de planejamento apresentada nos fluxogramas e a confronte com os dados estruturados do Supabase.

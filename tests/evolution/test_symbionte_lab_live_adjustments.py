@@ -71,9 +71,28 @@ def test_lab_evaluation_keeps_learning_candidate_non_canonical():
 
 def test_promotion_package_requires_gate_decision_and_never_grants_mutation_authority():
     decision = make_compatible_decision()
+    learning = GovernedLearningService(MemoryStub())
+    experience = learning.capture_outcome(
+        tenant_id="tenant-a",
+        domain="ORCAMENTO",
+        principal_id="principal-1",
+        decision_id="decision-1",
+        expected_outcome="resultado reproduzivel",
+        observed_outcome="resultado reproduzivel",
+        evidence_ids=("e-1", "e-2"),
+    )
+    candidate = learning.propose_candidate(
+        experience, dataset_version="ds-1", hypothesis="ajuste governado melhora resultado"
+    )
+    evaluation = learning.evaluate(
+        candidate, metric="lab_validation", score=0.9, threshold=0.8, evaluator="lab"
+    )
+    approved_candidate = learning.approve_for_promotion(
+        candidate, evaluation, human_approved=True
+    )
 
-    package = GovernedLearningService.prepare_knowledge_promotion(
-        learning_id="learning-1",
+    package = learning.prepare_knowledge_promotion(
+        learning_id=approved_candidate.candidate_id,
         knowledge_key="ELO.LAB.AJUSTE.001",
         title="Ajuste laboratorial validado",
         concept="Ajuste controlado com evidência",
@@ -82,6 +101,7 @@ def test_promotion_package_requires_gate_decision_and_never_grants_mutation_auth
         evidence_refs=("e-1", "e-2"),
         confidence=0.9,
         evolution_decision=decision,
+        learning_candidate=approved_candidate,
     )
 
     assert isinstance(package, PromotionPackage)

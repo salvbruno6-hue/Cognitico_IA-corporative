@@ -126,7 +126,7 @@ class GovernedLearningService:
         provenance: Mapping[str, Any], scope: str, evidence_refs: tuple[str, ...] | list[str],
         confidence: float, evolution_decision: EvolutionDecision | None = None,
         duplicate_found: bool = False, conflict_open: bool = False,
-        faculty_relevant: bool = False,
+        faculty_relevant: bool = False, learning_candidate: LearningCandidate | None = None,
     ) -> PromotionPackage:
         """Prepare a promotion package after the real Evolution Gate decision.
 
@@ -154,6 +154,12 @@ class GovernedLearningService:
             return PromotionPackage("PROMOTION_BLOCKED", f"evolution_gate_not_compatible:{evolution_decision.classification.value}", learning_id, knowledge_key, {})
         if evolution_decision.canonical_mutation_allowed:
             return PromotionPackage("PROMOTION_BLOCKED", "unexpected_gate_mutation_authority", learning_id, knowledge_key, {})
+        if learning_candidate is None:
+            return PromotionPackage("PROMOTION_BLOCKED", "promotion_approval_missing", learning_id, knowledge_key, {})
+        if learning_candidate.candidate_id != learning_id:
+            return PromotionPackage("PROMOTION_BLOCKED", "promotion_candidate_mismatch", learning_id, knowledge_key, {})
+        if learning_candidate.state != "APPROVED":
+            return PromotionPackage("PROMOTION_BLOCKED", "promotion_candidate_not_approved", learning_id, knowledge_key, {})
         status = "FACULTY_CANDIDATE" if faculty_relevant else "PROMOTABLE_KNOWLEDGE"
         payload = {
             "knowledge_key": knowledge_key.strip(), "title": title.strip(), "concept": concept.strip(),
