@@ -11,12 +11,14 @@ from elo.agent_intake.symbiont_implementation_view import ImplementationOwnershi
 
 def _adaptation() -> SymbiontAdaptation:
     return SymbiontAdaptation(
-        candidate_id="EXT-HOOK-HERMES",
-        target="ELO Workflow/Automation",
+        capability_id="HERMES-AUTOMATION",
+        existing_capacity="ELO Workflow/Automation",
         mechanism="event hooks",
-        adaptation="bounded lifecycle evidence",
-        risks=(),
-        evidence_refs=("evidence:test",),
+        adjustment="bounded lifecycle evidence",
+        rationale=("test",),
+        expected_gain=("improve lifecycle evidence",),
+        source_experience=("hermes:event-hooks",),
+        evidence_quality="controlled_verified",
     )
 
 
@@ -65,6 +67,13 @@ def test_missing_linkage_is_visible_and_blocks_progression():
         metric_directions={"latency": "minimize"},
         repeatable=True,
         provenance_refs=("evidence:test",),
+        governance_context=ImplementationGovernanceContext(
+            functional_branch="UNRESOLVED",
+            capability="UNRESOLVED",
+            source_ref="UNRESOLVED",
+            source_commit="UNRESOLVED",
+            ownership=ImplementationOwnership.UNRESOLVED,
+        ),
     )
 
     assert handoff.next_state == "GOVERNANCE_LINK_REQUIRED"
