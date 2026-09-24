@@ -216,7 +216,10 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         if not references_reconciled:
             reasons.append("Legacy reference remains after relocation")
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    if transformation == "RELOCATE":
+        decision = "RELOCATE"
+    else:
+        decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
@@ -249,4 +252,9 @@ def event_facts(evidence: ReconciliationEvidence) -> dict[str, object]:
         "reuse_analysis_complete": evidence.reuse_analysis_complete,
         "duplicate_or_parallel_found": evidence.duplicate_or_parallel,
         "contract_conflict": False if evidence.reuse_analysis_complete else None,
+        "transformation": evidence.transformation,
+        "identity_continuity": evidence.identity_continuity,
+        "responsibility_continuity": evidence.responsibility_continuity,
+        "semantic_continuity": evidence.semantic_continuity,
+        "references_reconciled": evidence.references_reconciled,
     }
