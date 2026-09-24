@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { callELOAuthorization, type ELOAuthorizationResult } from "@/auth/eloAuthorization";
+import { SymbiontImplementationGovernanceView } from "@/components/symbiont-implementation-governance-view";
 
 type Props = { accessToken:string; displayName?:string|null; email?:string|null; onSignOut?:()=>void };
 type Area = { name:string; description:string; code?:string; operations?:string[] };
@@ -15,6 +16,7 @@ const areas:Area[]=[
  {name:"Qualidade",description:"Ocorrências, controles e evidências."},
  {name:"Solicitações",description:"Consultas comerciais e demandas."},
  {name:"Fluxo da empresa",description:"Visão ponta a ponta dos processos Multiteiner."},
+ {name:"Governança · Symbiont",description:"Views START/END dos loops de implantação governada."},
 ];
 
 const listaMaeFields: Array<{name:string; label:string; required:boolean}> = [
@@ -92,6 +94,7 @@ export function EloWebOperationalPortal({accessToken,displayName,email,onSignOut
    <div className="mx-auto max-w-7xl space-y-6 p-5 lg:p-8"><section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:p-8"><div className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-400">Área autorizada</div><h2 className="mt-2 text-3xl font-semibold tracking-tight">{selected.name}</h2><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">{selected.description}</p></section>
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{[["PCP","Lista-Mãe","Concepção e custo unitário dos componentes."],["Almoxarifado","Estoque","Controle físico de materiais e movimentações."],["Produtos","MLT.M01–M27","Consulta técnica dos modelos e módulos."],["Empresa","Fluxo integrado","Processos conectados do pedido ao retorno."]].map(([e,t,d])=><article key={t} className="rounded-2xl border border-slate-200 bg-white p-5"><div className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-400">{e}</div><h3 className="mt-2 font-semibold">{t}</h3><p className="mt-2 text-sm text-slate-500">{d}</p></article>)}</section>
     {selected.code&&<section className="rounded-[2rem] border border-slate-200 bg-white p-6"><div className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-400">Gestão / permissões</div><div className="mt-2 flex flex-wrap items-center gap-3"><span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold">{selected.code}</span>{(selected.operations??[]).map(o=><span key={o} className={`rounded-lg px-3 py-1 text-xs font-semibold ${allowed(selected,o)?"bg-slate-900 text-white":"bg-slate-100 text-slate-400"}`}>{o}{allowed(selected,o)?" · autorizado":" · consulta/sem alteração"}</span>)}</div></section>}
+    {active==="Governança · Symbiont"&&<SymbiontImplementationGovernanceView />}
     {active==="Lista-Mãe · PCP"&&canInsertListaMae&&<section className="rounded-[2rem] border border-slate-200 bg-white p-6">
       <div className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-400">Operação autorizada · Lista-Mãe</div>
       <h3 className="mt-2 text-xl font-semibold">Inserir novo item</h3>
