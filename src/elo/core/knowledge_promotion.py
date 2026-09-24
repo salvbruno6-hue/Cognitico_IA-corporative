@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .evolution_gate import EvolutionDecision
-from .learning_governance import GovernedLearningService, PromotionPackage
+from .learning_governance import GovernedLearningService, LearningCandidate, PromotionPackage
 
 PROMOTABLE_STATUS = "PROMOTABLE_KNOWLEDGE"
 BLOCKED_STATUS = "PROMOTION_BLOCKED"
@@ -32,6 +32,7 @@ def promote_validated_learning(
     duplicate_found: bool = False,
     conflict_open: bool = False,
     faculty_relevant: bool = False,
+    learning_candidate: LearningCandidate | None = None,
 ) -> KnowledgePromotionDecision:
     """Delegate promotion eligibility to the canonical learning service."""
     return GovernedLearningService.prepare_knowledge_promotion(
@@ -47,4 +48,5 @@ def promote_validated_learning(
         duplicate_found=duplicate_found,
         conflict_open=conflict_open,
         faculty_relevant=faculty_relevant,
+        learning_candidate=learning_candidate,
     )
