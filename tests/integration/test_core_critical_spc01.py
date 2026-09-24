@@ -9,6 +9,7 @@ import pytest
 
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
 from elo.core.learning_governance import GovernedLearningService, LearningGovernanceError
+from elo.core.knowledge_materialization import materialize_promotion_package
 from elo.core.specialist_feedback import SpecialistFeedback, SpecialistFeedbackRegistry
 from elo.core.specialist_skill_resolution import SpecialistSkill, SpecialistSkillResolver
 
@@ -134,6 +135,13 @@ def test_spc01_specialist_skill_feedback_learning_governed_chain():
     )
     assert package.status == "PROMOTABLE_KNOWLEDGE"
     assert package.payload["source_learning_id"] == candidate.candidate_id
+    materialized = materialize_promotion_package(package)
+    assert materialized.source_learning_id == approved_candidate.candidate_id
+    assert materialized.path.endswith(
+        "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/operations.bounded-specialist-procedure.json"
+    )
+    assert '"mutation_authority": false' in materialized.content
+    assert '"mode": "CANDIDATE_ARTIFACT_ONLY"' in materialized.content
 
 
 def test_spc01_promotion_requires_human_approval_and_feedback_is_append_only():
