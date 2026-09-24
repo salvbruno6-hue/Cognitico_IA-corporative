@@ -51,6 +51,9 @@ def test_start_and_end_views_are_always_emitted_for_linked_loop():
     assert handoff.end_view.owner == "ELO Workflow/Automation"
     assert handoff.start_view.canonical_mutation is False
     assert handoff.end_view.canonical_mutation is False
+    assert handoff.end_view.evidence_refs == ("evidence:test",)
+    assert handoff.end_view.evolution_level >= 1
+    assert handoff.end_view.evolution_levels_total == 8
 
 
 def test_missing_linkage_is_visible_and_blocks_progression():
