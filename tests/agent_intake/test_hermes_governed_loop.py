@@ -1,12 +1,30 @@
 from elo.agent_intake.hermes_current_extensions import build_candidate
-from elo.agent_intake.hermes_governed_loop import advance_to_implementation, close_approved_candidate
+from elo.agent_intake.hermes_governed_loop import (
+    ImplementationGovernanceContext,
+    advance_to_implementation,
+    close_approved_candidate,
+)
 from elo.agent_intake.symbiont_adaptation import refine_capability
+from elo.agent_intake.symbiont_implementation_view import ImplementationOwnership
 
 
 def verified_adaptation():
     return refine_capability(
         "HERMES-CHECKPOINT",
         {"controlled_test": True, "outcome": {"boundary": True}, "source_reference": "hermes-checkpoint"},
+    )
+
+
+def governance_context(capability: str, source_ref: str, source_commit: str) -> ImplementationGovernanceContext:
+    return ImplementationGovernanceContext(
+        functional_branch="Cognitive/Symbiont/Implementation",
+        capability=capability,
+        source_ref=source_ref,
+        source_commit=source_commit,
+        specialization="controlled implementation evidence",
+        ownership=ImplementationOwnership.EXTENSION,
+        related_contracts=("Evolution Gate", "Implementation Loop"),
+        dependencies=(capability,),
     )
 
 
@@ -54,6 +72,9 @@ def test_approved_candidate_closure_requires_both_governance_and_implementation_
         provenance_refs=("controlled-eval:checkpoint-loop-harness",),
         evolution_gate_approved=True,
         elo_implementation_approved=False,
+        governance_context=governance_context(
+            "ELO State Recovery", "hermes:checkpoint", "controlled-eval:checkpoint-loop-harness"
+        ),
     )
     assert result.next_state == "ELO_REVIEW"
     assert result.implementation.result == "READY_FOR_ELO_REVIEW"
@@ -70,6 +91,9 @@ def test_approved_candidate_closure_reaches_authorized_without_canonical_mutatio
         provenance_refs=("controlled-eval:hook-loop-harness",),
         evolution_gate_approved=True,
         elo_implementation_approved=True,
+        governance_context=governance_context(
+            "ELO Workflow/Automation", "hermes:event-hooks", "controlled-eval:hook-loop-harness"
+        ),
     )
     assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
     assert result.implementation.result == "IMPLEMENTATION_AUTHORIZED"
