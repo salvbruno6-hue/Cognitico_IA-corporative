@@ -75,6 +75,7 @@ class CapabilityMetric:
         cls, *, item: str, baseline: float | None, current: float | None,
         direction: str, evidence_refs: Sequence[str], measurement_period: str,
         observer_capability: str, experience_ref: str,
+        evidence_strength: str = "STANDARD", evolution_impact: str = "UNASSESSED",
     ) -> "CapabilityMetric":
         if not observer_capability.strip():
             raise ValueError("indirect evidence requires observer capability")
