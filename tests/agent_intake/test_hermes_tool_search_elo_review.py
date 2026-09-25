@@ -71,5 +71,5 @@ def test_tool_search_reaches_existing_elo_review_without_new_authority():
     assert handoff.canonical_mutation is False
     assert handoff.loop_readiness.ready_for_loop is True
     assert handoff.start_view.candidate_id == "EXT-TOOL-SEARCH-HERMES"
-    assert handoff.end_view.end_stage == "ELO_REVIEW"
-    assert handoff.end_view.end_result == "READY_FOR_ELO_REVIEW"
+    assert handoff.end_view.loop_stage == "ELO_REVIEW"
+    assert handoff.end_view.loop_result == "READY_FOR_ELO_REVIEW"
