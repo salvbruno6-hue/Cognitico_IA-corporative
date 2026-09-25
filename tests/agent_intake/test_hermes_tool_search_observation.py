@@ -4,10 +4,16 @@ from elo.agent_intake.hermes_tool_search_observation import (
     observe_tool_search,
 )
 from elo.cognitive.routing.execution_routing import ExecutionRouter
+from elo.cognitive.routing.model_selection import ModelSelector
+from elo.cognitive.routing.tool_selection import ToolSelector
+
+
+def router() -> ExecutionRouter:
+    return ExecutionRouter(ModelSelector(), ToolSelector())
 
 
 def test_observation_reuses_execution_router_and_stays_non_executing() -> None:
-    router = ExecutionRouter()
+    router = router()
     observation = observe_tool_search(
         router,
         "calendar",
@@ -31,7 +37,7 @@ def test_observation_reuses_execution_router_and_stays_non_executing() -> None:
 
 def test_observation_preserves_bounded_limit() -> None:
     observation = observe_tool_search(
-        ExecutionRouter(),
+        router(),
         "tool",
         {
             "tool-a": "tool a",
