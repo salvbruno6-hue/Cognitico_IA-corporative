@@ -27,3 +27,32 @@ The signal means the candidate remains in an adjustment cycle until an authorize
 ## Completion
 
 The loop is considered to have reached its production objective only when the candidate has its own governed production observation. Until then, the Symbiont continues identifying the next justified correction and retest.
+
+
+## Validação cruzada por capacidades existentes
+
+A implementação não cria uma nova família de skills para validar a própria Simbionte. O laboratório reutiliza capacidades já existentes:
+
+| Capacidade existente | Função na validação |
+|---|---|
+| Decision Outcome Loop | confirma transição controlada e exige evidência para avaliação |
+| Calibration | confirma que o outcome observado pode ser medido sem reescrever histórico |
+| Evolution Gate | verifica compatibilidade e bloqueia mutação canônica automática |
+| Learning Governance | mantém promoção dependente de aprovação humana |
+| Knowledge Promotion | permanece como fronteira de elegibilidade, não como mutação automática |
+
+O teste de laboratório comprova a cadeia de reuso e também verifica explicitamente que:
+
+- nenhuma capacidade nova é criada para substituir uma existente;
+- uma autoridade existente é reutilizada quando encontrada;
+- `canonical_mutation_allowed=false`;
+- promoção sem aprovação humana permanece bloqueada;
+- o resultado do laboratório não é tratado como evidência de produção.
+
+### Regra de implantação
+
+Toda implantação feita pela Simbionte permanece:
+
+`CANDIDATE → IMPLEMENTED/TESTED → OBSERVING → VALIDATED → aguardando atualização/autorização humana → CANONICAL`
+
+Portanto, o ciclo pode trabalhar autonomamente, mas **não pode tornar qualquer implantação canônica sem a atualização/autorização explícita do usuário**.
