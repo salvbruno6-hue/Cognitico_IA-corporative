@@ -68,7 +68,7 @@ def _row(candidate_id: str, owner: str, metric: str, result: Any) -> dict[str, A
         "evolution": evolution,
         "repeatable": bool(result.repeatable),
         "relationship": "EVOLVE_EXISTING_OWNER",
-        "functional_overlap": "BOUNDED_BY_EXISTING_OWNER",
+        "functional_overlap": "BOUNDARDED_BY_EXISTING_OWNER",
         "governance_classification": gate_classification,
         "governance_rationale": gate_rationale,
         "competition_allowed": False,
@@ -83,30 +83,10 @@ def _row(candidate_id: str, owner: str, metric: str, result: Any) -> dict[str, A
 
 def analyze_waiting_candidates() -> list[dict[str, Any]]:
     return [
-        _row(
-            "EXT-CONTEXT-PLUGIN-HERMES",
-            "ELO Context",
-            "context task success rate",
-            evaluate_context_plugin_candidate(),
-        ),
-        _row(
-            "EXT-WORKTREE-HERMES",
-            "ELO Forge",
-            "valid isolation recognition rate",
-            evaluate_worktree(),
-        ),
-        _row(
-            "EXT-MULTIAGENT-HERMES",
-            "ELO Agent Delegation",
-            "valid delegation recognition rate",
-            evaluate_multiagent(),
-        ),
-        _row(
-            "EXT-CRON-HERMES",
-            "ELO Workflow/Automation",
-            "authorized idempotent schedule recognition rate",
-            evaluate_cron(),
-        ),
+        _row("EXT-CONTEXT-PLUGIN-HERMES", "ELO Context", "context task success rate", evaluate_context_plugin_candidate()),
+        _row("EXT-WORKTREE-HERMES", "ELO Forge", "valid isolation recognition rate", evaluate_worktree()),
+        _row("EXT-MULTIAGENT-HERMES", "ELO Agent Delegation", "valid delegation recognition rate", evaluate_multiagent()),
+        _row("EXT-CRON-HERMES", "ELO Workflow/Automation", "authorized idempotent schedule recognition rate", evaluate_cron()),
     ]
 
 
@@ -135,9 +115,8 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
     for i, row in enumerate(ranked, 1):
         repeatable = "SIM" if row["repeatable"] else "NÃO"
         lines.append(
-            f"| {i} | `{row['candidate']}` | {row['owner']} | "
-            f"{row['gain']:.4f} | {row['evolution']} | {row['risk']} | "
-            f"{repeatable} | `{row['decision']}` |"
+            f"| {i} | `{row['candidate']}` | {row['owner']} | {row['gain']:.4f} | "
+            f"{row['evolution']} | {row['risk']} | {repeatable} | `{row['decision']}` |"
         )
 
     lines += [
@@ -149,10 +128,9 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
     ]
     for row in ranked:
         lines.append(
-            f"| `{row['candidate']}` | {row['relationship']} | "
-            f"{row['functional_overlap']} | `{row['governance_classification']}` | "
-            f"{'NÃO' if not row['competition_allowed'] else 'SIM'} | "
-            f"{row['duplicate_risk']} | "
+            f"| `{row['candidate']}` | {row['relationship']} | {row['functional_overlap']} | "
+            f"`{row['governance_classification']}` | "
+            f"{'NÃO' if not row['competition_allowed'] else 'SIM'} | {row['duplicate_risk']} | "
             f"{'NÃO' if not row['supersession_candidate'] else 'SIM'} |"
         )
 
@@ -173,9 +151,7 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
         else:
             start = "prosseguir para Evolution Gate/ELO Review dentro do owner existente"
             evidence = "ganho + repetibilidade + compatibilidade governada"
-        lines.append(
-            f"| `{row['candidate']}` | {start} | {evidence} |"
-        )
+        lines.append(f"| `{row['candidate']}` | {start} | {evidence} |")
 
     lines += [
         "",
