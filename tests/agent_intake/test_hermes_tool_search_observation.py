@@ -8,12 +8,12 @@ from elo.cognitive.routing.model_selection import ModelSelector
 from elo.cognitive.routing.tool_selection import ToolSelector
 
 
-def router() -> ExecutionRouter:
+def make_router() -> ExecutionRouter:
     return ExecutionRouter(ModelSelector(), ToolSelector())
 
 
 def test_observation_reuses_execution_router_and_stays_non_executing() -> None:
-    router = router()
+    router = make_router()
     observation = observe_tool_search(
         router,
         "calendar",
@@ -37,7 +37,7 @@ def test_observation_reuses_execution_router_and_stays_non_executing() -> None:
 
 def test_observation_preserves_bounded_limit() -> None:
     observation = observe_tool_search(
-        router(),
+        make_router(),
         "tool",
         {
             "tool-a": "tool a",
