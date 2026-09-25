@@ -34,8 +34,8 @@ def _governance_classification(candidate_id: str, owner: str, metric: str) -> tu
     return decision.classification.value, decision.rationale
 
 def _row(candidate_id: str, owner: str, metric: str, result: Any) -> dict[str, Any]:
-    baseline = float(result.baseline_rate)
-    adapted = float(result.adapted_rate)
+    baseline = float(getattr(result, "baseline_rate", result.baseline_success_rate))
+    adapted = float(getattr(result, "adapted_rate", result.adapted_success_rate))
     gain = round(adapted - baseline, 6)
     integrity = float(result.boundary_integrity_rate)
     risk = "LOW" if integrity == 1.0 else "HIGH"
@@ -87,7 +87,7 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
     ]
     for i, row in enumerate(ranked, 1):
         repeatable = "SIM" if row["repeatable"] else "NÃO"
-        lines.append(f"| {i} | \`{row['candidate']}\` | {row['owner']} | {row['gain']:.4f} | {row['evolution']} | {row['risk']} | {repeatable} | \`{row['decision']}\` |")
+        lines.append(f"| {i} | `{row['candidate']}\` | {row['owner']} | {row['gain']:.4f} | {row['evolution']} | {row['risk']} | {repeatable} | \`{row['decision']}\` |")
 
     lines += [
         "",
