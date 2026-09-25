@@ -77,3 +77,42 @@ def test_production_feed_rejects_incomplete_metrics_without_fabricating_values()
         "item": "coverage", "baseline": 0.8, "current": 0.7, "direction": "maximize",
         "evidence_refs": [], "measurement_period": ""}]}}},)
     assert metrics_from_production_runs(runs) == ()
+
+
+def test_validated_downstream_experience_can_corroborate_a_capability():
+    metric = CapabilityMetric.from_indirect_experience(
+        item="Progressive Tool Schema Disclosure",
+        baseline=0.80,
+        current=0.88,
+        direction="maximize",
+        evidence_refs=("performance-evidence:hermes-001",),
+        measurement_period="2026-09",
+        observer_capability="ExecutionRouter",
+        experience_ref="experience:execution-router-001",
+    )
+    review = review_capabilities(metrics=(metric,))
+    assert metric.evidence_mode == "INDIRECT_EXPERIENCE"
+    assert metric.observer_capability == "ExecutionRouter"
+    assert metric.experience_ref == "experience:execution-router-001"
+    assert curvature(metric) is Curvature.POSITIVE
+    assert review.ready_for_analysis is True
+    assert "Validated downstream observer: ExecutionRouter" in review.actions[0].rationale
+    assert review.canonical_mutation is False
+
+
+def test_indirect_experience_requires_explicit_observer_and_experience():
+    try:
+        CapabilityMetric.from_indirect_experience(
+            item="Progressive Tool Schema Disclosure",
+            baseline=0.80,
+            current=0.88,
+            direction="maximize",
+            evidence_refs=("ev-1",),
+            measurement_period="2026-09",
+            observer_capability="",
+            experience_ref="experience:1",
+        )
+    except ValueError as exc:
+        assert "observer capability" in str(exc)
+    else:
+        raise AssertionError("missing observer must be rejected")
