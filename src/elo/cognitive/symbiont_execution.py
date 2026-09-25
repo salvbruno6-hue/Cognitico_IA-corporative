@@ -536,6 +536,20 @@ class SymbiontResumer:
                             human_required=True,
                         )
 
+                    operation = self.store.get_operation(op_key) or operation
+                    if operation.attempt_count >= state.max_attempts:
+                        self.store.mark_failed(op_key)
+                        return self.store.advance(
+                            execution_id,
+                            status=ResumeStatus.BLOCKED.value,
+                            current_stage=state.current_stage,
+                            next_action="BLOCKED",
+                            last_step=state.last_completed_step or "RETRY_BUDGET",
+                            operation_key_value=op_key,
+                            iteration=state.iteration,
+                            boundary="operation retry budget exhausted",
+                            human_required=True,
+                        )
                     operation = self.store.mark_in_progress(op_key)
                     action = self.executor(state, operation)
 
