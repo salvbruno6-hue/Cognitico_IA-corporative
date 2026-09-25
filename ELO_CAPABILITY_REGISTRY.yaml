@@ -376,13 +376,17 @@ capabilities:
     evidence:
       - src/elo/cognitive/routing/tool_search.py
       - src/elo/cognitive/routing/tool_search_outcome.py
+      - src/elo/cognitive/symbiont_capability_evolution.py
       - tests/cognitive/test_execution_routing.py
       - tests/cognitive/test_tool_search_indirect_evidence.py
+      - tests/evolution/test_symbiont_capability_evolution.py
       - docs/evolution/HERMES_TOOL_SEARCH_IMPLEMENTATION_2026_09_25.md
       - docs/evolution/HERMES_TOOL_SEARCH_ELO_REVIEW_2026_09_25.md
       - docs/evolution/HERMES_TOOL_SEARCH_REPEATABILITY_2026_09_25.md
       - docs/evolution/EXT-TOOL-SEARCH-HERMES_INDIRECT_EVIDENCE_START_2026_09_25.md
       - docs/evolution/EXT-TOOL-SEARCH-HERMES_INDIRECT_EVIDENCE_END_2026_09_25.md
+      - docs/evolution/SYMBIONT_INDIRECT_CAPABILITY_EVIDENCE_START_2026_09_25.md
+      - docs/evolution/SYMBIONT_INDIRECT_CAPABILITY_EVIDENCE_END_2026_09_25.md
     gaps:
       - Higher maturity may use direct operational evidence or corroborated evidence from a validated downstream capability.
       - Operational benefit must remain distinguishable from capability validity; production traffic is not required to establish basic capability validity.
