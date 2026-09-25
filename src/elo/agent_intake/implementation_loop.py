@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Mapping
+from typing import Callable, Mapping
 
 from .hermes_current_extensions import HermesCandidate, evaluate_candidate
 from .symbiont_adaptation import SymbiontAdaptation, refinement_is_eligible_for_test
@@ -33,6 +33,116 @@ class ImplementationDecision:
     result: str
     canonical_mutation: bool
     reason: str
+
+
+class SymbiontAutonomyState(str, Enum):
+    """Governed autonomy state for the adjustment portion of the loop."""
+    AUTONOMOUS_UNTIL_BLOCKED = "AUTONOMOUS_UNTIL_BLOCKED"
+    COMPLETED = "COMPLETED"
+    HUMAN_APPROVAL_REQUIRED = "HUMAN_APPROVAL_REQUIRED"
+    BLOCKED = "BLOCKED"
+
+
+@dataclass(frozen=True, slots=True)
+class SymbiontAdjustmentIteration:
+    iteration: int
+    outcome: str
+    changed: bool
+    evidence_ref: str | None = None
+    blocker: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SymbiontAutonomousAdjustmentResult:
+    state: SymbiontAutonomyState
+    iterations: tuple[SymbiontAdjustmentIteration, ...]
+    next_action: str
+    human_required: bool
+    canonical_mutation: bool = False
+
+    @property
+    def completed(self) -> bool:
+        return self.state is SymbiontAutonomyState.COMPLETED
+
+
+Adjustment = Callable[[int], tuple[bool, str | None]]
+Evaluation = Callable[[int], tuple[str, str | None]]
+HumanBoundary = Callable[[int], str | None]
+
+
+def run_symbiont_autonomous_adjustment_loop(
+    *,
+    adjust: Adjustment,
+    evaluate: Evaluation,
+    human_boundary: HumanBoundary | None = None,
+    max_iterations: int = 5,
+) -> SymbiontAutonomousAdjustmentResult:
+    """Run adjustments autonomously until success, a governed boundary, or bound.
+
+    Ordinary iterations do not request confirmation. Human involvement occurs
+    only when the supplied governance boundary explicitly returns a reason.
+    Production authorization, canonical mutation, promotion, authority
+    changes, and unresolved ambiguity belong at that existing boundary.
+    """
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be >= 1")
+
+    history: list[SymbiontAdjustmentIteration] = []
+    boundary = human_boundary or (lambda _iteration: None)
+
+    for iteration in range(1, max_iterations + 1):
+        blocker = boundary(iteration)
+        if blocker:
+            history.append(SymbiontAdjustmentIteration(
+                iteration=iteration,
+                outcome="HUMAN_APPROVAL_REQUIRED",
+                changed=False,
+                blocker=blocker,
+            ))
+            return SymbiontAutonomousAdjustmentResult(
+                state=SymbiontAutonomyState.HUMAN_APPROVAL_REQUIRED,
+                iterations=tuple(history),
+                next_action=blocker,
+                human_required=True,
+            )
+
+        changed, evidence_ref = adjust(iteration)
+        outcome, evaluation_blocker = evaluate(iteration)
+        if evaluation_blocker:
+            history.append(SymbiontAdjustmentIteration(
+                iteration=iteration,
+                outcome="BLOCKED",
+                changed=changed,
+                evidence_ref=evidence_ref,
+                blocker=evaluation_blocker,
+            ))
+            return SymbiontAutonomousAdjustmentResult(
+                state=SymbiontAutonomyState.BLOCKED,
+                iterations=tuple(history),
+                next_action=evaluation_blocker,
+                human_required=True,
+            )
+
+        history.append(SymbiontAdjustmentIteration(
+            iteration=iteration,
+            outcome=outcome,
+            changed=changed,
+            evidence_ref=evidence_ref,
+        ))
+        if outcome == "SUCCESS":
+            return SymbiontAutonomousAdjustmentResult(
+                state=SymbiontAutonomyState.COMPLETED,
+                iterations=tuple(history),
+                next_action="Continue through the existing governed handoff; do not infer production or promotion.",
+                human_required=False,
+            )
+
+    return SymbiontAutonomousAdjustmentResult(
+        state=SymbiontAutonomyState.AUTONOMOUS_UNTIL_BLOCKED,
+        iterations=tuple(history),
+        next_action="Bounded autonomous attempts exhausted; diagnose the unresolved condition and use the existing governance boundary if a human decision is required.",
+        human_required=False,
+    )
 
 
 def _has_positive_gain(
@@ -121,4 +231,12 @@ def run_implementation_loop(
     )
 
 
-__all__ = ["ImplementationDecision", "ImplementationStage", "run_implementation_loop"]
+__all__ = [
+    "ImplementationDecision",
+    "ImplementationStage",
+    "SymbiontAdjustmentIteration",
+    "SymbiontAutonomousAdjustmentResult",
+    "SymbiontAutonomyState",
+    "run_implementation_loop",
+    "run_symbiont_autonomous_adjustment_loop",
+]

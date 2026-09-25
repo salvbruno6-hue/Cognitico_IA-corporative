@@ -36,6 +36,8 @@ class CapabilityMetric:
     evidence_mode: str = "DIRECT"
     observer_capability: str | None = None
     experience_ref: str | None = None
+    evidence_strength: str = "STANDARD"
+    evolution_impact: str = "UNASSESSED"
 
     @classmethod
     def from_evolution_measurement(
@@ -73,6 +75,7 @@ class CapabilityMetric:
         cls, *, item: str, baseline: float | None, current: float | None,
         direction: str, evidence_refs: Sequence[str], measurement_period: str,
         observer_capability: str, experience_ref: str,
+        evidence_strength: str = "STANDARD", evolution_impact: str = "UNASSESSED",
     ) -> "CapabilityMetric":
         if not observer_capability.strip():
             raise ValueError("indirect evidence requires observer capability")
@@ -81,6 +84,10 @@ class CapabilityMetric:
         refs = tuple(ref.strip() for ref in evidence_refs if str(ref).strip())
         if not refs:
             raise ValueError("indirect evidence requires evidence references")
+        if evidence_strength not in {"STANDARD", "STRONG"}:
+            raise ValueError("evidence_strength must be STANDARD or STRONG")
+        if evolution_impact not in {"UNASSESSED", "SUPPORTED", "STRONG"}:
+            raise ValueError("evolution_impact must be UNASSESSED, SUPPORTED or STRONG")
         return cls(
             item=item,
             baseline=baseline,
@@ -91,6 +98,8 @@ class CapabilityMetric:
             evidence_mode="INDIRECT_EXPERIENCE",
             observer_capability=observer_capability.strip(),
             experience_ref=experience_ref.strip(),
+            evidence_strength=evidence_strength,
+            evolution_impact=evolution_impact,
         )
 
     @property
@@ -117,6 +126,37 @@ class CapabilityEvolutionReview:
     actions: tuple[CapabilityAction, ...]
     evidence_refs: tuple[str, ...]
     canonical_mutation: bool = False
+
+    @property
+    def persistent_adjustment_required(self) -> bool:
+        return any(
+            metric.evidence_mode == "INDIRECT_EXPERIENCE"
+            and metric.evidence_strength == "STRONG"
+            and metric.evolution_impact == "STRONG"
+            and _curvature(metric) is Curvature.POSITIVE
+            for metric in self.metrics
+        )
+
+    @property
+    def production_pending(self) -> bool:
+        return self.persistent_adjustment_required and not any(
+            metric.evidence_mode == "DIRECT"
+            and metric.measurement_period.upper().startswith("PRODUCTION:")
+            for metric in self.metrics
+        )
+
+    @property
+    def next_intervention(self) -> str:
+        if self.production_pending:
+            return (
+                "Continue the governed adjustment loop: inspect the last result, "
+                "apply the smallest justified correction, retest, and seek the "
+                "authorized production execution. Do not convert lab/indirect "
+                "evidence into production evidence."
+            )
+        if self.persistent_adjustment_required:
+            return "Prepare the candidate for the existing Evolution Gate and the separate production-observation boundary."
+        return "Follow the existing capability-evolution action for the current evidence state."
 
     @property
     def ready_for_analysis(self) -> bool:
@@ -162,7 +202,15 @@ def review_capabilities(
             if metric.evidence_mode == "INDIRECT_EXPERIENCE"
             else "Direct governed measurement."
         )
-        if state is Curvature.POSITIVE:
+        if state is Curvature.POSITIVE and metric.evidence_mode == "INDIRECT_EXPERIENCE" and metric.evidence_strength == "STRONG" and metric.evolution_impact == "STRONG":
+            actions.append(CapabilityAction(
+                item=metric.item,
+                exact_action="Keep the Symbiont adjustment loop active until the candidate reaches an authorized production observation.",
+                priority="P1",
+                start_here="Apply the smallest justified correction from the latest validated experience, retest in the Lab, then seek the separate production boundary when authorized.",
+                rationale="Strong gain and evolutionary-impact evidence support continued adjustment, but indirect/Lab evidence cannot be relabeled as production evidence.",
+            ))
+        elif state is Curvature.POSITIVE:
             actions.append(CapabilityAction(
                 item=metric.item,
                 exact_action="Preserve the verified gain and repeat the same measurement to confirm durability.",
