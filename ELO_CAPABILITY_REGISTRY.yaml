@@ -365,3 +365,20 @@ capabilities:
     gaps:
       - Forge → Core promotion evidence
       - Evolution Gate integration test
+
+  - id: ELO-CAP-COG-018
+    name: Progressive Tool Schema Disclosure
+    layer: cognitive
+    owner: ELO Model/Tool Routing
+    status: active
+    maturity_level: 5
+    canonical_artifact: src/elo/cognitive/routing/tool_search.py
+    evidence:
+      - src/elo/cognitive/routing/tool_search.py
+      - tests/cognitive/test_execution_routing.py
+      - docs/evolution/HERMES_TOOL_SEARCH_IMPLEMENTATION_2026_09_25.md
+      - docs/evolution/HERMES_TOOL_SEARCH_ELO_REVIEW_2026_09_25.md
+      - docs/evolution/HERMES_TOOL_SEARCH_REPEATABILITY_2026_09_25.md
+    gaps:
+      - Operational execution evidence is still required for maturity level 7.
+      - Production outcome evidence must be collected before any future canonical promotion decision.
