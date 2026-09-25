@@ -9,6 +9,7 @@ from typing import Any
 
 from .model_selection import ModelCandidate, ModelSelector
 from .tool_selection import ToolCandidate, ToolSelector
+from .tool_search import ToolSchemaSelection, progressive_tool_schema_disclosure
 
 
 @dataclass(frozen=True)
@@ -57,3 +58,6 @@ class ExecutionRouter:
             tool_id=tool.tool_id if tool else None,
             rationale=f"selected by capability evidence: {ids}",
         )
+
+    def search_tool_schemas(self, query: str, tool_schemas: dict[str, str], *, limit: int = 5) -> ToolSchemaSelection:
+        return progressive_tool_schema_disclosure(query, tool_schemas, limit=limit)
