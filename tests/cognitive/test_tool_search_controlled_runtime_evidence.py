@@ -5,7 +5,7 @@ any selected tool or mutating canonical state. It is evidence for the
 post-merge observation stage, not production deployment evidence.
 """
 
-from elo.cognitive.routing.execution_router import ExecutionRouter
+from elo.cognitive.routing.execution_routing import ExecutionRouter
 from elo.cognitive.routing.model_selection import ModelSelector
 from elo.cognitive.routing.tool_selection import ToolSelector
 
