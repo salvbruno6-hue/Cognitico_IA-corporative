@@ -1,44 +1,41 @@
 # Hermes Tool Search → ELO refinement candidate
 
-## Source evidence
+## Controlled deployment-loop measurement
 
-Hermes currently exposes an opt-in progressive-disclosure layer for MCP/plugin tools and selected deferred built-ins. Instead of placing every deferred tool schema in the model-visible tool array, Hermes can expose a bounded catalog/bridge and load an individual schema on demand. Current documentation exposes controls for enablement, listing budget, default/max search limits, catalog listing, and a curated defer list.
+PR #726 established the ELO-side candidate boundary and passed repository
+validation. The next loop stage is measurement, not canonical promotion.
 
-## Candidate
+The controlled probe measures **schema representation footprint** only. It
+does not invoke Hermes or execute a tool. It compares an eager representation
+with a progressive representation and records whether the selected schema
+remains reachable.
 
-`EXT-TOOL-SEARCH-HERMES`
+This is intentionally a laboratory metric, not a production-token benchmark.
 
-**Existing ELO owner:** `ELO Model/Tool Routing`.
+### Acceptance boundary
 
-**Proposed introduction:** represent progressive tool-schema disclosure as candidate evidence for reducing context/schema overhead while preserving explicit tool discovery boundaries.
+A successful probe can establish only:
 
-## Why this is not a new authority
+- the measurement apparatus is deterministic;
+- the representation can show a footprint reduction;
+- selected-tool reachability can be checked.
 
-- no Hermes tool is invoked by the adapter;
-- no tool is enabled or disabled by the adapter;
-- no MCP/plugin registry is copied into ELO;
-- no second router or policy engine is created;
-- no memory or Core mutation occurs;
-- `candidate_only=true` and `canonical_mutation=false` remain mandatory.
+It cannot establish:
 
-## Controlled acceptance criteria
+- model task-quality equivalence;
+- production latency;
+- real token savings;
+- repeatability across production workloads;
+- Evolution Gate approval.
 
-1. metadata normalization is deterministic;
-2. duplicate deferred tools are rejected;
-3. invalid search limits are rejected;
-4. provenance/source revision is preserved;
-5. the candidate reuses the existing routing owner;
-6. controlled measurement demonstrates a repeatable reduction in schema/context overhead without task-quality regression;
-7. Evolution Gate approval is obtained before any production introduction.
+Those remain required before `EXT-TOOL-SEARCH-HERMES` can leave
+`candidate_only`.
 
-The implementation establishes the candidate boundary and deterministic tests only. It does not claim measured gain or production validity.
+### Loop state
 
-## Deliberately not introduced
+`MERGED → MEASUREMENT → TASK-QUALITY VALIDATION → REPEATABILITY → EVOLUTION GATE → ELO REVIEW`
 
-Hermes Codex App-Server Runtime remains outside this candidate because ELO already has governed runtime/MCP boundaries. It should only be introduced if a distinct measurable ELO gain is demonstrated that cannot be expressed as a refinement of the existing runtime boundary.
+## Existing governance
 
-## Governance state
-
-`CANDIDATE → CONTROLLED TEST → MEASURED GAIN → REPEATABLE → EVOLUTION GATE → ELO REVIEW → IMPLEMENTATION`
-
-GitHub remains the operational authority. Cognitive promotion remains separate from code merge.
+The existing owner remains `ELO Model/Tool Routing`. No new router,
+registry, memory authority, or promotion authority is introduced.
