@@ -164,3 +164,48 @@ def test_promotion_boundary_never_continues_automatically() -> None:
     assert calls == 0
     assert result.human_required is True
     store.close()
+
+
+def test_retry_budget_exhaustion_blocks_without_silent_increase() -> None:
+    store = SymbiontExecutionStore()
+    store.create_execution(
+        execution_id="exec-budget",
+        candidate_id="candidate-1",
+        capability_id="cap-1",
+        owner="owner-1",
+        current_stage="TESTING",
+        next_action="RUN_TEST",
+        max_attempts=1,
+    )
+
+    calls = 0
+
+    def execute(*_):
+        nonlocal calls
+        calls += 1
+        return ActionResult(
+            status="COMPLETED",
+            next_action="DONE",
+            result={"test": "pass"},
+        )
+
+    resumer = SymbiontResumer(
+        store,
+        executor=execute,
+        reconciler=lambda _: Reconciliation(found_effect=False),
+    )
+    op = operation_key("exec-budget", 1, "TESTING", "RUN_TEST")
+    store.create_operation(
+        op_key=op,
+        execution_id="exec-budget",
+        iteration=1,
+        stage="TESTING",
+        operation_type="RUN_TEST",
+    )
+    store.mark_in_progress(op)
+    store.mark_retryable(op)
+
+    state = resumer.resume("exec-budget", worker_id="worker-1")
+    assert state.status == ResumeStatus.BLOCKED.value
+    assert calls == 0
+    store.close()
