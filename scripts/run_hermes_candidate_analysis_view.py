@@ -16,31 +16,48 @@ from elo.core.evolution_gate import EvolutionGate, EvolutionProposal
 
 _GATE = EvolutionGate()
 
+
 def _governance_classification(candidate_id: str, owner: str, metric: str) -> tuple[str, str]:
-    decision = _GATE.evaluate(EvolutionProposal(
-        proposal_id=candidate_id,
-        tenant_id="ELO",
-        source_id=f"HERMES:{candidate_id}",
-        summary=f"Evaluate {metric} against existing owner {owner}",
-        purpose_alignment=True,
-        identity_compatible=True,
-        architecture_compatible=True,
-        governance_compatible=True,
-        evidence_ids=(f"candidate:{candidate_id}",),
-        maturity_score=0.0,
-        existing_owner=owner,
-        provenance={"source": "hermes-candidate-analysis", "owner": owner, "authority": "existing-evolution-gate"},
-    ))
+    decision = _GATE.evaluate(
+        EvolutionProposal(
+            proposal_id=candidate_id,
+            tenant_id="ELO",
+            source_id=f"HERMES:{candidate_id}",
+            summary=f"Evaluate {metric} against existing owner {owner}",
+            purpose_alignment=True,
+            identity_compatible=True,
+            architecture_compatible=True,
+            governance_compatible=True,
+            evidence_ids=(f"candidate:{candidate_id}",),
+            maturity_score=0.0,
+            existing_owner=owner,
+            provenance={
+                "source": "hermes-candidate-analysis",
+                "owner": owner,
+                "authority": "existing-evolution-gate",
+            },
+        )
+    )
     return decision.classification.value, decision.rationale
 
+
 def _row(candidate_id: str, owner: str, metric: str, result: Any) -> dict[str, Any]:
-    baseline_value = getattr(result, "baseline_rate", None)\n    if baseline_value is None:\n        baseline_value = getattr(result, "baseline_success_rate")\n    baseline = float(baseline_value)
-    adapted_value = getattr(result, "adapted_rate", None)\n    if adapted_value is None:\n        adapted_value = getattr(result, "adapted_success_rate")\n    adapted = float(adapted_value)
+    baseline_value = getattr(result, "baseline_rate", None)
+    if baseline_value is None:
+        baseline_value = getattr(result, "baseline_success_rate")
+    baseline = float(baseline_value)
+
+    adapted_value = getattr(result, "adapted_rate", None)
+    if adapted_value is None:
+        adapted_value = getattr(result, "adapted_success_rate")
+    adapted = float(adapted_value)
+
     gain = round(adapted - baseline, 6)
     integrity = float(result.boundary_integrity_rate)
     risk = "LOW" if integrity == 1.0 else "HIGH"
     evolution = "POSITIVE" if gain > 0 else "REGRESSION" if gain < 0 else "STABLE/NO_GAIN"
     gate_classification, gate_rationale = _governance_classification(candidate_id, owner, metric)
+
     return {
         "candidate": candidate_id,
         "owner": owner,
@@ -51,7 +68,7 @@ def _row(candidate_id: str, owner: str, metric: str, result: Any) -> dict[str, A
         "evolution": evolution,
         "repeatable": bool(result.repeatable),
         "relationship": "EVOLVE_EXISTING_OWNER",
-        "functional_overlap": "BOUNDARDED_BY_EXISTING_OWNER",
+        "functional_overlap": "BOUNDED_BY_EXISTING_OWNER",
         "governance_classification": gate_classification,
         "governance_rationale": gate_rationale,
         "competition_allowed": False,
@@ -63,16 +80,46 @@ def _row(candidate_id: str, owner: str, metric: str, result: Any) -> dict[str, A
         "promotion_authorized": False,
     }
 
+
 def analyze_waiting_candidates() -> list[dict[str, Any]]:
     return [
-        _row("EXT-CONTEXT-PLUGIN-HERMES", "ELO Context", "context task success rate", evaluate_context_plugin_candidate()),
-        _row("EXT-WORKTREE-HERMES", "ELO Forge", "valid isolation recognition rate", evaluate_worktree()),
-        _row("EXT-MULTIAGENT-HERMES", "ELO Agent Delegation", "valid delegation recognition rate", evaluate_multiagent()),
-        _row("EXT-CRON-HERMES", "ELO Workflow/Automation", "authorized idempotent schedule recognition rate", evaluate_cron()),
+        _row(
+            "EXT-CONTEXT-PLUGIN-HERMES",
+            "ELO Context",
+            "context task success rate",
+            evaluate_context_plugin_candidate(),
+        ),
+        _row(
+            "EXT-WORKTREE-HERMES",
+            "ELO Forge",
+            "valid isolation recognition rate",
+            evaluate_worktree(),
+        ),
+        _row(
+            "EXT-MULTIAGENT-HERMES",
+            "ELO Agent Delegation",
+            "valid delegation recognition rate",
+            evaluate_multiagent(),
+        ),
+        _row(
+            "EXT-CRON-HERMES",
+            "ELO Workflow/Automation",
+            "authorized idempotent schedule recognition rate",
+            evaluate_cron(),
+        ),
     ]
 
+
 def render_markdown(rows: list[dict[str, Any]]) -> str:
-    ranked = sorted(rows, key=lambda r: (0 if r["risk"] == "HIGH" else 1, 0 if r["gain"] <= 0 else 1, 0 if not r["repeatable"] else 1, r["candidate"]))
+    ranked = sorted(
+        rows,
+        key=lambda r: (
+            0 if r["risk"] == "HIGH" else 1,
+            0 if r["gain"] <= 0 else 1,
+            0 if not r["repeatable"] else 1,
+            r["candidate"],
+        ),
+    )
     lines = [
         "# Hermes — View de Análise Pré-Teste",
         "",
@@ -87,7 +134,11 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
     ]
     for i, row in enumerate(ranked, 1):
         repeatable = "SIM" if row["repeatable"] else "NÃO"
-        lines.append(f"| {i} | `{row['candidate']}` | {row['owner']} | {row['gain']:.4f} | {row['evolution']} | {row['risk']} | {repeatable} | \`{row['decision']}\` |")
+        lines.append(
+            f"| {i} | `{row['candidate']}` | {row['owner']} | "
+            f"{row['gain']:.4f} | {row['evolution']} | {row['risk']} | "
+            f"{repeatable} | `{row['decision']}` |"
+        )
 
     lines += [
         "",
@@ -97,9 +148,21 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
         "|---|---|---|---|---|---|---|",
     ]
     for row in ranked:
-        lines.append(f"| \`{row['candidate']}\` | {row['relationship']} | {row['functional_overlap']} | \`{row['governance_classification']}\` | {'NÃO' if not row['competition_allowed'] else 'SIM'} | {row['duplicate_risk']} | {'NÃO' if not row['supersession_candidate'] else 'SIM'} |")
+        lines.append(
+            f"| `{row['candidate']}` | {row['relationship']} | "
+            f"{row['functional_overlap']} | `{row['governance_classification']}` | "
+            f"{'NÃO' if not row['competition_allowed'] else 'SIM'} | "
+            f"{row['duplicate_risk']} | "
+            f"{'NÃO' if not row['supersession_candidate'] else 'SIM'} |"
+        )
 
-    lines += ["", "## Onde começar", "", "| Candidato | Ação inicial | Evidência necessária |", "|---|---|---|"]
+    lines += [
+        "",
+        "## Onde começar",
+        "",
+        "| Candidato | Ação inicial | Evidência necessária |",
+        "|---|---|---|",
+    ]
     for row in ranked:
         if row["gain"] <= 0:
             start = "reproduzir baseline/adaptado e identificar a menor intervenção mensurável"
@@ -110,13 +173,15 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
         else:
             start = "prosseguir para Evolution Gate/ELO Review dentro do owner existente"
             evidence = "ganho + repetibilidade + compatibilidade governada"
-        lines.append(f"| \`{row['candidate']}\` | {start} | {evidence} |")
+        lines.append(
+            f"| `{row['candidate']}` | {start} | {evidence} |"
+        )
 
     lines += [
         "",
         "## Regra reutilizada",
         "",
-        "\`CANDIDATO → OWNER EXISTENTE → EVOLUTION GATE → TESTE → EVIDÊNCIA → ELO REVIEW\`",
+        "`CANDIDATO → OWNER EXISTENTE → EVOLUTION GATE → TESTE → EVIDÊNCIA → ELO REVIEW`",
         "",
         "Nenhum candidato Hermes pode competir com uma capacidade ELO existente. Quando há owner existente, o candidato é tratado como evolução/complemento sob esse owner; não recebe nova autoridade.",
         "",
@@ -124,7 +189,8 @@ def render_markdown(rows: list[dict[str, Any]]) -> str:
         "",
         "Nenhuma linha autoriza merge, produção, promoção ou canonicalização. A mutação canônica permanece dependente de atualização/autorização humana explícita.",
     ]
-    return "\\n".join(lines)
+    return "\n".join(lines)
+
 
 if __name__ == "__main__":
     print(render_markdown(analyze_waiting_candidates()))
