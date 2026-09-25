@@ -6,7 +6,7 @@ capabilities without promoting anything to Core or claiming production.
 
 from elo.core.calibration import CalibrationObservation, ConfidenceCalibration
 from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
-from elo.core.evolution_gate import (
+from elo.core.learning_governance import EvaluationRecord, GovernedLearningService, LearningCandidate\nfrom elo.core.evolution_gate import (
     EvolutionClassification,
     EvolutionGate,
     EvolutionProposal,
@@ -128,3 +128,35 @@ def test_existing_gate_blocks_canonicalization_without_human_decision():
 
     assert decision.classification is EvolutionClassification.COMPATIBLE
     assert decision.canonical_mutation_allowed is False
+
+
+def test_promotion_remains_human_gated():
+    candidate = LearningCandidate(
+        candidate_id="candidate-001",
+        experience_id="experience-001",
+        tenant_id="lab",
+        domain="symbiont",
+        hypothesis="validated adjustment",
+        dataset_version="lab-v1",
+        provenance={"mode": "LAB_ONLY"},
+    )
+    evaluation = EvaluationRecord(
+        candidate_id="candidate-001",
+        metric="quality",
+        score=1.0,
+        threshold=0.8,
+        evaluator="lab",
+        dataset_version="lab-v1",
+        evaluated_at=0.0,
+    )
+
+    try:
+        GovernedLearningService.approve_for_promotion(
+            candidate,
+            evaluation,
+            human_approved=False,
+        )
+    except ValueError as exc:
+        assert "human approval is required" in str(exc)
+    else:
+        raise AssertionError("promotion must remain blocked without human approval")
