@@ -4,3 +4,30 @@ This package is deliberately outside the canonical ELO core contracts. It may
 orchestrate existing ELO capabilities, but it does not own canonical truth,
 identity, Soul, Core, Forge, promotion, or persistence authority.
 """
+
+from .entry_handoff import ELOAIEntryHandoff, ELOAIEntryHandoffError, ELOCognitiveSession
+
+from .entry_contract import (
+    DEFAULT_BOOTSTRAP_ARTIFACTS,
+    ELOAIEntryBlock,
+    ELOAIEntryError,
+    ELOAIEntryGate,
+    ELOAIEntryMode,
+    ELOAIEntryRequest,
+    ELOAIEntrySession,
+    ELOAIEntryState,
+)
+
+__all__ = [
+    "DEFAULT_BOOTSTRAP_ARTIFACTS",
+    "ELOAIEntryBlock",
+    "ELOAIEntryError",
+    "ELOAIEntryGate",
+    "ELOAIEntryMode",
+    "ELOAIEntryRequest",
+    "ELOAIEntrySession",
+    "ELOAIEntryHandoff",
+    "ELOAIEntryHandoffError",
+    "ELOCognitiveSession",
+    "ELOAIEntryState",
+]
