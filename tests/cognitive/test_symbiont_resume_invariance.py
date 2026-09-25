@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 
 from elo.cognitive.symbiont_execution import (
     ActionResult,
+    ExecutionState,
     Reconciliation,
     ResumeStatus,
     SymbiontExecutionStore,
     SymbiontResumer,
     operation_key,
 )
+
+
+def logical_snapshot(state: ExecutionState) -> dict:
+    snapshot = asdict(state)
+    snapshot.pop("created_at", None)
+    snapshot.pop("updated_at", None)
+    return snapshot
 
 
 def test_resume_resume_resume_is_logically_idempotent() -> None:
@@ -41,13 +50,13 @@ def test_resume_resume_resume_is_logically_idempotent() -> None:
     )
 
     first = resumer.resume("exec-invariant", worker_id="worker-1")
-    snapshot_first = store.get_execution("exec-invariant")
+    snapshot_first = logical_snapshot(store.get_execution("exec-invariant"))
 
     second = resumer.resume("exec-invariant", worker_id="worker-1")
-    snapshot_second = store.get_execution("exec-invariant")
+    snapshot_second = logical_snapshot(store.get_execution("exec-invariant"))
 
     third = resumer.resume("exec-invariant", worker_id="worker-1")
-    snapshot_third = store.get_execution("exec-invariant")
+    snapshot_third = logical_snapshot(store.get_execution("exec-invariant"))
 
     assert first.status == ResumeStatus.COMPLETED.value
     assert second.status == ResumeStatus.COMPLETED.value
@@ -116,11 +125,11 @@ def test_repeated_resume_after_reconciliation_does_not_duplicate_effect_or_evide
     )
 
     first = resumer.resume("exec-reconcile-invariant", worker_id="worker-1")
-    snapshot_first = store.get_execution("exec-reconcile-invariant")
+    snapshot_first = logical_snapshot(store.get_execution("exec-reconcile-invariant"))
     second = resumer.resume("exec-reconcile-invariant", worker_id="worker-1")
-    snapshot_second = store.get_execution("exec-reconcile-invariant")
+    snapshot_second = logical_snapshot(store.get_execution("exec-reconcile-invariant"))
     third = resumer.resume("exec-reconcile-invariant", worker_id="worker-1")
-    snapshot_third = store.get_execution("exec-reconcile-invariant")
+    snapshot_third = logical_snapshot(store.get_execution("exec-reconcile-invariant"))
 
     assert first.status == ResumeStatus.COMPLETED.value
     assert second.status == ResumeStatus.COMPLETED.value
