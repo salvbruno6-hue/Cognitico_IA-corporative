@@ -63,5 +63,5 @@ def test_authorized_tool_search_enters_existing_implementation_stage():
     assert handoff.implementation.canonical_mutation is False
     assert handoff.canonical_mutation is False
     assert handoff.start_view.candidate_id == "EXT-TOOL-SEARCH-HERMES"
-    assert handoff.end_view.loop_stage == "IMPLEMENTATION"
+    assert handoff.end_view.loop_stage == "IMPLEMENTATION_AUTHORIZED"
     assert handoff.end_view.loop_result == "IMPLEMENTATION_AUTHORIZED"
