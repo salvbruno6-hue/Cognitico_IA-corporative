@@ -6,7 +6,8 @@ capabilities without promoting anything to Core or claiming production.
 
 from elo.core.calibration import CalibrationObservation, ConfidenceCalibration
 from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
-from elo.core.learning_governance import EvaluationRecord, GovernedLearningService, LearningCandidate\nfrom elo.core.evolution_gate import (
+from elo.core.learning_governance import EvaluationRecord, GovernedLearningService, LearningCandidate
+from elo.core.evolution_gate import (
     EvolutionClassification,
     EvolutionGate,
     EvolutionProposal,
