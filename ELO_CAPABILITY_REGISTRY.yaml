@@ -12,7 +12,7 @@ schema_version: "0.1"
 registry_id: ELO-REG-CAP-001
 status: active
 authority: proposal
-last_reviewed: "2026-09-21"
+last_reviewed: "2026-09-25"
 
 rules:
   - "Do not promote maturity without evidence."
@@ -375,10 +375,14 @@ capabilities:
     canonical_artifact: src/elo/cognitive/routing/tool_search.py
     evidence:
       - src/elo/cognitive/routing/tool_search.py
+      - src/elo/cognitive/routing/tool_search_outcome.py
       - tests/cognitive/test_execution_routing.py
+      - tests/cognitive/test_tool_search_indirect_evidence.py
       - docs/evolution/HERMES_TOOL_SEARCH_IMPLEMENTATION_2026_09_25.md
       - docs/evolution/HERMES_TOOL_SEARCH_ELO_REVIEW_2026_09_25.md
       - docs/evolution/HERMES_TOOL_SEARCH_REPEATABILITY_2026_09_25.md
+      - docs/evolution/EXT-TOOL-SEARCH-HERMES_INDIRECT_EVIDENCE_START_2026_09_25.md
+      - docs/evolution/EXT-TOOL-SEARCH-HERMES_INDIRECT_EVIDENCE_END_2026_09_25.md
     gaps:
-      - Operational execution evidence is still required for maturity level 7.
-      - Production outcome evidence must be collected before any future canonical promotion decision.
+      - Higher maturity may use direct operational evidence or corroborated evidence from a validated downstream capability.
+      - Operational benefit must remain distinguishable from capability validity; production traffic is not required to establish basic capability validity.
