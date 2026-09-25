@@ -74,6 +74,8 @@ def test_repeated_resume_after_interruption_preserves_logical_progress() -> None
     assert resumed_again.status == ResumeStatus.COMPLETED.value
 
     # RUN_TEST was externally effective before interruption and was reconciled,
-    # so the same operation was never executed a second time.
-    assert len(calls) == 1
+    # so that operation key was never executed a second time. The second call
+    # is the distinct RECORD_EVIDENCE operation required to complete the loop.
+    assert len(calls) == 2
+    assert calls[0] != calls[1]
     store.close()
