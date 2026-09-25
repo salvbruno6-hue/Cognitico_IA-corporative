@@ -1,10 +1,5 @@
-from elo.agent_intake.hermes_tool_search_quality import (
-    ToolSearchQualityCase,
-    evaluate_task_quality,
-)
-from elo.agent_intake.hermes_tool_search_repeatability import (
-    evaluate_repeatability,
-)
+from elo.agent_intake.hermes_tool_search_quality import ToolSearchQualityCase, evaluate_task_quality
+from elo.agent_intake.hermes_tool_search_repeatability import evaluate_repeatability
 
 
 def _quality_result(adapted="mcp_tool"):
@@ -18,16 +13,19 @@ def _quality_result(adapted="mcp_tool"):
     return evaluate_task_quality(cases)
 
 
-def test_repeatability_requires_stable_quality_across_three_runs():
+def test_repeatability_reaches_evolution_gate_requirement():
     result = evaluate_repeatability(
         (_quality_result(), _quality_result(), _quality_result())
     )
 
     assert result.run_count == 3
     assert result.expected_run_count == 3
-    assert result.stable_metrics is True
+    assert result.stable_quality_metrics is True
     assert result.all_runs_quality_equivalent is True
+    assert result.footprint_reduction_ratio == 0.9
+    assert result.footprint_repeatable is True
     assert result.repeatable is True
+    assert result.result == "EVOLUTION_GATE_REQUIRED"
     assert result.candidate_only is True
     assert result.canonical_mutation is False
 
@@ -37,9 +35,10 @@ def test_repeatability_rejects_a_regressed_run():
         (_quality_result(), _quality_result("computer_use"), _quality_result())
     )
 
-    assert result.stable_metrics is False
+    assert result.stable_quality_metrics is False
     assert result.all_runs_quality_equivalent is False
     assert result.repeatable is False
+    assert result.result == "RETEST"
 
 
 def test_repeatability_requires_minimum_number_of_runs():
