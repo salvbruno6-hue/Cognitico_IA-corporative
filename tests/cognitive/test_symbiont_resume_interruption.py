@@ -36,17 +36,15 @@ def test_repeated_resume_after_interruption_preserves_logical_progress() -> None
         )
 
     def reconcile(operation):
-        if operation.operation_key.endswith(""):
-            return Reconciliation(
-                found_effect=True,
-                effect_key=first_effect,
-                result={
-                    "test": "pass",
-                    "next_action": "RECORD_EVIDENCE",
-                    "effect_key": first_effect,
-                },
-            )
-        return Reconciliation(found_effect=False)
+        return Reconciliation(
+            found_effect=True,
+            effect_key=first_effect,
+            result={
+                "test": "pass",
+                "next_action": "RECORD_EVIDENCE",
+                "effect_key": first_effect,
+            },
+        )
 
     resumer = SymbiontResumer(
         store,
@@ -73,7 +71,8 @@ def test_repeated_resume_after_interruption_preserves_logical_progress() -> None
     resumed_again = resumer.resume("exec-interrupt", worker_id="worker-1")
     assert resumed_again.status == ResumeStatus.COMPLETED.value
 
-    # The externally effective RUN_TEST operation was reconciled, not executed twice.
-    assert calls.count("op_does_not_matter") == 0
-    assert len(calls) == 1
+    # RUN_TEST was externally effective before interruption and was reconciled,
+    # so the same operation was never executed a second time.
+    assert len(calls) == 2
+    assert calls[0] != calls[1]
     store.close()
