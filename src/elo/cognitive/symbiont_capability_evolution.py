@@ -33,6 +33,9 @@ class CapabilityMetric:
     direction: str
     evidence_refs: tuple[str, ...] = ()
     measurement_period: str = ""
+    evidence_mode: str = "DIRECT"
+    observer_capability: str | None = None
+    experience_ref: str | None = None
 
     @classmethod
     def from_evolution_measurement(
@@ -63,6 +66,31 @@ class CapabilityMetric:
             item=item, baseline=baseline, adapted=adapted,
             metric_directions=metric_directions, evidence_refs=provenance_refs,
             measurement_period=measurement_period,
+        )
+
+    @classmethod
+    def from_indirect_experience(
+        cls, *, item: str, baseline: float | None, current: float | None,
+        direction: str, evidence_refs: Sequence[str], measurement_period: str,
+        observer_capability: str, experience_ref: str,
+    ) -> "CapabilityMetric":
+        if not observer_capability.strip():
+            raise ValueError("indirect evidence requires observer capability")
+        if not experience_ref.strip():
+            raise ValueError("indirect evidence requires experience reference")
+        refs = tuple(ref.strip() for ref in evidence_refs if str(ref).strip())
+        if not refs:
+            raise ValueError("indirect evidence requires evidence references")
+        return cls(
+            item=item,
+            baseline=baseline,
+            current=current,
+            direction=direction,
+            evidence_refs=refs,
+            measurement_period=measurement_period,
+            evidence_mode="INDIRECT_EXPERIENCE",
+            observer_capability=observer_capability.strip(),
+            experience_ref=experience_ref.strip(),
         )
 
     @property
@@ -128,13 +156,19 @@ def review_capabilities(
     actions: list[CapabilityAction] = []
     for metric in normalized:
         state = _curvature(metric)
+        evidence_origin = (
+            f"Validated downstream observer: {metric.observer_capability} "
+            f"(experience {metric.experience_ref})."
+            if metric.evidence_mode == "INDIRECT_EXPERIENCE"
+            else "Direct governed measurement."
+        )
         if state is Curvature.POSITIVE:
             actions.append(CapabilityAction(
                 item=metric.item,
                 exact_action="Preserve the verified gain and repeat the same measurement to confirm durability.",
                 priority="P3",
                 start_here="Repeat the measurement with the same baseline rule, source and metric direction.",
-                rationale="A positive result is evidence of improvement, not authorization for automatic promotion.",
+                rationale=f"{evidence_origin} A positive result is evidence of improvement, not authorization for automatic promotion.",
             ))
         elif state is Curvature.NOT_MEASURED:
             actions.append(CapabilityAction(
@@ -142,7 +176,7 @@ def review_capabilities(
                 exact_action="Collect baseline/current values with source, period and evidence references.",
                 priority="P1",
                 start_here="Instrument the metric at the production observation boundary.",
-                rationale="Missing evidence is not converted into zero or an assumed score.",
+                rationale="Missing evidence is not converted into zero or an assumed trend.",
             ))
         elif state in {Curvature.NEGATIVE, Curvature.CRITICAL}:
             actions.append(CapabilityAction(
@@ -150,7 +184,7 @@ def review_capabilities(
                 exact_action="Investigate the regression against the last verified baseline and open a bounded correction experiment.",
                 priority="P0" if state is Curvature.CRITICAL else "P1",
                 start_here="Reproduce the regression using the same measurement rule and evidence source.",
-                rationale="Regression requires diagnosis and controlled correction before any promotion decision.",
+                rationale=f"{evidence_origin} Regression requires diagnosis and controlled correction before any promotion decision.",
             ))
         else:
             actions.append(CapabilityAction(
@@ -158,7 +192,7 @@ def review_capabilities(
                 exact_action="Run a bounded improvement experiment and measure the same metric again.",
                 priority="P2",
                 start_here="Keep the current baseline and define the smallest measurable intervention.",
-                rationale="Stable performance is not evidence of improvement.",
+                rationale=f"{evidence_origin} Stable performance is not evidence of improvement.",
             ))
 
     all_refs = tuple(dict.fromkeys((*evidence_refs, *(ref for m in normalized for ref in m.evidence_refs))))
