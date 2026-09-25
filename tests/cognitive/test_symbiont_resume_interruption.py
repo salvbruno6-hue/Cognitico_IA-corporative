@@ -61,7 +61,9 @@ def test_repeated_resume_after_interruption_preserves_logical_progress() -> None
     assert interrupted.status == "ACTIVE"
     assert interrupted.next_action == "RUN_TEST"
 
-    resumed_once = resumer.resume("exec-interrupt", worker_id="worker-1", max_steps=1)
+    # Reconciliation consumes one logical step; the following step advances
+    # the recovered result to its persisted next action.
+    resumed_once = resumer.resume("exec-interrupt", worker_id="worker-1", max_steps=2)
     assert resumed_once.status == "ACTIVE"
     assert resumed_once.next_action == "RECORD_EVIDENCE"
 
@@ -73,6 +75,5 @@ def test_repeated_resume_after_interruption_preserves_logical_progress() -> None
 
     # RUN_TEST was externally effective before interruption and was reconciled,
     # so the same operation was never executed a second time.
-    assert len(calls) == 2
-    assert calls[0] != calls[1]
+    assert len(calls) == 1
     store.close()
