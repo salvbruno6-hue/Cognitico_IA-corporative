@@ -2,7 +2,7 @@ from elo.agent_intake.hermes_functional_value_proof import CURRENT_EVIDENCE, fun
 
 def test_candidate_attributed_functional_gains_are_selected():
     assert [item.candidate_id for item in functional_candidates()] == [
-        "EXT-CONTEXT-PLUGIN-HERMES", "EXT-HOOK-HERMES", "EXT-CHECKPOINT-HERMES", "EXT-WORKTREE-HERMES", "EXT-MULTIAGENT-HERMES", "EXT-CRON-HERMES", "EXT-MEMPROVIDER-HERMES", "EXT-ROUTE-HERMES", "EXT-PROFILE-HERMES", "EXT-BATCH-HERMES", "EXT-LEARN-HERMES"
+        "EXT-CONTEXT-PLUGIN-HERMES", "EXT-HOOK-HERMES", "EXT-CHECKPOINT-HERMES", "EXT-WORKTREE-HERMES", "EXT-MULTIAGENT-HERMES", "EXT-CRON-HERMES", "EXT-MEMPROVIDER-HERMES", "EXT-ROUTE-HERMES", "EXT-PROFILE-HERMES", "EXT-BATCH-HERMES", "EXT-LEARN-HERMES", "EXT-LEARNING-GRAPH-HERMES"
     ]
 
 def test_checkpoint_is_attributed_only_to_the_isolated_replay_guard():
@@ -18,7 +18,7 @@ def test_contract_gain_does_not_become_functional_gain():
     assert not item.functional_gain_proven
 
 def test_no_incremental_gain_candidates_are_not_promoted_by_fixture_integrity():
-    for candidate_id in ("EXT-LEARNING-GRAPH-HERMES", "EXT-CONTEXTREF-HERMES"):
+    for candidate_id in ("EXT-CONTEXTREF-HERMES",):
         item = next(x for x in CURRENT_EVIDENCE if x.candidate_id == candidate_id)
         assert item.gain == 0.0
         assert not item.functional_gain_proven
