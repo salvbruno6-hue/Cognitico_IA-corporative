@@ -115,10 +115,11 @@ def _quality(evidence: Mapping[str, Any]) -> str:
 
 def refine_capability(capability_id: str, evidence: Mapping[str, Any]) -> SymbiontAdaptation:
     """Produce a refined candidate adjustment attached to an existing ELO capacity."""
-    if capability_id not in CAPABILITY_IDS:
+    profiles = PROFILES if capability_id in CAPABILITY_IDS else EXTENSION_PROFILES
+    if capability_id not in profiles:
         raise ValueError(f"unknown capability: {capability_id}")
 
-    profile = PROFILES[capability_id]
+    profile = profiles[capability_id]
     mechanism, adjustment = MECHANISMS[capability_id]
     quality = _quality(evidence)
     rationale = (
