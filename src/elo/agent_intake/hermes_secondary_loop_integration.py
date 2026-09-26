@@ -21,6 +21,7 @@ from .hermes_functional_value_proof import FunctionalValueEvidence, classify
 from .hermes_hook_evaluation import evaluate as evaluate_hook
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
+from .hermes_multiagent_functional_evaluation import evaluate_multiagent_functional_gain
 from .hermes_multiagent_adapter import adapt_delegation
 from .hermes_worktree_adapter import adapt_worktree
 from .hermes_worktree_boundary import WorktreeSignal
@@ -90,6 +91,7 @@ def _handoff(
 
 def run_multiagent_loop_probe() -> tuple[object, object]:
     evaluation = evaluate_multiagent()
+    functional = evaluate_multiagent_functional_gain()
     signals = tuple(
         DelegationSignal(
             f"secondary-loop-{i}",
@@ -116,13 +118,25 @@ def run_multiagent_loop_probe() -> tuple[object, object]:
     )
     return _handoff(
         "EXT-MULTIAGENT-HERMES",
-        "bounded_delegation_contract_integrity_rate",
-        evaluation.baseline_rate,
-        evaluation.adapted_rate,
-        evaluation.repeatable,
-        refs,
-        boundary_integrity,
+        "context_isolation_rate",
+        functional.baseline_context_isolation_rate,
+        functional.adapted_context_isolation_rate,
+        functional.repeatable,
+        functional.provenance_refs,
+        functional.boundary_integrity,
         "HERMES-DELEGATION",
+        functional_value_evidence=classify(
+            "EXT-MULTIAGENT-HERMES",
+            baseline=functional.baseline_context_isolation_rate,
+            adapted=functional.adapted_context_isolation_rate,
+            metric="context_isolation_rate",
+            direction="maximize",
+            repeatable=functional.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled concurrent delegated-task context isolation",
+            provenance_refs=functional.provenance_refs,
+        ),
     )
 
 
