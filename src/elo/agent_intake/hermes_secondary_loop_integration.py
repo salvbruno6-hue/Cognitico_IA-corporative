@@ -37,6 +37,7 @@ def _handoff(
     provenance_refs: tuple[str, ...],
     boundary_integrity: bool,
     capability_id: str,
+    functional_value_proven: bool = False,
 ):
     candidate = build_candidate(candidate_id)
     result = (
@@ -79,6 +80,7 @@ def _handoff(
         regressions=evidence.regressions,
         provenance_refs=evidence.provenance_refs,
         boundary_integrity=evidence.boundary_integrity,
+        functional_value_proven=functional_value_proven,
     )
     return handoff.implementation, evidence
 
@@ -151,6 +153,7 @@ def run_context_plugin_loop_probe() -> tuple[object, object]:
         refs,
         boundary_integrity,
         "HERMES-CONTEXT",
+        functional_value_proven=True,
     )
 
 
