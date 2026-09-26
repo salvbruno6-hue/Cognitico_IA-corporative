@@ -71,7 +71,7 @@ The order is an execution sequence, not a quality ranking.
 | Candidate | Current evidence | Functional attribution | Symbiont handoff |
 |---|---|---|---|
 | EXT-CONTEXT-PLUGIN-HERMES | controlled task gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
-| EXT-WORKTREE-HERMES | bounded workspace contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-WORKTREE-HERMES | collision-free concurrent task rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-MULTIAGENT-HERMES | bounded delegation contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-CRON-HERMES | bounded schedule contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-MEMPROVIDER-HERMES | bounded retrieval contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
