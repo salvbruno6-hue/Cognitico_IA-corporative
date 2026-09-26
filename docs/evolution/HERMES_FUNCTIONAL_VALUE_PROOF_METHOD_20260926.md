@@ -25,7 +25,7 @@ Functional credit requires: existing task; candidate intervention; changed outco
 
 ## Current result
 
-EXT-CONTEXT-PLUGIN-HERMES and EXT-CHECKPOINT-HERMES now have positive controlled task-level gains attributable to the candidate. Context Plugin records task success 0.00 → 1.00 with provenance rejection. Checkpoint records stale-replay block rate 0.00 → 1.00 while ordinary recovery remains 1.00 → 1.00 under the existing ELO State Recovery owner. Both are controlled evidence, not production evidence.
+EXT-CONTEXT-PLUGIN-HERMES and EXT-CHECKPOINT-HERMES now have positive controlled task-level gains attributable to the candidate. Context Plugin records task success 0.00 → 1.00 with provenance rejection. Checkpoint records stale-replay block rate 0.00 → 1.00 while ordinary recovery remains 1.00 → 1.00 under the existing ELO State Recovery owner. Both are accepted as valid functional-evolution evidence for the governed ELO flow. They do not require production evidence to establish the candidate's functional gain; production proof remains a separate operational claim.
 
 EXT-CHECKPOINT-HERMES shows recovery behavior 0.00 to 1.00, but the harness invokes the existing ELO State Recovery owner directly. Therefore recovery is proven, while incremental Hermes attribution is not isolated.
 
@@ -39,4 +39,4 @@ The baseline must not be feature-absent when an equivalent ELO capability alread
 
 ## Promotion
 
-FUNCTIONAL_CONTROLLED_GAIN is necessary for functional-evolution review but does not authorize production deployment or canonical mutation. Production promotion remains a separate governed stage.
+`FUNCTIONAL_CONTROLLED_GAIN` is sufficient to establish functional value and advance the candidate through the existing governed ELO/Symbiont flow. It does not by itself authorize production deployment or canonical mutation. Those remain separate governance decisions.
