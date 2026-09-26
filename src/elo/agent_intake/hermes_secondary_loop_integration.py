@@ -18,6 +18,7 @@ from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
+from .hermes_multiagent_adapter import adapt_delegation
 from .hermes_worktree_adapter import adapt_worktree
 from .hermes_worktree_boundary import WorktreeSignal
 from .hermes_worktree_evaluation import evaluate as evaluate_worktree
@@ -91,22 +92,25 @@ def run_multiagent_loop_probe() -> tuple[object, object]:
             f"worker-{i}",
             f"goal-{i}",
             (f"controlled-eval:multiagent/{i}",),
+            resource_scope=("read-only", "scoped-context"),
             provenance_verified=True,
             isolated_context=True,
         )
         for i in range(1, 6)
     )
-    assessments = tuple(assess_delegation(signal) for signal in signals)
-    refs = tuple(ref for assessment in assessments for ref in assessment.evidence_refs)
+    work_items = tuple(adapt_delegation(signal) for signal in signals)
+    refs = tuple(
+        ref for item in work_items if item is not None for ref in item.source_refs
+    )
     boundary_integrity = all(
-        not assessment.canonical_authority
-        and not assessment.execution_permitted
-        and not assessment.promotion_permitted
-        for assessment in assessments
+        item is not None
+        and not item.child_authority
+        and not item.promotion_permitted
+        for item in work_items
     )
     return _handoff(
         "EXT-MULTIAGENT-HERMES",
-        "valid_delegation_recognition_rate",
+        "bounded_delegation_contract_integrity_rate",
         evaluation.baseline_rate,
         evaluation.adapted_rate,
         evaluation.repeatable,
