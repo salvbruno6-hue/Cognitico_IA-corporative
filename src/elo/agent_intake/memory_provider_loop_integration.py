@@ -51,10 +51,10 @@ def run_memory_provider_loop_probe() -> tuple[object, object]:
         {
             "controlled_test": True,
             "outcome": {
-                "candidate_bounded": True,
-                "memory_authority": not boundary_integrity,
-                "mutation_permitted": not boundary_integrity,
-                "promotion_permitted": not boundary_integrity,
+                "candidate_bounded": boundary_integrity,
+                "memory_authority_preserved": boundary_integrity,
+                "mutation_blocked": boundary_integrity,
+                "promotion_blocked": boundary_integrity,
             },
         },
     )
