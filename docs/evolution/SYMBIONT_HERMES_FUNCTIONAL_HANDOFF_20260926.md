@@ -56,3 +56,7 @@ The governed loop then:
 Therefore the Hermes loop composes the Symbiont's experimentation and
 implementation handoff, while the broader Symbiont remains the surrounding
 cognitive evolution architecture.
+
+
+## Evidence registry
+The functional handoff consumes the canonical `CURRENT_EVIDENCE` registry; candidate-attributed gain remains required before the Symbiont implementation handoff can advance.
