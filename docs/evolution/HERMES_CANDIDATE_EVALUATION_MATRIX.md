@@ -14,7 +14,7 @@
 | EXT-BATCH-HERMES | ELO Evaluation & Learning | collision-free batch task rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain | no automatic promotion |
 | EXT-MEMPROVIDER-HERMES | ELO Memory | evidence retrieval precision | maximize | provider provenance + digest | no memory authority |
 | EXT-LEARN-HERMES | ELO Knowledge & Skills | unsafe skill admission block rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain | no autonomous skill promotion |
-| EXT-LEARNING-GRAPH-HERMES | ELO Evolution Memory | evidence-linked relation validity | maximize | relation provenance | graph is not authority |
+| EXT-LEARNING-GRAPH-HERMES | ELO Evolution Memory | duplicate relation block rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain + relation provenance | graph is not authority |
 | EXT-CONTEXT-PLUGIN-HERMES | ELO Context | context task success rate | maximize | adapter compatibility | existing Context remains authority |
 | EXT-WORKTREE-HERMES | ELO Forge | isolated workspace integrity | maximize | isolation + merge boundary | no merge authority |
 | EXT-MULTIAGENT-HERMES | ELO Agent Delegation | delegated-task completion under authority constraints | maximize | child-agent provenance + bounded scope | no authority transfer |
