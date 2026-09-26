@@ -9,7 +9,7 @@ def signal(**overrides):
 def test_admits_verified_skill_as_candidate_contract():
     c=adapt_skill_learning(signal())
     assert c is not None
-    assert c.state is LearningState.CANDIDATE
+    assert c.state == "CANDIDATE"
     assert not c.promotion_authority and not c.canonical_mutation
 
 def test_unverified_skill_is_not_admitted():
