@@ -1,13 +1,14 @@
-"""Integration probe for the first governed implementation-loop candidate.
+"""Integration probe for the Hermes checkpoint candidate.
 
-This module composes existing checkpoint evidence, the measurement harness,
-Symbiont adaptation, and the shared governed mediator. It remains descriptive
-and does not authorize or mutate canonical ELO state.
+The probe composes existing state recovery with the candidate-specific replay
+guard, then routes structured functional evidence through the shared Symbiont
+handoff. It remains controlled and never mutates canonical ELO.
 """
 from __future__ import annotations
 
 from .checkpoint_loop_harness import evaluate_checkpoint_loop_harness
 from .hermes_current_extensions import build_candidate
+from .hermes_functional_value_proof import classify
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .hermes_governed_loop import (
     ImplementationGovernanceContext,
@@ -16,6 +17,31 @@ from .hermes_governed_loop import (
 )
 from .symbiont_adaptation import refine_capability
 from .symbiont_implementation_view import ImplementationOwnership
+
+
+def _functional_evidence(measurement):
+    return classify(
+        "EXT-CHECKPOINT-HERMES",
+        baseline=measurement.baseline["unsafe_replay_block_rate"],
+        adapted=measurement.adapted["unsafe_replay_block_rate"],
+        metric="unsafe_replay_block_rate",
+        direction="maximize",
+        repeatable=measurement.repeatable,
+        regressions=measurement.regressions,
+        attribution=(
+            "CANDIDATE_ATTRIBUTED"
+            if measurement.candidate_incremental_effect_isolated
+            else "OWNER_ATTRIBUTED"
+        ),
+        proof_scope=(
+            "controlled stale-checkpoint replay prevention; existing ELO State Recovery "
+            "remains responsible for ordinary recovery"
+        ),
+        provenance_refs=(
+            "controlled-eval:checkpoint/replay-guard/baseline",
+            "controlled-eval:checkpoint/replay-guard/adapted",
+        ),
+    )
 
 
 def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int = 5):
@@ -30,15 +56,22 @@ def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int
         "HERMES-CHECKPOINT",
         {
             "controlled_test": True,
-            "outcome": {"integrity": True, "continuity": True},
+            "outcome": {
+                "integrity": True,
+                "continuity": True,
+                "unsafe_replay_blocked": measurement.adapted["unsafe_replay_block_rate"],
+            },
         },
     )
 
     evidence = measurement_to_implementation_evidence(
         candidate,
         candidate_measurement,
-        metric_directions={"recovery_success": "maximize"},
-        provenance_refs=("controlled-eval:checkpoint-loop-harness",),
+        metric_directions=measurement.metric_directions or {},
+        provenance_refs=(
+            "controlled-eval:checkpoint/replay-guard/baseline",
+            "controlled-eval:checkpoint/replay-guard/adapted",
+        ),
         boundary_integrity=True,
     )
 
@@ -52,6 +85,7 @@ def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int
         metric_directions=evidence.metric_directions,
         provenance_refs=evidence.provenance_refs,
         boundary_integrity=evidence.boundary_integrity,
+        functional_value_evidence=_functional_evidence(measurement),
     )
     return evidence, handoff.implementation
 
@@ -78,14 +112,21 @@ def close_checkpoint_approved_candidate(
         "HERMES-CHECKPOINT",
         {
             "controlled_test": True,
-            "outcome": {"integrity": True, "continuity": True},
+            "outcome": {
+                "integrity": True,
+                "continuity": True,
+                "unsafe_replay_blocked": measurement.adapted["unsafe_replay_block_rate"],
+            },
         },
     )
     evidence = measurement_to_implementation_evidence(
         candidate,
         candidate_measurement,
-        metric_directions={"recovery_success": "maximize"},
-        provenance_refs=("controlled-eval:checkpoint-loop-harness",),
+        metric_directions=measurement.metric_directions or {},
+        provenance_refs=(
+            "controlled-eval:checkpoint/replay-guard/baseline",
+            "controlled-eval:checkpoint/replay-guard/adapted",
+        ),
         boundary_integrity=True,
     )
     handoff = close_approved_candidate(
@@ -104,8 +145,8 @@ def close_checkpoint_approved_candidate(
             functional_branch="Cognitive/Symbiont/Implementation",
             capability="ELO State Recovery",
             source_ref="hermes:checkpoint",
-            source_commit="controlled-eval:checkpoint-loop-harness",
-            specialization="pre-mutation checkpoint contract",
+            source_commit="controlled-eval:checkpoint-replay-guard",
+            specialization="pre-mutation checkpoint replay guard",
             ownership=ImplementationOwnership.EXTENSION,
             related_contracts=("Evolution Gate", "Implementation Loop"),
             dependencies=("ELO State Recovery",),
