@@ -72,7 +72,7 @@ The order is an execution sequence, not a quality ranking.
 |---|---|---|---|
 | EXT-CONTEXT-PLUGIN-HERMES | controlled task gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
 | EXT-WORKTREE-HERMES | collision-free concurrent task rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
-| EXT-MULTIAGENT-HERMES | bounded delegation contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-MULTIAGENT-HERMES | context isolation rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-CRON-HERMES | bounded schedule contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-MEMPROVIDER-HERMES | bounded retrieval contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-ROUTE-HERMES | bounded routing-plan contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
