@@ -13,7 +13,7 @@
 | EXT-PROFILE-HERMES | ELO Agent Context & Delegation | collision-free profile task rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain | no shared-state mutation |
 | EXT-BATCH-HERMES | ELO Evaluation & Learning | collision-free batch task rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain | no automatic promotion |
 | EXT-MEMPROVIDER-HERMES | ELO Memory | evidence retrieval precision | maximize | provider provenance + digest | no memory authority |
-| EXT-LEARN-HERMES | ELO Knowledge & Skills | validated skill admission precision | maximize | source provenance + governance | no autonomous skill promotion |
+| EXT-LEARN-HERMES | ELO Knowledge & Skills | unsafe skill admission block rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain | no autonomous skill promotion |
 | EXT-LEARNING-GRAPH-HERMES | ELO Evolution Memory | evidence-linked relation validity | maximize | relation provenance | graph is not authority |
 | EXT-CONTEXT-PLUGIN-HERMES | ELO Context | context task success rate | maximize | adapter compatibility | existing Context remains authority |
 | EXT-WORKTREE-HERMES | ELO Forge | isolated workspace integrity | maximize | isolation + merge boundary | no merge authority |
