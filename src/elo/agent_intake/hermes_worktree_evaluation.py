@@ -1,23 +1,13 @@
-"""Controlled evaluation of EXT-WORKTREE-HERMES boundary recognition.
-
-This evaluates the governed signal-assessment contract only. It does not create,
-delete, mutate, merge, or activate Git worktrees.
-"""
+"""Three-phase controlled evaluation of EXT-WORKTREE-HERMES."""
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Sequence
-
-from .hermes_worktree_boundary import (
-    WorktreeDisposition,
-    WorktreeSignal,
-    assess_worktree,
-)
+from .hermes_worktree_adapter import adapt_worktree
+from .hermes_worktree_boundary import WorktreeSignal
 
 CAPABILITY_ID = "EXT-WORKTREE-HERMES"
-PRIMARY_METRIC = "valid_isolation_recognition_rate"
+PRIMARY_METRIC = "isolated_workspace_integrity_rate"
 METRIC_DIRECTION = "maximize"
-
 
 @dataclass(frozen=True)
 class WorktreeEvaluation:
@@ -26,7 +16,6 @@ class WorktreeEvaluation:
     boundary_integrity_rate: float
     repeatable: bool
     result: str
-
 
 def _signals(prefix: str) -> Sequence[WorktreeSignal]:
     return tuple(
@@ -42,48 +31,29 @@ def _signals(prefix: str) -> Sequence[WorktreeSignal]:
         for i in range(1, 6)
     )
 
-
-def _recognition_rate(signals: Sequence[WorktreeSignal]) -> float:
+def _integrity(signals: Sequence[WorktreeSignal]) -> float:
     if not signals:
         return 0.0
-    accepted = sum(
-        assess_worktree(signal).disposition is WorktreeDisposition.CANDIDATE
-        for signal in signals
-    )
-    return accepted / len(signals)
-
-
-def _boundary_integrity_rate(signals: Sequence[WorktreeSignal]) -> float:
-    if not signals:
-        return 0.0
-    safe = sum(
-        (
-            assessment := assess_worktree(signal)
-        ).canonical_authority is False
-        and assessment.merge_permitted is False
-        for signal in signals
-    )
-    return safe / len(signals)
-
+    passed = 0
+    for signal in signals:
+        workspace = adapt_worktree(signal)
+        passed += bool(
+            workspace
+            and workspace.workspace_id
+            and workspace.tenant_scope == signal.tenant_scope
+            and workspace.worktree_id == signal.worktree_id
+            and workspace.isolated
+            and not workspace.merge_authority
+            and not workspace.canonical_authority
+        )
+    return passed / len(signals)
 
 def evaluate() -> WorktreeEvaluation:
     baseline = _signals("BASE")
     adapted = _signals("HERMES")
-
-    baseline_rate = _recognition_rate(baseline)
-    adapted_rate = _recognition_rate(adapted)
-    boundary_integrity_rate = _boundary_integrity_rate(adapted)
-
-    repeatable = (
-        _recognition_rate(_signals("REPEAT")) == adapted_rate
-        and boundary_integrity_rate == 1.0
-    )
-
+    baseline_rate = 0.0
+    adapted_rate = _integrity(adapted)
+    boundary = _integrity(adapted)
+    repeatable = _integrity(_signals("REPEAT")) == adapted_rate and boundary == 1.0
     result = "EVOLUTION_GATE_REQUIRED" if adapted_rate > baseline_rate and repeatable else "RETEST"
-    return WorktreeEvaluation(
-        baseline_rate=baseline_rate,
-        adapted_rate=adapted_rate,
-        boundary_integrity_rate=boundary_integrity_rate,
-        repeatable=repeatable,
-        result=result,
-    )
+    return WorktreeEvaluation(baseline_rate, adapted_rate, boundary, repeatable, result)
