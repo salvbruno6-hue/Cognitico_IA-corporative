@@ -9,6 +9,8 @@ from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_batch_adapter import adapt_batch
 from .hermes_batch_boundary import BatchSignal
 from .hermes_batch_evaluation import evaluate
+from .hermes_batch_functional_evaluation import evaluate_batch_functional_gain
+from .hermes_functional_value_proof import classify
 from .hermes_governed_loop import advance_to_implementation
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .symbiont_adaptation import refine_capability
@@ -17,6 +19,7 @@ from .symbiont_adaptation import refine_capability
 def run_batch_loop_probe() -> tuple[object, object]:
     candidate = build_candidate("EXT-BATCH-HERMES")
     evaluation = evaluate()
+    functional = evaluate_batch_functional_gain()
     signals = tuple(
         BatchSignal(
             f"batch-loop-{i}", "multiteiner",
@@ -43,20 +46,32 @@ def run_batch_loop_probe() -> tuple[object, object]:
     )
     measurement = CandidateMeasurement(
         candidate.candidate_id,
-        {"bounded_batch_intake_integrity_rate": evaluation.baseline_rate},
-        {"bounded_batch_intake_integrity_rate": evaluation.adapted_rate},
+        {"collision_free_batch_task_rate": functional.baseline_collision_free_batch_task_rate},
+        {"collision_free_batch_task_rate": functional.adapted_collision_free_batch_task_rate},
         (), evaluation.repeatable, evaluation.result,
     )
     evidence = measurement_to_implementation_evidence(
         candidate, measurement,
-        metric_directions={"bounded_batch_intake_integrity_rate": "maximize"},
-        provenance_refs=refs, boundary_integrity=boundary_integrity,
+        metric_directions={"collision_free_batch_task_rate": "maximize"},
+        provenance_refs=functional.provenance_refs, boundary_integrity=functional.boundary_integrity,
     )
     handoff = advance_to_implementation(
         candidate, adaptation, evidence.baseline, evidence.adapted,
         metric_directions=evidence.metric_directions, repeatable=evidence.repeatable,
         regressions=evidence.regressions, provenance_refs=evidence.provenance_refs,
         boundary_integrity=evidence.boundary_integrity,
+        functional_value_evidence=classify(
+            "EXT-BATCH-HERMES",
+            baseline=functional.baseline_collision_free_batch_task_rate,
+            adapted=functional.adapted_collision_free_batch_task_rate,
+            metric="collision_free_batch_task_rate",
+            direction="maximize",
+            repeatable=functional.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled concurrent batch-task identity preservation",
+            provenance_refs=functional.provenance_refs,
+        ),
     )
     return handoff.implementation, evidence
 
