@@ -1,7 +1,7 @@
 from elo.agent_intake.route_loop_integration import run_route_loop_probe
 from elo.agent_intake.implementation_loop import ImplementationStage
 
-def test_route_probe_preserves_retest_when_no_incremental_gain():
+def test_route_probe_reaches_governed_review_with_functional_gain():
     decision, evidence = run_route_loop_probe()
     metric = "unsafe_route_admission_block_rate"
     assert evidence.baseline[metric] == 0.0
