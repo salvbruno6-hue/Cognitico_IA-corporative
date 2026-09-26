@@ -7,10 +7,8 @@ own an implementation state machine, memory authority, or approval authority.
 from __future__ import annotations
 
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
-from .hermes_memory_provider_boundary import (
-    MemoryProviderSignal,
-    assess_memory_provider,
-)
+from .hermes_memory_provider_adapter import adapt_memory_provider
+from .hermes_memory_provider_boundary import MemoryProviderSignal
 from .hermes_memory_provider_evaluation import evaluate
 from .hermes_governed_loop import advance_to_implementation
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
@@ -20,21 +18,33 @@ from .symbiont_adaptation import refine_capability
 def run_memory_provider_loop_probe() -> tuple[object, object]:
     candidate = build_candidate("EXT-MEMPROVIDER-HERMES")
     evaluation = evaluate()
-    baseline = {"external_memory_candidate_rate": evaluation.baseline_rate}
-    adapted = {"external_memory_candidate_rate": evaluation.adapted_rate}
 
-    signal = MemoryProviderSignal(
-        "provider-loop",
-        "multiteiner",
-        ("controlled-eval:memory-provider-loop",),
-        "retrieve",
-        "sha256:memory-provider-loop",
-        True,
-        True,
-        False,
-        False,
+    signals = tuple(
+        MemoryProviderSignal(
+            f"provider-loop-{i}",
+            "multiteiner",
+            (f"controlled-eval:memory-provider-loop/{i}",),
+            "retrieve",
+            f"sha256:memory-provider-loop-{i}",
+            True,
+            True,
+            False,
+            False,
+        )
+        for i in range(1, 6)
     )
-    boundary = assess_memory_provider(signal)
+    contracts = tuple(adapt_memory_provider(signal) for signal in signals)
+    refs = tuple(
+        ref for contract in contracts if contract is not None
+        for ref in contract.source_refs
+    )
+    boundary_integrity = all(
+        contract is not None
+        and contract.memory_authority is False
+        and contract.mutation_permitted is False
+        and contract.promotion_permitted is False
+        for contract in contracts
+    )
 
     adaptation = refine_capability(
         "HERMES-MEMORY",
@@ -42,17 +52,16 @@ def run_memory_provider_loop_probe() -> tuple[object, object]:
             "controlled_test": True,
             "outcome": {
                 "candidate_bounded": True,
-                "canonical_authority": boundary.canonical_authority,
-                "mutation_permitted": boundary.mutation_permitted,
-                "promotion_permitted": boundary.promotion_permitted,
+                "memory_authority": not boundary_integrity,
+                "mutation_permitted": not boundary_integrity,
+                "promotion_permitted": not boundary_integrity,
             },
         },
     )
-
     measurement = CandidateMeasurement(
         candidate.candidate_id,
-        baseline,
-        adapted,
+        {"bounded_memory_provider_request_integrity_rate": evaluation.baseline_rate},
+        {"bounded_memory_provider_request_integrity_rate": evaluation.adapted_rate},
         (),
         evaluation.repeatable,
         evaluation.result,
@@ -60,15 +69,10 @@ def run_memory_provider_loop_probe() -> tuple[object, object]:
     evidence = measurement_to_implementation_evidence(
         candidate,
         measurement,
-        metric_directions={"external_memory_candidate_rate": "maximize"},
-        provenance_refs=boundary.evidence_refs,
-        boundary_integrity=(
-            not boundary.canonical_authority
-            and not boundary.mutation_permitted
-            and not boundary.promotion_permitted
-        ),
+        metric_directions={"bounded_memory_provider_request_integrity_rate": "maximize"},
+        provenance_refs=refs,
+        boundary_integrity=boundary_integrity,
     )
-
     handoff = advance_to_implementation(
         candidate,
         adaptation,
@@ -81,6 +85,7 @@ def run_memory_provider_loop_probe() -> tuple[object, object]:
         boundary_integrity=evidence.boundary_integrity,
     )
     return handoff.implementation, evidence
+
 
 
 __all__ = ["run_memory_provider_loop_probe"]
