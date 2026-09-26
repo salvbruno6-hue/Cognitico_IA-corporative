@@ -17,6 +17,8 @@ from .hermes_cron_evaluation import evaluate as evaluate_cron
 from .hermes_mcp_evaluation import evaluate as evaluate_mcp
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
+from .hermes_functional_value_proof import FunctionalValueEvidence, classify
+from .hermes_hook_evaluation import evaluate as evaluate_hook
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
 from .hermes_multiagent_adapter import adapt_delegation
@@ -37,7 +39,7 @@ def _handoff(
     provenance_refs: tuple[str, ...],
     boundary_integrity: bool,
     capability_id: str,
-    functional_value_proven: bool = False,
+    functional_value_evidence: FunctionalValueEvidence | None = None,
 ):
     candidate = build_candidate(candidate_id)
     result = (
@@ -80,7 +82,7 @@ def _handoff(
         regressions=evidence.regressions,
         provenance_refs=evidence.provenance_refs,
         boundary_integrity=evidence.boundary_integrity,
-        functional_value_proven=functional_value_proven,
+        functional_value_evidence=functional_value_evidence,
     )
     return handoff.implementation, evidence
 
@@ -153,7 +155,46 @@ def run_context_plugin_loop_probe() -> tuple[object, object]:
         refs,
         boundary_integrity,
         "HERMES-CONTEXT",
-        functional_value_proven=True,
+        functional_value_evidence=classify(
+            "EXT-CONTEXT-PLUGIN-HERMES",
+            baseline=evaluation.baseline_success_rate,
+            adapted=evaluation.adapted_success_rate,
+            metric="context_task_success_rate",
+            direction="maximize",
+            repeatable=evaluation.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled context-resolution task",
+            provenance_refs=refs,
+        ),
+    )
+
+
+def run_hook_loop_probe() -> tuple[object, object]:
+    """Route EXT-HOOK-HERMES through the existing automation capability surface."""
+    evaluation = evaluate_hook()
+    evidence = classify(
+        "EXT-HOOK-HERMES",
+        baseline=evaluation.baseline_detection_rate,
+        adapted=evaluation.adapted_detection_rate,
+        metric="lifecycle_guardrail_detection_rate",
+        direction="maximize",
+        repeatable=evaluation.repeatable,
+        regressions=(),
+        attribution="CANDIDATE_ATTRIBUTED",
+        proof_scope="controlled lifecycle guardrail detection task",
+        provenance_refs=evaluation.provenance_refs,
+    )
+    return _handoff(
+        "EXT-HOOK-HERMES",
+        "lifecycle_guardrail_detection_rate",
+        evaluation.baseline_detection_rate,
+        evaluation.adapted_detection_rate,
+        evaluation.repeatable,
+        evaluation.provenance_refs,
+        evaluation.boundary_integrity,
+        "HERMES-AUTOMATION",
+        functional_value_evidence=evidence,
     )
 
 
@@ -296,6 +337,7 @@ __all__ = [
     "run_multiagent_loop_probe",
     "run_context_plugin_loop_probe",
     "run_cron_loop_probe",
+    "run_hook_loop_probe",
     "run_worktree_loop_probe",
     "run_mcp_loop_probe",
     "run_independent_review_loop_probe",

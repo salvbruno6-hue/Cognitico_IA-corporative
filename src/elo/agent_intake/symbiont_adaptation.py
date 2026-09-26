@@ -37,7 +37,13 @@ class SymbiontAdaptation:
     canonical_mutation: bool = False
 
 
-EXTENSION_PROFILES: dict[str, CapabilityProfile] = {\n    "EXT-WORKTREE-HERMES": CapabilityProfile(\n        "EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")\n    ),\n}\n\nPROFILES: dict[str, CapabilityProfile] = {
+EXTENSION_PROFILES: dict[str, CapabilityProfile] = {
+    "EXT-WORKTREE-HERMES": CapabilityProfile(
+        "EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")
+    ),
+}
+
+PROFILES: dict[str, CapabilityProfile] = {
     "HERMES-MEMORY": CapabilityProfile(
         "HERMES-MEMORY", "ELO Memory", ("structure", "retrieval", "isolation")
     ),
@@ -73,7 +79,8 @@ EXPERIENCE_SOURCES: dict[str, tuple[str, ...]] = {
     "HERMES-DELEGATION": ("Hermes: subagents", "OpenClaw: src/agents/subagent-spawn.ts"),
     "HERMES-AUTOMATION": ("Hermes: execution scheduling", "OpenClaw: src/cron/schedule.ts"),
     "HERMES-MCP": ("Hermes: external tools/plugins", "OpenClaw: src/mcp/tools-stdio-server.ts"),
-    "HERMES-CHECKPOINT": ("Hermes: execution state", "OpenClaw: src/agents/session-file-repair.ts"),\n    "EXT-WORKTREE-HERMES": ("Hermes: isolated workspaces", "OpenClaw: workspace isolation"),
+    "HERMES-CHECKPOINT": ("Hermes: execution state", "OpenClaw: src/agents/session-file-repair.ts"),
+    "EXT-WORKTREE-HERMES": ("Hermes: isolated workspaces", "OpenClaw: workspace isolation"),
 }
 
 MECHANISMS: dict[str, tuple[str, str]] = {
@@ -84,7 +91,8 @@ MECHANISMS: dict[str, tuple[str, str]] = {
     "HERMES-DELEGATION": ("bounded worker handoff", "delegate only an authorized payload and return a scoped result"),
     "HERMES-AUTOMATION": ("explicit schedule registration", "represent repeatable automation as a governed registration rather than hidden execution"),
     "HERMES-MCP": ("external capability boundary", "require explicit allowlisting before an external capability is considered available"),
-    "HERMES-CHECKPOINT": ("scoped state snapshot and restore", "recover execution state without changing canonical knowledge"),\n    "EXT-WORKTREE-HERMES": ("bounded Forge workspace descriptor", "represent verified isolation without granting merge or canonical authority"),
+    "HERMES-CHECKPOINT": ("scoped state snapshot and restore", "recover execution state without changing canonical knowledge"),
+    "EXT-WORKTREE-HERMES": ("bounded Forge workspace descriptor", "represent verified isolation without granting merge or canonical authority"),
 }
 
 

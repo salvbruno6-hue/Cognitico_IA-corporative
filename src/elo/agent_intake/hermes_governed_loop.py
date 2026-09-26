@@ -17,6 +17,7 @@ from .hermes_capability_loops import (
 from .implementation_loop import ImplementationDecision, ImplementationStage, run_implementation_loop
 from .implementation_loop_readiness import LoopReadiness, assess_loop_readiness
 from .hermes_current_extensions import HermesCandidate
+from .hermes_functional_value_proof import FunctionalValueEvidence
 from .symbiont_adaptation import SymbiontAdaptation
 from .symbiont_implementation_view import (
     ImplementationOwnership,
@@ -106,7 +107,7 @@ def advance_to_implementation(
     regressions: tuple[str, ...] = (),
     provenance_refs: tuple[str, ...] = (),
     boundary_integrity: bool = True,
-    functional_value_proven: bool = False,
+    functional_value_evidence: FunctionalValueEvidence | None = None,
     elo_approved: bool = False,
     evolution_gate_approved: bool = False,
     governance_context: ImplementationGovernanceContext | None = None,
@@ -138,7 +139,7 @@ def advance_to_implementation(
             "GOVERNANCE_LINK_REQUIRED", start_view, end_view,
         )
 
-    if not functional_value_proven:
+    if functional_value_evidence is None or functional_value_evidence.candidate_id != candidate.candidate_id or not functional_value_evidence.functional_gain_proven:
         decision = ImplementationDecision(
             candidate.candidate_id,
             ImplementationStage.MEASURED_GAIN,
