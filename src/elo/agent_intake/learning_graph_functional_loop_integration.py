@@ -11,7 +11,7 @@ def run_learning_graph_functional_loop_probe() -> tuple[object, object]:
     candidate=build_candidate("EXT-LEARNING-GRAPH-HERMES")
     functional=evaluate_learning_graph_functional_gain()
     adaptation=refine_capability(
-        "HERMES-EVOLUTION-MEMORY",
+        "HERMES-MEMORY",
         {"controlled_test": True, "outcome": {
             "duplicate_relation_blocked": functional.adapted_duplicate_relation_block_rate == 1.0,
             "canonical_authority_blocked": functional.boundary_integrity,
