@@ -19,6 +19,7 @@ class CheckpointLoopMeasurement:
     adapted: Mapping[str, float]
     regressions: tuple[str, ...]
     repeatable: bool
+    candidate_incremental_effect_isolated: bool
     candidate_id: str = "EXT-CHECKPOINT-HERMES"
     metric_directions: Mapping[str, str] = None
 
@@ -32,7 +33,9 @@ class CheckpointLoopMeasurement:
             repeatable=self.repeatable,
             result="REJECT" if self.regressions else (
                 "EVOLUTION_GATE_REQUIRED"
-                if self.repeatable and self.adapted.get("recovery_success", 0.0)
+                if self.repeatable
+                and self.candidate_incremental_effect_isolated
+                and self.adapted.get("recovery_success", 0.0)
                 > self.baseline.get("recovery_success", 0.0)
                 else "RETEST"
             ),
@@ -77,6 +80,7 @@ def evaluate_checkpoint_loop_harness(
         adapted=adapted,
         regressions=regressions,
         repeatable=repeatable,
+        candidate_incremental_effect_isolated=False,
         metric_directions={"recovery_success": "maximize"},
     )
 
