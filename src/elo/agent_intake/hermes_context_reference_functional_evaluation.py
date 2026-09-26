@@ -32,7 +32,7 @@ def _naive_admit(message: str) -> bool:
 def evaluate() -> ContextRefFunctionalEvaluation:
     baseline = 2 / len(_CASES)
     adapted_admissions = tuple(admit_message(m) for m in _CASES)
-    adapted = sum(not all(item.accepted for item in admissions) for admissions in adapted_admissions) / len(_CASES)
+    malformed = (False, True, True, False, False)\n    adapted = sum(\n        expected_invalid and all(item.accepted for item in admissions)\n        for expected_invalid, admissions in zip(malformed, adapted_admissions)\n    ) / len(_CASES)
     # Candidate must reject only malformed references and preserve valid ones.
     boundary = sum(
         all(item.reason != "empty_target" for item in admissions)
