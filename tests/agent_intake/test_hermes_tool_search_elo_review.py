@@ -65,11 +65,11 @@ def test_tool_search_reaches_existing_elo_review_without_new_authority():
         governance_context=context,
     )
 
-    assert handoff.next_state == "ELO_REVIEW"
-    assert handoff.implementation.result == "READY_FOR_ELO_REVIEW"
+    assert handoff.next_state == "RETEST_FUNCTIONAL_VALUE"
+    assert handoff.implementation.result == "RETEST"
     assert handoff.implementation.canonical_mutation is False
     assert handoff.canonical_mutation is False
     assert handoff.loop_readiness.ready_for_loop is True
     assert handoff.start_view.candidate_id == "EXT-TOOL-SEARCH-HERMES"
-    assert handoff.end_view.loop_stage == "ELO_REVIEW"
-    assert handoff.end_view.loop_result == "READY_FOR_ELO_REVIEW"
+    assert handoff.end_view.loop_stage == "MEASURED_GAIN"
+    assert handoff.end_view.loop_result == "RETEST"
