@@ -24,6 +24,7 @@ from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
 from .hermes_multiagent_functional_evaluation import evaluate_multiagent_functional_gain
 from .hermes_multiagent_adapter import adapt_delegation
+from .hermes_memory_provider_functional_evaluation import evaluate_memory_provider_functional_gain
 from .hermes_worktree_adapter import adapt_worktree
 from .hermes_worktree_boundary import WorktreeSignal
 from .hermes_worktree_evaluation import evaluate as evaluate_worktree
@@ -241,6 +242,33 @@ def run_cron_loop_probe() -> tuple[object, object]:
         ),
     )
 
+
+
+def run_memory_provider_loop_probe() -> tuple[object, object]:
+    """Route EXT-MEMPROVIDER-HERMES through the existing HERMES-MEMORY surface."""
+    functional = evaluate_memory_provider_functional_gain()
+    return _handoff(
+        "EXT-MEMPROVIDER-HERMES",
+        "provider_identity_preservation_rate",
+        functional.baseline_identity_preservation_rate,
+        functional.adapted_identity_preservation_rate,
+        functional.repeatable,
+        functional.provenance_refs,
+        functional.boundary_integrity,
+        "HERMES-MEMORY",
+        functional_value_evidence=classify(
+            "EXT-MEMPROVIDER-HERMES",
+            baseline=functional.baseline_identity_preservation_rate,
+            adapted=functional.adapted_identity_preservation_rate,
+            metric="provider_identity_preservation_rate",
+            direction="maximize",
+            repeatable=functional.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled retrieval request provider/evidence identity preservation",
+            provenance_refs=functional.provenance_refs,
+        ),
+    )
 
 
 def run_worktree_loop_probe() -> tuple[object, object]:
