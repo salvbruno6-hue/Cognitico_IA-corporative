@@ -3,6 +3,7 @@
 import pytest
 
 from elo.agent_intake.native_capabilities import CAPABILITY_IDS
+from elo.agent_intake.symbiont_adaptation import EXTENSION_PROFILES
 from elo.agent_intake.symbiont_adaptation import (
     EXPERIENCE_SOURCES,
     PROFILES,
@@ -85,7 +86,10 @@ def test_partially_failed_controlled_outcome_is_not_verified_or_test_eligible():
 def test_eight_experiences_map_one_to_one_without_new_capability_authority():
     assert set(PROFILES) == set(CAPABILITY_IDS)
     assert set(EXPERIENCE_SOURCES) == set(CAPABILITY_IDS)
+    assert set(PROFILES) == set(CAPABILITY_IDS)
     assert len(PROFILES) == len(EXPERIENCE_SOURCES) == len(CAPABILITY_IDS) == 8
+    assert len(EXTENSION_PROFILES) == 1
+    assert "EXT-WORKTREE-HERMES" in EXTENSION_PROFILES
     assert len({profile.existing_capacity for profile in PROFILES.values()}) == 8
 
 
