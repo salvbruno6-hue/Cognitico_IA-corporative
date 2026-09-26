@@ -1,10 +1,10 @@
 from elo.agent_intake.hermes_context_plugin_evaluation import evaluate_context_plugin_candidate
 
-def test_context_plugin_controlled_evaluation_is_repeatable_without_claiming_gain():
+def test_context_plugin_controlled_evaluation_records_candidate_gain():
     result = evaluate_context_plugin_candidate()
     assert result.candidate_id == "EXT-CONTEXT-PLUGIN-HERMES"
-    assert result.baseline_success_rate == 1.0
+    assert result.baseline_success_rate == 0.0
     assert result.adapted_success_rate == 1.0
     assert result.boundary_integrity_rate == 1.0
     assert result.repeatable is True
-    assert result.result == "RETEST"
+    assert result.result == "EVOLUTION_GATE_REQUIRED"
