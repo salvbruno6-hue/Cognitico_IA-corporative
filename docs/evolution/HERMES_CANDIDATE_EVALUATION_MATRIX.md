@@ -64,3 +64,24 @@ Each evaluation must record:
 13. EXT-HOOK-HERMES
 
 The order is an execution sequence, not a quality ranking.
+
+
+## Controlled validation results — 2026-09-26
+
+| Candidate | Current evidence | Functional attribution | Symbiont handoff |
+|---|---|---|---|
+| EXT-CONTEXT-PLUGIN-HERMES | controlled task gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
+| EXT-WORKTREE-HERMES | bounded workspace contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-MULTIAGENT-HERMES | bounded delegation contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-CRON-HERMES | bounded schedule contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-MEMPROVIDER-HERMES | bounded retrieval contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-ROUTE-HERMES | bounded routing-plan contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-PROFILE-HERMES | bounded profile isolation | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-BATCH-HERMES | bounded batch intake | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-LEARN-HERMES | candidate skill admission contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-LEARNING-GRAPH-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
+| EXT-CONTEXTREF-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
+| EXT-CHECKPOINT-HERMES | recovery 0.00 → 1.00 through existing owner | owner-attributed; candidate effect not isolated | RETEST_FUNCTIONAL_VALUE |
+| EXT-HOOK-HERMES | controlled lifecycle gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
+
+**Interpretation:** contract/boundary integrity is not counted as functional value. Candidate-attributed functional gain is required before the existing Symbiont implementation loop can advance. EXT-CHECKPOINT-HERMES remains fail-closed because the measured recovery is supplied by the existing ELO State Recovery owner.
