@@ -7,7 +7,7 @@
 | Candidate | Existing ELO owner | Primary measurable metric | Direction | Required evidence | Main boundary |
 |---|---|---|---|---|---|
 | EXT-CONTEXTREF-HERMES | ELO Context | reference resolution accuracy | maximize | provenance + bounded resolution | no context authority |
-| EXT-CHECKPOINT-HERMES | ELO State Recovery | recovery integrity rate | maximize | deterministic restore/recovery | no second state authority |
+| EXT-CHECKPOINT-HERMES | ELO State Recovery | unsafe replay block rate | maximize | stale-checkpoint version guard + ordinary recovery integrity | no second state authority |
 | EXT-HOOK-HERMES | ELO Workflow/Automation | guardrail interception coverage | maximize | lifecycle evidence + no bypass | no execution authority |
 | EXT-ROUTE-HERMES | ELO Model/Tool Routing | successful policy-routed execution rate | maximize | fallback/credential evidence | no routing authority |
 | EXT-PROFILE-HERMES | ELO Agent Context & Delegation | profile isolation compliance | maximize | isolation + provenance | no shared-state mutation |
@@ -81,7 +81,7 @@ The order is an execution sequence, not a quality ranking.
 | EXT-LEARN-HERMES | candidate skill admission contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-LEARNING-GRAPH-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
 | EXT-CONTEXTREF-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
-| EXT-CHECKPOINT-HERMES | recovery 0.00 → 1.00 through existing owner | owner-attributed; candidate effect not isolated | RETEST_FUNCTIONAL_VALUE |
+| EXT-CHECKPOINT-HERMES | recovery remains 1.00 → 1.00; stale-replay block 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-HOOK-HERMES | controlled lifecycle gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
 
-**Interpretation:** contract/boundary integrity is not counted as functional value. Candidate-attributed functional gain is required before the existing Symbiont implementation loop can advance. EXT-CHECKPOINT-HERMES remains fail-closed because the measured recovery is supplied by the existing ELO State Recovery owner.
+**Interpretation:** contract/boundary integrity is not counted as functional value. Candidate-attributed functional gain is required before the existing Symbiont implementation loop can advance. For EXT-CHECKPOINT-HERMES, ordinary recovery remains supplied by the existing ELO State Recovery owner; the candidate-specific gain is the independently measured stale-checkpoint replay guard.

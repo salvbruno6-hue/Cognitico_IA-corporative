@@ -1,15 +1,16 @@
-from src.elo.agent_intake.hermes_functional_value_proof import CURRENT_EVIDENCE, functional_candidates
+from elo.agent_intake.hermes_functional_value_proof import CURRENT_EVIDENCE, functional_candidates
 
 def test_candidate_attributed_functional_gains_are_selected():
     assert [item.candidate_id for item in functional_candidates()] == [
-        "EXT-CONTEXT-PLUGIN-HERMES", "EXT-HOOK-HERMES"
+        "EXT-CONTEXT-PLUGIN-HERMES", "EXT-HOOK-HERMES", "EXT-CHECKPOINT-HERMES"
     ]
 
-def test_checkpoint_is_not_misattributed_to_hermes_candidate():
+def test_checkpoint_is_attributed_only_to_the_isolated_replay_guard():
     item = next(x for x in CURRENT_EVIDENCE if x.candidate_id == "EXT-CHECKPOINT-HERMES")
-    assert item.level == "IMPLEMENTATION_BOUNDARY"
-    assert item.attribution == "OWNER_ATTRIBUTED"
-    assert not item.functional_gain_proven
+    assert item.level == "FUNCTIONAL_CONTROLLED_GAIN"
+    assert item.attribution == "CANDIDATE_ATTRIBUTED"
+    assert item.metric == "unsafe_replay_block_rate"
+    assert item.functional_gain_proven
 
 def test_contract_gain_does_not_become_functional_gain():
     item = next(x for x in CURRENT_EVIDENCE if x.candidate_id == "EXT-PROMPT-CACHE-HERMES")

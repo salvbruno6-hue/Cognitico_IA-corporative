@@ -35,31 +35,32 @@ def test_incomplete_evidence_stops_before_elo_review():
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-001",),
     )
-    assert result.next_state == "MEASURED_GAIN"
+    assert result.next_state == "RETEST_FUNCTIONAL_VALUE"
     assert result.implementation.result == "RETEST"
     assert not result.implementation.canonical_mutation
 
 
-def test_positive_repeatable_gain_reaches_elo_review_not_approval():
+def test_positive_repeatable_gain_without_structured_proof_still_stops_before_elo_review():
     result = advance_to_implementation(
         build_candidate("EXT-CHECKPOINT-HERMES"), verified_adaptation(),
         {"latency": 10.0}, {"latency": 8.0},
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-002", "eval-003"),
     )
-    assert result.next_state == "ELO_REVIEW"
-    assert result.implementation.result == "READY_FOR_ELO_REVIEW"
+    assert result.next_state == "RETEST_FUNCTIONAL_VALUE"
+    assert result.implementation.result == "RETEST"
+    assert not result.implementation.canonical_mutation
 
 
-def test_explicit_elo_approval_reaches_implementation_authorized_only():
+def test_explicit_approval_flags_do_not_bypass_missing_functional_proof():
     result = advance_to_implementation(
         build_candidate("EXT-CHECKPOINT-HERMES"), verified_adaptation(),
         {"latency": 10.0}, {"latency": 8.0},
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-004", "eval-005"), elo_approved=True, evolution_gate_approved=True,
     )
-    assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
-    assert result.implementation.result == "IMPLEMENTATION_AUTHORIZED"
+    assert result.next_state == "RETEST_FUNCTIONAL_VALUE"
+    assert result.implementation.result == "RETEST"
     assert not result.implementation.canonical_mutation
 
 
@@ -98,6 +99,7 @@ def test_approved_candidate_closure_reaches_authorized_without_canonical_mutatio
     assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
     assert result.implementation.result == "IMPLEMENTATION_AUTHORIZED"
     assert not result.implementation.canonical_mutation
+
 
 def test_approved_candidate_closure_requires_governance_linkage():
     result = close_approved_candidate(

@@ -6,6 +6,6 @@ def test_hook_probe_reaches_elo_review_without_authorization():
     assert evidence.adapted["guardrail_interception_coverage"] == 1.0
     assert evidence.repeatable is True and evidence.regressions == ()
     assert evidence.boundary_integrity is True and evidence.is_complete() is True
-    assert decision.stage is ImplementationStage.ELO_REVIEW
-    assert decision.result == "READY_FOR_ELO_REVIEW"
+    assert decision.stage is ImplementationStage.MEASURED_GAIN
+    assert decision.result == "RETEST"
     assert decision.canonical_mutation is False

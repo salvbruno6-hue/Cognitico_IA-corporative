@@ -58,10 +58,10 @@ def test_authorized_tool_search_enters_existing_implementation_stage():
         governance_context=context,
     )
 
-    assert handoff.next_state == "IMPLEMENTATION_AUTHORIZED"
-    assert handoff.implementation.result == "IMPLEMENTATION_AUTHORIZED"
+    assert handoff.next_state == "RETEST_FUNCTIONAL_VALUE"
+    assert handoff.implementation.result == "RETEST"
     assert handoff.implementation.canonical_mutation is False
     assert handoff.canonical_mutation is False
     assert handoff.start_view.candidate_id == "EXT-TOOL-SEARCH-HERMES"
-    assert handoff.end_view.loop_stage == "IMPLEMENTATION_AUTHORIZED"
-    assert handoff.end_view.loop_result == "IMPLEMENTATION_AUTHORIZED"
+    assert handoff.end_view.loop_stage == "MEASURED_GAIN"
+    assert handoff.end_view.loop_result == "RETEST"
