@@ -10,7 +10,7 @@
 | EXT-CHECKPOINT-HERMES | ELO State Recovery | unsafe replay block rate | maximize | stale-checkpoint version guard + ordinary recovery integrity | no second state authority |
 | EXT-HOOK-HERMES | ELO Workflow/Automation | guardrail interception coverage | maximize | lifecycle evidence + no bypass | no execution authority |
 | EXT-ROUTE-HERMES | ELO Model/Tool Routing | successful policy-routed execution rate | maximize | fallback/credential evidence | no routing authority |
-| EXT-PROFILE-HERMES | ELO Agent Context & Delegation | profile isolation compliance | maximize | isolation + provenance | no shared-state mutation |
+| EXT-PROFILE-HERMES | ELO Agent Context & Delegation | collision-free profile task rate 0.00 → 1.00 | maximize | candidate-attributed controlled gain | no shared-state mutation |
 | EXT-BATCH-HERMES | ELO Evaluation & Learning | valid evaluation throughput | maximize | batch provenance + bounded intake | no automatic promotion |
 | EXT-MEMPROVIDER-HERMES | ELO Memory | evidence retrieval precision | maximize | provider provenance + digest | no memory authority |
 | EXT-LEARN-HERMES | ELO Knowledge & Skills | validated skill admission precision | maximize | source provenance + governance | no autonomous skill promotion |
