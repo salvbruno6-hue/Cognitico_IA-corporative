@@ -4,5 +4,4 @@ def test_worktree_uses_existing_governed_loop():
     handoff, evidence = run_worktree_loop_probe()
     assert evidence.adapted["collision_free_task_rate"] == 1.0
     assert handoff.result == "READY_FOR_ELO_REVIEW"
-    assert handoff.result == "RETEST"
     assert handoff.canonical_mutation is False
