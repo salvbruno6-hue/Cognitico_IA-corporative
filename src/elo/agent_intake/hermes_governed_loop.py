@@ -106,6 +106,7 @@ def advance_to_implementation(
     regressions: tuple[str, ...] = (),
     provenance_refs: tuple[str, ...] = (),
     boundary_integrity: bool = True,
+    functional_value_proven: bool = False,
     elo_approved: bool = False,
     evolution_gate_approved: bool = False,
     governance_context: ImplementationGovernanceContext | None = None,
@@ -135,6 +136,20 @@ def advance_to_implementation(
         return GovernedLoopHandoff(
             candidate.candidate_id, readiness, decision, None,
             "GOVERNANCE_LINK_REQUIRED", start_view, end_view,
+        )
+
+    if not functional_value_proven:
+        decision = ImplementationDecision(
+            candidate.candidate_id,
+            ImplementationStage.MEASURED_GAIN,
+            "RETEST",
+            False,
+            "contract or boundary gain is insufficient; candidate-attributed functional value proof is required",
+        )
+        _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result, evidence_refs=provenance_refs)
+        return GovernedLoopHandoff(
+            candidate.candidate_id, readiness, decision, None, "RETEST_FUNCTIONAL_VALUE",
+            start_view, end_view,
         )
 
     if not readiness.ready_for_loop:
