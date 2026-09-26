@@ -57,4 +57,17 @@ def classify(candidate_id: str, *, baseline: float, adapted: float, metric: str,
                                    repeatable, regressions, attribution, proof_scope,
                                    provenance_refs, production_proven)
 
-__all__ = ["Attribution","EvidenceLevel","FunctionalValueEvidence","classify"]
+HOOK_EVIDENCE = classify(
+    "EXT-HOOK-HERMES",
+    baseline=0.0,
+    adapted=1.0,
+    metric="lifecycle_guardrail_detection_rate",
+    direction="maximize",
+    repeatable=True,
+    regressions=(),
+    attribution="CANDIDATE_ATTRIBUTED",
+    proof_scope="controlled lifecycle guardrail detection task",
+    provenance_refs=("controlled-eval:hook/1", "controlled-eval:hook/2", "controlled-eval:hook/3", "controlled-eval:hook/4", "controlled-eval:hook/5"),
+)
+
+__all__ = ["Attribution","EvidenceLevel","FunctionalValueEvidence","classify","HOOK_EVIDENCE"]
