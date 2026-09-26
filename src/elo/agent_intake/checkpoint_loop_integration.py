@@ -115,7 +115,7 @@ def close_checkpoint_approved_candidate(
             "outcome": {
                 "integrity": True,
                 "continuity": True,
-                "unsafe_replay_blocked": measurement.adapted["unsafe_replay_block_rate"],
+                "unsafe_replay_blocked": measurement.adapted["unsafe_replay_block_rate"] == 1.0,
             },
         },
     )
