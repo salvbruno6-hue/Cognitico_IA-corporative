@@ -18,6 +18,9 @@ from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
+from .hermes_worktree_adapter import adapt_worktree
+from .hermes_worktree_boundary import WorktreeSignal
+from .hermes_worktree_evaluation import evaluate as evaluate_worktree
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .independent_review import IndependentReviewEvidence, validate_independent_review
 from .symbiont_adaptation import refine_capability
@@ -184,6 +187,44 @@ def run_cron_loop_probe() -> tuple[object, object]:
 
 
 
+def run_worktree_loop_probe() -> tuple[object, object]:
+    """Route EXT-WORKTREE-HERMES through the existing governed implementation loop."""
+    evaluation = evaluate_worktree()
+    signals = tuple(
+        WorktreeSignal(
+            f"worktree-loop-{i}",
+            "multiteiner",
+            f"wt/loop/{i}",
+            (f"controlled-eval:worktree/{i}",),
+            "main",
+            True,
+            provenance_verified=True,
+        )
+        for i in range(1, 6)
+    )
+    workspaces = tuple(adapt_worktree(signal) for signal in signals)
+    refs = tuple(
+        ref for workspace in workspaces if workspace is not None
+        for ref in workspace.source_refs
+    )
+    boundary_integrity = all(
+        workspace is not None
+        and not workspace.canonical_authority
+        and not workspace.merge_authority
+        for workspace in workspaces
+    )
+    return _handoff(
+        "EXT-WORKTREE-HERMES",
+        "isolated_workspace_integrity_rate",
+        evaluation.baseline_rate,
+        evaluation.adapted_rate,
+        evaluation.repeatable,
+        refs,
+        boundary_integrity,
+        "EXT-WORKTREE-HERMES",
+    )
+
+
 def run_mcp_loop_probe() -> tuple[object, object]:
     """Route EXT-MCP-HERMES through the existing HERMES-MCP gateway surface."""
     evaluation = evaluate_mcp()
@@ -242,6 +283,7 @@ __all__ = [
     "run_multiagent_loop_probe",
     "run_context_plugin_loop_probe",
     "run_cron_loop_probe",
+    "run_worktree_loop_probe",
     "run_mcp_loop_probe",
     "run_independent_review_loop_probe",
 ]
