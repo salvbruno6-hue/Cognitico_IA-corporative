@@ -25,7 +25,7 @@ Functional credit requires: existing task; candidate intervention; changed outco
 
 ## Current result
 
-EXT-CONTEXT-PLUGIN-HERMES is currently the only candidate in the audited 13-candidate sequence with positive controlled task-level gain attributable to the candidate: baseline task success 0.00, adapted task success 1.00, repeatable adapted success, and invalid provenance rejection. This is controlled context-resolution evidence, not production evidence.
+EXT-CONTEXT-PLUGIN-HERMES and EXT-CHECKPOINT-HERMES now have positive controlled task-level gains attributable to the candidate. Context Plugin records task success 0.00 → 1.00 with provenance rejection. Checkpoint records stale-replay block rate 0.00 → 1.00 while ordinary recovery remains 1.00 → 1.00 under the existing ELO State Recovery owner. Both are controlled evidence, not production evidence.
 
 EXT-CHECKPOINT-HERMES shows recovery behavior 0.00 to 1.00, but the harness invokes the existing ELO State Recovery owner directly. Therefore recovery is proven, while incremental Hermes attribution is not isolated.
 
