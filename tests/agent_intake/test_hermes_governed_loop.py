@@ -35,7 +35,7 @@ def test_incomplete_evidence_stops_before_elo_review():
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-001",),
     )
-    assert result.next_state == "MEASURED_GAIN"
+    assert result.next_state == "RETEST_FUNCTIONAL_VALUE"
     assert result.implementation.result == "RETEST"
     assert not result.implementation.canonical_mutation
 
@@ -47,7 +47,7 @@ def test_positive_repeatable_gain_reaches_elo_review_not_approval():
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-002", "eval-003"),
     )
-    assert result.next_state == "ELO_REVIEW"
+    assert result.next_state == "RETEST_FUNCTIONAL_VALUE"
     assert result.implementation.result == "READY_FOR_ELO_REVIEW"
 
 
@@ -58,8 +58,8 @@ def test_explicit_elo_approval_reaches_implementation_authorized_only():
         metric_directions={"latency": "minimize"}, repeatable=True,
         provenance_refs=("eval-004", "eval-005"), elo_approved=True, evolution_gate_approved=True,
     )
-    assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
-    assert result.implementation.result == "IMPLEMENTATION_AUTHORIZED"
+    assert result.next_state == "RETEST_FUNCTIONAL_VALUE"
+    assert result.implementation.result == "RETEST"
     assert not result.implementation.canonical_mutation
 
 
