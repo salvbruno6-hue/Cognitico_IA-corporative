@@ -6,7 +6,7 @@
 
 | Candidate | Existing ELO owner | Primary measurable metric | Direction | Required evidence | Main boundary |
 |---|---|---|---|---|---|
-| EXT-CONTEXTREF-HERMES | ELO Context | reference resolution accuracy | maximize | provenance + bounded resolution | no context authority |
+| EXT-CONTEXTREF-HERMES | ELO Context | reference resolution accuracy 1.00 → 1.00 | maximize | NO_INCREMENTAL_GAIN; final negative validation | no context authority |
 | EXT-CHECKPOINT-HERMES | ELO State Recovery | unsafe replay block rate | maximize | stale-checkpoint version guard + ordinary recovery integrity | no second state authority |
 | EXT-HOOK-HERMES | ELO Workflow/Automation | guardrail interception coverage | maximize | lifecycle evidence + no bypass | no execution authority |
 | EXT-ROUTE-HERMES | ELO Model/Tool Routing | successful policy-routed execution rate | maximize | fallback/credential evidence | no routing authority |
