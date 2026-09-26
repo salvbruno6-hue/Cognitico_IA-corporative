@@ -58,7 +58,7 @@ def evaluate_learning_graph_functional_gain() -> LearningGraphFunctionalEvidence
     boundary = (
         validate_graph_relation(first).canonical_authority is False
         and validate_graph_relation(distinct).canonical_authority is False
-        and not hasattr(duplicate, "canonical_authority") is False
+        and validate_graph_relation(duplicate).canonical_authority is False
     )
     refs=tuple(ref for relation in _relations("HERMES") for ref in relation.evidence_refs)
     return LearningGraphFunctionalEvidence(baseline, adapted, repeatable, boundary, refs)
