@@ -14,6 +14,7 @@ from .hermes_context_plugin_evaluation import evaluate_context_plugin_candidate
 from .hermes_cron_adapter import adapt_schedule
 from .hermes_cron_boundary import ScheduleSignal
 from .hermes_cron_evaluation import evaluate as evaluate_cron
+from .hermes_cron_functional_evaluation import evaluate_cron_functional_gain
 from .hermes_mcp_evaluation import evaluate as evaluate_mcp
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
@@ -214,44 +215,30 @@ def run_hook_loop_probe() -> tuple[object, object]:
 
 
 def run_cron_loop_probe() -> tuple[object, object]:
-    """Route EXT-CRON-HERMES through the existing HERMES-AUTOMATION surface."""
+    """Route EXT-CRON-HERMES through HERMES-AUTOMATION with functional evidence."""
     evaluation = evaluate_cron()
-    signals = tuple(
-        ScheduleSignal(
-            f"cron-loop-{i}",
-            "multiteiner",
-            f"task-{i}",
-            (f"controlled-eval:cron/{i}",),
-            "0 8 * * *",
-            "elo",
-            provenance_verified=True,
-            explicit_authorization=True,
-            idempotent=True,
-            governance_bypass=False,
-        )
-        for i in range(1, 6)
-    )
-    contracts = tuple(adapt_schedule(signal) for signal in signals)
-    refs = tuple(
-        ref for contract in contracts if contract is not None
-        for ref in contract.source_refs
-    )
-    boundary_integrity = all(
-        contract is not None
-        and not contract.canonical_authority
-        and not contract.execution_permitted
-        and bool(contract.idempotency_key)
-        for contract in contracts
-    )
+    functional = evaluate_cron_functional_gain()
     return _handoff(
         "EXT-CRON-HERMES",
-        "bounded_schedule_registration_integrity_rate",
-        evaluation.baseline_rate,
-        evaluation.adapted_rate,
-        evaluation.repeatable,
-        refs,
-        boundary_integrity,
+        "idempotency_collision_free_rate",
+        functional.baseline_idempotency_collision_free_rate,
+        functional.adapted_idempotency_collision_free_rate,
+        functional.repeatable,
+        functional.provenance_refs,
+        functional.boundary_integrity,
         "HERMES-AUTOMATION",
+        functional_value_evidence=classify(
+            "EXT-CRON-HERMES",
+            baseline=functional.baseline_idempotency_collision_free_rate,
+            adapted=functional.adapted_idempotency_collision_free_rate,
+            metric="idempotency_collision_free_rate",
+            direction="maximize",
+            repeatable=functional.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled distinct-task schedule idempotency collision prevention",
+            provenance_refs=functional.provenance_refs,
+        ),
     )
 
 
