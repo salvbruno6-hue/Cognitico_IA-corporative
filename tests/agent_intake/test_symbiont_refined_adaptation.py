@@ -87,7 +87,8 @@ def test_eight_experiences_map_one_to_one_without_new_capability_authority():
     assert set(PROFILES) == set(CAPABILITY_IDS)
     assert set(CAPABILITY_IDS).issubset(EXPERIENCE_SOURCES)
     assert set(PROFILES) == set(CAPABILITY_IDS)
-    assert len(PROFILES) == len(EXPERIENCE_SOURCES) == len(CAPABILITY_IDS) == 8
+    assert len(PROFILES) == len(CAPABILITY_IDS) == 8
+    assert len(EXPERIENCE_SOURCES) == 9
     assert len(EXTENSION_PROFILES) == 1
     assert "EXT-WORKTREE-HERMES" in EXTENSION_PROFILES
     assert len({profile.existing_capacity for profile in PROFILES.values()}) == 8
