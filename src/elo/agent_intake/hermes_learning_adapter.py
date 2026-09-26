@@ -17,7 +17,7 @@ class SkillLearningContract:
 class LearningAdapter:
     def adapt(self, signal: SkillLearningSignal) -> SkillLearningContract | None:
         decision=evaluate_skill_learning(signal)
-        if not decision.admitted or decision.state is not LearningState.CANDIDATE:
+        if not decision.admitted or decision.state != "CANDIDATE":
             return None
         return SkillLearningContract(
             signal.signal_id, signal.tenant_scope, signal.skill_name,
