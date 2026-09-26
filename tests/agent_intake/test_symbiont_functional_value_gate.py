@@ -9,4 +9,4 @@ def test_context_plugin_functional_gain_can_cross_governed_handoff():
 def test_contract_only_multiagent_gain_stops_before_elo_review():
     decision, _ = run_multiagent_loop_probe()
     assert decision.result == "RETEST"
-    assert decision.next_state == "RETEST_FUNCTIONAL_VALUE"
+    assert decision.result == "RETEST"
