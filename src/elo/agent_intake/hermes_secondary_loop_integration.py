@@ -17,7 +17,7 @@ from .hermes_mcp_evaluation import evaluate as evaluate_mcp
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_governed_loop import advance_to_implementation
 from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
-from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
+from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent\nfrom .hermes_worktree_adapter import adapt_worktree\nfrom .hermes_worktree_boundary import WorktreeSignal\nfrom .hermes_worktree_evaluation import evaluate as evaluate_worktree
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .independent_review import IndependentReviewEvidence, validate_independent_review
 from .symbiont_adaptation import refine_capability
