@@ -6,9 +6,9 @@ def test_cron_candidate_enters_shared_governed_loop_without_promotion():
 
     assert implementation.result == "RETEST"
     assert evidence.candidate_id == "EXT-CRON-HERMES"
-    assert evidence.metric_directions == {"authorized_idempotent_schedule_recognition_rate": "maximize"}
-    assert evidence.baseline == {"authorized_idempotent_schedule_recognition_rate": 1.0}
-    assert evidence.adapted == {"authorized_idempotent_schedule_recognition_rate": 1.0}
+    assert evidence.metric_directions == {"bounded_schedule_registration_integrity_rate": "maximize"}
+    assert evidence.baseline == {"bounded_schedule_registration_integrity_rate": 0.0}
+    assert evidence.adapted == {"bounded_schedule_registration_integrity_rate": 1.0}
     assert evidence.repeatable is True
     assert evidence.boundary_integrity is True
     assert implementation.canonical_mutation is False
