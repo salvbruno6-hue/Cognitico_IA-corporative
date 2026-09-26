@@ -275,7 +275,7 @@ def run_worktree_loop_probe() -> tuple[object, object]:
         evaluation.repeatable,
         refs,
         boundary_integrity,
-        "ELO Forge",
+        "EXT-WORKTREE-HERMES",
     )
 
 
