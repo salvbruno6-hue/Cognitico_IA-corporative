@@ -25,7 +25,7 @@ Functional credit requires: existing task; candidate intervention; changed outco
 
 ## Current result
 
-EXT-CONTEXT-PLUGIN-HERMES and EXT-CHECKPOINT-HERMES now have positive controlled task-level gains attributable to the candidate. Context Plugin records task success 0.00 → 1.00 with provenance rejection. Checkpoint records stale-replay block rate 0.00 → 1.00 while ordinary recovery remains 1.00 → 1.00 under the existing ELO State Recovery owner. Both are accepted as valid functional-evolution evidence for the governed ELO flow. They do not require production evidence to establish the candidate's functional gain; production proof remains a separate operational claim.
+EXT-CONTEXT-PLUGIN-HERMES, EXT-CHECKPOINT-HERMES, and EXT-WORKTREE-HERMES now have positive controlled task-level gains attributable to the candidate. Worktree records collision-free concurrent-task rate 0.00 → 1.00 through isolated workspace identity assignment. Context Plugin records task success 0.00 → 1.00 with provenance rejection. Checkpoint records stale-replay block rate 0.00 → 1.00 while ordinary recovery remains 1.00 → 1.00 under the existing ELO State Recovery owner. Both are accepted as valid functional-evolution evidence for the governed ELO flow. They do not require production evidence to establish the candidate's functional gain; production proof remains a separate operational claim.
 
 EXT-CHECKPOINT-HERMES shows recovery behavior 0.00 to 1.00, but the harness invokes the existing ELO State Recovery owner directly. Therefore recovery is proven, while incremental Hermes attribution is not isolated.
 
