@@ -37,7 +37,13 @@ class SymbiontAdaptation:
     canonical_mutation: bool = False
 
 
-EXTENSION_PROFILES: dict[str, CapabilityProfile] = {\n    "EXT-WORKTREE-HERMES": CapabilityProfile(\n        "EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")\n    ),\n}\n\nPROFILES: dict[str, CapabilityProfile] = {
+EXTENSION_PROFILES: dict[str, CapabilityProfile] = {
+    "EXT-WORKTREE-HERMES": CapabilityProfile(
+        "EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")
+    ),
+}
+
+PROFILES: dict[str, CapabilityProfile] = {
     "HERMES-MEMORY": CapabilityProfile(
         "HERMES-MEMORY", "ELO Memory", ("structure", "retrieval", "isolation")
     ),
