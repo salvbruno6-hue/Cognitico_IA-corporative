@@ -6,7 +6,8 @@ own an implementation state machine or approval authority.
 from __future__ import annotations
 
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
-from .hermes_routing_boundary import RoutingSignal, assess_routing
+from .hermes_routing_adapter import adapt_routing
+from .hermes_routing_boundary import RoutingSignal
 from .hermes_routing_evaluation import evaluate
 from .hermes_governed_loop import advance_to_implementation
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
@@ -16,30 +17,49 @@ from .symbiont_adaptation import refine_capability
 def run_route_loop_probe() -> tuple[object, object]:
     candidate = build_candidate("EXT-ROUTE-HERMES")
     evaluation = evaluate()
-    baseline = {"successful_policy_routed_execution_rate": evaluation.baseline_rate}
-    adapted = {"successful_policy_routed_execution_rate": evaluation.adapted_rate}
-
-    signal = RoutingSignal(
-        "route-loop",
-        "multiteiner",
-        ("controlled-eval:route-loop",),
-        "provider-a",
-        ("provider-b",),
-        "bounded-pool-v1",
-        True,
-        True,
+    signals = tuple(
+        RoutingSignal(
+            f"route-loop-{i}",
+            "multiteiner",
+            (f"controlled-eval:route-loop/{i}",),
+            "provider-a",
+            ("provider-b",),
+            "bounded-pool-v1",
+            True,
+            True,
+            False,
+            False,
+        )
+        for i in range(1, 6)
     )
-    boundary = assess_routing(signal)
+    contracts = tuple(adapt_routing(signal) for signal in signals)
+    refs = tuple(
+        ref for contract in contracts if contract is not None
+        for ref in contract.source_refs
+    )
+    boundary_integrity = all(
+        contract is not None
+        and not contract.canonical_authority
+        and not contract.execution_permitted
+        and not contract.governance_bypass_permitted
+        for contract in contracts
+    )
 
     adaptation = refine_capability(
         "HERMES-TOOLSETS",
-        {"controlled_test": True, "outcome": {"policy": True, "boundary": True}},
+        {
+            "controlled_test": True,
+            "outcome": {
+                "policy_contract_bounded": boundary_integrity,
+                "execution_blocked": boundary_integrity,
+                "authority_preserved": boundary_integrity,
+            },
+        },
     )
-
     measurement = CandidateMeasurement(
         candidate.candidate_id,
-        baseline,
-        adapted,
+        {"bounded_routing_plan_integrity_rate": evaluation.baseline_rate},
+        {"bounded_routing_plan_integrity_rate": evaluation.adapted_rate},
         (),
         evaluation.repeatable,
         evaluation.result,
@@ -47,17 +67,10 @@ def run_route_loop_probe() -> tuple[object, object]:
     evidence = measurement_to_implementation_evidence(
         candidate,
         measurement,
-        metric_directions={
-            "successful_policy_routed_execution_rate": "maximize"
-        },
-        provenance_refs=boundary.evidence_refs,
-        boundary_integrity=(
-            boundary.canonical_authority is False
-            and boundary.execution_permitted is False
-            and boundary.governance_bypass_permitted is False
-        ),
+        metric_directions={"bounded_routing_plan_integrity_rate": "maximize"},
+        provenance_refs=refs,
+        boundary_integrity=boundary_integrity,
     )
-
     handoff = advance_to_implementation(
         candidate,
         adaptation,
