@@ -59,7 +59,7 @@ def run_checkpoint_loop_probe(*, tenant_scope: str = "loop-tenant", repeats: int
             "outcome": {
                 "integrity": True,
                 "continuity": True,
-                "unsafe_replay_blocked": measurement.adapted["unsafe_replay_block_rate"],
+                "unsafe_replay_blocked": measurement.adapted["unsafe_replay_block_rate"] == 1.0,
             },
         },
     )
