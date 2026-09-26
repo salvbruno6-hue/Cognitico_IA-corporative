@@ -1,4 +1,4 @@
-"""Integration tests for the first governed implementation-loop candidate."""
+"""Integration tests for the Hermes checkpoint replay candidate."""
 from src.elo.agent_intake.checkpoint_loop_integration import (
     close_checkpoint_approved_candidate,
     run_checkpoint_loop_probe,
@@ -6,14 +6,16 @@ from src.elo.agent_intake.checkpoint_loop_integration import (
 from src.elo.agent_intake.implementation_loop import ImplementationStage
 
 
-def test_checkpoint_candidate_reaches_elo_review_without_canonical_mutation():
+def test_checkpoint_candidate_reaches_elo_review_with_candidate_specific_gain():
     evidence, decision = run_checkpoint_loop_probe(
         tenant_scope="tenant-a",
         repeats=5,
     )
 
-    assert evidence.baseline["recovery_success"] == 0.0
+    assert evidence.baseline["recovery_success"] == 1.0
     assert evidence.adapted["recovery_success"] == 1.0
+    assert evidence.baseline["unsafe_replay_block_rate"] == 0.0
+    assert evidence.adapted["unsafe_replay_block_rate"] == 1.0
     assert evidence.repeatable is True
     assert evidence.regressions == ()
     assert evidence.boundary_integrity is True
