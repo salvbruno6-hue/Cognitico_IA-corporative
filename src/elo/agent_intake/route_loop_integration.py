@@ -9,6 +9,8 @@ from .hermes_current_extensions import CandidateMeasurement, build_candidate
 from .hermes_routing_adapter import adapt_routing
 from .hermes_routing_boundary import RoutingSignal
 from .hermes_routing_evaluation import evaluate
+from .hermes_route_functional_evaluation import evaluate_route_functional_gain
+from .hermes_functional_value_proof import classify
 from .hermes_governed_loop import advance_to_implementation
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .symbiont_adaptation import refine_capability
@@ -17,6 +19,7 @@ from .symbiont_adaptation import refine_capability
 def run_route_loop_probe() -> tuple[object, object]:
     candidate = build_candidate("EXT-ROUTE-HERMES")
     evaluation = evaluate()
+    functional = evaluate_route_functional_gain()
     signals = tuple(
         RoutingSignal(
             f"route-loop-{i}",
@@ -58,8 +61,8 @@ def run_route_loop_probe() -> tuple[object, object]:
     )
     measurement = CandidateMeasurement(
         candidate.candidate_id,
-        {"bounded_routing_plan_integrity_rate": evaluation.baseline_rate},
-        {"bounded_routing_plan_integrity_rate": evaluation.adapted_rate},
+        {"unsafe_route_admission_block_rate": functional.baseline_unsafe_route_admission_block_rate},
+        {"unsafe_route_admission_block_rate": functional.adapted_unsafe_route_admission_block_rate},
         (),
         evaluation.repeatable,
         evaluation.result,
@@ -67,7 +70,7 @@ def run_route_loop_probe() -> tuple[object, object]:
     evidence = measurement_to_implementation_evidence(
         candidate,
         measurement,
-        metric_directions={"bounded_routing_plan_integrity_rate": "maximize"},
+        metric_directions={"unsafe_route_admission_block_rate": "maximize"},
         provenance_refs=refs,
         boundary_integrity=boundary_integrity,
     )
@@ -77,9 +80,21 @@ def run_route_loop_probe() -> tuple[object, object]:
         evidence.baseline,
         evidence.adapted,
         metric_directions=evidence.metric_directions,
-        repeatable=evidence.repeatable,
-        regressions=evidence.regressions,
-        provenance_refs=evidence.provenance_refs,
-        boundary_integrity=evidence.boundary_integrity,
+        repeatable=functional.repeatable,
+        regressions=(),
+        provenance_refs=functional.provenance_refs,
+        boundary_integrity=functional.boundary_integrity,
+        functional_value_evidence=classify(
+            "EXT-ROUTE-HERMES",
+            baseline=functional.baseline_unsafe_route_admission_block_rate,
+            adapted=functional.adapted_unsafe_route_admission_block_rate,
+            metric="unsafe_route_admission_block_rate",
+            direction="maximize",
+            repeatable=functional.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled governance-bypass route admission prevention",
+            provenance_refs=functional.provenance_refs,
+        ),
     )
     return handoff.implementation, evidence
