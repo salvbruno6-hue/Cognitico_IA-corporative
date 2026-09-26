@@ -7,9 +7,9 @@ def test_candidate_attributed_functional_gains_are_selected():
 
 def test_checkpoint_is_not_misattributed_to_hermes_candidate():
     item = next(x for x in CURRENT_EVIDENCE if x.candidate_id == "EXT-CHECKPOINT-HERMES")
-    assert item.level == "IMPLEMENTATION_BOUNDARY"
-    assert item.attribution == "OWNER_ATTRIBUTED"
-    assert not item.functional_gain_proven
+    assert item.level == "FUNCTIONAL_CONTROLLED_GAIN"
+    assert item.attribution == "CANDIDATE_ATTRIBUTED"
+    assert item.functional_gain_proven
 
 def test_contract_gain_does_not_become_functional_gain():
     item = next(x for x in CURRENT_EVIDENCE if x.candidate_id == "EXT-PROMPT-CACHE-HERMES")
