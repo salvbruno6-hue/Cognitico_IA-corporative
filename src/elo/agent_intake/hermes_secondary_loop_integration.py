@@ -25,6 +25,7 @@ from .hermes_multiagent_adapter import adapt_delegation
 from .hermes_worktree_adapter import adapt_worktree
 from .hermes_worktree_boundary import WorktreeSignal
 from .hermes_worktree_evaluation import evaluate as evaluate_worktree
+from .hermes_worktree_functional_evaluation import evaluate_worktree_functional_gain
 from .implementation_evidence_adapter import measurement_to_implementation_evidence
 from .independent_review import IndependentReviewEvidence, validate_independent_review
 from .symbiont_adaptation import refine_capability
@@ -244,6 +245,7 @@ def run_cron_loop_probe() -> tuple[object, object]:
 def run_worktree_loop_probe() -> tuple[object, object]:
     """Route EXT-WORKTREE-HERMES through the existing governed implementation loop."""
     evaluation = evaluate_worktree()
+    functional = evaluate_worktree_functional_gain()
     signals = tuple(
         WorktreeSignal(
             f"worktree-loop-{i}",
@@ -269,13 +271,25 @@ def run_worktree_loop_probe() -> tuple[object, object]:
     )
     return _handoff(
         "EXT-WORKTREE-HERMES",
-        "isolated_workspace_integrity_rate",
-        evaluation.baseline_rate,
-        evaluation.adapted_rate,
-        evaluation.repeatable,
-        refs,
-        boundary_integrity,
+        "collision_free_task_rate",
+        functional.baseline_collision_free_rate,
+        functional.adapted_collision_free_rate,
+        functional.repeatable,
+        functional.provenance_refs,
+        functional.boundary_integrity,
         "EXT-WORKTREE-HERMES",
+        functional_value_evidence=classify(
+            "EXT-WORKTREE-HERMES",
+            baseline=functional.baseline_collision_free_rate,
+            adapted=functional.adapted_collision_free_rate,
+            metric="collision_free_task_rate",
+            direction="maximize",
+            repeatable=functional.repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled concurrent-task workspace collision prevention",
+            provenance_refs=functional.provenance_refs,
+        ),
     )
 
 
