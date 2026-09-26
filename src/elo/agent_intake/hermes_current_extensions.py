@@ -26,6 +26,11 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-CRON-HERMES", "scheduled agent tasks", "ELO Workflow/Automation", "deterministic scheduled invocation with ELO governance"),
     ("EXT-MCP-HERMES", "external MCP capabilities", "ELO External Capability Gateway", "allowlisted external capability access with governed evidence"),
     ("EXT-TOOL-SEARCH-HERMES", "progressive tool-schema disclosure / tool_search", "ELO Model/Tool Routing", "bounded tool discovery without eager schema exposure"),
+    ("EXT-CODE-EXEC-HERMES", "programmatic tool calling / execute_code", "ELO Model/Tool Routing", "bounded programmatic tool orchestration"),
+    ("EXT-API-HERMES", "OpenAI-compatible API server", "ELO External Capability Gateway", "authenticated external API boundary"),
+    ("EXT-ACP-HERMES", "Agent Client Protocol / IDE integration", "ELO Agent Context & Delegation", "isolated agent-client session boundary"),
+    ("EXT-PLUGIN-CATALOG-HERMES", "curated plugin catalog/discovery", "ELO External Capability Gateway", "discover-before-activate capability contract"),
+    ("EXT-PROMPT-CACHE-HERMES", "cross-session prompt caching", "ELO Model/Tool Routing", "bounded cache scope and invalidation contract"),
 )
 
 
