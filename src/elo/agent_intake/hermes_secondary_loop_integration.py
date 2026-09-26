@@ -11,7 +11,8 @@ from .hermes_context_plugin_boundary import (
     assess_context_engine_plugin,
 )
 from .hermes_context_plugin_evaluation import evaluate_context_plugin_candidate
-from .hermes_cron_boundary import ScheduleSignal, assess_schedule
+from .hermes_cron_adapter import adapt_schedule
+from .hermes_cron_boundary import ScheduleSignal
 from .hermes_cron_evaluation import evaluate as evaluate_cron
 from .hermes_mcp_evaluation import evaluate as evaluate_mcp
 from .hermes_current_extensions import CandidateMeasurement, build_candidate
@@ -171,16 +172,21 @@ def run_cron_loop_probe() -> tuple[object, object]:
         )
         for i in range(1, 6)
     )
-    assessments = tuple(assess_schedule(signal) for signal in signals)
-    refs = tuple(ref for assessment in assessments for ref in assessment.evidence_refs)
+    contracts = tuple(adapt_schedule(signal) for signal in signals)
+    refs = tuple(
+        ref for contract in contracts if contract is not None
+        for ref in contract.source_refs
+    )
     boundary_integrity = all(
-        not assessment.canonical_authority
-        and not assessment.execution_permitted
-        for assessment in assessments
+        contract is not None
+        and not contract.canonical_authority
+        and not contract.execution_permitted
+        and bool(contract.idempotency_key)
+        for contract in contracts
     )
     return _handoff(
         "EXT-CRON-HERMES",
-        "authorized_idempotent_schedule_recognition_rate",
+        "bounded_schedule_registration_integrity_rate",
         evaluation.baseline_rate,
         evaluation.adapted_rate,
         evaluation.repeatable,
