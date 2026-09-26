@@ -6,7 +6,7 @@ from src.elo.agent_intake.hermes_current_extensions import (
 
 
 def test_all_current_hermes_candidates_have_existing_elo_owners():
-    assert len(CANDIDATES) == 15
+    assert len(CANDIDATES) == 20
     assert all(owner for _, _, owner, _ in CANDIDATES)
     assert len({candidate_id for candidate_id, *_ in CANDIDATES}) == len(CANDIDATES)
 
@@ -27,6 +27,11 @@ def test_new_candidates_are_registered():
         "EXT-MULTIAGENT-HERMES",
         "EXT-CRON-HERMES",
         "EXT-MCP-HERMES",
+        "EXT-CODE-EXEC-HERMES",
+        "EXT-API-HERMES",
+        "EXT-ACP-HERMES",
+        "EXT-PLUGIN-CATALOG-HERMES",
+        "EXT-PROMPT-CACHE-HERMES",
     }
     assert expected.issubset({candidate_id for candidate_id, *_ in CANDIDATES})
 
