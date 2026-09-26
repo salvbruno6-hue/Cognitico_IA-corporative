@@ -6,7 +6,7 @@ from elo.agent_intake.hermes_secondary_loop_integration import (
 
 def test_multiagent_uses_shared_governed_mediator_without_gain():
     decision, evidence = run_multiagent_loop_probe()
-    assert decision.result == "RETEST"
+    assert decision.result == "READY_FOR_ELO_REVIEW"
     assert evidence.candidate_id == "EXT-MULTIAGENT-HERMES"
     assert evidence.boundary_integrity is True
     assert decision.canonical_mutation is False
