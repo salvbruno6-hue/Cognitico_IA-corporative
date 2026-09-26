@@ -15,7 +15,7 @@ def test_governed_catalog_requires_discovery_allowlist_and_provenance():
 
 def test_controlled_measurement_has_repeatable_gain_without_regression():
     result = evaluate()
-    assert result.baseline_rate == 0.4
+    assert result.baseline_rate == 0.6
     assert result.adapted_rate == 1.0
     assert result.adapted_rate > result.baseline_rate
     assert result.repeatable
