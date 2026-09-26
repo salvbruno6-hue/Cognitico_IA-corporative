@@ -2,7 +2,7 @@ from elo.agent_intake.hermes_functional_value_proof import CURRENT_EVIDENCE, fun
 
 def test_candidate_attributed_functional_gains_are_selected():
     assert [item.candidate_id for item in functional_candidates()] == [
-        "EXT-CONTEXT-PLUGIN-HERMES", "EXT-HOOK-HERMES", "EXT-CHECKPOINT-HERMES", "EXT-WORKTREE-HERMES"
+        "EXT-CONTEXT-PLUGIN-HERMES", "EXT-HOOK-HERMES", "EXT-CHECKPOINT-HERMES", "EXT-WORKTREE-HERMES", "EXT-MULTIAGENT-HERMES"
     ]
 
 def test_checkpoint_is_attributed_only_to_the_isolated_replay_guard():
