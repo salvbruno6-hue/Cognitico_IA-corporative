@@ -23,7 +23,7 @@ def _signals(prefix: str):
     ) for i in range(1,6))
 
 def _integrity(contracts):
-    return sum(c is not None and c.state is LearningState.CANDIDATE
+    return sum(c is not None and c.state == "CANDIDATE"
                and c.promotion_authority is False and c.canonical_mutation is False
                for c in contracts)/len(contracts)
 
