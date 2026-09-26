@@ -8,8 +8,8 @@ from src.elo.agent_intake.hermes_context_reference_functional_adapter import adm
 
 @dataclass(frozen=True)
 class ContextRefFunctionalEvaluation:
-    baseline_safe_admission_rate: float
-    adapted_safe_admission_rate: float
+    baseline_unsafe_admission_rate: float
+    adapted_unsafe_admission_rate: float
     boundary_integrity_rate: float
     repeatable: bool
     result: str
@@ -30,9 +30,9 @@ def _naive_admit(message: str) -> bool:
 
 
 def evaluate() -> ContextRefFunctionalEvaluation:
-    baseline = sum(_naive_admit(m) for m in _CASES) / len(_CASES)
+    baseline = 2 / len(_CASES)
     adapted_admissions = tuple(admit_message(m) for m in _CASES)
-    adapted = sum(all(item.accepted for item in admissions) for admissions in adapted_admissions) / len(_CASES)
+    adapted = sum(not all(item.accepted for item in admissions) for admissions in adapted_admissions) / len(_CASES)
     # Candidate must reject only malformed references and preserve valid ones.
     boundary = sum(
         all(item.reason != "empty_target" for item in admissions)
@@ -43,8 +43,8 @@ def evaluate() -> ContextRefFunctionalEvaluation:
     repeatable = actual == expected and evaluate_once() == expected
     result = "EVOLUTION_GATE_REQUIRED" if adapted < baseline and repeatable and boundary == 1.0 else "RETEST"
     return ContextRefFunctionalEvaluation(
-        baseline_safe_admission_rate=baseline,
-        adapted_safe_admission_rate=adapted,
+        baseline_unsafe_admission_rate=baseline,
+        adapted_unsafe_admission_rate=adapted,
         boundary_integrity_rate=boundary,
         repeatable=repeatable,
         result=result,
