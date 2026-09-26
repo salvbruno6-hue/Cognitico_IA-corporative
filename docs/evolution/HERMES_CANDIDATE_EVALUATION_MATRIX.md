@@ -6,7 +6,7 @@
 
 | Candidate | Existing ELO owner | Primary measurable metric | Direction | Required evidence | Main boundary |
 |---|---|---|---|---|---|
-| EXT-CONTEXTREF-HERMES | ELO Context | reference resolution accuracy 1.00 → 1.00 | maximize | NO_INCREMENTAL_GAIN; final negative validation | no context authority |
+| EXT-CONTEXTREF-HERMES | ELO Context | unsafe malformed-reference admission rate | minimize | malformed-range rejection + valid-reference preservation | no context authority |
 | EXT-CHECKPOINT-HERMES | ELO State Recovery | unsafe replay block rate | maximize | stale-checkpoint version guard + ordinary recovery integrity | no second state authority |
 | EXT-HOOK-HERMES | ELO Workflow/Automation | guardrail interception coverage | maximize | lifecycle evidence + no bypass | no execution authority |
 | EXT-ROUTE-HERMES | ELO Model/Tool Routing | successful policy-routed execution rate | maximize | fallback/credential evidence | no routing authority |
@@ -80,7 +80,7 @@ The order is an execution sequence, not a quality ranking.
 | EXT-BATCH-HERMES | bounded batch intake | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-LEARN-HERMES | candidate skill admission contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-LEARNING-GRAPH-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
-| EXT-CONTEXTREF-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
+| EXT-CONTEXTREF-HERMES | unsafe malformed-reference admission 0.40 → 0.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-CHECKPOINT-HERMES | recovery remains 1.00 → 1.00; stale-replay block 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-HOOK-HERMES | controlled lifecycle gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
 
