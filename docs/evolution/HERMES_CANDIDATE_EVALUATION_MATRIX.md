@@ -1,6 +1,6 @@
 # ELO — Hermes Candidate Evaluation Matrix
 
-**Status:** CONTROLLED VALIDATION PLAN  
+**Status:** CONTROLLED FUNCTIONAL EVIDENCE ACCEPTED  
 **Base:** `main` @ `a1b651d9d9f377d706f99247d184d7e732a4e253`  
 **Rule:** registration is not promotion; every candidate remains candidate-only until measured, repeatable evidence passes Evolution Gate and explicit ELO governance authorizes implementation.
 
@@ -84,4 +84,4 @@ The order is an execution sequence, not a quality ranking.
 | EXT-CHECKPOINT-HERMES | recovery remains 1.00 → 1.00; stale-replay block 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-HOOK-HERMES | controlled lifecycle gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
 
-**Interpretation:** contract/boundary integrity is not counted as functional value. Candidate-attributed functional gain is required before the existing Symbiont implementation loop can advance. For EXT-CHECKPOINT-HERMES, ordinary recovery remains supplied by the existing ELO State Recovery owner; the candidate-specific gain is the independently measured stale-checkpoint replay guard.
+**Interpretation:** contract/boundary integrity is not counted as functional value. Candidate-attributed functional gain is sufficient for the existing Symbiont implementation loop to advance to governed review. For EXT-CHECKPOINT-HERMES, ordinary recovery remains supplied by the existing ELO State Recovery owner; the candidate-specific gain is the independently measured stale-checkpoint replay guard.
