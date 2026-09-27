@@ -9,12 +9,16 @@ last_reviewed: "2026-09-27"
 tables:
   - name: lista_mae
     expected_rls: true
-    declared_in: 20260919220406_elo_access_tiers.sql
+    declared_in: production
     policies:
-      - elo_lista_mae_select_consultation
-      - elo_lista_mae_insert_collaborator
+      - p_pcp_lista_mae_select
+      - p_pcp_lista_mae_admin_write
     criticality: high
-    note: "RLS declarado em 20260919220406. Tabela exposta via elo-mcp."
+    note: |
+      Tabela corporativa da Multiteiner, ligada ao PCP.
+      As policies canônicas são p_pcp_* (produção). As elo_*
+      do canon antigo nunca foram aplicadas em produção.
+      Ver ADR-0017.
 
   - name: fornecedor_cotacoes
     expected_rls: true
