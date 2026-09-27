@@ -127,7 +127,7 @@ class SODossier:
                     DossierSourceRef(
                         source_type="budget_learning",
                         authority="08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS",
-                        path=path.as_posix(),
+                        path=path.relative_to(root).as_posix(),
                         exists=True,
                     )
                 )
@@ -156,14 +156,14 @@ class SODossier:
         )
 
         operational_path = (
-            root / OPERATIONAL_MEMORY_ROOT / canonical_key / "index.json"
+            OPERATIONAL_MEMORY_ROOT / canonical_key / "index.json"
         )
         refs.append(
             DossierSourceRef(
                 source_type="operational_memory",
                 authority="memory/solicitations",
                 path=operational_path.as_posix(),
-                exists=operational_path.exists(),
+                exists=(root / operational_path).exists(),
             )
         )
 
@@ -173,7 +173,12 @@ class SODossier:
             if ref.source_type != "supabase_experience"
             and ref.exists is True
         ]
-        state = "REFERENCED" if observed_refs else "IDENTIFIED"
+        resolved_metadata = learning is not None or bool(handbook)
+        state = (
+            "REFERENCED"
+            if observed_refs or resolved_metadata
+            else "IDENTIFIED"
+        )
         scope_state = (
             "SCOPED"
             if tenant_id and domain
