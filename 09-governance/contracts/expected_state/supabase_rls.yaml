@@ -1,0 +1,63 @@
+schema_version: "1.0"
+domain: supabase-live-state
+scope: rls
+generated_from:
+  - supabase/migrations/
+  - docs/governance/ELO_LIVE_STATE_RECONCILIATION_CONTRACT.md
+last_reviewed: "2026-09-27"
+
+tables:
+  - name: lista_mae
+    expected_rls: true
+    declared_in: 20260919220406_elo_access_tiers.sql
+    policies:
+      - elo_lista_mae_select_consultation
+      - elo_lista_mae_insert_collaborator
+    criticality: high
+    note: "RLS declarado em 20260919220406. Tabela exposta via elo-mcp."
+
+  - name: fornecedor_cotacoes
+    expected_rls: true
+    declared_in: null
+    policies: []
+    criticality: high
+    note: |
+      Tabela criada em 20260918094500 SEM declaração explícita
+      de RLS. Auditoria 22.0 detectou RLS OFF em produção.
+      Por ser tabela exposta na API Supabase, o esperado é
+      RLS ON (fail-closed). DRIFT esperado até correção.
+
+  - name: lista_mae_alteracoes
+    expected_rls: true
+    declared_in: null
+    policies: []
+    criticality: high
+    note: |
+      Origem não localizada nas migrations versionadas.
+      Auditoria 22.0 detectou RLS OFF em produção.
+      Por ser tabela exposta na API Supabase, o esperado é
+      RLS ON (fail-closed). DRIFT esperado até correção.
+
+  - name: elo_dol_projection
+    expected_rls: true
+    declared_in: 20260922000000_elo_cognitive_projections.sql
+    policies:
+      - read_dol_projection_authenticated
+    criticality: medium
+    note: "RLS declarado. Projeção read-only via MCP."
+
+  - name: elo_calibration_model
+    expected_rls: true
+    declared_in: 20260922000000_elo_cognitive_projections.sql
+    policies:
+      - read_calibration_model_authenticated
+    criticality: medium
+    note: "RLS declarado. Projeção read-only via MCP."
+
+  - name: elo_precedent_index
+    expected_rls: true
+    declared_in: 20260922000000_elo_cognitive_projections.sql
+    policies:
+      - read_precedent_index_authenticated
+    criticality: medium
+    note: "RLS declarado. Projeção read-only via MCP."
