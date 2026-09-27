@@ -40,3 +40,20 @@ The runtime must supply the observation. Candidate attribution is required; owne
 FUNCTIONAL_CONTROLLED_GAIN -> ELO_REVIEW -> EVOLUTION_GATE -> IMPLEMENTATION_AUTHORIZED -> RUNTIME_INTEGRATION -> RUNTIME_OPERATIONAL_EVIDENCE -> OPERATIONAL_OUTCOME -> LEARNING / SYMBIONT
 
 This layer closes the evidence gap identified by the Hermes runtime integration audit without introducing another governance authority.
+
+## Repeated-execution collection
+
+Runtime observations may be accumulated by an observational collector, but the
+collector is not a persistence authority, learning authority, or promotion
+gate. It must reuse the configured evidence sink and the canonical operational
+outcome adapter.
+
+Repeatability requires distinct `execution_id` values for the same candidate,
+canonical owner, metric, metric direction, and exact runtime entrypoint.
+Duplicate execution identifiers must be rejected and observations from
+different runtime entrypoints must not be combined into one operational proof.
+
+A single observation remains controlled evidence. Only the existing operational
+outcome adapter may classify compatible repeated observations as
+`OPERATIONAL_OUTCOME`; the resulting evidence then returns to the existing
+Simbiont / Governed Learning path and remains subject to ELO governance.
