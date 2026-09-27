@@ -1,8 +1,12 @@
-"""Collect repeated runtime observations before operational-outcome evaluation."""
+"""Observational collector for repeated runtime operational evidence.
+
+The collector owns no persistence or governance authority. It reuses the
+configured RuntimeEvidenceSink for immutable observations and delegates
+classification to the canonical runtime operational evidence adapter.
+"""
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
 
 from .hermes_functional_value_proof import FunctionalValueEvidence
@@ -15,53 +19,42 @@ from .runtime_operational_evidence_adapter import to_operational_outcome
 
 
 @dataclass(frozen=True, slots=True)
-class RuntimeEvidenceGroup:
+class RuntimeEvidenceKey:
     candidate_id: str
     owner: str
+    runtime_entrypoint: str
     metric: str
     direction: str
-    observations: tuple[RuntimeOperationalEvidence, ...]
-
-    @property
-    def repeatable(self) -> bool:
-        return len(self.observations) >= 2
-
-    def to_operational_outcome(self) -> FunctionalValueEvidence:
-        if not self.repeatable:
-            raise ValueError("at least two distinct runtime executions are required")
-        return to_operational_outcome(self.observations)
 
 
 class RuntimeOperationalEvidenceCollector:
-    """Ephemeral aggregation over the existing runtime evidence sink."""
+    """Collect real executions without becoming a learning or promotion owner."""
 
-    def __init__(self, *, sink: RuntimeEvidenceSink | None = None) -> None:
+    def __init__(self, sink: RuntimeEvidenceSink | None = None) -> None:
         self._sink = sink or InMemoryRuntimeEvidenceSink()
-        self._observations: list[RuntimeOperationalEvidence] = []
-        self._execution_ids: set[str] = set()
 
-    def append(self, evidence: RuntimeOperationalEvidence) -> None:
-        if evidence.execution_id in self._execution_ids:
-            raise ValueError("duplicate execution_id")
+    def observe(self, evidence: RuntimeOperationalEvidence) -> None:
         self._sink.append(evidence)
-        self._execution_ids.add(evidence.execution_id)
-        self._observations.append(evidence)
 
-    def observations(self) -> tuple[RuntimeOperationalEvidence, ...]:
-        return tuple(self._observations)
-
-    def groups(self) -> tuple[RuntimeEvidenceGroup, ...]:
-        grouped = defaultdict(list)
-        for item in self._observations:
-            key = (item.candidate_id, item.owner, item.metric, item.direction)
-            grouped[key].append(item)
+    def observations(self, key: RuntimeEvidenceKey) -> tuple[RuntimeOperationalEvidence, ...]:
+        list_items = getattr(self._sink, "list", None)
+        if list_items is None:
+            raise TypeError("collector requires a readable RuntimeEvidenceSink")
         return tuple(
-            RuntimeEvidenceGroup(*key, tuple(items))
-            for key, items in sorted(grouped.items())
+            item
+            for item in list_items()
+            if item.candidate_id == key.candidate_id
+            and item.owner == key.owner
+            and item.runtime_entrypoint == key.runtime_entrypoint
+            and item.metric == key.metric
+            and item.direction == key.direction
         )
 
-    def ready_groups(self) -> tuple[RuntimeEvidenceGroup, ...]:
-        return tuple(group for group in self.groups() if group.repeatable)
+    def outcome(self, key: RuntimeEvidenceKey) -> FunctionalValueEvidence:
+        observations = self.observations(key)
+        if not observations:
+            raise ValueError("no runtime observations for evidence key")
+        return to_operational_outcome(observations)
 
 
-__all__ = ["RuntimeEvidenceGroup", "RuntimeOperationalEvidenceCollector"]
+__all__ = ["RuntimeEvidenceKey", "RuntimeOperationalEvidenceCollector"]
