@@ -111,7 +111,7 @@ def test_two_real_multiagent_dispatches_become_operational_outcome() -> None:
     groups = collector.ready_groups()
     assert len(groups) == 1
     group = groups[0]
-    assert group.key.candidate_id == "EXT-MULTIAGENT-HERMES"
+    assert group.candidate_id == "EXT-MULTIAGENT-HERMES"
     assert group.repeatable is True
 
     outcome = group.to_operational_outcome()
