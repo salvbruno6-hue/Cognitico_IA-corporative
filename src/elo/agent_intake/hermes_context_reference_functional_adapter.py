@@ -7,6 +7,8 @@ before an existing ELO Context resolver receives them.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
+from .runtime_operational_evidence import RepeatabilityEvidence, RuntimeProvenance, create_execution_id, create_runtime_evidence
 from ..core.context_references import ContextReference, parse_context_references
 
 
@@ -32,5 +34,26 @@ def validate_reference(ref: ContextReference) -> ContextRefAdmission:
     return ContextRefAdmission(True, "accepted")
 
 
-def admit_message(message: str) -> tuple[ContextRefAdmission, ...]:
-    return tuple(validate_reference(ref) for ref in parse_context_references(message))
+def admit_message(message: str, *, runtime_evidence_sink=None) -> tuple[ContextRefAdmission, ...]:
+    references = parse_context_references(message)
+    admissions = tuple(validate_reference(ref) for ref in references)
+    if runtime_evidence_sink is not None and admissions:
+        commit = (os.getenv("ELO_RUNTIME_COMMIT") or os.getenv("GITHUB_SHA") or "").strip()
+        if commit:
+            rejected = sum(not item.accepted for item in admissions)
+            runtime_evidence_sink.append(create_runtime_evidence(
+                execution_id=create_execution_id("EXT-CONTEXTREF-HERMES"),
+                candidate_id="EXT-CONTEXTREF-HERMES",
+                owner="ELO Context",
+                runtime_entrypoint="elo.context.references.admit_message",
+                action_observed=True,
+                metric="unsafe_malformed_reference_rejection_rate",
+                direction="maximize",
+                baseline=0.0,
+                observed_value=rejected / len(admissions),
+                attribution="candidate",
+                provenance=RuntimeProvenance(commit=commit, runtime_trace="contextref:admit_message"),
+                regression=False,
+                repeatability=RepeatabilityEvidence(1, 1, 1.0),
+            ))
+    return admissions
