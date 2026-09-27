@@ -1,6 +1,6 @@
 # ELO — Hermes Candidate Evaluation Matrix
 
-**Status:** CONTROLLED FUNCTIONAL EVIDENCE ACCEPTED  
+**Status:** ALL 13 ORIGINAL CANDIDATES HAVE CONTROLLED FUNCTIONAL EVIDENCE  
 **Base:** `main` @ `a1b651d9d9f377d706f99247d184d7e732a4e253`  
 **Rule:** registration is not promotion; every candidate remains candidate-only until measured, repeatable evidence passes Evolution Gate and explicit ELO governance authorizes implementation.
 
@@ -79,7 +79,7 @@ The order is an execution sequence, not a quality ranking.
 | EXT-PROFILE-HERMES | bounded profile isolation | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-BATCH-HERMES | bounded batch intake | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
 | EXT-LEARN-HERMES | candidate skill admission contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
-| EXT-LEARNING-GRAPH-HERMES | baseline 1.00 → adapted 1.00 | no incremental gain | RETEST_FUNCTIONAL_VALUE |
+| EXT-LEARNING-GRAPH-HERMES | duplicate semantic relation block rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-CONTEXTREF-HERMES | unsafe malformed-reference admission 0.40 → 0.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-CHECKPOINT-HERMES | recovery remains 1.00 → 1.00; stale-replay block 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-HOOK-HERMES | controlled lifecycle gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
