@@ -8,97 +8,106 @@ from elo.agent_intake.runtime_operational_evidence import (
     create_runtime_evidence,
 )
 from elo.agent_intake.runtime_operational_evidence_collector import (
+    RuntimeEvidenceKey,
     RuntimeOperationalEvidenceCollector,
 )
 
 
-def _item(execution_id: str, candidate: str = "EXT-CONTEXT-PLUGIN-HERMES"):
+KEY = RuntimeEvidenceKey(
+    candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+    owner="HERMES-CONTEXT",
+    runtime_entrypoint="elo.context.resolve",
+    metric="task_success_rate",
+    direction="maximize",
+)
+
+
+def _item(
+    execution_id: str,
+    *,
+    observed_value: float = 1.0,
+    regression: bool = False,
+    runtime_entrypoint: str = "elo.context.resolve",
+):
     return create_runtime_evidence(
         execution_id=execution_id,
-        candidate_id=candidate,
+        candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
         owner="HERMES-CONTEXT",
-        runtime_entrypoint="elo.context.resolve",
+        runtime_entrypoint=runtime_entrypoint,
         action_observed=True,
-        metric="context_plugin_activation_success_rate",
+        metric="task_success_rate",
         direction="maximize",
-        baseline=0.0,
-        observed_value=1.0,
+        baseline=0.5,
+        observed_value=observed_value,
         attribution="candidate",
         provenance=RuntimeProvenance(
             commit="runtime-commit",
             runtime_trace=f"trace-{execution_id}",
         ),
-        regression=False,
+        regression=regression,
         repeatability=RepeatabilityEvidence(1, 1, 1.0),
         timestamp=datetime(2026, 9, 27, tzinfo=timezone.utc),
     )
 
 
-def test_one_execution_is_collected_but_not_ready():
+def test_one_execution_remains_controlled_gain():
     collector = RuntimeOperationalEvidenceCollector()
-    collector.append(_item("exec-1"))
+    collector.observe(_item("exec-1"))
 
-    assert len(collector.observations()) == 1
-    assert collector.ready_groups() == ()
+    outcome = collector.outcome(KEY)
+
+    assert outcome.level == "FUNCTIONAL_CONTROLLED_GAIN"
+    assert outcome.production_proven is False
+    assert outcome.repeatable is False
 
 
-def test_two_distinct_executions_produce_operational_outcome():
+def test_two_distinct_successful_executions_become_operational_outcome():
     collector = RuntimeOperationalEvidenceCollector()
-    collector.append(_item("exec-1"))
-    collector.append(_item("exec-2"))
+    collector.observe(_item("exec-1"))
+    collector.observe(_item("exec-2"))
 
-    groups = collector.ready_groups()
-    assert len(groups) == 1
-    outcome = groups[0].to_operational_outcome()
+    outcome = collector.outcome(KEY)
 
     assert outcome.level == "OPERATIONAL_OUTCOME"
     assert outcome.production_proven is True
     assert outcome.repeatable is True
+    assert len(outcome.provenance_refs) == 2
 
 
-def test_duplicate_execution_id_cannot_increase_repeatability():
+def test_duplicate_execution_is_rejected_before_aggregation():
     collector = RuntimeOperationalEvidenceCollector()
-    first = _item("exec-1")
-    collector.append(first)
+    evidence = _item("exec-duplicate")
+    collector.observe(evidence)
 
     with pytest.raises(ValueError, match="duplicate execution_id"):
-        collector.append(first)
-
-    assert collector.ready_groups() == ()
-
-
-def test_different_candidates_never_share_a_repeatability_group():
-    collector = RuntimeOperationalEvidenceCollector()
-    collector.append(_item("exec-1", "EXT-CONTEXT-PLUGIN-HERMES"))
-    collector.append(_item("exec-2", "EXT-CHECKPOINT-HERMES"))
-
-    assert len(collector.groups()) == 2
-    assert collector.ready_groups() == ()
+        collector.observe(evidence)
 
 
 def test_regression_blocks_operational_outcome():
     collector = RuntimeOperationalEvidenceCollector()
-    collector.append(_item("exec-1"))
-    regressed = create_runtime_evidence(
-        execution_id="exec-2",
-        candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
-        owner="HERMES-CONTEXT",
-        runtime_entrypoint="elo.context.resolve",
-        action_observed=True,
-        metric="context_plugin_activation_success_rate",
-        direction="maximize",
-        baseline=0.0,
-        observed_value=0.0,
-        attribution="candidate",
-        provenance=RuntimeProvenance(
-            commit="runtime-commit",
-            runtime_trace="trace-exec-2",
-        ),
-        regression=True,
-        repeatability=RepeatabilityEvidence(1, 1, 1.0),
-    )
-    collector.append(regressed)
+    collector.observe(_item("exec-1"))
+    collector.observe(_item("exec-2", regression=True))
 
-    outcome = collector.ready_groups()[0].to_operational_outcome()
+    outcome = collector.outcome(KEY)
+
     assert outcome.level == "FUNCTIONAL_CONTROLLED_GAIN"
     assert outcome.production_proven is False
+    assert "REGRESSION_DETECTED" in outcome.regressions
+
+
+def test_collector_does_not_mix_runtime_entrypoints():
+    collector = RuntimeOperationalEvidenceCollector()
+    collector.observe(_item("exec-1"))
+    collector.observe(_item("exec-other", runtime_entrypoint="elo.other.resolve"))
+
+    observations = collector.observations(KEY)
+
+    assert tuple(item.execution_id for item in observations) == ("exec-1",)
+    assert collector.outcome(KEY).production_proven is False
+
+
+def test_missing_observations_cannot_claim_outcome():
+    collector = RuntimeOperationalEvidenceCollector()
+
+    with pytest.raises(ValueError, match="no runtime observations"):
+        collector.outcome(KEY)
