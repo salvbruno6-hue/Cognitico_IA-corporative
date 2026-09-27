@@ -59,6 +59,6 @@ def test_two_independent_router_executions_become_operational_outcome_through_ca
     outcome = SymbiontSkillRuntime.evaluate_runtime_evidence(groups[0])
 
     assert outcome.candidate_id == CANDIDATE_ID
-    assert outcome.evidence_type == "OPERATIONAL_OUTCOME"
+    assert outcome.level == "OPERATIONAL_OUTCOME"
     assert outcome.production_proven is True
     assert outcome.repeatable is True
