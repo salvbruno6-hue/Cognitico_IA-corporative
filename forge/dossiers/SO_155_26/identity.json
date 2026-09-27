@@ -1,0 +1,22 @@
+{
+  "canonical_key": "SO_155_26",
+  "instance": "SO 155.26",
+  "mask": "SO NNN.AA",
+  "sequential": 155,
+  "year": 2026,
+  "display": "SO 155.26",
+  "tenant_id": null,
+  "domain": null,
+  "scope_state": "UNKNOWN",
+  "maturation_state": "REFERENCED",
+  "context_keys": [
+    "modulos",
+    "manutencao",
+    "esquadrias",
+    "art-rrt",
+    "acoplamento",
+    "responsabilidades"
+  ],
+  "created_at": "2026-09-27",
+  "updated_at": "2026-09-27"
+}

@@ -59,6 +59,93 @@ class SODossier:
         return payload
 
     @classmethod
+    def from_disk(
+        cls,
+        canonical_key: str,
+        repository_root: Path | None = None,
+    ) -> "SODossier | None":
+        """Carrega dossiê físico de forge/dossiers/<canonical_key>/.
+
+        Retorna None se o dossiê não existir.
+        Não copia conteúdo de context.md — apenas verifica presença.
+        """
+        import json
+
+        root = repository_root or Path(".")
+        base = root / "forge" / "dossiers" / canonical_key
+
+        if not base.exists():
+            return None
+
+        identity_path = base / "identity.json"
+        if not identity_path.exists():
+            return None
+
+        identity = json.loads(
+            identity_path.read_text(encoding="utf-8")
+        )
+
+        provenance_path = base / "provenance.json"
+        provenance: dict[str, Any] = {"resolver": "ELO SOResolver"}
+        source_refs: list[DossierSourceRef] = []
+
+        if provenance_path.exists():
+            prov_payload = json.loads(
+                provenance_path.read_text(encoding="utf-8")
+            )
+            provenance = prov_payload.get("provenance", provenance)
+            for entry in prov_payload.get("source_refs", []):
+                source_refs.append(
+                    DossierSourceRef(
+                        source_type=entry.get("source_type", "unknown"),
+                        authority=entry.get("authority", ""),
+                        path=entry.get("path"),
+                        table=entry.get("table"),
+                        exists=entry.get("exists"),
+                        applicability=entry.get(
+                            "applicability", "CONSULTIVE"
+                        ),
+                    )
+                )
+
+        status_path = base / "status.json"
+        maturation_state = identity.get(
+            "maturation_state", "IDENTIFIED"
+        )
+        if status_path.exists():
+            status_payload = json.loads(
+                status_path.read_text(encoding="utf-8")
+            )
+            maturation_state = status_payload.get(
+                "maturation_state", maturation_state
+            )
+
+        return cls(
+            so_id=identity.get("instance", canonical_key),
+            canonical_key=identity.get(
+                "canonical_key", canonical_key
+            ),
+            mask=identity.get("mask", "SO NNN.AA"),
+            tenant_id=identity.get("tenant_id"),
+            domain=identity.get("domain"),
+            scope_state=identity.get("scope_state", "UNKNOWN"),
+            maturation_state=maturation_state,
+            context_keys=tuple(identity.get("context_keys", ())),
+            source_refs=tuple(source_refs),
+            provenance=provenance,
+        )
+
+    def has_context_file(
+        self, repository_root: Path | None = None
+    ) -> bool:
+        """Verifica se context.md existe, sem ler o conteúdo."""
+        root = repository_root or Path(".")
+        return (
+            root / "forge" / "dossiers" / self.canonical_key
+            / "context.md"
+        ).exists()
+
+    @classmethod
     def from_resolved_context(
         cls,
         *,

@@ -1,0 +1,30 @@
+{
+  "provenance": {
+    "resolver": "ELO SOResolver",
+    "created_by": "manual",
+    "created_at": "2026-09-27"
+  },
+  "source_refs": [
+    {
+      "source_type": "solicitations_learning",
+      "authority": "memory/solicitations_learning",
+      "path": "memory/solicitations_learning/SO-155.26.md",
+      "exists": true,
+      "applicability": "CONSULTIVE"
+    },
+    {
+      "source_type": "budget_learning",
+      "authority": "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS",
+      "path": "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/SO_155_26_APRENDIZADO.md",
+      "exists": true,
+      "applicability": "CONSULTIVE"
+    },
+    {
+      "source_type": "supabase_experience",
+      "authority": "Supabase",
+      "table": "elo_aprendizado_experiencias",
+      "exists": false,
+      "applicability": "CONSULTIVE"
+    }
+  ]
+}
