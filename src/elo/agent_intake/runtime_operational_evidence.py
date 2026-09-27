@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from hashlib import sha256
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 from uuid import uuid4
 
 
@@ -82,6 +82,25 @@ class RuntimeOperationalEvidence:
         record = asdict(self)
         record["operational_outcome_proven"] = self.operational_outcome_proven
         return record
+
+
+class RuntimeEvidenceSink(Protocol):
+    def append(self, evidence: "RuntimeOperationalEvidence") -> None: ...
+
+
+class InMemoryRuntimeEvidenceSink:
+    """Explicit test/runtime sink; persistence authority remains external."""
+
+    def __init__(self) -> None:
+        self._items: list[RuntimeOperationalEvidence] = []
+
+    def append(self, evidence: RuntimeOperationalEvidence) -> None:
+        if any(item.execution_id == evidence.execution_id for item in self._items):
+            raise ValueError("duplicate execution_id")
+        self._items.append(evidence)
+
+    def list(self) -> tuple[RuntimeOperationalEvidence, ...]:
+        return tuple(self._items)
 
 
 def create_execution_id(candidate_id: str, *, now: datetime | None = None) -> str:
@@ -203,6 +222,8 @@ __all__ = [
     "RepeatabilityEvidence",
     "RuntimeOperationalEvidence",
     "RuntimeProvenance",
+    "RuntimeEvidenceSink",
+    "InMemoryRuntimeEvidenceSink",
     "aggregate_repeatability",
     "create_execution_id",
     "create_runtime_evidence",
