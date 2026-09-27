@@ -45,3 +45,34 @@ def test_single_observation_does_not_become_operational_outcome():
     assert evidence.level == "FUNCTIONAL_CONTROLLED_GAIN"
     assert evidence.production_proven is False
     assert evidence.repeatable is False
+
+
+def test_duplicate_execution_id_cannot_fake_repeatability():
+    item = _item("exec-duplicate")
+
+    import pytest
+    with pytest.raises(ValueError, match="distinct execution_id"):
+        to_operational_outcome((item, item))
+
+
+def test_mixed_runtime_entrypoints_cannot_form_one_operational_proof():
+    first = _item("exec-1")
+    second = create_runtime_evidence(
+        execution_id="exec-2",
+        candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+        owner="HERMES-CONTEXT",
+        runtime_entrypoint="another.runtime.entrypoint",
+        action_observed=True,
+        metric="context_plugin_activation_success_rate",
+        direction="maximize",
+        baseline=0.0,
+        observed_value=1.0,
+        attribution="candidate",
+        provenance=RuntimeProvenance(commit="commit-1", runtime_trace="trace-exec-2"),
+        regression=False,
+        repeatability=RepeatabilityEvidence(1, 1, 1.0),
+    )
+
+    import pytest
+    with pytest.raises(ValueError, match="same runtime entrypoint"):
+        to_operational_outcome((first, second))
