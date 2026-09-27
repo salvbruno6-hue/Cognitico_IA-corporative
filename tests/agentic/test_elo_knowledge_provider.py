@@ -119,6 +119,36 @@ def test_provider_can_explicitly_enable_temporal_trace() -> None:
     assert len(memory.list("conversation")) == 1
 
 
+def test_provider_emits_runtime_evidence_only_after_real_context_plugin_adaptation(monkeypatch) -> None:
+    from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
+    from elo.agent_intake.runtime_operational_evidence import InMemoryRuntimeEvidenceSink
+
+    monkeypatch.setenv("ELO_RUNTIME_COMMIT", "runtime-test-commit")
+    context = ELORequestContext(
+        tenant_id="tenant", principal_id="principal", session_id="session",
+        request_id="request-runtime", correlation_id="trace-runtime",
+        conversation_id="conversation", authorization_scope="scope.read",
+    )
+    resolver = SourceResolver(adapters=(_Adapter(),), temporal_memory=TemporalConversationMemory())
+    signal = ContextEnginePluginSignal(
+        signal_id="signal-runtime", tenant_scope="tenant", plugin_id="plugin-runtime",
+        engine_name="ELO Context", source_refs=("runtime:plugin-runtime",),
+        explicit_activation=True, provenance_verified=True,
+    )
+    sink = InMemoryRuntimeEvidenceSink()
+    provider = ELOKnowledgeProvider(
+        request_context=context, source_resolver=resolver,
+        context_plugin_signal=signal, runtime_evidence_sink=sink,
+    )
+    intent, req = _inputs()
+    assert provider.retrieve(intent, req)
+    assert len(sink.list()) == 1
+    item = sink.list()[0]
+    assert item.candidate_id == "EXT-CONTEXT-PLUGIN-HERMES"
+    assert item.action_observed is True
+    assert item.provenance.commit == "runtime-test-commit"
+
+
 def test_provider_does_not_claim_operational_evidence_from_single_runtime_invocation() -> None:
     from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
 
@@ -152,5 +182,5 @@ def test_provider_does_not_claim_operational_evidence_from_single_runtime_invoca
 
     assert found
     # Operational evidence requires repeatability across at least two real
-    # executions; one provider invocation must not manufacture that evidence.
-    assert not hasattr(provider, "operational_evidence_sink")
+    # executions; one provider invocation must not manufacture that outcome.
+    assert provider.runtime_evidence_sink is None

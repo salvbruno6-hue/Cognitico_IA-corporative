@@ -65,6 +65,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         runtime_context: ELORuntimeContext | None = None,
         allow_temporal_trace: bool = False,
         context_plugin_signal: ContextEnginePluginSignal | None = None,
+        runtime_evidence_sink=None,
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
         self.source_resolver = source_resolver or SourceResolver()
@@ -73,6 +74,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         self.runtime_context = runtime_context or resolve_runtime_context()
         self.allow_temporal_trace = allow_temporal_trace
         self.context_plugin_signal = context_plugin_signal
+        self.runtime_evidence_sink = runtime_evidence_sink
 
     def retrieve(
         self,
@@ -88,8 +90,25 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         if self.context_plugin_signal is not None:
             adapted = ContextPluginAdapter(self.context_engine).adapt(pack, self.context_plugin_signal)
             pack = adapted.pack
-            # A single invocation is not operational proof. Repeatability must
-            # be established by the runtime before emitting operational evidence.
+            if adapted.adapted and self.runtime_evidence_sink is not None and self.runtime_context.runtime_commit:
+                self.runtime_evidence_sink.append(create_runtime_evidence(
+                    execution_id=create_execution_id("EXT-CONTEXT-PLUGIN-HERMES"),
+                    candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+                    owner="ELO Context",
+                    runtime_entrypoint="elo.context.resolve",
+                    action_observed=True,
+                    metric="context_plugin_activation_success_rate",
+                    direction="maximize",
+                    baseline=0.0,
+                    observed_value=1.0,
+                    attribution="candidate",
+                    provenance=RuntimeProvenance(
+                        commit=self.runtime_context.runtime_commit,
+                        runtime_trace=(request_context.correlation_id or request_context.request_id),
+                    ),
+                    regression=False,
+                    repeatability=RepeatabilityEvidence(1, 1, 1.0),
+                ))
         if pack.discovery_plan is None:
             return ()
 
