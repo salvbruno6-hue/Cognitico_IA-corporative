@@ -12,6 +12,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from elo.agent_intake.hermes_context_plugin_adapter import ContextPluginAdapter
+from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
+from elo.agent_intake.runtime_operational_evidence import (
+    RepeatabilityEvidence,
+    RuntimeOperationalEvidence,
+    RuntimeProvenance,
+    create_execution_id,
+    create_runtime_evidence,
+)
+
 from elo.core.context_resolution import ContextQuery, ContextResolutionEngine
 from elo.core.source_resolver import (
     SourceResolutionRequest,
@@ -54,6 +64,9 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         request_context: ELORequestContext | None = None,
         runtime_context: ELORuntimeContext | None = None,
         allow_temporal_trace: bool = False,
+        context_plugin_signal: ContextEnginePluginSignal | None = None,
+        operational_evidence_sink: Callable[[RuntimeOperationalEvidence], None] | None = None,
+        runtime_commit: str = "UNSPECIFIED",
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
         self.source_resolver = source_resolver or SourceResolver()
@@ -61,6 +74,9 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         self.request_context = request_context
         self.runtime_context = runtime_context or resolve_runtime_context()
         self.allow_temporal_trace = allow_temporal_trace
+        self.context_plugin_signal = context_plugin_signal
+        self.operational_evidence_sink = operational_evidence_sink
+        self.runtime_commit = runtime_commit
 
     def retrieve(
         self,
@@ -73,6 +89,32 @@ class ELOKnowledgeProvider(KnowledgeProvider):
 
         query = self.context_factory(intent, requirement)
         pack = self.context_engine.resolve(query)
+        if self.context_plugin_signal is not None:
+            execution_id = create_execution_id("EXT-CONTEXT-PLUGIN-HERMES")
+            adapted = ContextPluginAdapter(self.context_engine).adapt(pack, self.context_plugin_signal)
+            pack = adapted.pack
+            if adapted.adapted and self.operational_evidence_sink is not None:
+                trace = request_context.correlation_id or request_context.request_id
+                evidence = create_runtime_evidence(
+                    execution_id=execution_id,
+                    candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+                    owner="HERMES-CONTEXT",
+                    runtime_entrypoint="ELOKnowledgeProvider.retrieve",
+                    action_observed=True,
+                    metric="context_plugin_activation_success_rate",
+                    direction="maximize",
+                    baseline=0.0,
+                    observed_value=1.0,
+                    attribution="candidate",
+                    provenance=RuntimeProvenance(
+                        commit=self.runtime_commit,
+                        runtime_trace=trace,
+                        test_run=request_context.request_id,
+                    ),
+                    regression=False,
+                    repeatability=RepeatabilityEvidence(1, 1, 1.0),
+                )
+                self.operational_evidence_sink(evidence)
         if pack.discovery_plan is None:
             return ()
 
