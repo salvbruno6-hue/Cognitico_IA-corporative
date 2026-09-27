@@ -5,7 +5,11 @@ from dataclasses import dataclass
 
 from elo.agent_intake.hermes_learning_adapter import adapt_skill_learning
 from elo.agent_intake.hermes_learning_boundary import SkillLearningSignal
-from elo.agent_intake.runtime_operational_evidence import RuntimeOperationalEvidence
+from elo.agent_intake.runtime_operational_evidence import (
+    RepeatabilityEvidence,
+    RuntimeOperationalEvidence,
+    RuntimeProvenance,
+)
 from elo.agent_intake.runtime_operational_evidence_collector import RuntimeOperationalEvidenceCollector
 from elo.cognitive.symbionte_lab import SymbiontLabAdapter, SymbiontLabObservation
 
@@ -71,21 +75,23 @@ def run_learning_runtime_with_evidence(
                 candidate_id=CAPABILITY_ID,
                 owner="ELO Knowledge & Skills",
                 runtime_entrypoint="SymbiontLabAdapter.evaluate",
-                timestamp=0.0,
-                action_observed="verified skill learning admitted into governed learning path",
+                timestamp="runtime",
+                action_observed=True,
                 metric="unsafe_skill_admission_block_rate",
                 direction="maximize",
                 baseline=0.0,
                 observed_value=1.0,
-                attribution="CANDIDATE_ATTRIBUTED",
-                provenance={
-                    "commit": runtime_commit,
-                    "runtime_trace": runtime_trace,
-                    "signal_id": signal.signal_id,
-                    "source_refs": signal.source_refs,
-                },
-                regression=(),
-                repeatability={"executions": 1, "successes": 1},
+                attribution="candidate",
+                provenance=RuntimeProvenance(
+                    commit=runtime_commit,
+                    runtime_trace=runtime_trace,
+                ),
+                regression=False,
+                repeatability=RepeatabilityEvidence(
+                    executions=1,
+                    successful=1,
+                    rate=1.0,
+                ),
                 evidence_hash=f"{runtime_commit}:{signal.signal_id}",
             )
         )
