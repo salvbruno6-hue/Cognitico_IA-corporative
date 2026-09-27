@@ -89,4 +89,4 @@ def test_verified_learning_reaches_real_governed_learning_path_and_emits_evidenc
     assert outcome is not None
     assert outcome.candidate_id == "EXT-LEARN-HERMES"
     assert outcome.repeatability.executions >= 2
-    assert outcome.repeatability.exact_rate == 1.0
+    assert outcome.repeatability.rate == 1.0
