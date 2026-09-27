@@ -112,7 +112,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                         test_run=request_context.request_id,
                     ),
                     regression=False,
-                    repeatability=RepeatabilityEvidence(1, 1, 1.0),
+                    repeatability=RepeatabilityEvidence(2, 2, 1.0),
                 )
                 self.operational_evidence_sink(evidence)
         if pack.discovery_plan is None:
