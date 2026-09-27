@@ -87,6 +87,7 @@ class CognitiveHarness:
             {
                 "intent": fixture.intent,
                 "delta": delta_dict,
+                "decision_brief": result.stage_results["decision_brief"],
             }
         )
 
@@ -103,11 +104,14 @@ class CognitiveHarness:
             "promotion_attempted": False,
         }
 
+        stage_results = dict(result.stage_results)
+        stage_results["delta"] = delta_dict
+
         return CognitiveHarnessReport(
             request_id=result.request_id,
             stage_order=STAGE_ORDER,
             audit=tuple(result.audit),
-            stage_results=dict(result.stage_results),
+            stage_results=stage_results,
             delta=delta_dict,
             directives=directives,
             human_response=human_response,
