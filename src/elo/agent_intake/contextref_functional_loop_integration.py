@@ -16,7 +16,7 @@ def run_contextref_functional_loop_probe() -> tuple[object, object]:
         "HERMES-CONTEXT",
         {"controlled_test": True, "outcome": {
             "unsafe_malformed_reference_admission_rate": functional.adapted_unsafe_admission_rate,
-            "canonical_authority_blocked": functional.boundary_integrity == 1.0,
+            "canonical_authority_blocked": functional.boundary_integrity_rate == 1.0,
         }},
     )
     measurement = CandidateMeasurement(
