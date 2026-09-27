@@ -153,3 +153,27 @@ def test_regression_blocks_operational_proof():
     assert valid is False
     assert "REGRESSION_DETECTED" in errors
     assert evidence.operational_outcome_proven is False
+
+
+def test_sink_persists_unique_runtime_execution_records():
+    from elo.agent_intake.runtime_operational_evidence import InMemoryRuntimeEvidenceSink
+
+    sink = InMemoryRuntimeEvidenceSink()
+    first = _evidence("exec-sink-1")
+    second = _evidence("exec-sink-2")
+
+    sink.append(first)
+    sink.append(second)
+
+    assert tuple(item.execution_id for item in sink.list()) == ("exec-sink-1", "exec-sink-2")
+
+
+def test_sink_rejects_duplicate_execution_id():
+    from elo.agent_intake.runtime_operational_evidence import InMemoryRuntimeEvidenceSink
+
+    sink = InMemoryRuntimeEvidenceSink()
+    first = _evidence("exec-sink-duplicate")
+    sink.append(first)
+
+    with pytest.raises(ValueError, match="duplicate execution_id"):
+        sink.append(first)
