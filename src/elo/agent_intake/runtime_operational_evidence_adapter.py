@@ -18,6 +18,9 @@ def to_operational_outcome(
         raise ValueError("at least one runtime observation is required")
 
     first = observations[0]
+    execution_ids = tuple(item.execution_id for item in observations)
+    if len(set(execution_ids)) != len(execution_ids):
+        raise ValueError("runtime observations must have distinct execution_id values")
     if any(item.candidate_id != first.candidate_id for item in observations):
         raise ValueError("all observations must belong to the same candidate")
     if any(item.metric != first.metric for item in observations):
@@ -26,6 +29,8 @@ def to_operational_outcome(
         raise ValueError("all observations must use the same metric direction")
     if any(item.owner != first.owner for item in observations):
         raise ValueError("all observations must belong to the same owner")
+    if any(item.runtime_entrypoint != first.runtime_entrypoint for item in observations):
+        raise ValueError("all observations must use the same runtime entrypoint")
 
     repeatability = aggregate_repeatability(observations)
     provenance = tuple(
