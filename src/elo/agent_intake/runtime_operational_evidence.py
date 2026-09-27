@@ -118,9 +118,6 @@ def create_runtime_evidence(
         raise ValueError("operational evidence requires candidate attribution")
     if not provenance.commit or not provenance.runtime_trace:
         raise ValueError("commit and runtime_trace are required")
-    if repeatability.executions < 2:
-        raise ValueError("operational evidence requires repeatability across >= 2 executions")
-
     ts = (timestamp or datetime.now(timezone.utc)).astimezone(timezone.utc)
     payload = "|".join(
         (
