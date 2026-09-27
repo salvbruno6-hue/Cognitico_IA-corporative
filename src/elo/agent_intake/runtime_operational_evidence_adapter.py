@@ -35,7 +35,14 @@ def to_operational_outcome(
     operational = (
         repeatability.executions >= 2
         and repeatability.successful == repeatability.executions
-        and all(item.operational_outcome_proven for item in observations)
+        and all(
+            item.action_observed
+            and item.attribution == "candidate"
+            and bool(item.provenance.commit)
+            and bool(item.provenance.runtime_trace)
+            and not item.regression
+            for item in observations
+        )
     )
 
     return FunctionalValueEvidence(
