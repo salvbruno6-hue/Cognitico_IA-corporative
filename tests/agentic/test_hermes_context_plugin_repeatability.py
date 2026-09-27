@@ -7,7 +7,6 @@ from elo.agent_intake.runtime_operational_evidence_collector import (
 )
 from elo.agentic.contracts import IntentSpec, KnowledgeRequirement
 from elo.agentic.elo_provider import ELOKnowledgeProvider, ELORequestContext
-from elo.agentic.runtime_context import ELORuntimeContext
 from elo.core.source_resolver import SourceResolutionRequest, SourceResolver
 from elo.core.temporal_memory import TemporalConversationMemory
 
@@ -72,10 +71,6 @@ def test_context_plugin_repeated_real_provider_invocations_produce_operational_o
         provider = ELOKnowledgeProvider(
             request_context=request_context,
             source_resolver=resolver,
-            runtime_context=ELORuntimeContext(
-                project_ref="fxbpevjrkwhbicpmecow",
-                supabase_url="https://fxbpevjrkwhbicpmecow.supabase.co",
-            ),
             context_plugin_signal=signal,
             runtime_evidence_sink=emitted,
         )
