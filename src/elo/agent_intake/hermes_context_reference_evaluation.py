@@ -1,7 +1,7 @@
 """Controlled evaluation of Hermes context-reference parsing boundary."""
 from __future__ import annotations
 from dataclasses import dataclass
-from src.elo.core.context_references import parse_context_references
+from elo.core.context_references import parse_context_references
 
 @dataclass(frozen=True)
 class ContextReferenceEvaluation:
