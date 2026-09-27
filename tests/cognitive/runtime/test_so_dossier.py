@@ -92,3 +92,108 @@ def test_dossier_uses_operational_memory_reference(tmp_path: Path) -> None:
     )
     assert operational["path"] == "memory/solicitations/SO_155_26/index.json"
     assert operational["exists"] is True
+
+
+def test_from_disk_returns_none_for_missing(tmp_path):
+    result = SODossier.from_disk(
+        "SO_999_99", repository_root=tmp_path
+    )
+    assert result is None
+
+
+def test_from_disk_reads_so_155_26(tmp_path):
+    """Copia o dossiê real para tmp e valida leitura."""
+    import shutil
+
+    real = Path("forge/dossiers/SO_155_26")
+    if not real.exists():
+        import pytest
+
+        pytest.skip("Dossiê SO_155_26 não existe no repo")
+
+    target = tmp_path / "forge" / "dossiers" / "SO_155_26"
+    target.parent.mkdir(parents=True)
+    shutil.copytree(real, target)
+
+    dossier = SODossier.from_disk(
+        "SO_155_26", repository_root=tmp_path
+    )
+    assert dossier is not None
+    assert dossier.canonical_key == "SO_155_26"
+    assert dossier.so_id == "SO 155.26"
+    assert dossier.scope_state == "UNKNOWN"
+    assert dossier.maturation_state == "REFERENCED"
+
+
+def test_from_disk_reads_provenance(tmp_path):
+    import shutil
+
+    real = Path("forge/dossiers/SO_155_26")
+    if not real.exists():
+        import pytest
+
+        pytest.skip("Dossiê SO_155_26 não existe no repo")
+
+    target = tmp_path / "forge" / "dossiers" / "SO_155_26"
+    target.parent.mkdir(parents=True)
+    shutil.copytree(real, target)
+
+    dossier = SODossier.from_disk(
+        "SO_155_26", repository_root=tmp_path
+    )
+    assert len(dossier.source_refs) == 3
+    types = {ref.source_type for ref in dossier.source_refs}
+    assert "solicitations_learning" in types
+    assert "budget_learning" in types
+    assert "supabase_experience" in types
+    for ref in dossier.source_refs:
+        assert ref.applicability == "CONSULTIVE"
+
+
+def test_from_disk_does_not_copy_content(tmp_path):
+    """from_disk NÃO lê context.md — apenas verifica presença."""
+    import shutil
+
+    real = Path("forge/dossiers/SO_155_26")
+    if not real.exists():
+        import pytest
+
+        pytest.skip("Dossiê SO_155_26 não existe no repo")
+
+    target = tmp_path / "forge" / "dossiers" / "SO_155_26"
+    target.parent.mkdir(parents=True)
+    shutil.copytree(real, target)
+
+    dossier = SODossier.from_disk(
+        "SO_155_26", repository_root=tmp_path
+    )
+    serialized = dossier.to_dict()
+    blob = json.dumps(serialized)
+    assert "Dois orçamentos" not in blob
+    assert "24 módulos" not in blob
+
+
+def test_has_context_file_true(tmp_path):
+    import shutil
+
+    real = Path("forge/dossiers/SO_155_26")
+    if not real.exists():
+        import pytest
+
+        pytest.skip("Dossiê SO_155_26 não existe no repo")
+
+    target = tmp_path / "forge" / "dossiers" / "SO_155_26"
+    target.parent.mkdir(parents=True)
+    shutil.copytree(real, target)
+
+    dossier = SODossier.from_disk(
+        "SO_155_26", repository_root=tmp_path
+    )
+    assert dossier.has_context_file(repository_root=tmp_path) is True
+
+
+def test_index_json_contains_so_155_26():
+    index = Path("forge/dossiers/INDEX.json")
+    payload = json.loads(index.read_text(encoding="utf-8"))
+    keys = [d.get("canonical_key") for d in payload["dossiers"]]
+    assert "SO_155_26" in keys

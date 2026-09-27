@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "domain": "so-dossiers",
+  "last_updated": "2026-09-27",
+  "dossiers": [
+    {
+      "canonical_key": "SO_155_26",
+      "instance": "SO 155.26",
+      "path": "SO_155_26/",
+      "maturation_state": "REFERENCED",
+      "scope_state": "UNKNOWN"
+    }
+  ]
+}

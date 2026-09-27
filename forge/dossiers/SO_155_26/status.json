@@ -1,0 +1,11 @@
+{
+  "maturation_state": "REFERENCED",
+  "sources_present": 2,
+  "sources_missing": 1,
+  "last_verified": "2026-09-27",
+  "notes": [
+    "REFERENCED significa que uma referência foi localizada.",
+    "NÃO significa que o conteúdo é aplicável à SO atual.",
+    "VALIDATED exige evidência explícita da fonte governada."
+  ]
+}
