@@ -210,7 +210,16 @@ def aggregate_repeatability(
     if not observations:
         raise ValueError("at least one observation is required")
     executions = len(observations)
-    successful = sum(item.operational_outcome_proven for item in observations)
+    successful = sum(
+        item.action_observed
+        and item.attribution == "candidate"
+        and bool(item.provenance.commit)
+        and bool(item.provenance.runtime_trace)
+        and not item.regression
+        and ((item.direction == "minimize" and item.observed_value < item.baseline)
+             or (item.direction != "minimize" and item.observed_value > item.baseline))
+        for item in observations
+    )
     return RepeatabilityEvidence(
         executions=executions,
         successful=successful,
