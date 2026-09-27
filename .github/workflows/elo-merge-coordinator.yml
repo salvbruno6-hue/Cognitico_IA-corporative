@@ -1,0 +1,196 @@
+name: ELO Merge Coordinator
+
+on:
+  workflow_run:
+    workflows:
+      - ELO Agent Loop
+      - ELO Evolution Gate
+      - ELO Baseline Evidence Gate
+      - ELO Maintenance Coordinator
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: elo-merge-coordinator-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+env:
+  REPOSITORY: ${{ github.repository }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  merge:
+    name: Governed PR merge
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve PR from completed workflow
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}")"
+          event_pr="$(jq -r '.pull_requests[0].number // empty' <<<"$run_json")"
+          if [[ -n "$event_pr" ]]; then
+            echo "number=$event_pr" >> "$GITHUB_OUTPUT"
+            echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          prs="$(gh api --paginate "repos/${REPOSITORY}/commits/${HEAD_SHA}/pulls" -H 'Accept: application/vnd.github+json')"
+          number="$(jq -r '[.[] | select(.base.ref == "main" and .state == "open")][0].number // empty' <<<"$prs")"
+          if [[ -z "$number" ]]; then
+            echo "No open PR targeting main found for workflow head SHA ${HEAD_SHA}."
+            exit 0
+          fi
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect current PR state
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          gh pr view "$PR_NUMBER" --repo "$REPOSITORY"             --json number,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,mergeStateStatus,reviewDecision,reviews,comments,statusCheckRollup > /tmp/pr.json
+          cat /tmp/pr.json
+
+          jq -e '.state == "OPEN" and .isDraft == false and .baseRefName == "main"' /tmp/pr.json >/dev/null
+          jq -e --arg sha "${{ steps.pr.outputs.sha }}" '.headRefOid == $sha' /tmp/pr.json >/dev/null
+
+          if jq -e '[.reviews[]? | select(.state == "CHANGES_REQUESTED")] | length > 0' /tmp/pr.json >/dev/null; then
+            echo "Blocking review detected."
+            exit 1
+          fi
+
+          if jq -e '[.reviews[]? | select(.state == "PENDING")] | length > 0' /tmp/pr.json >/dev/null; then
+            echo "Pending review detected."
+            exit 1
+          fi
+
+          if [[ "$(jq -r '.reviewDecision // ""' /tmp/pr.json)" == "CHANGES_REQUESTED" ]]; then
+            echo "reviewDecision=CHANGES_REQUESTED"
+            exit 1
+          fi
+
+      - name: Verify PR-ready evidence
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
+          jq -e '[.comments[]? | select(.body | contains("ELO execution cycle reached PR-ready state."))] | length > 0' <<<"$comments" >/dev/null
+
+      - name: Verify required GitHub checks
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          checks="$(gh pr checks "$PR_NUMBER" --repo "$REPOSITORY" --required --json name,state,bucket)"
+          echo "$checks"
+          jq -e 'length > 0' <<<"$checks" >/dev/null
+          jq -e 'all(.[]; .bucket == "pass")' <<<"$checks" >/dev/null
+
+      - name: Verify applicable ELO gate evidence
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
+          if ! jq -e '[.comments[]? | select(.body | contains("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**"))] | length > 0' <<<"$comments" >/dev/null; then
+            echo "Maintenance Coordinator approval evidence not found."
+            exit 1
+          fi
+
+      - name: Verify elo-merge-authorized in Supabase
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?SUPABASE_URL secret is required}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY secret is required}"
+
+          authz_url="${SUPABASE_URL%/}/rest/v1/elo_authorization_grants"
+          headers=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
+          repo_encoded="$(python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["REPOSITORY"], safe=""))')"
+
+          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&limit=20")"
+
+          valid_grant=""
+          while IFS= read -r row; do
+            issued="$(jq -r '.issued_at' <<<"$row")"
+            expires="$(jq -r '.expires_at' <<<"$row")"
+            issued_epoch="$(date -u -d "$issued" +%s 2>/dev/null || true)"
+            expires_epoch="$(date -u -d "$expires" +%s 2>/dev/null || true)"
+            now_epoch="$(date -u +%s)"
+            if [[ -n "$issued_epoch" && -n "$expires_epoch" ]] &&                (( issued_epoch <= now_epoch && now_epoch < expires_epoch )); then
+              if [[ "$(jq -r '.metadata.issuer_role // ""' <<<"$row")" == "CANONICAL_ADMIN" ]]; then
+                valid_grant="$row"
+                break
+              fi
+            fi
+          done < <(jq -c '.[] | select(.revoked_at == null and .metadata.issuer_role == "CANONICAL_ADMIN")' <<<"$grants")
+
+          if [[ -z "$valid_grant" ]]; then
+            echo "No valid elo-merge-authorized grant found."
+            exit 1
+          fi
+          printf '%s\n' "$valid_grant" > /tmp/grant.json
+          jq '{grant_id, binding_id, authorization_state, operation, repository_full_name, issued_by_identity_id, expires_at}' /tmp/grant.json
+
+          issuer="$(jq -r '.issued_by_identity_id' /tmp/grant.json)"
+          binding_id="$(jq -r '.binding_id' /tmp/grant.json)"
+          binding_url="${SUPABASE_URL%/}/rest/v1/elo_operator_github_bindings"
+          binding="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${binding_url}?select=binding_id,identity_id,github_user_id,github_login,repository_full_name,active&binding_id=eq.${binding_id}&repository_full_name=eq.${repo_encoded}&active=eq.true&limit=1")"
+          jq -e 'length == 1' <<<"$binding" >/dev/null
+
+          role_url="${SUPABASE_URL%/}/rest/v1/elo_identity_roles"
+          roles="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${role_url}?select=identity_id,elo_roles!inner(code,active)&identity_id=eq.${issuer}&elo_roles.code=eq.CANONICAL_ADMIN&elo_roles.active=eq.true")"
+          jq -e 'length > 0' <<<"$roles" >/dev/null
+
+      - name: Execute governed squash merge
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          pr_json="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,mergeable,mergeStateStatus,headRefOid,baseRefName)"
+          jq -e '.state == "OPEN" and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
+          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --delete-branch=false
+
+      - name: Verify merge result
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          result="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,merged,mergedAt,baseRefName,mergeCommit,headRefOid)"
+          echo "$result" | jq '{state,merged,mergedAt,baseRefName,mergeCommit,headRefOid}'
+          jq -e '.state == "MERGED" and .merged == true and .baseRefName == "main"' <<<"$result" >/dev/null
