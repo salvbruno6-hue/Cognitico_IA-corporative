@@ -60,11 +60,33 @@ HERMES_13_EXECUTION_ORDER = (
 
 Probe = Callable[[], tuple[object, object]]
 
+
+def _implementation_next_state(implementation: object) -> str:
+    """Normalize both canonical handoff and legacy decision probe contracts."""
+    next_state = getattr(implementation, "next_state", None)
+    if next_state is not None:
+        return str(next_state)
+    result = getattr(implementation, "result", None)
+    if result == "IMPLEMENTATION_AUTHORIZED":
+        return "IMPLEMENTATION_AUTHORIZED"
+    if result == "READY_FOR_ELO_REVIEW":
+        return "ELO_REVIEW"
+    stage = getattr(implementation, "stage", None)
+    return getattr(stage, "value", str(stage))
+
+
 def _normalize_probe_result(candidate_id: str, probe: Probe, *, implementation_first: bool = True) -> Hermes13LoopResult:
     first, second = probe()
     implementation = first if implementation_first else second
     evidence = second if implementation_first else first
-    return Hermes13LoopResult(candidate_id, implementation.result, implementation.next_state, implementation.canonical_mutation, evidence is not None)
+    return Hermes13LoopResult(
+        candidate_id,
+        implementation.result,
+        _implementation_next_state(implementation),
+        implementation.canonical_mutation,
+        evidence is not None,
+    )
+
 
 def run_hermes_13_implementation_loop() -> Hermes13ImplementationLoopReport:
     probes = (
