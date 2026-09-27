@@ -29,7 +29,7 @@ def run_contextref_functional_loop_probe() -> tuple[object, object]:
         candidate, measurement,
         metric_directions={"unsafe_malformed_reference_admission_rate": "minimize"},
         provenance_refs=functional.provenance_refs,
-        boundary_integrity=functional.boundary_integrity == 1.0,
+        boundary_integrity=functional.boundary_integrity_rate == 1.0,
     )
     handoff = advance_to_implementation(
         candidate, adaptation, evidence.baseline, evidence.adapted,
