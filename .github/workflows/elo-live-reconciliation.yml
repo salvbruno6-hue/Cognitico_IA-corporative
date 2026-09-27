@@ -1,0 +1,75 @@
+name: ELO Live Reconciliation
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # toda segunda-feira às 6 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run reconciliation
+        id: reconcile
+        continue-on-error: true
+        run: |
+          python scripts/run_live_reconciliation.py \
+            | tee reconciliation_report.json
+
+      - name: Show report
+        if: always()
+        run: |
+          echo "===== RELATÓRIO DE RECONCILIAÇÃO ====="
+          cat reconciliation_report.json || echo "sem arquivo"
+
+      - name: Summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("reconciliation_report.json")
+          if not path.exists():
+              print("## ELO Live Reconciliation")
+              print("")
+              print("Nenhum relatório foi gerado.")
+              raise SystemExit(0)
+          try:
+              data = json.loads(path.read_text(encoding="utf-8"))
+          except Exception as exc:
+              print("Falha ao parsear relatório:", exc)
+              raise SystemExit(0)
+          print("## ELO Live Reconciliation")
+          print("")
+          print(f"**Overall:** `{data.get('overall')}`")
+          print("")
+          print("| Tabela | Status | Motivo |")
+          print("|---|---|---|")
+          for t in data.get("tables", []):
+              reasons = "; ".join(t.get("reasons", []))
+              print(f"| {t['table']} | {t['status']} | {reasons} |")
+          PY
