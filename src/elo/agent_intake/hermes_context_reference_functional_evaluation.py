@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.elo.agent_intake.hermes_context_reference_functional_adapter import admit_message
+from elo.agent_intake.hermes_context_reference_functional_adapter import admit_message
 
 
 @dataclass(frozen=True)
