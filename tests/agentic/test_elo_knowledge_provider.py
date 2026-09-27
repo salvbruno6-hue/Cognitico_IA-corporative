@@ -184,3 +184,54 @@ def test_provider_does_not_claim_operational_evidence_from_single_runtime_invoca
     # Operational evidence requires repeatability across at least two real
     # executions; one provider invocation must not manufacture that outcome.
     assert provider.runtime_evidence_sink is None
+
+def test_memory_provider_runtime_evidence_requires_real_retrieval_and_repeats() -> None:
+    from elo.agent_intake.hermes_memory_provider_boundary import MemoryProviderSignal
+    from elo.agent_intake.runtime_operational_evidence_collector import RuntimeOperationalEvidenceCollector
+
+    signal = MemoryProviderSignal(
+        provider_id="ELO_MEMORY",
+        tenant_scope="tenant",
+        source_refs=("source-1",),
+        operation="retrieve",
+        evidence_digest="sha256:runtime-memory",
+        provenance_verified=True,
+        explicit_activation=True,
+    )
+    collector = RuntimeOperationalEvidenceCollector()
+    intent, req = _inputs()
+    provider = ELOKnowledgeProvider(
+        request_context=ELORequestContext(
+            tenant_id="tenant",
+            principal_id="principal",
+            session_id="session",
+            request_id="request-memory-runtime",
+            correlation_id="trace-memory-runtime",
+            conversation_id="conversation",
+            authorization_scope="scope.read",
+        ),
+        source_resolver=SourceResolver(
+            adapters=(_Adapter(),),
+            temporal_memory=TemporalConversationMemory(),
+        ),
+        hermes_memory_provider_signal=signal,
+        runtime_context=ELORuntimeContext(
+            project_ref="fxbpevjrkwhbicpmecow",
+            supabase_url="https://fxbpevjrkwhbicpmecow.supabase.co",
+            runtime_commit="runtime-memory-commit",
+        ),
+        runtime_evidence_sink=collector,
+    )
+
+    assert provider.retrieve(intent, req)
+    assert provider.retrieve(intent, req)
+
+    groups = collector.ready_groups()
+    assert len(groups) == 1
+    group = groups[0]
+    assert group.candidate_id == "EXT-MEMPROVIDER-HERMES"
+    assert group.repeatable is True
+    outcome = group.to_operational_outcome()
+    assert outcome.candidate_id == "EXT-MEMPROVIDER-HERMES"
+    assert outcome.production_proven is True
+    assert outcome.repeatable is True
