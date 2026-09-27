@@ -88,5 +88,5 @@ def test_verified_learning_reaches_real_governed_learning_path_and_emits_evidenc
     outcome = group.to_operational_outcome()
     assert outcome is not None
     assert outcome.candidate_id == "EXT-LEARN-HERMES"
-    assert outcome.repeatability.executions >= 2
-    assert outcome.repeatability.rate == 1.0
+    assert outcome.repeatable is True
+    assert outcome.production_proven is True
