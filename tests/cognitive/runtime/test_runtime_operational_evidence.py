@@ -106,6 +106,7 @@ def test_operational_outcome_requires_provenance():
             runtime_entrypoint="elo.context.resolve",
             action_observed=True,
             metric="task_success_rate",
+            direction="maximize",
             baseline=0.0,
             observed_value=1.0,
             attribution="candidate",
