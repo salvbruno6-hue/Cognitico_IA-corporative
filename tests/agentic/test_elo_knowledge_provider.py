@@ -160,7 +160,6 @@ def test_provider_emits_runtime_evidence_when_context_plugin_is_explicitly_activ
     assert evidence.owner == "HERMES-CONTEXT"
     assert evidence.runtime_entrypoint == "ELOKnowledgeProvider.retrieve"
     assert evidence.action_observed is True
-    assert evidence.runtime_trace == "trace-runtime" if hasattr(evidence, "runtime_trace") else True
     assert evidence.provenance.runtime_trace == "trace-runtime"
     assert evidence.provenance.commit == "runtime-commit-123"
     assert evidence.operational_outcome_proven is False
