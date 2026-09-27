@@ -51,6 +51,7 @@ class RuntimeOperationalEvidence:
     timestamp: str
     action_observed: bool
     metric: str
+    direction: str
     baseline: float
     observed_value: float
     attribution: str
@@ -69,6 +70,7 @@ class RuntimeOperationalEvidence:
             and self.action_observed
             and bool(self.metric)
             and self.attribution == "candidate"
+            and ((self.direction == "minimize" and self.observed_value < self.baseline) or (self.direction != "minimize" and self.observed_value > self.baseline))
             and bool(self.provenance.commit)
             and bool(self.provenance.runtime_trace)
             and not self.regression
@@ -98,6 +100,7 @@ def create_runtime_evidence(
     runtime_entrypoint: str,
     action_observed: bool,
     metric: str,
+    direction: str,
     baseline: float,
     observed_value: float,
     attribution: str,
@@ -127,6 +130,7 @@ def create_runtime_evidence(
             runtime_entrypoint,
             ts.isoformat(),
             metric,
+            direction,
             str(baseline),
             str(observed_value),
             attribution,
@@ -148,6 +152,7 @@ def create_runtime_evidence(
         timestamp=ts.isoformat(),
         action_observed=action_observed,
         metric=metric,
+        direction=direction,
         baseline=baseline,
         observed_value=observed_value,
         attribution=attribution,
