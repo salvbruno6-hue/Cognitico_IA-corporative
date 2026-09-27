@@ -5,6 +5,7 @@ family: 09-governance
 layer: governance
 type: protocol
 status: normative
+authority: protocol
 owner: ELO Governance
 version: 1.0.0
 related:
@@ -91,10 +92,12 @@ O Dossiê registra:
 - `so_id`
 - `canonical_key`
 - `mask`
-- `tenant_id`, quando fornecido pelo contexto autorizado
-- `domain`, quando fornecido pelo contexto autorizado
+- `tenant_id`
+- `domain`
 - `scope_state`
 - `provenance`
+
+`tenant_id` e `domain` estão sempre presentes como campos do dossiê. Podem ter valor nulo quando o contexto não os fornece. O `scope_state` reflete se ambos (`SCOPED`), um (`PARTIAL`) ou nenhum (`UNKNOWN`) está preenchido.
 
 `so_id` sozinho não é uma identidade de escopo suficiente em ambiente multitenant.
 
@@ -130,11 +133,7 @@ Os campos de referência identificam localização e natureza da fonte. Não tra
 
 O ELO já exige isolamento por tenant e domínio. O Dossiê deve transportar o escopo conhecido da resolução, sem inventá-lo.
 
-Estados de escopo:
-
-- `SCOPED` — tenant e domínio conhecidos;
-- `PARTIAL` — apenas parte do escopo conhecida;
-- `UNKNOWN` — nenhum escopo fornecido.
+O `tenant_id` e o `domain` estão sempre presentes como campos do dossiê. Podem ter valor nulo quando o contexto não os fornece. O `scope_state` reflete se ambos (`SCOPED`), um (`PARTIAL`) ou nenhum (`UNKNOWN`) está preenchido.
 
 `UNKNOWN` não significa equivalência entre tenants ou domínios. Uma referência histórica sem escopo verificável permanece consultiva e não pode ser promovida automaticamente para a SO atual.
 
