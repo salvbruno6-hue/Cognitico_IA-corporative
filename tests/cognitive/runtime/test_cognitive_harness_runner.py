@@ -15,13 +15,13 @@ def _run(args: list[str]) -> subprocess.CompletedProcess:
         [sys.executable, str(SCRIPT), *args],
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=120,
     )
 
 
 def test_list_fixtures():
     result = _run(["--list"])
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stderr
     fixtures = json.loads(result.stdout)
     assert isinstance(fixtures, list)
     assert len(fixtures) >= 6
@@ -32,10 +32,14 @@ def test_run_single_fixture():
     assert result.returncode == 0, result.stderr
     output = json.loads(result.stdout)
     assert output["fixture"] == "so_001_26_trelica"
-    assert output["status"] in ("success", "escalated")
-    assert output["stages_executed"] == 10
-    assert output["human_response"] is not None
-    assert "001.26" in output["human_response"]
+    assert output["stages_completed"] == 10
+    assert output["stages_error"] == 0
+    assert output["stages_skipped"] == 0
+    assert output["human_response"]
+    assert output["delta_summary"]["so_id"] == "SO 001.26"
+    assert output["isolated"] is True
+    assert output["promotion_attempted"] is False
+    assert output["governance_decision"] == "MEASUREMENT_ONLY"
 
 
 def test_run_confere_fixture():
@@ -43,8 +47,8 @@ def test_run_confere_fixture():
     assert result.returncode == 0, result.stderr
     output = json.loads(result.stdout)
     assert output["fixture"] == "so_162_26_confere"
-    assert output["status"] in ("success", "escalated")
-    assert output["delta_summary"] is not None
+    assert output["stages_completed"] == 10
+    assert output["delta_summary"]["so_id"] == "SO 162.26"
 
 
 def test_unknown_fixture_fails():

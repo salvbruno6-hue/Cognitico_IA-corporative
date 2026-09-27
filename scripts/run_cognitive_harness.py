@@ -4,10 +4,10 @@ Roda uma fixture real do harness e imprime o report
 estruturado. Não escreve em produção.
 
 Uso:
+    python scripts/run_cognitive_harness.py --list
     python scripts/run_cognitive_harness.py <fixture_name>
 
-Fixtures disponíveis em
-tests/cognitive/runtime/fixtures/harness_experiences.py
+Fixtures em tests/cognitive/runtime/fixtures/harness_experiences.py
 
 Refs: COGNITIVE_HARNESS.md
 """
@@ -17,27 +17,56 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent))
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT))
+
+
+def _load_fixtures_module():
+    from tests.cognitive.runtime.fixtures import harness_experiences
+    return harness_experiences
 
 
 def _list_fixtures() -> list[str]:
-    from tests.cognitive.runtime.fixtures.harness_experiences import (
-        ALL_FIXTURES,
-    )
-    return sorted(ALL_FIXTURES.keys())
+    module = _load_fixtures_module()
+    return sorted(module.ALL_FIXTURES.keys())
 
 
 def _get_fixture(name: str):
-    from tests.cognitive.runtime.fixtures.harness_experiences import (
-        ALL_FIXTURES,
-    )
-    if name not in ALL_FIXTURES:
+    module = _load_fixtures_module()
+    if name not in module.ALL_FIXTURES:
         raise ValueError(
             f"Fixture desconhecida: {name}. "
-            f"Disponíveis: {', '.join(sorted(ALL_FIXTURES))}"
+            f"Disponíveis: {', '.join(sorted(module.ALL_FIXTURES))}"
         )
-    return ALL_FIXTURES[name]()
+    return module.ALL_FIXTURES[name]()
+
+
+def _report_to_dict(fixture_name: str, report) -> dict:
+    delta = report.delta or {}
+    metrics = report.metrics or {}
+    return {
+        "fixture": fixture_name,
+        "request_id": report.request_id,
+        "stage_order": list(report.stage_order),
+        "stages_completed": metrics.get("completed_stage_count"),
+        "stages_error": metrics.get("error_stage_count"),
+        "stages_skipped": metrics.get("skipped_stage_count"),
+        "delta_summary": {
+            "so_id": delta.get("so_id"),
+            "aligned": len(delta.get("aligned", [])),
+            "improvements": len(delta.get("improvements", [])),
+            "corrections": len(delta.get("corrections", [])),
+            "conflicts": len(delta.get("conflicts", [])),
+            "overall_confidence": delta.get("overall_confidence"),
+        },
+        "directives": list(report.directives),
+        "human_response": report.human_response,
+        "isolated": report.isolated,
+        "promotion_attempted": report.promotion_attempted,
+        "governance_decision": report.governance_decision,
+    }
 
 
 def main() -> int:
@@ -46,8 +75,10 @@ def main() -> int:
         return 0
 
     if len(sys.argv) < 2:
-        print("Uso: python scripts/run_cognitive_harness.py "
-              "<fixture_name>", file=sys.stderr)
+        print(
+            "Uso: python scripts/run_cognitive_harness.py <fixture_name>",
+            file=sys.stderr,
+        )
         print("Fixtures disponíveis:", file=sys.stderr)
         for name in _list_fixtures():
             print(f"  - {name}", file=sys.stderr)
@@ -63,25 +94,14 @@ def main() -> int:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2
 
-    harness = CognitiveHarness()
-    report = harness.run(fixture)
+    try:
+        harness = CognitiveHarness()
+        report = harness.run(fixture)
+    except Exception as exc:
+        print(f"ERRO ao executar fixture: {exc}", file=sys.stderr)
+        return 3
 
-    output = {
-        "fixture": fixture_name,
-        "status": report.status,
-        "stages_executed": report.stages_executed,
-        "final_state": report.final_state,
-        "delta_summary": {
-            "aligned": len((report.delta or {}).get("aligned", [])),
-            "improvements": len((report.delta or {}).get("improvements", [])),
-            "corrections": len((report.delta or {}).get("corrections", [])),
-            "conflicts": len((report.delta or {}).get("conflicts", [])),
-        } if report.delta else None,
-        "directives": report.directives,
-        "human_response": report.human_response,
-        "escalation": report.escalation,
-    }
-
+    output = _report_to_dict(fixture_name, report)
     print(json.dumps(output, indent=2, ensure_ascii=False))
     return 0
 
