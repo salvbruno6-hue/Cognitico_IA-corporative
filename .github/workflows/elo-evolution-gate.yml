@@ -29,9 +29,29 @@ jobs:
       - name: Run full test suite
         run: python -m pytest -q
 
+  hermes-13-loop:
+    name: Hermes 13 governed implementation loop
+    needs: validation
+    if: needs.validation.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install package, tests and agentic runtime
+        run: python -m pip install -e ".[test,agentic]"
+      - name: Execute controlled Hermes 13 loop
+        run: python scripts/run_hermes_13_implementation_loop.py
+      - name: Publish loop evidence
+        if: always()
+        run: |
+          echo "Hermes 13 loop execution is evidence-only."
+          echo "No promotion, production execution, or canonical mutation is authorized by this job."
+
   evolution-handoff:
     name: ELO decision handoff
-    needs: validation
+    needs: [validation, hermes-13-loop]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -39,15 +59,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATION_RESULT: ${{ needs.validation.result }}
+          HERMES_LOOP_RESULT: ${{ needs.hermes-13-loop.result }}
           PR_NUMBER: ${{ github.event.pull_request.number || '' }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          if [ "$VALIDATION_RESULT" = "success" ]; then
+          if [ "$VALIDATION_RESULT" = "success" ] && [ "$HERMES_LOOP_RESULT" = "success" ]; then
             STATE="READY_FOR_ELO_REVIEW"
-            MESSAGE="Validação técnica passou. O ELO pode avaliar compatibilidade canônica, conflitos, evidências e necessidade de decisão humana."
+            MESSAGE="Validação técnica e execução controlada do loop Hermes 13 passaram. O ELO pode avaliar compatibilidade canônica, conflitos, evidências e necessidade de decisão humana."
           else
             STATE="ELO_AWAITING_DECISION"
-            MESSAGE="Validação técnica falhou. O ELO deve analisar as falhas, comparar com contratos canônicos e decidir: corrigir, adaptar, preservar como alternativa ou bloquear."
+            MESSAGE="A validação técnica ou a execução controlada do loop Hermes 13 falhou. O ELO deve analisar as falhas, comparar com contratos canônicos e decidir: corrigir, adaptar, preservar como alternativa ou bloquear."
           fi
 
           if [ -n "$PR_NUMBER" ]; then
@@ -57,6 +78,7 @@ jobs:
           **Estado:** \`$STATE\`
           **PR:** #$PR_NUMBER
           **Validação técnica:** \`$VALIDATION_RESULT\`
+          **Loop Hermes 13:** \`$HERMES_LOOP_RESULT\`
 
           $MESSAGE
 
@@ -66,6 +88,7 @@ jobs:
           3. Separar falha técnica de conflito arquitetural.
           4. Se houver decisão necessária, registrar a questão e as alternativas.
           5. Não promover automaticamente uma mudança de Soul/Core por causa de uma falha de CI.
+          6. O loop Hermes 13 não autoriza produção, promoção ou mutação canônica.
 
           Este comentário é um handoff estruturado para a camada consultiva do ELO/GPT.
           EOF
