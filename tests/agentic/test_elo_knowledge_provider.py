@@ -117,3 +117,50 @@ def test_provider_can_explicitly_enable_temporal_trace() -> None:
 
     assert provider.retrieve(intent, req)
     assert len(memory.list("conversation")) == 1
+
+
+def test_provider_emits_runtime_evidence_when_context_plugin_is_explicitly_activated() -> None:
+    from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
+
+    captured = []
+    context = ELORequestContext(
+        tenant_id="tenant",
+        principal_id="principal",
+        session_id="session",
+        request_id="request-runtime",
+        correlation_id="trace-runtime",
+        conversation_id="conversation",
+        authorization_scope="scope.read",
+    )
+    resolver = SourceResolver(adapters=(_Adapter(),), temporal_memory=TemporalConversationMemory())
+    signal = ContextEnginePluginSignal(
+        signal_id="signal-runtime",
+        tenant_scope="tenant",
+        plugin_id="plugin-runtime",
+        engine_name="ELO Context",
+        source_refs=("runtime:plugin-runtime",),
+        explicit_activation=True,
+        provenance_verified=True,
+    )
+    provider = ELOKnowledgeProvider(
+        request_context=context,
+        source_resolver=resolver,
+        context_plugin_signal=signal,
+        operational_evidence_sink=captured.append,
+        runtime_commit="runtime-commit-123",
+    )
+
+    intent, req = _inputs()
+    provider.retrieve(intent, req)
+
+    assert len(captured) == 1
+    evidence = captured[0]
+    assert evidence.execution_id.startswith("exec-")
+    assert evidence.candidate_id == "EXT-CONTEXT-PLUGIN-HERMES"
+    assert evidence.owner == "HERMES-CONTEXT"
+    assert evidence.runtime_entrypoint == "ELOKnowledgeProvider.retrieve"
+    assert evidence.action_observed is True
+    assert evidence.runtime_trace == "trace-runtime" if hasattr(evidence, "runtime_trace") else True
+    assert evidence.provenance.runtime_trace == "trace-runtime"
+    assert evidence.provenance.commit == "runtime-commit-123"
+    assert evidence.operational_outcome_proven is False
