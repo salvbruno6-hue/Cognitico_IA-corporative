@@ -14,6 +14,8 @@ from typing import Callable
 
 from elo.agent_intake.hermes_context_plugin_adapter import ContextPluginAdapter
 from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
+from elo.agent_intake.hermes_memory_provider_adapter import adapt_memory_provider
+from elo.agent_intake.hermes_memory_provider_boundary import MemoryProviderSignal
 from elo.agent_intake.runtime_operational_evidence import (
     RepeatabilityEvidence,
     RuntimeOperationalEvidence,
@@ -65,6 +67,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         runtime_context: ELORuntimeContext | None = None,
         allow_temporal_trace: bool = False,
         context_plugin_signal: ContextEnginePluginSignal | None = None,
+        hermes_memory_provider_signal: MemoryProviderSignal | None = None,
         runtime_evidence_sink=None,
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
@@ -74,6 +77,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         self.runtime_context = runtime_context or resolve_runtime_context()
         self.allow_temporal_trace = allow_temporal_trace
         self.context_plugin_signal = context_plugin_signal
+        self.hermes_memory_provider_signal = hermes_memory_provider_signal
         self.runtime_evidence_sink = runtime_evidence_sink
 
     def retrieve(
@@ -114,7 +118,17 @@ class ELOKnowledgeProvider(KnowledgeProvider):
 
         resolver = self._resolver_for_mode()
         candidates: list[KnowledgeCandidate] = []
+        memory_contract = None
+        if self.hermes_memory_provider_signal is not None:
+            memory_contract = adapt_memory_provider(self.hermes_memory_provider_signal)
+            if memory_contract is None:
+                raise PermissionError("Hermes memory-provider policy rejected retrieval")
+            if memory_contract.tenant_scope != request_context.tenant_id:
+                raise PermissionError("Hermes memory-provider tenant scope mismatch")
+
         for source_candidate in self.context_engine.candidate_sources(pack):
+            if memory_contract is not None and source_candidate.kind != memory_contract.provider_id:
+                continue
             resolution = resolver.resolve(
                 source_candidate,
                 SourceResolutionRequest(
@@ -136,6 +150,35 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                 ),
             )
             for item in resolution.retrieved:
+                if memory_contract is not None:
+                    provenance_refs = tuple(
+                        ref for ref in (
+                            item.source_id,
+                            item.provenance.get("adapter_kind"),
+                            item.provenance.get("adapter_capability"),
+                        ) if ref
+                    )
+                    if not set(memory_contract.source_refs).intersection(provenance_refs):
+                        raise PermissionError("retrieved evidence does not match Hermes memory-provider contract")
+                    if self.runtime_evidence_sink is not None and self.runtime_context.runtime_commit:
+                        self.runtime_evidence_sink.append(create_runtime_evidence(
+                            execution_id=create_execution_id("EXT-MEMPROVIDER-HERMES"),
+                            candidate_id="EXT-MEMPROVIDER-HERMES",
+                            owner="ELO Memory Retrieval",
+                            runtime_entrypoint="ELOKnowledgeProvider.retrieve",
+                            action_observed=True,
+                            metric="provider_identity_provenance_preservation_rate",
+                            direction="maximize",
+                            baseline=0.0,
+                            observed_value=1.0,
+                            attribution="candidate",
+                            provenance=RuntimeProvenance(
+                                commit=self.runtime_context.runtime_commit,
+                                runtime_trace=(request_context.correlation_id or request_context.request_id),
+                            ),
+                            regression=False,
+                            repeatability=RepeatabilityEvidence(1, 1, 1.0),
+                        ))
                 metadata = dict(item.metadata)
                 metadata.setdefault("agentic_requirement", requirement.key)
                 product_code = (
