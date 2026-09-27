@@ -26,6 +26,7 @@ class ELORuntimeContext:
     supabase_url: str
     source_name: str = "supabase_elo_forge"
     read_only: bool = True
+    runtime_commit: str = ""
 
 
 def resolve_runtime_context() -> ELORuntimeContext:
@@ -52,4 +53,5 @@ def resolve_runtime_context() -> ELORuntimeContext:
             "Supabase URL does not match the resolved ELO Forge project reference"
         )
 
-    return ELORuntimeContext(project_ref=project_ref, supabase_url=supabase_url)
+    runtime_commit = (os.getenv("ELO_RUNTIME_COMMIT") or os.getenv("GITHUB_SHA") or "").strip()
+    return ELORuntimeContext(project_ref=project_ref, supabase_url=supabase_url, runtime_commit=runtime_commit)
