@@ -1,15 +1,13 @@
-"""Canonical runtime adapter for the four governed Symbiont skills.
+"""Canonical runtime adapter for the governed Symbiont skills."""
 
-This module is a thin dispatch boundary only. It does not own authorization,
-memory, Evolution Gate, persistence or promotion. Each skill delegates to its
-existing canonical implementation.
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
 from elo.core.decision_outcome_loop import DecisionLifecycle
+from elo.agent_intake.hermes_functional_value_proof import FunctionalValueEvidence
+from elo.agent_intake.runtime_operational_evidence_collector import RuntimeEvidenceGroup
 from .capability_absorption import CapabilityCandidate, NativeCapabilityAbsorption
 from .symbionte_lab import SymbiontLabEvaluation, SymbiontLabObservation
 from .symbiont_operational_contract import SymbiontRequestGuard, validate_operation
@@ -17,7 +15,7 @@ from .symbiont_operational_contract import SymbiontRequestGuard, validate_operat
 
 @dataclass(frozen=True)
 class SymbiontSkillRuntime:
-    """Thin operational facade over already-canonical skill implementations."""
+    """Thin facade; authorization and promotion remain outside this runtime."""
 
     absorption: NativeCapabilityAbsorption
 
@@ -63,6 +61,13 @@ class SymbiontSkillRuntime:
             principal_id=principal_id,
             dataset_version=dataset_version,
         )
+
+    @staticmethod
+    def evaluate_runtime_evidence(group: RuntimeEvidenceGroup) -> FunctionalValueEvidence:
+        """Consume only a collector-approved repeated runtime evidence group."""
+        if not group.repeatable:
+            raise ValueError("runtime evidence is not repeatable")
+        return group.to_operational_outcome()
 
     def propose_capability(self, observation: SymbiontLabObservation) -> CapabilityCandidate:
         return self.absorption.propose(observation)
