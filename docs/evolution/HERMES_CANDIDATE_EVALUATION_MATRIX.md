@@ -1,7 +1,7 @@
 # ELO — Hermes Candidate Evaluation Matrix
 
 **Status:** ALL 13 ORIGINAL CANDIDATES HAVE CONTROLLED FUNCTIONAL EVIDENCE  
-**Base:** `main` @ `a1b651d9d9f377d706f99247d184d7e732a4e253`  
+**Base:** `main` @ `fcbcc50185bd93e92c69c809eff44c6203f34703`  
 **Rule:** registration is not promotion; every candidate remains candidate-only until measured, repeatable evidence passes Evolution Gate and explicit ELO governance authorizes implementation.
 
 | Candidate | Existing ELO owner | Primary measurable metric | Direction | Required evidence | Main boundary |
@@ -73,12 +73,12 @@ The order is an execution sequence, not a quality ranking.
 | EXT-CONTEXT-PLUGIN-HERMES | controlled task gain 0.00 → 1.00 | candidate-attributed | eligible for governed handoff |
 | EXT-WORKTREE-HERMES | collision-free concurrent task rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-MULTIAGENT-HERMES | context isolation rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
-| EXT-CRON-HERMES | bounded schedule contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
-| EXT-MEMPROVIDER-HERMES | bounded retrieval contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
-| EXT-ROUTE-HERMES | bounded routing-plan contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
-| EXT-PROFILE-HERMES | bounded profile isolation | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
-| EXT-BATCH-HERMES | bounded batch intake | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
-| EXT-LEARN-HERMES | candidate skill admission contract | boundary-attributed | RETEST_FUNCTIONAL_VALUE |
+| EXT-CRON-HERMES | idempotency collision-free rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
+| EXT-MEMPROVIDER-HERMES | provider identity preservation rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
+| EXT-ROUTE-HERMES | unsafe route admission block rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
+| EXT-PROFILE-HERMES | collision-free profile task rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
+| EXT-BATCH-HERMES | collision-free batch task rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
+| EXT-LEARN-HERMES | unsafe skill admission block rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-LEARNING-GRAPH-HERMES | duplicate semantic relation block rate 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-CONTEXTREF-HERMES | unsafe malformed-reference admission 0.40 → 0.00 | candidate-attributed controlled gain | eligible for governed handoff |
 | EXT-CHECKPOINT-HERMES | recovery remains 1.00 → 1.00; stale-replay block 0.00 → 1.00 | candidate-attributed controlled gain | eligible for governed handoff |
