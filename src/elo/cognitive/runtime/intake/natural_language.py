@@ -3,7 +3,7 @@
 Aceita comandos em português e retorna payload estruturado.
 Tolerante a variações formais e coloquiais.
 
-Refs: ELO-NATURAL-LANGUAGE-PROTOCOL
+Refs: ELO-NATURAL-LANGUAGE-PROTOCOL.
 """
 from __future__ import annotations
 
@@ -11,15 +11,14 @@ import json
 import re
 from typing import Any
 
+from ..knowledge.so_resolver import normalize_so_id
 from .intents import Intent
-
 
 SO_PATTERN = re.compile(
     r"\bSO[\s\-_]?(\d{2,4})[\s\-_.]?(\d{1,3})\b",
     re.IGNORECASE,
 )
 DECISION_PATTERN = re.compile(r"\bDEC[\s\-_]?(\w+)\b", re.IGNORECASE)
-
 JSON_BLOCK_PATTERN = re.compile(
     r"<!--\s*elo-request-payload\s*(.*?)\s*-->",
     re.DOTALL,
@@ -32,9 +31,13 @@ def _normalize(text: str) -> str:
 
 def _extract_so_id(text: str) -> str | None:
     match = SO_PATTERN.search(text)
-    if match:
-        return f"SO {match.group(1)}.{match.group(2)}"
-    return None
+    if not match:
+        return None
+    candidate = f"SO {match.group(1)}.{match.group(2)}"
+    try:
+        return normalize_so_id(candidate)
+    except ValueError:
+        return None
 
 
 def _extract_decision_id(text: str) -> str | None:
@@ -88,7 +91,6 @@ def _detect_intent(normalized: str) -> Intent | None:
             "compara com", "compare com",
         ]),
     ]
-
     for intent, keywords in rules:
         for kw in keywords:
             if kw in normalized:
@@ -108,15 +110,7 @@ def parse_json_block(text: str) -> dict[str, Any] | None:
 
 
 def parse_natural_request(text: str) -> dict[str, Any]:
-    """Parseia comando em linguagem natural.
-
-    Ordem:
-      1. JSON block (retrocompatível) tem prioridade
-      2. linguagem natural reconhecida
-      3. erro estruturado com sugestões
-
-    Retorna payload com 'intent' e campos correspondentes.
-    """
+    """Parseia comando em linguagem natural."""
     json_payload = parse_json_block(text)
     if json_payload is not None:
         return json_payload
