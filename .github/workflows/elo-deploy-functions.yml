@@ -1,0 +1,93 @@
+name: ELO Deploy Functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: "Função a deployar"
+        required: true
+        type: choice
+        options:
+          - elo-data-gateway
+          - elo-authz
+          - elo-mcp
+          - all
+      confirm:
+        description: "Digite DEPLOY para confirmar"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Guard confirmation
+        if: inputs.confirm != 'DEPLOY'
+        run: |
+          echo "Confirmação inválida. Digite DEPLOY exatamente."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Show deploy context
+        run: |
+          echo "Commit em main: ${{ github.sha }}"
+          echo "Função alvo: ${{ inputs.function_name }}"
+          echo "Operador: ${{ github.actor }}"
+          echo "Run ID: ${{ github.run_id }}"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify token
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "${SUPABASE_ACCESS_TOKEN}" ]; then
+            echo "ERRO: secret SUPABASE_ACCESS_TOKEN não configurado."
+            echo "Crie em: https://supabase.com/dashboard/account/tokens"
+            echo "Adicione em: Settings → Secrets → Actions"
+            exit 1
+          fi
+
+      - name: Deploy single function
+        if: inputs.function_name != 'all'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy ${{ inputs.function_name }} \
+            --project-ref fxbpevjrkwhbicpmecow \
+            --use-api
+
+      - name: Deploy all functions
+        if: inputs.function_name == 'all'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          for fn in elo-data-gateway elo-authz elo-mcp; do
+            echo "===== Deploying $fn ====="
+            supabase functions deploy $fn \
+              --project-ref fxbpevjrkwhbicpmecow \
+              --use-api
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## ELO Deploy Functions"
+          echo ""
+          echo "**Função:** ${{ inputs.function_name }}"
+          echo "**Operador:** ${{ github.actor }}"
+          echo "**Commit main:** ${{ github.sha }}"
+          echo "**Run ID:** ${{ github.run_id }}"
+          echo "**Data:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
