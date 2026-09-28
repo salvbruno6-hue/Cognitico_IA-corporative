@@ -47,6 +47,7 @@ def arm_wait_timer(
     delay_seconds: float,
     attempt: int = 1,
     now: float | None = None,
+    waiting_status: str | None = None,
 ) -> ExecutionState:
     """Persist a future eligibility time without blocking the worker."""
     if not kind.strip() or not reference.strip():
@@ -72,7 +73,7 @@ def arm_wait_timer(
     state = store.get_execution(execution_id)
     return store.advance(
         execution_id,
-        status="WAITING",
+        status=waiting_status or state.status,
         current_stage=state.current_stage,
         next_action=state.next_action,
         last_step=state.last_completed_step or "WAIT",
