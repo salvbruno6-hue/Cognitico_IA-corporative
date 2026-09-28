@@ -69,7 +69,7 @@ def test_two_distinct_successful_executions_become_operational_outcome():
     outcome = collector.outcome(KEY)
 
     assert outcome.level == "OPERATIONAL_OUTCOME"
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert outcome.repeatable is True
     assert len(outcome.provenance_refs) == 2
 

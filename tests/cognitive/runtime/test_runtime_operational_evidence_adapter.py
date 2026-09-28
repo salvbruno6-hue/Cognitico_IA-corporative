@@ -28,12 +28,12 @@ def _item(execution_id: str):
     )
 
 
-def test_two_real_observations_become_operational_outcome():
+def test_two_real_observations_become_operational_outcome_without_production_claim():
     evidence = to_operational_outcome((_item("exec-1"), _item("exec-2")))
 
     assert isinstance(evidence, FunctionalValueEvidence)
     assert evidence.level == "OPERATIONAL_OUTCOME"
-    assert evidence.production_proven is True
+    assert evidence.production_proven is False
     assert evidence.repeatable is True
     assert evidence.functional_gain_proven is True
     assert len(evidence.provenance_refs) == 2

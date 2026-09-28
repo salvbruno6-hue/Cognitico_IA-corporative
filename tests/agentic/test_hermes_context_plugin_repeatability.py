@@ -93,5 +93,5 @@ def test_context_plugin_repeated_real_provider_invocations_produce_operational_o
 
     assert outcome.level == "OPERATIONAL_OUTCOME"
     assert outcome.repeatable is True
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert len(outcome.provenance_refs) == 2

@@ -101,5 +101,5 @@ def test_two_real_route_executions_become_operational_outcome() -> None:
     assert group.repeatable is True
     outcome = group.to_operational_outcome()
     assert outcome.candidate_id == "EXT-ROUTE-HERMES"
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert outcome.repeatable is True

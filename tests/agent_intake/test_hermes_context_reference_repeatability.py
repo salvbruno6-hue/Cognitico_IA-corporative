@@ -31,5 +31,5 @@ def test_contextref_repeated_real_adapter_invocations_produce_operational_outcom
 
     assert outcome.level == "OPERATIONAL_OUTCOME"
     assert outcome.repeatable is True
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert len(outcome.provenance_refs) == 2

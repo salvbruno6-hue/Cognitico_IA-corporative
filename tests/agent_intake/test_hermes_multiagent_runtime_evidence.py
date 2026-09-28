@@ -117,5 +117,5 @@ def test_two_real_multiagent_dispatches_become_operational_outcome() -> None:
     outcome = group.to_operational_outcome()
     assert outcome is not None
     assert outcome.candidate_id == "EXT-MULTIAGENT-HERMES"
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert outcome.repeatable is True
