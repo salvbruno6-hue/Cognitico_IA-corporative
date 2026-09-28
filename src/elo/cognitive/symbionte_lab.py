@@ -57,7 +57,6 @@ class SymbiontLabObservation:
         risk: str,
         existing_owner: str | None,
         scope: str,
-        source_commit: str,
         tenant_id: str,
         observation_id: str,
     ) -> "SymbiontLabObservation":
