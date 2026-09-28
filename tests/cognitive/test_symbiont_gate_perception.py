@@ -17,13 +17,14 @@ def test_gate_perception_waits_without_mutating_while_gate_is_pending() -> None:
         current_stage="TESTING",
         next_action="MEASURE",
     )
-    wait_for_external_gate(store, "gate-1", gate_id="ci-123")
+    wait_for_external_gate(store, "gate-1", gate_id="ci-123", delay_seconds=30.0, now=1000.0)
 
     before = store.get_execution("gate-1")
     after = perceive_external_gate(
         store,
         "gate-1",
         observe=lambda gate_id: ExternalGateObservation(gate_id, "PENDING"),
+        now=lambda: 1000.0,
     )
 
     assert after.status == WAITING_FOR_EXTERNAL_GATE
@@ -42,7 +43,7 @@ def test_gate_perception_resumes_after_deterministic_completion() -> None:
         current_stage="TESTING",
         next_action="MEASURE",
     )
-    wait_for_external_gate(store, "gate-2", gate_id="ci-456")
+    wait_for_external_gate(store, "gate-2", gate_id="ci-456", delay_seconds=30.0, now=1000.0)
 
     after = perceive_external_gate(
         store,
@@ -50,6 +51,7 @@ def test_gate_perception_resumes_after_deterministic_completion() -> None:
         observe=lambda gate_id: ExternalGateObservation(
             gate_id, "SUCCESS", evidence_ref="ci-run-456"
         ),
+        now=lambda: 1030.0,
     )
 
     assert after.status == "ACTIVE"
@@ -68,12 +70,13 @@ def test_gate_perception_is_not_a_human_approval() -> None:
         current_stage="TESTING",
         next_action="MEASURE",
     )
-    wait_for_external_gate(store, "gate-3", gate_id="prod-approval")
+    wait_for_external_gate(store, "gate-3", gate_id="prod-approval", delay_seconds=30.0, now=1000.0)
 
     after = perceive_external_gate(
         store,
         "gate-3",
         observe=lambda gate_id: ExternalGateObservation(gate_id, "MERGED"),
+        now=lambda: 1030.0,
     )
 
     assert after.human_required is False
