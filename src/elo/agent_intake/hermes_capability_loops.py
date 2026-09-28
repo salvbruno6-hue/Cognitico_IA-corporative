@@ -12,9 +12,8 @@ No business operation is executed and Hermes is never mutated.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import StrEnum, field, replace
-from enum import Enum
+from dataclasses import dataclass, field, replace
+from enum import StrEnum, Enum
 from elo.application.use_cases.orchestrator import AuthorizationDecision
 from typing import Callable, Iterable, Mapping
 
