@@ -296,6 +296,16 @@ class ApprovedCandidateImplementationLoop:
             raise ValueError("implementation decision requires evidence_refs")
         if decision.authority != "elo_cognitive":
             raise ValueError("implementation decision owner must remain elo_cognitive")
+        if not decision.approved:
+            return ImplementationActivation(
+                decision_id=decision.decision_id,
+                candidate_id=candidate.candidate_id,
+                state="BLOCKED",
+                activated=False,
+                scope=decision.scope,
+                reason="implementation decision not approved",
+                authorization=decision.authorization,
+            )
         if not decision.authorization_valid():
             return ImplementationActivation(
                 decision_id=decision.decision_id,
@@ -305,15 +315,6 @@ class ApprovedCandidateImplementationLoop:
                 scope=decision.scope,
                 reason="canonical execution authorization is missing, invalid, expired, or not bound to decision evidence",
                 authorization=decision.authorization,
-            )
-        if not decision.approved:
-            return ImplementationActivation(
-                decision_id=decision.decision_id,
-                candidate_id=candidate.candidate_id,
-                state="BLOCKED",
-                activated=False,
-                scope=decision.scope,
-                reason="implementation decision not approved",
             )
         if not readiness.ready:
             return ImplementationActivation(
