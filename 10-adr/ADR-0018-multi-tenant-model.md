@@ -183,3 +183,38 @@ próprias. Este ADR apenas estabelece o padrão.
 - não presumir prefixo para tenant futuro sem decisão dele
 
 FIM DO BLOCO 2.
+
+## Consequências
+
+### Positivas
+
+- fronteira explícita entre cânone e tenant
+- convenções de nomenclatura formalizadas
+- onboarding documentado para novos tenants
+- histórico de produção preservado
+- reconciliação automática já existe
+
+### Negativas
+
+- 131 migrations ainda precisam ser classificadas
+- reincorporação levará múltiplas PRs
+- disciplina de camada exige revisão em PRs futuras
+
+### Neutras
+
+- nenhuma estrutura física é movida
+- nenhum dado é tocado
+- nenhuma execução em produção é alterada
+
+## Conformidade
+
+- Regra de duplicidade: `NEW` (ADR consolidador, não cria
+  capacidade nova)
+- Camadas: Governança (ADR)
+- Princípio fundador: preservado — o ELO reconhece o tenant,
+  não absorve o tenant
+
+## Status
+
+Aceito. Passa a orientar decisões futuras sobre tenant,
+cânone e migrations.
