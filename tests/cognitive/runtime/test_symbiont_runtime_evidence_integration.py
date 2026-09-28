@@ -40,5 +40,5 @@ def test_symbiont_runtime_consumes_collector_outcome_without_promoting_it():
     evidence = SymbiontSkillRuntime.evaluate_runtime_evidence(group)
 
     assert evidence.level == "OPERATIONAL_OUTCOME"
-    assert evidence.production_proven is True
+    assert evidence.production_proven is False
     assert evidence.attribution == "CANDIDATE_ATTRIBUTED"
