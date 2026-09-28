@@ -132,7 +132,7 @@ class HermesSymbiontGateSession:
             execution_id=self.execution_id,
             candidate_id=self.candidate_id,
             status=state.status,
-            next_state=str(getattr(implementation, "next_state", None) or state.next_action),
+            next_state=str(state.next_action),
             evidence=self._captured.get("evidence"),
             waiting_for_gate=False,
             resumed=False,
