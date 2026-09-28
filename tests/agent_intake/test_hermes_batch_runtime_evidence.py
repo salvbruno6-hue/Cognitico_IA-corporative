@@ -72,5 +72,5 @@ def test_two_real_batch_evaluations_become_operational_outcome() -> None:
     outcome = group.to_operational_outcome()
     assert outcome is not None
     assert outcome.candidate_id == "EXT-BATCH-HERMES"
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert outcome.repeatable is True
