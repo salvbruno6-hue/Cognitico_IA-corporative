@@ -98,6 +98,17 @@ class HermesSymbiontGateSession:
             )
 
         next_state = getattr(implementation, "next_state", None)
+        if str(next_state or "") == "IMPLEMENTATION_AUTHORIZED":
+            return ActionResult(
+                status="BLOCKED",
+                next_action="HUMAN_APPROVAL_REQUIRED",
+                result={
+                    "candidate_id": self.candidate_id,
+                    "reason": "implementation authorization cannot originate inside Symbiont",
+                },
+                boundary="Hermes Symbiont cannot self-authorize implementation",
+                human_required=True,
+            )
         if next_state is None:
             result = getattr(implementation, "result", None)
             next_state = "ELO_REVIEW" if result == "READY_FOR_ELO_REVIEW" else str(result or "ELO_REVIEW")
