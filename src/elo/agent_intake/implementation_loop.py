@@ -11,18 +11,8 @@ from dataclasses import dataclass
 from typing import Callable, Mapping
 
 from .hermes_current_extensions import HermesCandidate, evaluate_candidate
+from .hermes_capability_loops import ImplementationDecision, ImplementationStage
 from .symbiont_adaptation import SymbiontAdaptation, refinement_is_eligible_for_test
-
-
-class ImplementationStage(str, Enum):
-    OBSERVED = "OBSERVED"
-    CANDIDATE = "CANDIDATE"
-    CONTROLLED_TEST = "CONTROLLED_TEST"
-    MEASURED_GAIN = "MEASURED_GAIN"
-    REPEATABLE = "REPEATABLE"
-    EVOLUTION_GATE = "EVOLUTION_GATE"
-    ELO_REVIEW = "ELO_REVIEW"
-    IMPLEMENTATION_AUTHORIZED = "IMPLEMENTATION_AUTHORIZED"
 
 
 class SymbiontAutonomyState(str, Enum):
@@ -167,29 +157,17 @@ def run_implementation_loop(
 ) -> ImplementationDecision:
     """Advance a candidate through every implementation gate deterministically."""
     if candidate.promotion_state != "candidate_only" or candidate.canonical_mutation:
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.CANDIDATE, "REJECT", False,
-            "candidate is not safely bounded",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.CANDIDATE, result="REJECT", reason="candidate is not safely bounded")
 
     if not refinement_is_eligible_for_test(adaptation):
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.CANDIDATE, "RETEST", False,
-            "controlled evidence is insufficient",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.CANDIDATE, result="RETEST", reason="controlled evidence is insufficient")
 
     directions = metric_directions or {}
     if regressions:
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.CONTROLLED_TEST, "REJECT", False,
-            "regression or governance boundary violation detected",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.CONTROLLED_TEST, result="REJECT", reason="regression or governance boundary violation detected")
 
     if not _has_positive_gain(baseline, adapted, directions):
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.MEASURED_GAIN, "RETEST", False,
-            "no measurable positive gain with explicit metric direction",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.MEASURED_GAIN, result="RETEST", reason="no measurable positive gain with explicit metric direction")
 
     measurement = evaluate_candidate(
         candidate, baseline, adapted, regressions=regressions, repeatable=repeatable,
@@ -197,22 +175,13 @@ def run_implementation_loop(
     )
 
     if measurement.result == "REJECT":
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.CONTROLLED_TEST, "REJECT", False,
-            "regression or governance boundary violation detected",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.CONTROLLED_TEST, result="REJECT", reason="regression or governance boundary violation detected")
 
     if measurement.result == "RETEST":
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.REPEATABLE, "RETEST", False,
-            "positive gain is not yet repeatable",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.REPEATABLE, result="RETEST", reason="positive gain is not yet repeatable")
 
     if not elo_approved:
-        return ImplementationDecision(
-            candidate.candidate_id, ImplementationStage.ELO_REVIEW, "READY_FOR_ELO_REVIEW", False,
-            "technical evidence passed; explicit ELO approval is still required",
-        )
+        return ImplementationDecision(decision_id="", candidate_id=candidate.candidate_id, approved=False, scope="", stage=ImplementationStage.ELO_REVIEW, result="READY_FOR_ELO_REVIEW", reason="technical evidence passed; explicit ELO approval is still required")
 
     return ImplementationDecision(
         decision_id="",
