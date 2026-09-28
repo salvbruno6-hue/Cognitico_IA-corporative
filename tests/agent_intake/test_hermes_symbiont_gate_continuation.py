@@ -44,6 +44,7 @@ def test_hermes_waits_on_external_gate_then_resumes_without_reexecuting_probe():
         assert resumed.resumed is True
         assert resumed.status == "ACTIVE"
         assert resumed.next_state == "ELO_REVIEW"
+        assert resumed.evidence is not None
         assert calls["probe"] == 1
     finally:
         session.close()
