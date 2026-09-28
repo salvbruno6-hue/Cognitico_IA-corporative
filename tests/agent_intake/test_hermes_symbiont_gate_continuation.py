@@ -108,3 +108,23 @@ def test_gate_session_consumes_valid_external_implementation_authorization():
         assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
     finally:
         session.close()
+
+
+def test_gate_session_fails_closed_when_candidate_self_authorizes_without_mutation():
+    session = HermesSymbiontGateSession(
+        "EXT-PROFILE-HERMES",
+        lambda: (
+            SimpleNamespace(
+                result="IMPLEMENTATION_AUTHORIZED",
+                next_state="IMPLEMENTATION_AUTHORIZED",
+                canonical_mutation=False,
+            ),
+            SimpleNamespace(candidate_id="EXT-PROFILE-HERMES"),
+        ),
+    )
+    try:
+        result = session.start()
+        assert result.status == "HUMAN_APPROVAL_REQUIRED"
+        assert result.next_state == "HUMAN_APPROVAL_REQUIRED"
+    finally:
+        session.close()
