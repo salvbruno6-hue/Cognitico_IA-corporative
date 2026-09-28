@@ -63,5 +63,5 @@ def test_symbiont_fails_closed_when_candidate_self_authorizes_without_mutation()
     )
 
     assert result.status == "HUMAN_APPROVAL_REQUIRED"
-    assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
+    assert result.next_state == "HUMAN_APPROVAL_REQUIRED"
     assert result.canonical_mutation is False
