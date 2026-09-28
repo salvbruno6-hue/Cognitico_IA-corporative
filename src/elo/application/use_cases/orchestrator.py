@@ -9,6 +9,7 @@ roles, capabilities, sessions, scopes, or bearer credentials.
 """
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Protocol
 
@@ -41,14 +42,32 @@ class AuthorizationDecision:
     identity_id: str
     role: str
     evidence_ref: str
+    session_id: str = ""
+    binding_id: str = ""
+    grant_id: str = ""
+    operation: str = "execute"
+    expires_at: str = ""
 
-    def is_canonical(self) -> bool:
-        return (
-            self.authority == "elo-authz"
-            and bool(self.identity_id)
-            and bool(self.role)
-            and bool(self.evidence_ref.strip())
-        )
+    def is_canonical(self, *, now: datetime | None = None) -> bool:
+        """Validate transported provenance; policy remains owned by elo-authz."""
+        if self.authority != "elo-authz" or not self.authorized:
+            return False
+        if not self.identity_id or not self.role or not self.evidence_ref.strip():
+            return False
+        if not self.session_id or not self.binding_id or not self.grant_id:
+            return False
+        if self.operation != "execute" or not self.expires_at:
+            return False
+        try:
+            expiry = datetime.fromisoformat(self.expires_at.replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        reference = now or datetime.now(timezone.utc)
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        if expiry <= reference:
+            return False
+        return True
 
 
 @dataclass(frozen=True)
