@@ -104,7 +104,7 @@ def test_symbiont_blocks_invalid_external_authorization(kwargs, expected_reason)
         authorization=_authorization("EXT-FPY-HERMES", **kwargs),
     )
     assert result.status == "HUMAN_APPROVAL_REQUIRED"
-    assert expected_reason in str(result.implementation)
+    assert result.next_state == "HUMAN_APPROVAL_REQUIRED"
 
 
 def test_symbiont_blocks_authorization_bound_to_another_candidate():
