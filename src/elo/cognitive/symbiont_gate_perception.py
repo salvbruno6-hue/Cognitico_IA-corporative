@@ -39,6 +39,7 @@ def wait_for_external_gate(
     *,
     gate_id: str,
     delay_seconds: float = 30.0,
+    now: float | None = None,
 ) -> ExecutionState:
     """Persist a gate wait and its next eligible observation time."""
     if delay_seconds <= 0:
@@ -67,6 +68,7 @@ def wait_for_external_gate(
         reference=gate_id,
         delay_seconds=delay_seconds,
         attempt=1,
+        now=now,
     )
 
 
