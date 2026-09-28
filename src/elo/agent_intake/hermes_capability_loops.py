@@ -249,7 +249,7 @@ class ImplementationDecision:
 
     def authorization_valid(self, *, now=None) -> bool:
         auth = self.authorization
-        if auth is None or not auth.is_canonical(now=now):
+        if auth is None or not auth.is_transport_valid(now=now):
             return False
         if auth.evidence_ref not in self.evidence_refs:
             return False
