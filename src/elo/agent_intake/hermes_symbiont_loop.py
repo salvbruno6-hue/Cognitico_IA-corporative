@@ -76,6 +76,17 @@ def apply_candidate_through_symbiont(
             )
 
         next_state = getattr(implementation, "next_state", None)
+        if str(next_state or "") == "IMPLEMENTATION_AUTHORIZED":
+            return ActionResult(
+                status="BLOCKED",
+                next_action="HUMAN_APPROVAL_REQUIRED",
+                result={
+                    "candidate_id": candidate_id,
+                    "reason": "implementation authorization cannot originate inside Symbiont",
+                },
+                boundary="Hermes Symbiont cannot self-authorize implementation",
+                human_required=True,
+            )
         if next_state is None:
             result = getattr(implementation, "result", None)
             next_state = (
@@ -115,14 +126,7 @@ def apply_candidate_through_symbiont(
                 f"Symbiont did not execute Hermes candidate: {candidate_id}"
             )
 
-        next_state = getattr(implementation, "next_state", None)
-        if next_state is None:
-            result = getattr(implementation, "result", None)
-            next_state = (
-                "ELO_REVIEW"
-                if result == "READY_FOR_ELO_REVIEW"
-                else str(result or state.next_action)
-            )
+        next_state = str(state.next_action)
 
         return SymbiontCandidateResult(
             candidate_id=candidate_id,
