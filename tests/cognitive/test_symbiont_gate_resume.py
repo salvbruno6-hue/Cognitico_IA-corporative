@@ -14,7 +14,7 @@ def test_completed_external_gate_reenters_existing_resumer() -> None:
         current_stage="TESTING",
         next_action="MEASURE",
     )
-    wait_for_external_gate(store, "resume-gate-1", gate_id="ci-1", delay_seconds=30.0)
+    wait_for_external_gate(store, "resume-gate-1", gate_id="ci-1", delay_seconds=30.0, now=1000.0)
     calls = []
 
     def executor(state, operation):
@@ -61,7 +61,7 @@ def test_pending_external_gate_does_not_enter_resumer() -> None:
         current_stage="TESTING",
         next_action="MEASURE",
     )
-    wait_for_external_gate(store, "resume-gate-2", gate_id="ci-2", delay_seconds=30.0)
+    wait_for_external_gate(store, "resume-gate-2", gate_id="ci-2", delay_seconds=30.0, now=1000.0)
     called = False
 
     def executor(state, operation):
@@ -102,7 +102,7 @@ def test_pending_external_gate_waits_until_timer_is_due() -> None:
         next_action="MEASURE",
     )
     wait_for_external_gate(
-        store, "resume-gate-3", gate_id="ci-3", delay_seconds=30.0
+        store, "resume-gate-3", gate_id="ci-3", delay_seconds=30.0, now=1000.0
     )
     state = store.get_execution("resume-gate-3")
     timer = read_wait_timer(state)
@@ -149,9 +149,9 @@ def test_pending_external_gate_rearms_timer_after_due_poll() -> None:
         next_action="MEASURE",
     )
     wait_for_external_gate(
-        store, "resume-gate-4", gate_id="ci-4", delay_seconds=30.0
+        store, "resume-gate-4", gate_id="ci-4", delay_seconds=30.0, now=1000.0
     )
-    result = perceive_external_gate = __import__(
+    result = __import__(
         "elo.cognitive.symbiont_gate_perception", fromlist=["perceive_external_gate"]
     ).perceive_external_gate(
         store,
