@@ -27,9 +27,10 @@ def perceive_and_resume(
     observe: Callable[[str], ExternalGateObservation],
     worker_id: str,
     max_steps: int = 100,
+    now: Callable[[], float] | None = None,
 ) -> GateResumeResult:
     before = store.get_execution(execution_id)
-    after = perceive_external_gate(store, execution_id, observe=observe)
+    after = perceive_external_gate(store, execution_id, observe=observe, **({"now": now} if now is not None else {}))
 
     if before.status != "WAITING_FOR_EXTERNAL_GATE" or after.status != "ACTIVE":
         return GateResumeResult(state=after, resumed=False)
