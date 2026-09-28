@@ -29,6 +29,7 @@ from .learning_graph_functional_loop_integration import run_learning_graph_funct
 from .learning_loop_integration import run_learning_loop_probe
 from .profile_loop_integration import run_profile_loop_probe
 from .route_loop_integration import run_route_loop_probe
+from .hermes_symbiont_loop import apply_candidate_through_symbiont
 
 @dataclass(frozen=True, slots=True)
 class Hermes13LoopResult:
@@ -76,15 +77,18 @@ def _implementation_next_state(implementation: object) -> str:
 
 
 def _normalize_probe_result(candidate_id: str, probe: Probe, *, implementation_first: bool = True) -> Hermes13LoopResult:
-    first, second = probe()
-    implementation = first if implementation_first else second
-    evidence = second if implementation_first else first
+    applied = apply_candidate_through_symbiont(
+        candidate_id,
+        probe,
+        implementation_first=implementation_first,
+    )
+    implementation = applied.implementation
     return Hermes13LoopResult(
         candidate_id,
         implementation.result,
-        _implementation_next_state(implementation),
-        implementation.canonical_mutation,
-        evidence is not None,
+        applied.next_state,
+        applied.canonical_mutation,
+        applied.evidence is not None,
     )
 
 
