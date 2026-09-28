@@ -12,6 +12,7 @@ from typing import Callable
 
 from elo.cognitive.symbiont_execution import (
     ActionResult,
+    Reconciliation,
     SymbiontExecutionStore,
     SymbiontResumer,
 )
@@ -94,10 +95,7 @@ def apply_candidate_through_symbiont(
         )
 
     def reconciler(operation):
-        return __import__(
-            "elo.cognitive.symbiont_execution",
-            fromlist=["Reconciliation"],
-        ).Reconciliation(found_effect=False)
+        return Reconciliation(found_effect=False)
 
     try:
         resumer = SymbiontResumer(
