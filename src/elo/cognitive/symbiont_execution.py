@@ -466,6 +466,8 @@ def validate_implementation_authorization(
     authorization = state.authorization
     if authorization is None:
         return False, "canonical execution authorization missing"
+    if authorization.resource_id != candidate_id:
+        return False, "authorization resource binding mismatch"
     if not authorization.is_canonical():
         return False, "canonical execution authorization invalid or expired"
     if authorization.evidence_ref not in state.implementation_evidence_refs:
