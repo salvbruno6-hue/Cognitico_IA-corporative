@@ -45,3 +45,23 @@ def test_symbiont_fails_closed_when_candidate_attempts_canonical_mutation():
 
     assert result.status == "HUMAN_APPROVAL_REQUIRED"
     assert result.canonical_mutation is True
+
+
+def test_symbiont_fails_closed_when_candidate_self_authorizes_without_mutation():
+    evidence = SimpleNamespace(candidate_id="EXT-PROFILE-HERMES")
+
+    result = apply_candidate_through_symbiont(
+        "EXT-PROFILE-HERMES",
+        lambda: (
+            _implementation(
+                result="IMPLEMENTATION_AUTHORIZED",
+                next_state="IMPLEMENTATION_AUTHORIZED",
+                canonical_mutation=False,
+            ),
+            evidence,
+        ),
+    )
+
+    assert result.status == "HUMAN_APPROVAL_REQUIRED"
+    assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
+    assert result.canonical_mutation is False
