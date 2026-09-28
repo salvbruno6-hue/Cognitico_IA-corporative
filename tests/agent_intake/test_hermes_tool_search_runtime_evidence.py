@@ -60,5 +60,5 @@ def test_two_independent_router_executions_become_operational_outcome_through_ca
 
     assert outcome.candidate_id == CANDIDATE_ID
     assert outcome.level == "OPERATIONAL_OUTCOME"
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert outcome.repeatable is True
