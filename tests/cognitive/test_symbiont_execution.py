@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 from elo.cognitive.symbiont_execution import (
     ActionResult,
     Reconciliation,
@@ -209,3 +210,38 @@ def test_retry_budget_exhaustion_blocks_without_silent_increase() -> None:
     assert state.status == ResumeStatus.BLOCKED.value
     assert calls == 0
     store.close()
+
+
+def test_execution_persists_implementation_authorization_provenance():
+    authorization = AuthorizationDecision(
+        authorized=True,
+        authority="elo-authz",
+        identity_id="identity-a",
+        role="ELO_ADMIN",
+        evidence_ref="EV-FPY-001",
+        session_id="session-a",
+        binding_id="binding-a",
+        grant_id="grant-a",
+        resource_id="candidate-fpy",
+        expires_at="2099-01-01T00:00:00+00:00",
+    )
+    store = SymbiontExecutionStore()
+    try:
+        state = store.create_execution(
+            execution_id="exec-authz",
+            candidate_id="candidate-fpy",
+            capability_id="candidate-fpy",
+            owner="ELO Cognitive / Symbiont",
+            current_stage="IMPLEMENTATION",
+            next_action="EXECUTE_CANDIDATE",
+            implementation_decision_id="decision-fpy",
+            implementation_scope="skill:candidate-fpy",
+            implementation_evidence_refs=("EV-FPY-001",),
+            authorization=authorization,
+        )
+        assert state.implementation_decision_id == "decision-fpy"
+        assert state.implementation_scope == "skill:candidate-fpy"
+        assert state.implementation_evidence_refs == ("EV-FPY-001",)
+        assert state.authorization == authorization
+    finally:
+        store.close()
