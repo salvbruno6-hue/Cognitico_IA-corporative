@@ -9,12 +9,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from .hermes_profile_adapter import ProfileContract, adapt_profile
-from .hermes_profile_boundary import ProfileSignal
-from .runtime_operational_evidence import (\n    RepeatabilityEvidence,\n    RuntimeOperationalEvidence,\n    RuntimeProvenance,\n    create_runtime_evidence,\n)
-from .agents import governance  # type: ignore
 from elo.agents.governance import AgentObservation, AgentTask
 from elo.agents.orchestrator import AgentOrchestrator
+
+from .hermes_profile_adapter import ProfileContract, adapt_profile
+from .hermes_profile_boundary import ProfileSignal
+from .runtime_operational_evidence import (
+    RepeatabilityEvidence,
+    RuntimeOperationalEvidence,
+    RuntimeProvenance,
+    create_runtime_evidence,
+)
 
 
 CAPABILITY_ID = "EXT-PROFILE-HERMES"
@@ -34,6 +39,7 @@ def execute_profile_with_runtime_evidence(
     orchestrator: AgentOrchestrator,
     agent_id: str,
     required_capability: str,
+    domain: str,
     executor: Callable[[AgentTask], AgentObservation],
     source_commit: str,
     runtime_trace: str,
@@ -63,7 +69,7 @@ def execute_profile_with_runtime_evidence(
         and observation.tenant_id == contract.tenant_scope
         and task.context_refs == contract.source_refs
     )
-    evidence = RuntimeOperationalEvidence(
+    evidence = create_runtime_evidence(
         execution_id=execution_id,
         candidate_id=CAPABILITY_ID,
         owner="ELO Agent Context & Delegation",
@@ -74,14 +80,12 @@ def execute_profile_with_runtime_evidence(
         baseline=0.0,
         observed_value=1.0 if integrity else 0.0,
         attribution="candidate",
-        provenance={
-            "commit": source_commit,
-            "runtime_trace": runtime_trace,
-            "profile_id": contract.profile_id,
-            "identity_digest": contract.identity_digest,
-            "context_refs": contract.source_refs,
-        },
-        regression=False,
-        repeatability={"executions": 1, "rate": 1.0 if integrity else 0.0},
+        provenance=RuntimeProvenance(commit=source_commit, runtime_trace=runtime_trace),
+        regression=not integrity,
+        repeatability=RepeatabilityEvidence(
+            executions=1,
+            successful=1 if integrity else 0,
+            rate=1.0 if integrity else 0.0,
+        ),
     )
     return ProfileRuntimeObservation(contract, task, observation, evidence)
