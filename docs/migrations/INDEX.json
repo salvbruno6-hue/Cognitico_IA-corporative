@@ -1,0 +1,155 @@
+{
+  "schema_version": "1.0",
+  "domain": "migrations-classification",
+  "last_updated": "2026-09-28",
+  "policy": "docs/migrations/PROD_ONLY_CLASSIFICATION.md",
+  "migrations": [
+    {
+      "version_github": "20260903095645",
+      "name": "make_authenticated_session_reusable",
+      "path": "supabase/migrations/20260903095645_make_authenticated_session_reusable.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260903230000",
+      "name": "grant_authenticated_identity_binding_execute",
+      "path": "supabase/migrations/20260903230000_grant_authenticated_identity_binding_execute.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260905120000",
+      "name": "harden_elo_orcamento_suggestion_execute",
+      "path": "supabase/migrations/20260905120000_harden_elo_orcamento_suggestion_execute.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260906160000",
+      "name": "restrict_elo_identity_session_rpc_execute",
+      "path": "supabase/migrations/20260906160000_restrict_elo_identity_session_rpc_execute.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260906230000",
+      "name": "add_elo_conhecimento_vinculos_item_destino_index",
+      "path": "supabase/migrations/20260906230000_add_elo_conhecimento_vinculos_item_destino_index.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260912100000",
+      "name": "align_elo_orcamento_forge_governance",
+      "path": "supabase/migrations/20260912100000_align_elo_orcamento_forge_governance.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260912195000",
+      "name": "elo_authorization_schema_baseline",
+      "path": "supabase/migrations/20260912195000_elo_authorization_schema_baseline.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260918094500",
+      "name": "cotacoes_fornecedor_custo_metro_lista_mae",
+      "path": "supabase/migrations/20260918094500_cotacoes_fornecedor_custo_metro_lista_mae.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260918095500",
+      "name": "expose_cotacao_valor_base_por_metro",
+      "path": "supabase/migrations/20260918095500_expose_cotacao_valor_base_por_metro.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260918095700",
+      "name": "elo_web_portal_authorization",
+      "path": "supabase/migrations/20260918095700_elo_web_portal_authorization.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260918095800",
+      "name": "elo_web_portal_admin_consultation",
+      "path": "supabase/migrations/20260918095800_elo_web_portal_admin_consultation.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260918140000",
+      "name": "elo_web_portal_area_scopes",
+      "path": "supabase/migrations/20260918140000_elo_web_portal_area_scopes.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260922000000",
+      "name": "elo_cognitive_projections",
+      "path": "supabase/migrations/20260922000000_elo_cognitive_projections.sql",
+      "group": null,
+      "reason": null,
+      "production_version": null,
+      "classified_at": null
+    },
+    {
+      "version_github": "20260927000000",
+      "name": "elo_read_rls_state",
+      "path": "supabase/migrations/20260927000000_elo_read_rls_state.sql",
+      "group": null,
+      "reason": null,
+      "production_version": "20260927133709",
+      "classified_at": null,
+      "note": "Aplicada com versão diferente em produção. Confirmar equivalência funcional."
+    },
+    {
+      "version_github": "20260928000000",
+      "name": "enable_rls_fornecedor_cotacoes",
+      "path": "supabase/migrations/20260928000000_enable_rls_fornecedor_cotacoes.sql",
+      "group": null,
+      "reason": null,
+      "production_version": "20260927161415",
+      "classified_at": null,
+      "note": "Aplicada com versão diferente em produção. Confirmar equivalência funcional."
+    },
+    {
+      "version_github": "20260929000000",
+      "name": "lista_mae_admin_editable",
+      "path": "supabase/migrations/20260929000000_lista_mae_admin_editable.sql",
+      "group": null,
+      "reason": null,
+      "production_version": "aplicada recentemente",
+      "classified_at": null,
+      "note": "Aplicada em produção recentemente. Confirmar versão de registro."
+    }
+  ]
+}
