@@ -75,7 +75,6 @@ def test_gate_session_fails_closed_when_candidate_self_authorizes_without_mutati
         "EXT-PROFILE-HERMES",
         lambda: (
             _implementation(
-                result="IMPLEMENTATION_AUTHORIZED",
                 next_state="IMPLEMENTATION_AUTHORIZED",
                 canonical_mutation=False,
             ),
