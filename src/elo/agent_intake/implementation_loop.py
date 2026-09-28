@@ -8,6 +8,7 @@ separate governed merge/approval action.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Callable, Mapping
 
 from .hermes_current_extensions import HermesCandidate, evaluate_candidate
