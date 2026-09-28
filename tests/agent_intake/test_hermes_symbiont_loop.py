@@ -129,3 +129,29 @@ def test_symbiont_blocks_authorization_with_cross_execution_evidence():
         authorization=_authorization("EXT-FPY-HERMES", evidence_ref="EV-OTHER-CANDIDATE"),
     )
     assert result.status == "HUMAN_APPROVAL_REQUIRED"
+
+
+def test_symbiont_blocks_authorization_not_issued_by_canonical_owner():
+    result = apply_candidate_through_symbiont(
+        "EXT-FPY-HERMES",
+        lambda: _authorized_application("EXT-FPY-HERMES"),
+        implementation_decision_id="decision-fpy-005",
+        implementation_scope="skill:EXT-FPY-HERMES",
+        implementation_evidence_refs=("EV-FPY-001",),
+        authorization=AuthorizationDecision(
+            authorized=True,
+            authority="symbiont",
+            identity_id="identity-a",
+            role="ELO_ADMIN",
+            evidence_ref="EV-FPY-001",
+            session_id="session-a",
+            binding_id="binding-a",
+            grant_id="grant-a",
+            operation="execute",
+            resource_id="EXT-FPY-HERMES",
+            expires_at="2099-01-01T00:00:00+00:00",
+        ),
+    )
+
+    assert result.status == "HUMAN_APPROVAL_REQUIRED"
+    assert result.next_state == "HUMAN_APPROVAL_REQUIRED"
