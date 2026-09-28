@@ -15,6 +15,7 @@ from elo.cognitive.symbiont_execution import (
     Reconciliation,
     SymbiontExecutionStore,
     SymbiontResumer,
+    validate_implementation_authorization,
 )
 
 
@@ -36,6 +37,10 @@ def apply_candidate_through_symbiont(
     probe: Probe,
     *,
     implementation_first: bool = True,
+    implementation_decision_id: str | None = None,
+    implementation_scope: str | None = None,
+    implementation_evidence_refs: tuple[str, ...] = (),
+    authorization=None,
 ) -> SymbiontCandidateResult:
     """Execute one existing Hermes probe through the canonical Symbiont runtime."""
 
@@ -49,6 +54,10 @@ def apply_candidate_through_symbiont(
         current_stage="IMPLEMENTATION",
         next_action="EXECUTE_CANDIDATE",
         max_attempts=1,
+        implementation_decision_id=implementation_decision_id,
+        implementation_scope=implementation_scope,
+        implementation_evidence_refs=implementation_evidence_refs,
+        authorization=authorization,
     )
 
     captured: dict[str, object] = {}
@@ -76,6 +85,37 @@ def apply_candidate_through_symbiont(
             )
 
         next_state = getattr(implementation, "next_state", None)
+        if str(next_state or "") == "IMPLEMENTATION_AUTHORIZED":
+            refs = tuple(
+                str(ref)
+                for ref in (getattr(evidence, "provenance_refs", ()) or ())
+            )
+            if not refs:
+                evidence_ref = getattr(evidence, "evidence_ref", None)
+                refs = (str(evidence_ref),) if evidence_ref else ()
+            valid, reason = validate_implementation_authorization(
+                state,
+                candidate_id=candidate_id,
+                evidence_refs=refs or state.implementation_evidence_refs,
+                scope=str(state.implementation_scope or ""),
+            )
+            if not valid:
+                return ActionResult(
+                    status="BLOCKED",
+                    next_action="HUMAN_APPROVAL_REQUIRED",
+                    result={"candidate_id": candidate_id, "reason": reason},
+                    boundary="Hermes Symbiont cannot consume unverified implementation authorization",
+                    human_required=True,
+                )
+            return ActionResult(
+                status="CONTINUE",
+                next_action="IMPLEMENTATION_AUTHORIZED",
+                result={
+                    "candidate_id": candidate_id,
+                    "authorization_consumed": True,
+                    "implementation_decision_id": state.implementation_decision_id,
+                },
+            )
         if next_state is None:
             result = getattr(implementation, "result", None)
             next_state = (
