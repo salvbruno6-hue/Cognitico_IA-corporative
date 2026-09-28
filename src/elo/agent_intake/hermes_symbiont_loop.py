@@ -169,7 +169,7 @@ def apply_candidate_through_symbiont(
             implementation=implementation,
             evidence=evidence,
             status=state.status,
-            next_state=str(next_state),
+            next_state=state.next_action,
             canonical_mutation=bool(
                 getattr(implementation, "canonical_mutation", False)
             ),
