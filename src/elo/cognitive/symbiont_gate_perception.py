@@ -87,13 +87,7 @@ def perceive_external_gate(
         return state
 
     timer = read_wait_timer(state)
-    gate_id = _gate_id_from_boundary(state)
-    if (
-        timer is None
-        or timer.kind != "external_gate"
-        or not gate_id
-        or timer.reference != gate_id
-    ):
+    if timer is None or timer.kind != "external_gate" or not timer.reference:
         return store.advance(
             execution_id,
             status="BLOCKED",
@@ -141,17 +135,6 @@ def perceive_external_gate(
         boundary=resume_boundary,
         human_required=False,
     )
-
-
-def _gate_id_from_boundary(state: ExecutionState) -> str | None:
-    try:
-        payload = json.loads(state.boundary or "{}")
-    except (TypeError, ValueError, json.JSONDecodeError):
-        return None
-    if payload.get("type") != "external_gate":
-        return None
-    gate_id = payload.get("gate_id")
-    return str(gate_id) if gate_id else None
 
 
 __all__ = [
