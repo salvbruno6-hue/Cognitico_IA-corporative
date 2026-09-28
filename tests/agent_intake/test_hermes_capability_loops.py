@@ -162,6 +162,7 @@ def test_approved_candidate_implementation_loop_activates_after_explicit_decisio
             session_id="session-a",
             binding_id="binding-a",
             grant_id="grant-a",
+            resource_id=candidate.candidate_id,
             expires_at="2099-01-01T00:00:00+00:00",
         ),
     )
