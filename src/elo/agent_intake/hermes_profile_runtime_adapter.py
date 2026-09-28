@@ -11,7 +11,7 @@ from typing import Callable
 
 from .hermes_profile_adapter import ProfileContract, adapt_profile
 from .hermes_profile_boundary import ProfileSignal
-from .runtime_operational_evidence import RuntimeOperationalEvidence
+from .runtime_operational_evidence import (\n    RepeatabilityEvidence,\n    RuntimeOperationalEvidence,\n    RuntimeProvenance,\n    create_runtime_evidence,\n)
 from .agents import governance  # type: ignore
 from elo.agents.governance import AgentObservation, AgentTask
 from elo.agents.orchestrator import AgentOrchestrator
@@ -47,7 +47,7 @@ def execute_profile_with_runtime_evidence(
         task_id=f"{contract.profile_id}:{execution_id}",
         agent_id=agent_id,
         tenant_id=contract.tenant_scope,
-        domain="profile",
+        domain=domain,
         objective=f"bounded profile execution:{contract.profile_id}",
         required_capability=required_capability,
         context_refs=contract.source_refs,
@@ -68,12 +68,12 @@ def execute_profile_with_runtime_evidence(
         candidate_id=CAPABILITY_ID,
         owner="ELO Agent Context & Delegation",
         runtime_entrypoint="AgentOrchestrator.dispatch",
-        action_observed="profile task executed with isolated context refs",
+        action_observed=True,
         metric="collision_free_profile_task_rate",
         direction="maximize",
         baseline=0.0,
         observed_value=1.0 if integrity else 0.0,
-        attribution="CANDIDATE_ATTRIBUTED",
+        attribution="candidate",
         provenance={
             "commit": source_commit,
             "runtime_trace": runtime_trace,
