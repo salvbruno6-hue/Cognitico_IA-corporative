@@ -102,7 +102,6 @@ def _observation(outcome):
         risk="LOW",
         existing_owner=None,
         scope=f"candidate:EXT-FPY-HERMES",
-        source_commit="benchmark-closure-001",
     )
 
 
