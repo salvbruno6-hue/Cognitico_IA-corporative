@@ -46,6 +46,7 @@ class AuthorizationDecision:
     binding_id: str = ""
     grant_id: str = ""
     operation: str = "execute"
+    resource_id: str = ""
     expires_at: str = ""
 
     def is_canonical(self, *, now: datetime | None = None) -> bool:
