@@ -1,9 +1,33 @@
 """Testes do Harness de Teste."""
 from __future__ import annotations
 
+from pathlib import Path
+import re
+
 import pytest
 
+from elo.testing.bootstrap import build_default_test_harness
 from elo.testing.test_harness import TestHarness
+
+
+def _contract_harness_names() -> set[str]:
+    contract = (
+        Path(__file__).parents[2]
+        / "docs"
+        / "testing"
+        / "ELO_TEST_HARNESS_CONTRACT.md"
+    )
+    text = contract.read_text(encoding="utf-8")
+    section = text.split("## 4. Módulos Core validados", 1)[0]
+    table = section.split("## 3. Harnesses orquestrados", 1)[1]
+    return {
+        match.group(1)
+        for match in re.finditer(
+            r"^\|\s*([a-z0-9_]+)\s*\|",
+            table,
+            flags=re.MULTILINE,
+        )
+    }
 
 
 def test_empty_harness_passes():
@@ -56,11 +80,18 @@ def test_report_is_serializable():
 
 
 def test_default_bootstrap_loads():
-    from elo.testing.bootstrap import build_default_test_harness
     h = build_default_test_harness()
     report = h.run()
     assert report.overall in ("PASS", "FAIL", "BLOCKED")
     assert len(report.modules) == 4
+
+
+def test_bootstrap_harnesses_match_contract():
+    h = build_default_test_harness()
+    registered = {name for name, _runner in h._harnesses}
+    expected = _contract_harness_names()
+    assert registered == expected
+    assert len(registered) == 4
 
 
 def test_harness_is_isolated(tmp_path, monkeypatch):
