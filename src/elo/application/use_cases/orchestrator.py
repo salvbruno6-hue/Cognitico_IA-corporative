@@ -49,15 +49,23 @@ class AuthorizationDecision:
     resource_id: str = ""
     expires_at: str = ""
 
-    def is_canonical(self, *, now: datetime | None = None) -> bool:
-        """Validate transported provenance; policy remains owned by elo-authz."""
-        if self.authority != "elo-authz" or not self.authorized:
-            return False
-        if not self.identity_id or not self.role or not self.evidence_ref.strip():
+    def is_canonical(self) -> bool:
+        """Preserve the base elo-authz transport contract."""
+        return (
+            self.authority == "elo-authz"
+            and self.authorized
+            and bool(self.identity_id)
+            and bool(self.role)
+            and bool(self.evidence_ref.strip())
+        )
+
+    def is_transport_valid(self, *, now: datetime | None = None) -> bool:
+        """Validate the stronger provenance required for implementation execution."""
+        if not self.is_canonical():
             return False
         if not self.session_id or not self.binding_id or not self.grant_id:
             return False
-        if self.operation != "execute" or not self.expires_at:
+        if self.operation != "execute" or not self.resource_id or not self.expires_at:
             return False
         try:
             expiry = datetime.fromisoformat(self.expires_at.replace("Z", "+00:00"))
@@ -66,9 +74,7 @@ class AuthorizationDecision:
         reference = now or datetime.now(timezone.utc)
         if expiry.tzinfo is None:
             expiry = expiry.replace(tzinfo=timezone.utc)
-        if expiry <= reference:
-            return False
-        return True
+        return expiry > reference
 
 
 @dataclass(frozen=True)
