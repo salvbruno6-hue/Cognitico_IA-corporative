@@ -445,6 +445,34 @@ class SymbiontExecutionStore:
         return self.get_execution(execution_id)
 
 
+def validate_implementation_authorization(
+    state: ExecutionState,
+    *,
+    candidate_id: str,
+    evidence_refs: tuple[str, ...],
+    scope: str,
+) -> tuple[bool, str]:
+    """Validate transported implementation authorization without issuing one."""
+    if state.candidate_id != candidate_id:
+        return False, "candidate binding mismatch"
+    if not state.implementation_decision_id:
+        return False, "implementation decision id missing"
+    if not state.implementation_scope or state.implementation_scope != scope:
+        return False, "implementation scope mismatch"
+    if not state.implementation_evidence_refs:
+        return False, "implementation evidence refs missing"
+    if tuple(evidence_refs) != tuple(state.implementation_evidence_refs):
+        return False, "implementation evidence refs mismatch"
+    authorization = state.authorization
+    if authorization is None:
+        return False, "canonical execution authorization missing"
+    if not authorization.is_canonical():
+        return False, "canonical execution authorization invalid or expired"
+    if authorization.evidence_ref not in state.implementation_evidence_refs:
+        return False, "authorization evidence is not bound to implementation decision"
+    return True, "authorized"
+
+
 Executor = Callable[[ExecutionState, Operation], ActionResult]
 Reconciler = Callable[[Operation], Reconciliation]
 
