@@ -74,6 +74,20 @@ class SymbiontLabObservation:
             raise ValueError("execution outcome requires execution identity")
         if not source_commit:
             raise ValueError("laboratory observation requires source commit")
+    def validate_execution_outcome(self, outcome: ExecutionOutcome) -> None:
+        """Fail closed when an observation is crossed with another execution."""
+        if outcome.status is not ExecutionStatus.EXECUTED or not outcome.executed:
+            raise ValueError("only successfully executed outcomes can back a laboratory observation")
+        if outcome.request_id != self.source_ref:
+            raise ValueError("execution identity does not match laboratory observation")
+        if tuple(outcome.evidence_ids) != tuple(self.evidence_ids):
+            raise ValueError("execution evidence does not match laboratory observation")
+        if outcome.correlation_id != self.decision_id:
+            raise ValueError("execution decision binding does not match laboratory observation")
+        if not outcome.occurred_at:
+            raise ValueError("execution outcome requires timestamp")
+
+
         return cls(
             observation_id=observation_id,
             tenant_id=tenant_id,
