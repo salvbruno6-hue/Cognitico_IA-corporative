@@ -12,8 +12,10 @@ No business operation is executed and Hermes is never mutated.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass
+from enum import StrEnum, field, replace
 from enum import Enum
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 from typing import Callable, Iterable, Mapping
 
 
@@ -219,9 +221,20 @@ class HermesCapabilityLoops:
         )
         return stable, discovery_history, candidate, readiness
 
+class ImplementationStage(StrEnum):
+    OBSERVED = "OBSERVED"
+    CANDIDATE = "CANDIDATE"
+    CONTROLLED_TEST = "CONTROLLED_TEST"
+    MEASURED_GAIN = "MEASURED_GAIN"
+    REPEATABLE = "REPEATABLE"
+    EVOLUTION_GATE = "EVOLUTION_GATE"
+    ELO_REVIEW = "ELO_REVIEW"
+    IMPLEMENTATION_AUTHORIZED = "IMPLEMENTATION_AUTHORIZED"
+
+
 @dataclass(frozen=True)
 class ImplementationDecision:
-    """Explicit ELO decision authorizing implementation of an already-approved candidate."""
+    """Single owner for implementation decisions and their external authorization."""
 
     decision_id: str
     candidate_id: str
@@ -229,6 +242,19 @@ class ImplementationDecision:
     scope: str
     evidence_refs: tuple[str, ...] = ()
     authority: str = "elo_cognitive"
+    authorization: AuthorizationDecision | None = None
+    stage: ImplementationStage = ImplementationStage.ELO_REVIEW
+    result: str = "READY_FOR_ELO_REVIEW"
+    canonical_mutation: bool = False
+    reason: str = ""
+
+    def authorization_valid(self, *, now=None) -> bool:
+        auth = self.authorization
+        if auth is None or not auth.is_canonical(now=now):
+            return False
+        if auth.evidence_ref not in self.evidence_refs:
+            return False
+        return bool(self.decision_id and self.candidate_id and self.scope)
 
 
 @dataclass(frozen=True)
@@ -241,6 +267,7 @@ class ImplementationActivation:
     activated: bool
     scope: str
     reason: str = ""
+    authorization: AuthorizationDecision | None = None
 
 
 class ApprovedCandidateImplementationLoop:
