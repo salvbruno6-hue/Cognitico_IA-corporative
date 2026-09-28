@@ -69,6 +69,7 @@ def wait_for_external_gate(
         delay_seconds=delay_seconds,
         attempt=1,
         now=now,
+        waiting_status=WAITING_FOR_EXTERNAL_GATE,
     )
 
 
