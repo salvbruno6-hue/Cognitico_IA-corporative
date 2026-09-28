@@ -72,6 +72,16 @@ class HermesSymbiontGateSession:
         )
 
     def _execute_candidate(self, state, operation) -> ActionResult:
+        if state.next_action != "EXECUTE_CANDIDATE":
+            return ActionResult(
+                status="CONTINUE",
+                next_action=state.next_action,
+                result={
+                    "candidate_id": self.candidate_id,
+                    "continuation": "existing_candidate_state",
+                },
+            )
+
         first, second = self.probe()
         implementation = first if self.implementation_first else second
         evidence = second if self.implementation_first else first
