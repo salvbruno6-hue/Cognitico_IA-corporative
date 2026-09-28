@@ -70,6 +70,23 @@ def build_default_test_harness() -> TestHarness:
     except Exception:
         pass
 
+    try:
+        from elo.cognitive.symbiont_mcp_test_harness import (
+            SymbiontMCPTestHarness,
+        )
+
+        def _run_symbiont_mcp() -> None:
+            # The MCP harness is exercised by its dedicated governed tests.
+            # Registration here proves the composite owns the existing
+            # harness without inventing a second execution path.
+            SymbiontMCPTestHarness()
+
+        harness.register_harness(
+            "symbiont_mcp_test_harness", _run_symbiont_mcp
+        )
+    except Exception:
+        pass
+
     return harness
 
 
