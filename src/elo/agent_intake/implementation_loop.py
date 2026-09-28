@@ -8,7 +8,6 @@ separate governed merge/approval action.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from typing import Callable, Mapping
 
 from .hermes_current_extensions import HermesCandidate, evaluate_candidate
@@ -24,15 +23,6 @@ class ImplementationStage(str, Enum):
     EVOLUTION_GATE = "EVOLUTION_GATE"
     ELO_REVIEW = "ELO_REVIEW"
     IMPLEMENTATION_AUTHORIZED = "IMPLEMENTATION_AUTHORIZED"
-
-
-@dataclass(frozen=True, slots=True)
-class ImplementationDecision:
-    candidate_id: str
-    stage: ImplementationStage
-    result: str
-    canonical_mutation: bool
-    reason: str
 
 
 class SymbiontAutonomyState(str, Enum):
@@ -225,9 +215,16 @@ def run_implementation_loop(
         )
 
     return ImplementationDecision(
-        candidate.candidate_id, ImplementationStage.IMPLEMENTATION_AUTHORIZED,
-        "IMPLEMENTATION_AUTHORIZED", False,
-        "ELO approval is explicit; canonical mutation remains a separate governed merge",
+        decision_id="",
+        candidate_id=candidate.candidate_id,
+        approved=False,
+        scope="",
+        evidence_refs=(),
+        authority="elo_cognitive",
+        stage=ImplementationStage.ELO_REVIEW,
+        result="READY_FOR_ELO_REVIEW",
+        canonical_mutation=False,
+        reason="legacy elo_approved boolean cannot authorize implementation; use ImplementationDecision + canonical AuthorizationDecision",
     )
 
 
