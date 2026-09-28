@@ -1,8 +1,11 @@
 """Bridge runtime operational evidence into the existing functional-value contract.
 
-This adapter does not authorize implementation. It only converts repeated,
+This adapter does not authorize implementation. It converts repeated,
 candidate-attributed runtime observations into the evidence shape already
 consumed by the governed Hermes/ELO loop.
+
+Runtime evidence proves an operational outcome only. Production proof remains
+an explicit, separately governed evidence claim and is never inferred here.
 """
 
 from __future__ import annotations
@@ -59,14 +62,18 @@ def to_operational_outcome(
         direction=first.direction,
         repeatable=operational,
         regressions=tuple(
-            sorted({reason for item in observations for reason in (
-                ("REGRESSION_DETECTED",) if item.regression else ()
-            )})
+            sorted(
+                {
+                    reason
+                    for item in observations
+                    for reason in (("REGRESSION_DETECTED",) if item.regression else ())
+                }
+            )
         ),
         attribution="CANDIDATE_ATTRIBUTED",
         proof_scope=f"runtime owner {first.owner}; {first.runtime_entrypoint}",
         provenance_refs=provenance,
-        production_proven=operational,
+        production_proven=False,
     )
 
 
