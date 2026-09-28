@@ -69,7 +69,15 @@ def _authorized_application(candidate_id: str, evidence_ref="EV-FPY-001"):
         result="IMPLEMENTATION_AUTHORIZED",
         next_state="IMPLEMENTATION_AUTHORIZED",
         canonical_mutation=False,
-    ), SimpleNamespace(candidate_id=candidate_id, provenance_refs=(evidence_ref,))
+    ), SimpleNamespace(
+        candidate_id=candidate_id,
+        provenance_refs=(evidence_ref,),
+        metric="FPY",
+        baseline=0.70,
+        current=0.77,
+        direction="maximize",
+        evidence_ref=evidence_ref,
+    )
 
 
 def test_symbiont_consumes_valid_external_implementation_authorization():
@@ -84,6 +92,11 @@ def test_symbiont_consumes_valid_external_implementation_authorization():
 
     assert result.status == "ACTIVE"
     assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
+    assert result.evidence.metric == "FPY"
+    assert result.evidence.baseline == 0.70
+    assert result.evidence.current == 0.77
+    assert result.evidence.direction == "maximize"
+    assert result.evidence.evidence_ref == "EV-FPY-001"
 
 
 @pytest.mark.parametrize(
