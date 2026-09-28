@@ -233,5 +233,5 @@ def test_memory_provider_runtime_evidence_requires_real_retrieval_and_repeats() 
     assert group.repeatable is True
     outcome = group.to_operational_outcome()
     assert outcome.candidate_id == "EXT-MEMPROVIDER-HERMES"
-    assert outcome.production_proven is True
+    assert outcome.production_proven is False
     assert outcome.repeatable is True
