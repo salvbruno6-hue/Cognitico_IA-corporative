@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 from elo.agent_intake.hermes_symbiont_gate_continuation import HermesSymbiontGateSession
 from elo.cognitive.symbiont_gate_perception import ExternalGateObservation
 
@@ -66,5 +67,44 @@ def test_hermes_external_gate_remains_waiting_when_gate_is_pending():
         assert result.waiting_for_gate is True
         assert result.resumed is False
         assert result.status == "WAITING_FOR_EXTERNAL_GATE"
+    finally:
+        session.close()
+
+
+def test_gate_session_consumes_valid_external_implementation_authorization():
+    authorization = AuthorizationDecision(
+        authorized=True,
+        authority="elo-authz",
+        identity_id="identity-a",
+        role="ELO_ADMIN",
+        evidence_ref="EV-FPY-001",
+        session_id="session-a",
+        binding_id="binding-a",
+        grant_id="grant-a",
+        resource_id="EXT-FPY-HERMES",
+        expires_at="2099-01-01T00:00:00+00:00",
+    )
+    session = HermesSymbiontGateSession(
+        "EXT-FPY-HERMES",
+        lambda: (
+            SimpleNamespace(
+                result="IMPLEMENTATION_AUTHORIZED",
+                next_state="IMPLEMENTATION_AUTHORIZED",
+                canonical_mutation=False,
+            ),
+            SimpleNamespace(
+                candidate_id="EXT-FPY-HERMES",
+                provenance_refs=("EV-FPY-001",),
+            ),
+        ),
+        implementation_decision_id="decision-fpy-gate",
+        implementation_scope="skill:EXT-FPY-HERMES",
+        implementation_evidence_refs=("EV-FPY-001",),
+        authorization=authorization,
+    )
+    try:
+        result = session.start()
+        assert result.status == "ACTIVE"
+        assert result.next_state == "IMPLEMENTATION_AUTHORIZED"
     finally:
         session.close()
