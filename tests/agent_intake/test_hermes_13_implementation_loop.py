@@ -38,7 +38,16 @@ def _make_implementation(
 
 
 def _make_evidence(candidate_id):
-    return SimpleNamespace(candidate_id=candidate_id)
+    contract = loop.get_process_contract(candidate_id)
+    return SimpleNamespace(
+        candidate_id=candidate_id,
+        baseline={contract.metric: 0.0},
+        adapted={contract.metric: 1.0},
+        metric_directions={contract.metric: contract.direction},
+        repeatable=True,
+        provenance_refs=(f"controlled-eval:{candidate_id}",),
+        boundary_integrity=True,
+    )
 
 
 def _fake_probe(candidate_id):
@@ -72,6 +81,9 @@ def test_hermes_13_loop_covers_canonical_order_without_authorization(monkeypatch
     )
     assert all(
         not item.canonical_mutation for item in report.results
+    )
+    assert all(
+        item.process_contract_valid for item in report.results
     )
 
 
