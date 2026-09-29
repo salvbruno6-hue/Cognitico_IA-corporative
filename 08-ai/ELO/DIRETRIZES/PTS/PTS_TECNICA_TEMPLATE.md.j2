@@ -1,7 +1,6 @@
 # PTS TÉCNICA — {{ identificacao.so | default("") }}
 
 ## 1. IDENTIFICAÇÃO
-
 | Campo | Informação |
 |---|---|
 {% for k, v in identificacao.items() -%}
@@ -9,25 +8,21 @@
 {% endfor %}
 
 ## 2. OBJETIVO
-
 {{ objetivo }}
 
 ## 3. ESCOPO
-
 {% for item in escopo -%}
 - {{ item }}
 {% endfor %}
 
 ## 4. MATRIZ TÉCNICA
-
-| ID | Item TR | Trecho TR | Exigência | Tipo | Adequação | Status | Curva | Motivo | Responsável | Consulta ID |
-|---|---|---|---|---|---|---|---|---|---|---|
+| ID | Item TR | Trecho TR | Exigência | Tipo | Adequação | Status | Curva | Motivo | Responsável | Consulta ID | Origem | Qtd TR | Evidência Layout/Projeto | Atendimento Multiteiner | Tratamento Orçamentário | Associação Orçamento | Validação | Ponto de Validação | Impacto |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 {% for r in matriz_tecnica -%}
-| {{ r.id }} | {{ r.item_tr }} | {{ r.trecho_tr }} | {{ r.exigencia }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.motivo }} | {{ r.responsavel }} | {{ r.consulta_id | default("—") }} |
+| {{ r.id }} | {{ r.item_tr }} | {{ r.trecho_tr }} | {{ r.exigencia }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.motivo }} | {{ r.responsavel }} | {{ r.consulta_id | default("—") }} | {{ r.origem | default([]) | join(", ") }} | {{ r.quantidade_tr | default("—") }} | {{ r.evidencia_layout | default("—") }} | {{ r.atendimento_multiteiner | default("—") }} | {{ r.tratamento_orcamentario | default("—") }} | {{ r.associacao_orcamento | default("—") }} | {{ r.validacao_associacao | default("—") }} | {{ r.ponto_validacao | default("—") }} | {{ r.impacto | default("—") }} |
 {% endfor %}
 
 ## 5. CONSULTAS
-
 | ID | Texto | Item IDs |
 |---|---|---|
 {% for c in consultas -%}
@@ -35,13 +30,11 @@
 {% endfor %}
 
 ## 6. RESUMO EXECUTIVO
-
 {% for item in resumo_executivo -%}
 - {{ item }}
 {% endfor %}
 
 ## 7. LEGENDA
-
 | Campo | Valores |
 |---|---|
 {% for k, v in legenda.items() -%}
@@ -49,9 +42,37 @@
 {% endfor %}
 
 ## 8. RASTREABILIDADE
-
 {% for item in rastreabilidade -%}
 - {{ item }}
 {% endfor %}
 
-A PTS Técnica prepara o orçamento: DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO.
+## 9. COMPLEMENTOS DE MATURIDADE — VISTORIA
+{% for item in vistoria | default([]) -%}
+- {{ item }}
+{% endfor %}
+
+## 10. COMPLEMENTOS DE MATURIDADE — PONTOS DE GRANDE PESO
+{% for item in pontos_grande_peso | default([]) -%}
+- {{ item }}
+{% endfor %}
+
+## 11. COMPLEMENTOS DE MATURIDADE — CONTRADIÇÕES DE ESCOPO
+{% for item in contradicoes_escopo | default([]) -%}
+- {{ item }}
+{% endfor %}
+
+## 12. COMPLEMENTOS DE MATURIDADE — PREMISSAS
+{% for item in premissas | default([]) -%}
+- {{ item }}
+{% endfor %}
+
+## 13. COMPLEMENTOS DE MATURIDADE — QUANTITATIVOS TR × LAYOUT × ORÇAMENTO
+| Item | Qtd TR | Qtd Layout | Qtd Orçamento | Unidade | Divergência | Justificativa |
+|---|---:|---:|---:|---|---|---|
+{% for q in quantitativos | default([]) -%}
+| {{ q.item }} | {{ q.quantidade_tr | default("—") }} | {{ q.quantidade_layout | default("—") }} | {{ q.quantidade_orcamento | default("—") }} | {{ q.unidade | default("—") }} | {{ q.divergencia | default("—") }} | {{ q.justificativa | default("—") }} |
+{% endfor %}
+
+**Cadeia canônica:** DOCUMENTO → EVIDÊNCIA → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO → PTS PÓS.
+
+**Regra:** os complementos de maturidade ampliam a PTS Técnica existente; não substituem sua estrutura, seus campos ou suas seções.

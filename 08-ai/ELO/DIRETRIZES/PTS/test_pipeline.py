@@ -67,12 +67,12 @@ POS = {
 
 
 class PipelineTests(unittest.TestCase):
-    def run_pipeline(self, pos):
+    def run_pipeline(self, pos, tecnica_data=None):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             tecnica = root / "tecnica.json"
             pos_file = root / "pos.json"
-            tecnica.write_text(json.dumps(TECHNICA, ensure_ascii=False), encoding="utf-8")
+            tecnica.write_text(json.dumps(tecnica_data if tecnica_data is not None else TECHNICA, ensure_ascii=False), encoding="utf-8")
             pos_file.write_text(json.dumps(pos, ensure_ascii=False), encoding="utf-8")
             return subprocess.run(
                 [sys.executable, str(PIPELINE), str(tecnica), str(pos_file)],
@@ -97,6 +97,48 @@ class PipelineTests(unittest.TestCase):
         result = self.run_pipeline(pos)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("consultas_abertas", result.stderr)
+
+    def test_mature_contract_requires_traceability_fields(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["contrato_maturidade"] = "1.0"
+        tecnica["vistoria"] = []
+        tecnica["pontos_grande_peso"] = []
+        tecnica["contradicoes_escopo"] = []
+        tecnica["premissas"] = []
+        tecnica["quantitativos"] = []
+        tecnica["matriz_tecnica"][0].update({
+            "origem": ["TR"],
+            "quantidade_tr": 1,
+            "evidencia_layout": "evidência de teste",
+            "atendimento_multiteiner": "solução de teste",
+            "tratamento_orcamentario": "tratamento de teste",
+            "associacao_orcamento": "ORC-001",
+            "validacao_associacao": "validado",
+            "ponto_validacao": "ponto de teste",
+            "impacto": "ALTO"
+        })
+        result = self.run_pipeline(POS, tecnica)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_maturity_is_additive_to_legacy_fields(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica.update({"contrato_maturidade":"1.0", "vistoria":[], "pontos_grande_peso":[], "contradicoes_escopo":[], "premissas":[], "quantitativos":[]})
+        tecnica["matriz_tecnica"][0].update({"origem":["TR"],"quantidade_tr":1,"evidencia_layout":"evidência","atendimento_multiteiner":"solução","tratamento_orcamentario":"tratamento","associacao_orcamento":"ORC-001","validacao_associacao":"validado","ponto_validacao":"ponto","impacto":"ALTO"})
+        result = self.run_pipeline(POS, tecnica)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for key in ["id","item_tr","trecho_tr","exigencia","tipo","adequacao","status","curva","motivo","responsavel","consulta_id"]:
+            self.assertIn(key, tecnica["matriz_tecnica"][0])
+
+    def test_mature_contract_rejects_missing_complement(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["contrato_maturidade"] = "1.0"
+        result = self.run_pipeline(POS, tecnica)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PTS Técnica madura", result.stderr)
+
+    def test_legacy_contract_remains_accepted(self):
+        result = self.run_pipeline(POS)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
