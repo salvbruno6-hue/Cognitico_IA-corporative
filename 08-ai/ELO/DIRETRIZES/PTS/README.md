@@ -87,3 +87,15 @@ Cadeia: FONTE → REQUISITO → EVIDÊNCIA → INTERPRETAÇÃO → SOLUÇÃO →
 
 ### Regra de complementaridade
 O contrato de maturidade é uma extensão aditiva da PTS Técnica canônica. A leitura da análise pode acrescentar evidências, interpretações, soluções, validações e pontos de grande peso, mas não apaga nem substitui os campos e seções existentes. A PTS continua sendo uma única estrutura canônica.
+
+
+## Vínculo automático à SO do projeto
+
+A PTS Técnica pertence à Solicitação de Orçamento (SO) do projeto ativo. O orçamentista não deve redigitar ou escolher outra SO quando o contexto do projeto já estiver resolvido.
+
+- A SO é herdada do contexto do projeto ativo.
+- A apresentação da PTS usa o formato `SO NNNN.AA` (ex.: `SO 0155.26`).
+- `contexto_projeto.so` ou `contexto_projeto.numero_so + contexto_projeto.ano` pode resolver a identificação automaticamente.
+- `identificacao.so_resolvida` tem prioridade quando já estiver determinada pelo contexto.
+- Ausência de SO resolvida bloqueia a renderização da PTS, evitando PTS sem vínculo ou vinculada à solicitação errada.
+- Identificadores históricos continuam aceitos para compatibilidade; suas chaves de memória não são renumeradas.

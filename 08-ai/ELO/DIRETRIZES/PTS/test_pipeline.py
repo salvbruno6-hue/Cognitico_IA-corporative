@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from PTS_TECNICA_RENDER import render
+
 
 ROOT = Path(__file__).parent
 PIPELINE = ROOT / "pipeline.py"
@@ -140,6 +142,34 @@ class PipelineTests(unittest.TestCase):
         result = self.run_pipeline(POS)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+
+    def test_renderer_resolves_so_from_active_project_context(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["identificacao"] = {
+            "numero_so": 155,
+            "ano": 2026,
+            "cliente": "teste"
+        }
+        tecnica["contexto_projeto"] = {
+            "numero_so": 155,
+            "ano": 2026
+        }
+        rendered = render(tecnica)
+        self.assertIn("# PTS TÉCNICA — SO 0155.26", rendered)
+
+    def test_renderer_does_not_require_manual_so_when_project_context_exists(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["identificacao"] = {"cliente": "teste"}
+        tecnica["contexto_projeto"] = {"so": "SO 1.26"}
+        rendered = render(tecnica)
+        self.assertIn("# PTS TÉCNICA — SO 0001.26", rendered)
+
+    def test_renderer_rejects_missing_active_project_so(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["identificacao"] = {"cliente": "teste"}
+        tecnica.pop("contexto_projeto", None)
+        with self.assertRaises(ValueError):
+            render(tecnica)
 
 if __name__ == "__main__":
     unittest.main()
