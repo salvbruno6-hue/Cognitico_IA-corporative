@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 type AuthClient = SupabaseClient<any>;
 
+let supabaseClient: AuthClient | null = null;
+
 function getSupabaseClient(): AuthClient | null {
+  if (supabaseClient) return supabaseClient;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
   if (!url || !key) return null;
 
-  return createClient(url, key, {
+  supabaseClient = createClient(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
   });
+
+  return supabaseClient;
 }
 
 function friendlyAuthError(message: string): string {
@@ -40,7 +46,7 @@ export function ELOWebAuthBoundary() {
   const [loading, setLoading] = useState(true);
   const [establishing, setEstablishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [signingIn, setSigningIn] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);\n  const mountedRef = useRef(true);
 
   async function establishELOSession(nextSession: Session): Promise<boolean> {
     setEstablishing(true);
