@@ -149,15 +149,19 @@ def run_hermes_13_implementation_loop(
     trigger lifecycle.
     """
     contexts = learning_contexts or {}
-    if learning_service is None and contexts:
-        raise ValueError("learning_service is required when learning_contexts are supplied")
-    if learning_service is not None:
-        missing = tuple(cid for cid in HERMES_13_EXECUTION_ORDER if cid not in contexts)
-        if missing:
-            raise ValueError(
-                "learning_contexts must cover all 13 candidates when learning_service is supplied: "
-                + ", ".join(missing)
-            )
+    if (learning_service is None) != (not contexts):
+        raise ValueError(
+            "learning_service and learning_contexts must be supplied together"
+        )
+    unknown = tuple(
+        candidate_id for candidate_id in contexts
+        if candidate_id not in HERMES_13_EXECUTION_ORDER
+    )
+    if unknown:
+        raise ValueError(
+            "learning_contexts contains non-canonical Hermes candidates: "
+            + ", ".join(unknown)
+        )
 
     probes = (
         ("EXT-CONTEXT-PLUGIN-HERMES", run_context_plugin_loop_probe),
