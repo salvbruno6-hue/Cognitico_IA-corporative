@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from .symbiont_decision_learning_context import DecisionLearningContext, build_decision_learning_context
 from .learning_memory_router import (
     LearningMemoryRouter,
     LearningRequest,
@@ -60,6 +61,20 @@ class SymbiontMemoryLearningBridge:
     ) -> LearningHandoff:
         decision = self.router.investigate(request, memories)
         return self._handoff(decision)
+
+    def route_for_decision(
+        self,
+        request: LearningRequest,
+        memories: tuple[MemoryEntry, ...] | list[MemoryEntry],
+    ) -> DecisionLearningContext:
+        """Route learning and expose only validated canonical learning to decisions."""
+        routing = self.route(request, memories)
+        return build_decision_learning_context(
+            request,
+            memories,
+            routing_action=routing.action,
+            destination_id=routing.destination_id,
+        )
 
     def route_to_lab(
         self,
