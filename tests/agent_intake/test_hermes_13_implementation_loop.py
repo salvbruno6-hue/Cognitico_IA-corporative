@@ -195,7 +195,7 @@ def test_hermes_13_requires_matching_context_for_learning():
         dataset_version="test-v1",
     )
 
-    with pytest.raises(ValueError, match="cover all 13 candidates"):
+    with pytest.raises(ValueError, match="non-canonical Hermes candidates"):
         loop.run_hermes_13_implementation_loop(
             learning_service=SimpleNamespace(),
             learning_contexts={"OTHER-SKILL": context},
