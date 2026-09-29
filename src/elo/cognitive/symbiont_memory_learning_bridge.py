@@ -8,8 +8,18 @@ learning/lab owners. It never writes memory, creates an owner, or promotes.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from .learning_memory_router import LearningMemoryRouter, LearningRequest, MemoryEntry, RouteAction, RoutingDecision
+from .learning_memory_router import (
+    LearningMemoryRouter,
+    LearningRequest,
+    MemoryEntry,
+    RouteAction,
+    RoutingDecision,
+)
+
+if TYPE_CHECKING:
+    from .symbionte_lab import SymbiontLabAdapter, SymbiontLabEvaluation, SymbiontLabObservation
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +35,18 @@ class LearningHandoff:
     canonical_mutation: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class LearningLabHandoff:
+    """Result of routing plus an optional handoff to the existing Lab."""
+
+    routing: LearningHandoff
+    evaluation: "SymbiontLabEvaluation | None" = None
+
+    @property
+    def entered_lab(self) -> bool:
+        return self.evaluation is not None
+
+
 class SymbiontMemoryLearningBridge:
     """Translate routing into an existing governed learning handoff."""
 
@@ -38,6 +60,38 @@ class SymbiontMemoryLearningBridge:
     ) -> LearningHandoff:
         decision = self.router.investigate(request, memories)
         return self._handoff(decision)
+
+    def route_to_lab(
+        self,
+        request: LearningRequest,
+        memories: tuple[MemoryEntry, ...] | list[MemoryEntry],
+        *,
+        observation: "SymbiontLabObservation",
+        laboratory: "SymbiontLabAdapter",
+        principal_id: str,
+        dataset_version: str,
+    ) -> LearningLabHandoff:
+        """Route first; only a CANDIDATE may enter the canonical Lab.
+
+        REUSE, AGGREGATE, BLOCKED and NO_OWNER terminate at the routing
+        boundary. CANDIDATE is delegated to the existing SymbiontLabAdapter,
+        which remains responsible for Evolution Gate and Governed Learning.
+        """
+        routing = self.route(request, memories)
+        if routing.action is not RouteAction.CANDIDATE:
+            return LearningLabHandoff(routing=routing)
+
+        if observation.tenant_id != request.tenant_scope:
+            raise ValueError("laboratory observation tenant does not match learning request")
+        if observation.domain != request.domain:
+            raise ValueError("laboratory observation domain does not match learning request")
+
+        evaluation = laboratory.evaluate(
+            observation,
+            principal_id=principal_id,
+            dataset_version=dataset_version,
+        )
+        return LearningLabHandoff(routing=routing, evaluation=evaluation)
 
     @staticmethod
     def _handoff(decision: RoutingDecision) -> LearningHandoff:
@@ -64,4 +118,8 @@ class SymbiontMemoryLearningBridge:
         )
 
 
-__all__ = ["LearningHandoff", "SymbiontMemoryLearningBridge"]
+__all__ = [
+    "LearningHandoff",
+    "LearningLabHandoff",
+    "SymbiontMemoryLearningBridge",
+]
