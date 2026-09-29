@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
-import { EloWebOperationalPortal } from "@/components/elo-web-operational-portal";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 type AuthClient = SupabaseClient<any>;
@@ -19,17 +18,6 @@ function getSupabaseClient(): AuthClient | null {
       detectSessionInUrl: true,
     },
   });
-}
-
-function GoogleIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5">
-      <path fill="#4285F4" d="M21.35 12.23c0-.72-.06-1.25-.2-1.8H12v3.4h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.73-4.33 2.73-7.12Z"/>
-      <path fill="#34A853" d="M12 21.99c2.7 0 4.97-.89 6.62-2.42l-3.24-2.5c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.13H3.06v2.58A10 10 0 0 0 12 21.99Z"/>
-      <path fill="#FBBC05" d="M6.41 13.9A5.99 5.99 0 0 1 6.1 12c0-.66.11-1.3.31-1.9V7.52H3.06A10 10 0 0 0 2 12c0 1.62.39 3.14 1.06 4.48l3.35-2.58Z"/>
-      <path fill="#EA4335" d="M12 5.97c1.48 0 2.8.51 3.84 1.51l2.88-2.88C16.96 2.9 14.7 2 12 2a10 10 0 0 0-8.94 5.52L6.41 10.1C7.2 7.73 9.4 5.97 12 5.97Z"/>
-    </svg>
-  );
 }
 
 function friendlyAuthError(message: string): string {
@@ -80,7 +68,7 @@ export function ELOWebAuthBoundary() {
     const supabase = getSupabaseClient();
 
     if (!supabase) {
-      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
+      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas.");
       setLoading(false);
       return () => {
         active = false;
@@ -104,7 +92,6 @@ export function ELOWebAuthBoundary() {
       }
 
       await establishELOSession(data.session);
-
       if (active) setLoading(false);
     });
 
@@ -150,14 +137,8 @@ export function ELOWebAuthBoundary() {
     }
   }
 
-  async function retryELOSession() {
-    if (!session) return;
-    await establishELOSession(session);
-  }
-
   async function signOut() {
     setError(null);
-
     const supabase = getSupabaseClient();
 
     if (!supabase) {
@@ -179,7 +160,6 @@ export function ELOWebAuthBoundary() {
     }
 
     const { error: signOutError } = await supabase.auth.signOut();
-
     if (signOutError) {
       setError(friendlyAuthError(signOutError.message));
       return;
@@ -192,49 +172,48 @@ export function ELOWebAuthBoundary() {
 
   if (loading || establishing) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] text-[var(--elo-ink)]">
+      <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
         <div className="text-center">
-          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div>
-          <div className="mt-5 text-sm font-semibold text-slate-700">
-            {loading ? "Inicializando ELO Cognitivo…" : "Estabelecendo sessão do ELO…"}
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-xl font-bold text-slate-950">E</div>
+          <div className="mt-5 text-sm font-semibold">
+            {loading ? "Inicializando ELO…" : "Estabelecendo sessão do ELO…"}
           </div>
-          <div className="mt-2 text-xs text-slate-400">Google → Supabase → ELO Authorization</div>
+          <div className="mt-2 text-xs text-white/45">Google → Supabase → ELO Authorization</div>
         </div>
       </main>
     );
   }
 
   if (!session || !authorized) {
-    const hasAuthenticatedIdentity = Boolean(session);
+    const authenticated = Boolean(session);
 
     return (
-      <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] p-6 text-[var(--elo-ink)]">
-        <section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div>
-          <div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-slate-400">ELO · Inteligência corporativa</div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {hasAuthenticatedIdentity ? "Sessão autenticada" : "Acesso ao ELO"}
+      <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
+        <section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[.04] p-8 text-center">
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-xl font-bold text-slate-950">E</div>
+          <div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-white/40">ELO · teste de acesso</div>
+          <h1 className="mt-2 text-2xl font-semibold">
+            {authenticated ? "Google autenticado" : "Acesso ao ELO"}
           </h1>
-
-          <p className="mt-3 text-sm leading-6 text-slate-500">
-            {hasAuthenticatedIdentity
-              ? "Sua conta Google foi autenticada. Falta estabelecer a sessão operacional do ELO."
-              : "Entre com sua conta Google. O Google confirma sua identidade e, depois, o ELO Authorization estabelece a sessão operacional."}
+          <p className="mt-3 text-sm leading-6 text-white/55">
+            {authenticated
+              ? "A identidade foi autenticada. Falta estabelecer a sessão operacional do ELO."
+              : "Entre com Google para iniciar o teste da fronteira de autenticação."}
           </p>
 
           {error && (
-            <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-left text-sm text-red-700" role="alert">
+            <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-left text-sm text-red-200" role="alert">
               <div className="font-semibold">Não foi possível continuar</div>
               <div className="mt-1 leading-5">{error}</div>
             </div>
           )}
 
-          {hasAuthenticatedIdentity ? (
+          {authenticated ? (
             <button
               type="button"
-              onClick={() => void retryELOSession()}
+              onClick={() => session && void establishELOSession(session)}
               disabled={establishing}
-              className="mt-6 flex w-full items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+              className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
             >
               {establishing ? "Estabelecendo sessão…" : "Estabelecer sessão do ELO"}
             </button>
@@ -243,18 +222,17 @@ export function ELOWebAuthBoundary() {
               type="button"
               onClick={() => void signInWithGoogle()}
               disabled={signingIn}
-              className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+              className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
             >
-              <GoogleIcon />
               {signingIn ? "Abrindo Google…" : "Continuar com Google"}
             </button>
           )}
 
-          <div className="mt-5 grid gap-2 text-left text-[11px] leading-5 text-slate-400">
-            <div><span className="font-semibold text-slate-500">1.</span> Google autentica a conta.</div>
-            <div><span className="font-semibold text-slate-500">2.</span> Supabase mantém a sessão autenticada.</div>
-            <div><span className="font-semibold text-slate-500">3.</span> ELO Authorization estabelece a sessão ELO.</div>
-            <div><span className="font-semibold text-slate-500">4.</span> O Portal Operacional só abre após essa validação.</div>
+          <div className="mt-6 text-left text-[11px] leading-5 text-white/35">
+            1. Google autentica a identidade.<br />
+            2. Supabase mantém a sessão.<br />
+            3. ELO Authorization estabelece a sessão ELO.<br />
+            4. Nenhum grant é emitido pelo navegador.
           </div>
         </section>
       </main>
@@ -262,11 +240,26 @@ export function ELOWebAuthBoundary() {
   }
 
   return (
-    <EloWebOperationalPortal
-      accessToken={session.access_token}
-      displayName={session.user.user_metadata?.full_name ?? session.user.user_metadata?.name}
-      email={session.user.email}
-      onSignOut={() => void signOut()}
-    />
+    <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
+      <section className="w-full max-w-lg rounded-3xl border border-emerald-400/20 bg-white/[.04] p-8">
+        <div className="text-[10px] font-bold uppercase tracking-[.22em] text-emerald-300/70">ELO · teste de acesso</div>
+        <h1 className="mt-3 text-3xl font-semibold">Sessão ELO estabelecida</h1>
+        <p className="mt-3 text-sm leading-6 text-white/55">
+          A autenticação Google, a sessão Supabase e o <code>establish_session</code> do ELO Authorization concluíram o fluxo mínimo.
+        </p>
+        <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm">
+          <div><span className="text-white/40">Identidade:</span> {session.user.email ?? "não informado"}</div>
+          <div className="mt-2"><span className="text-white/40">Estado:</span> autorizado para a sessão ELO</div>
+          <div className="mt-2"><span className="text-white/40">Próximo teste:</span> validar operações governadas separadamente</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="mt-6 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-white/75 hover:bg-white/5"
+        >
+          Encerrar sessão
+        </button>
+      </section>
+    </main>
   );
 }
