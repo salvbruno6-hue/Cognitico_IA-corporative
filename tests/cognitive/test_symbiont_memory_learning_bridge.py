@@ -156,3 +156,24 @@ def test_cross_tenant_memory_is_not_reused():
     )
     assert result.action is RouteAction.CANDIDATE
     assert result.duplicate_memory_ids == ()
+
+
+def test_validated_reuse_is_exposed_to_next_decision_context():
+    result = SymbiontMemoryLearningBridge().route_for_decision(
+        req(validated=True),
+        (MemoryEntry(
+            "m1", "multiteiner", "ORCAMENTO", "learning",
+            "PTS tecnica maturidade", "canonical", "VALIDATED",
+            "BUDGET_LEARNING"
+        ),),
+    )
+    assert result.reusable is True
+    assert result.source_memory_ids == ("m1",)
+    assert result.canonical_mutation is False
+    assert result.authorization_granted is False
+
+
+def test_candidate_does_not_reenter_decision_context():
+    result = SymbiontMemoryLearningBridge().route_for_decision(req(), ())
+    assert result.reusable is False
+    assert result.signals == ()
