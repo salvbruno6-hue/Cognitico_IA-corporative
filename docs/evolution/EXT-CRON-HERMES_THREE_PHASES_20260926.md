@@ -55,3 +55,8 @@ boundary integrity.
 This validates a bounded implementation candidate. It does not prove
 scheduler runtime performance, real scheduled execution, production benefit,
 or canonical promotion.
+
+
+## 2026-09-29 refinement — cron continuity
+
+`REF-CRON-CONTINUITY-HERMES` is integrated as a refinement of `EXT-CRON-HERMES` / `HERMES-AUTOMATION`. The contract requires automation identity, prior-run reference, bounded continuity scope and provenance. Unbounded continuity or canonical memory write is rejected. Controlled ELO-side evidence: 0.00 → 1.00 boundary integrity, repeatability PASS, memory promotion false, execution false. No scheduler or memory operation is executed.

@@ -11,6 +11,11 @@ class CronFunctionalEvidence:
     repeatable: bool
     boundary_integrity: bool
     provenance_refs: tuple[str, ...]
+    continuity_baseline_rate: float = 0.0
+    continuity_adapted_rate: float = 0.0
+    continuity_repeatable: bool = False
+    continuity_boundary_integrity: bool = False
+    continuity_provenance_refs: tuple[str, ...] = ()
 
 def _signals(prefix: str) -> tuple[ScheduleSignal, ...]:
     return tuple(
@@ -51,6 +56,5 @@ def evaluate_cron_functional_gain() -> CronFunctionalEvidence:
         for c in contracts
     )
     refs = tuple(ref for s in adapted for ref in s.source_refs)
-    return CronFunctionalEvidence(
-        baseline_rate, adapted_rate, repeatable, boundary, refs
-    )
+    continuity = evaluate_cron_continuity_gain()
+    return CronFunctionalEvidence(baseline_rate, adapted_rate, repeatable, boundary, refs, continuity[0], continuity[1], continuity[2], continuity[3], continuity[4])

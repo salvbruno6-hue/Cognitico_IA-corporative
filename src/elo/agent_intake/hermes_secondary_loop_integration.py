@@ -24,6 +24,8 @@ from .hermes_multiagent_boundary import DelegationSignal, assess_delegation
 from .hermes_multiagent_evaluation import evaluate as evaluate_multiagent
 from .hermes_multiagent_functional_evaluation import evaluate_multiagent_functional_gain
 from .hermes_multiagent_adapter import adapt_delegation
+from .hermes_live_steering_refinement import evaluate_live_steering_gain
+from .hermes_cron_continuity_refinement import evaluate_cron_continuity_gain
 from .hermes_memory_provider_functional_evaluation import evaluate_memory_provider_functional_gain
 from .hermes_worktree_adapter import adapt_worktree
 from .hermes_worktree_boundary import WorktreeSignal
@@ -243,6 +245,60 @@ def run_cron_loop_probe() -> tuple[object, object]:
     )
 
 
+def run_live_steering_refinement_probe() -> tuple[object, object]:
+    """Route live steering evidence through the existing multiagent owner."""
+    baseline, adapted, repeatable, boundary, refs = evaluate_live_steering_gain()
+    return _handoff(
+        "EXT-MULTIAGENT-HERMES",
+        "live_steering_boundary_integrity_rate",
+        baseline,
+        adapted,
+        repeatable,
+        refs,
+        boundary,
+        "HERMES-DELEGATION",
+        functional_value_evidence=classify(
+            "EXT-MULTIAGENT-HERMES",
+            baseline=baseline,
+            adapted=adapted,
+            metric="live_steering_boundary_integrity_rate",
+            direction="maximize",
+            repeatable=repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled live-steering contract boundary",
+            provenance_refs=refs,
+        ),
+    )
+
+
+def run_cron_continuity_refinement_probe() -> tuple[object, object]:
+    """Route bounded cron continuity evidence through HERMES-AUTOMATION."""
+    baseline, adapted, repeatable, boundary, refs = evaluate_cron_continuity_gain()
+    return _handoff(
+        "EXT-CRON-HERMES",
+        "cron_continuity_boundary_integrity_rate",
+        baseline,
+        adapted,
+        repeatable,
+        refs,
+        boundary,
+        "HERMES-AUTOMATION",
+        functional_value_evidence=classify(
+            "EXT-CRON-HERMES",
+            baseline=baseline,
+            adapted=adapted,
+            metric="cron_continuity_boundary_integrity_rate",
+            direction="maximize",
+            repeatable=repeatable,
+            regressions=(),
+            attribution="CANDIDATE_ATTRIBUTED",
+            proof_scope="controlled bounded prior-run continuity contract",
+            provenance_refs=refs,
+        ),
+    )
+
+
 
 def run_memory_provider_loop_probe() -> tuple[object, object]:
     """Route EXT-MEMPROVIDER-HERMES through the existing HERMES-MEMORY surface."""
@@ -384,4 +440,6 @@ __all__ = [
     "run_worktree_loop_probe",
     "run_mcp_loop_probe",
     "run_independent_review_loop_probe",
+    "run_live_steering_refinement_probe",
+    "run_cron_continuity_refinement_probe",
 ]
