@@ -1,7 +1,6 @@
 # PTS TÉCNICA — {{ identificacao.so | default("") }}
 
 ## 1. IDENTIFICAÇÃO
-
 | Campo | Informação |
 |---|---|
 {% for k, v in identificacao.items() -%}
@@ -9,49 +8,69 @@
 {% endfor %}
 
 ## 2. OBJETIVO
-
 {{ objetivo }}
 
 ## 3. ESCOPO
-
 {% for item in escopo -%}
 - {{ item }}
 {% endfor %}
 
 ## 4. MATRIZ TÉCNICA
-
-| ID | Item TR | Trecho TR | Exigência | Tipo | Adequação | Status | Curva | Motivo | Responsável | Consulta ID |
-|---|---|---|---|---|---|---|---|---|---|---|
+| ID | Item TR | Origem | Exigência | Qtd TR | Evidência Layout/Projeto | Atendimento Multiteiner | Tratamento Orçamentário | Associação Orçamento | Validação | Responsabilidade | Ponto de Validação | Tipo | Adequação | Status | Curva | Impacto | Motivo | Consulta |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 {% for r in matriz_tecnica -%}
-| {{ r.id }} | {{ r.item_tr }} | {{ r.trecho_tr }} | {{ r.exigencia }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.motivo }} | {{ r.responsavel }} | {{ r.consulta_id | default("—") }} |
+| {{ r.id }} | {{ r.item_tr }} | {{ r.origem | join(", ") }} | {{ r.exigencia }} | {{ r.quantidade_tr | default("—") }} | {{ r.evidencia_layout }} | {{ r.atendimento_multiteiner }} | {{ r.tratamento_orcamentario }} | {{ r.associacao_orcamento }} | {{ r.validacao_associacao }} | {{ r.responsabilidade }} | {{ r.ponto_validacao }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.impacto }} | {{ r.motivo }} | {{ r.consulta_id | default("—") }} |
 {% endfor %}
 
 ## 5. CONSULTAS
-
 | ID | Texto | Item IDs |
 |---|---|---|
 {% for c in consultas -%}
 | {{ c.id }} | {{ c.texto }} | {{ c.item_ids | join(", ") }} |
 {% endfor %}
 
-## 6. RESUMO EXECUTIVO
+## 6. VISTORIA / VERIFICAÇÃO DE CAMPO
+{% for item in vistoria -%}
+- {{ item }}
+{% endfor %}
 
+## 7. PONTOS DE GRANDE PESO
+{% for item in pontos_grande_peso -%}
+- {{ item }}
+{% endfor %}
+
+## 8. CONTRADIÇÕES DE ESCOPO
+{% for item in contradicoes_escopo -%}
+- {{ item }}
+{% endfor %}
+
+## 9. PREMISSAS
+{% for item in premissas -%}
+- {{ item }}
+{% endfor %}
+
+## 10. QUANTITATIVOS — TR × LAYOUT × ORÇAMENTO
+| Item | Qtd TR | Qtd Layout | Qtd Orçamento | Unidade | Divergência | Justificativa |
+|---|---:|---:|---:|---|---|---|
+{% for q in quantitativos -%}
+| {{ q.item }} | {{ q.quantidade_tr | default("—") }} | {{ q.quantidade_layout | default("—") }} | {{ q.quantidade_orcamento | default("—") }} | {{ q.unidade | default("—") }} | {{ q.divergencia | default("—") }} | {{ q.justificativa | default("—") }} |
+{% endfor %}
+
+## 11. RESUMO EXECUTIVO
 {% for item in resumo_executivo -%}
 - {{ item }}
 {% endfor %}
 
-## 7. LEGENDA
-
+## 12. LEGENDA
 | Campo | Valores |
 |---|---|
 {% for k, v in legenda.items() -%}
 | {{ k }} | {{ v | join(", ") if v is iterable and v is not string else v }} |
 {% endfor %}
 
-## 8. RASTREABILIDADE
-
+## 13. RASTREABILIDADE
 {% for item in rastreabilidade -%}
 - {{ item }}
 {% endfor %}
 
-A PTS Técnica prepara o orçamento: DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO.
+**Cadeia canônica:** DOCUMENTO → EVIDÊNCIA → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO → PTS PÓS.
