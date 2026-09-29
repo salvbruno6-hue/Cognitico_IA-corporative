@@ -98,6 +98,32 @@ class PipelineTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("consultas_abertas", result.stderr)
 
+    def test_mature_contract_requires_traceability_fields(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["contrato_maturidade"] = "1.0"
+        tecnica["vistoria"] = []
+        tecnica["pontos_grande_peso"] = []
+        tecnica["contradicoes_escopo"] = []
+        tecnica["premissas"] = []
+        tecnica["quantitativos"] = []
+        tecnica["matriz_tecnica"][0].update({
+            "origem": ["TR"],
+            "quantidade_tr": 1,
+            "evidencia_layout": "evidência de teste",
+            "atendimento_multiteiner": "solução de teste",
+            "tratamento_orcamentario": "tratamento de teste",
+            "associacao_orcamento": "ORC-001",
+            "validacao_associacao": "validado",
+            "ponto_validacao": "ponto de teste",
+            "impacto": "ALTO"
+        })
+        result = self.run_pipeline(POS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_legacy_contract_remains_accepted(self):
+        result = self.run_pipeline(POS)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
