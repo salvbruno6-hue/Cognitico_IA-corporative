@@ -94,6 +94,13 @@ def validate_tecnica(data):
         if cid not in (None, "", "—") and cid not in consulta_ids:
             raise ValidationError(f"PTS Técnica: consulta_id órfão: {cid}")
 
+    if data.get("contrato_maturidade") == "1.0":
+        mature_top = ["vistoria", "pontos_grande_peso", "contradicoes_escopo", "premissas", "quantitativos"]
+        require_keys(data, mature_top, "PTS Técnica madura")
+        mature_fields = ["origem", "quantidade_tr", "evidencia_layout", "atendimento_multiteiner", "tratamento_orcamentario", "associacao_orcamento", "validacao_associacao", "ponto_validacao", "impacto"]
+        for i, row in enumerate(data["matriz_tecnica"]):
+            require_keys(row, mature_fields, f"PTS Técnica madura.matriz_tecnica[{i}]")
+
     return item_ids, consulta_ids
 
 
