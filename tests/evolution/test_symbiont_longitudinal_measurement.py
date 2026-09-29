@@ -113,3 +113,27 @@ def test_duplicate_observation_does_not_create_false_improvement():
     assert result.status is MeasurementStatus.DUPLICATE
     assert result.delta is None
     assert result.comparable is False
+
+
+def test_existing_implementation_evidence_can_feed_comparable_observations():
+    from elo.cognitive.symbiont_longitudinal_measurement import (
+        observations_from_implementation_evidence,
+    )
+
+    observations = observations_from_implementation_evidence(
+        observation_id="impl-1",
+        skill_id="EXT-CRON-HERMES",
+        tenant_id="tenant-a",
+        domain="automation",
+        decision_id="decision-1",
+        source_ref="implementation:impl-1",
+        dataset_version="ds-1",
+        baseline={"idempotency_collision_free_rate": 0.80},
+        adapted={"idempotency_collision_free_rate": 0.88},
+        metric_directions={"idempotency_collision_free_rate": "maximize"},
+        evidence_refs=("impl-evidence-1",),
+    )
+    assert len(observations) == 2
+    assert observations[0].value == 0.80
+    assert observations[1].value == 0.88
+    assert observations[0].metric == observations[1].metric
