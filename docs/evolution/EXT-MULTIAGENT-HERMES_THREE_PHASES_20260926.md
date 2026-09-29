@@ -31,3 +31,8 @@ The authorization granted for test and positive validation is used only for this
 - Existing delegation boundary remains the admissibility authority.
 - No child authority is granted.
 - No second Evolution Gate or promotion mechanism is introduced.
+
+
+## 2026-09-29 refinement — live steering
+
+`REF-LIVE-STEERING-HERMES` is integrated as a refinement of `EXT-MULTIAGENT-HERMES` / `HERMES-DELEGATION`. The contract requires parent/child execution identity, explicit directive, directive digest and provenance. Implicit steering or authority transfer is rejected. Controlled ELO-side evidence: 0.00 → 1.00 boundary integrity, repeatability PASS, canonical mutation false. No live Hermes steering is executed.
