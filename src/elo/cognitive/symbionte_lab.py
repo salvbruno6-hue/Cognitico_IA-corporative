@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from elo.core.evolution_gate import EvolutionClassification, EvolutionGate, EvolutionProposal
+from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
 from elo.core.learning_governance import ExperienceRecord, GovernedLearningService, LearningCandidate
 
 LAB_ONLY = "LAB_ONLY"
@@ -37,6 +38,81 @@ class SymbiontLabObservation:
     scope: str
     tenant_scope: str | None = None
     source_kind: str | None = None
+
+    @classmethod
+    def from_execution_outcome(
+        cls,
+        outcome: ExecutionOutcome,
+        *,
+        decision_id: str,
+        domain: str,
+        expected_outcome: str,
+        observed_outcome: str,
+        hypothesis: str,
+        baseline: str,
+        experiment: str,
+        result: str,
+        regression_status: str,
+        generalization_status: str,
+        risk: str,
+        existing_owner: str | None,
+        scope: str,
+        tenant_id: str,
+        observation_id: str,
+        source_commit: str,
+    ) -> "SymbiontLabObservation":
+        """Bind a governed execution result to the existing laboratory contract."""
+        if outcome.status is not ExecutionStatus.EXECUTED or not outcome.executed:
+            raise ValueError("only successfully executed outcomes can enter the laboratory")
+        if not outcome.evidence_ids:
+            raise ValueError("execution outcome requires evidence")
+        if not outcome.occurred_at:
+            raise ValueError("execution outcome requires timestamp")
+        if outcome.correlation_id != decision_id:
+            raise ValueError("execution outcome is not bound to the decision")
+        if not outcome.request_id:
+            raise ValueError("execution outcome requires execution identity")
+        if not source_commit:
+            raise ValueError("laboratory observation requires source commit")
+    def validate_execution_o
+        return cls(
+            observation_id=observation_id,
+            tenant_id=tenant_id,
+            domain=domain,
+            decision_id=decision_id,
+            expected_outcome=expected_outcome,
+            observed_outcome=observed_outcome,
+            evidence_ids=tuple(outcome.evidence_ids),
+            source_ref=outcome.request_id,
+            source_commit=source_commit,
+            hypothesis=hypothesis,
+            baseline=baseline,
+            experiment=experiment,
+            result=result,
+            regression_status=regression_status,
+            generalization_status=generalization_status,
+            risk=risk,
+            existing_owner=existing_owner,
+            scope=scope,
+            tenant_scope=tenant_id,
+            source_kind="benchmark",
+        )
+
+utcome(self, outcome: ExecutionOutcome) -> None:
+        """Fail closed when an observation is crossed with another execution."""
+        if outcome.status is not ExecutionStatus.EXECUTED or not outcome.executed:
+            raise ValueError("only successfully executed outcomes can back a laboratory observation")
+        if outcome.request_id != self.source_ref:
+            raise ValueError("execution identity does not match laboratory observation")
+        if tuple(outcome.evidence_ids) != tuple(self.evidence_ids):
+            raise ValueError("execution evidence does not match laboratory observation")
+        if outcome.correlation_id != self.decision_id:
+            raise ValueError("execution decision binding does not match laboratory observation")
+        if not outcome.occurred_at:
+            raise ValueError("execution outcome requires timestamp")
+
+
+
 
 
 @dataclass(frozen=True)
