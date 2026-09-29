@@ -6,6 +6,7 @@ No child agent is spawned and no execution authority is granted.
 from __future__ import annotations
 from dataclasses import dataclass
 from .hermes_multiagent_adapter import adapt_delegation
+from .hermes_live_steering_refinement import evaluate_live_steering_gain
 from .hermes_multiagent_boundary import DelegationSignal
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +16,11 @@ class MultiagentFunctionalEvidence:
     repeatable: bool
     boundary_integrity: bool
     provenance_refs: tuple[str, ...]
+    live_steering_baseline_rate: float = 0.0
+    live_steering_adapted_rate: float = 0.0
+    live_steering_repeatable: bool = False
+    live_steering_boundary_integrity: bool = False
+    live_steering_provenance_refs: tuple[str, ...] = ()
 
 def _signals(prefix: str) -> tuple[DelegationSignal, ...]:
     return tuple(
@@ -62,6 +68,5 @@ def evaluate_multiagent_functional_gain() -> MultiagentFunctionalEvidence:
         for item in items
     )
     refs = tuple(ref for signal in adapted for ref in signal.source_refs)
-    return MultiagentFunctionalEvidence(
-        baseline_rate, adapted_rate, repeatable, boundary, refs
-    )
+    steering = evaluate_live_steering_gain()
+    return MultiagentFunctionalEvidence(baseline_rate, adapted_rate, repeatable, boundary, refs, steering[0], steering[1], steering[2], steering[3], steering[4])
