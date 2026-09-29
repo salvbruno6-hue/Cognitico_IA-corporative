@@ -5,16 +5,20 @@ existing functional-value probe and the canonical Symbiont/ELO governed
 handoff. It does not create a second state machine, Evolution Gate,
 approval authority, scheduler, runtime executor, or canonical mutation path.
 
-Each candidate is validated against its own process contract after the existing
-probe runs. The contract checks that the candidate's measured process, metric,
-repeatability, provenance, and governance boundary are actually represented in
-the evidence package before the result can advance.
+Learning feedback is optional and explicit: controlled probes do not create
+persistent learning unless a real SkillExecutionContext is supplied.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Mapping
+
+from elo.core.learning_governance import GovernedLearningService
+from elo.cognitive.symbiont_skill_feedback_loop import (
+    SkillExecutionContext,
+    SkillLearningFeedback,
+    observe_skill_outcome,
+)
 
 from .batch_loop_integration import run_batch_loop_probe
 from .checkpoint_loop_integration import run_checkpoint_loop_probe
@@ -34,6 +38,7 @@ from .route_loop_integration import run_route_loop_probe
 from .hermes_13_process_contract import get_process_contract
 from .hermes_symbiont_loop import apply_candidate_through_symbiont
 
+
 @dataclass(frozen=True, slots=True)
 class Hermes13LoopResult:
     candidate_id: str
@@ -42,6 +47,8 @@ class Hermes13LoopResult:
     canonical_mutation: bool
     evidence_present: bool
     process_contract_valid: bool
+    learning_feedback: SkillLearningFeedback | None = None
+
 
 @dataclass(frozen=True, slots=True)
 class Hermes13ImplementationLoopReport:
@@ -63,6 +70,11 @@ class Hermes13ImplementationLoopReport:
             if item.next_state == "ELO_REVIEW"
         )
 
+    @property
+    def learning_feedback_count(self) -> int:
+        return sum(item.learning_feedback is not None for item in self.results)
+
+
 HERMES_13_EXECUTION_ORDER = (
     "EXT-CONTEXT-PLUGIN-HERMES", "EXT-WORKTREE-HERMES", "EXT-MULTIAGENT-HERMES",
     "EXT-CRON-HERMES", "EXT-MEMPROVIDER-HERMES", "EXT-ROUTE-HERMES",
@@ -77,7 +89,19 @@ Probe = Callable[[], tuple[object, object]]
 def _normalize_probe_result(
     candidate_id: str,
     probe: Probe,
+    *,
+    learning_service: GovernedLearningService | None = None,
+    learning_context: SkillExecutionContext | None = None,
 ) -> Hermes13LoopResult:
+    if (learning_service is None) != (learning_context is None):
+        raise ValueError(
+            "learning_service and learning_context must be supplied together"
+        )
+    if learning_context is not None and learning_context.skill_id != candidate_id:
+        raise ValueError(
+            f"{candidate_id}: learning context skill_id does not match candidate"
+        )
+
     contract = get_process_contract(candidate_id)
     applied = apply_candidate_through_symbiont(
         candidate_id,
@@ -93,6 +117,14 @@ def _normalize_probe_result(
 
     contract.validate_evidence(evidence)
 
+    feedback = None
+    if learning_service is not None and learning_context is not None:
+        feedback = observe_skill_outcome(
+            learning_service,
+            learning_context,
+            evidence_complete=bool(learning_context.evidence_ids),
+        )
+
     return Hermes13LoopResult(
         candidate_id=candidate_id,
         result=implementation.result,
@@ -100,10 +132,33 @@ def _normalize_probe_result(
         canonical_mutation=applied.canonical_mutation,
         evidence_present=True,
         process_contract_valid=True,
+        learning_feedback=feedback,
     )
 
 
-def run_hermes_13_implementation_loop() -> Hermes13ImplementationLoopReport:
+def run_hermes_13_implementation_loop(
+    *,
+    learning_service: GovernedLearningService | None = None,
+    learning_contexts: Mapping[str, SkillExecutionContext] | None = None,
+) -> Hermes13ImplementationLoopReport:
+    """Run the 13 candidates and optionally capture explicit execution learning.
+
+    If learning_contexts are omitted, the loop remains a controlled probe and
+    produces no persistent learning. When supplied, each context must identify
+    the matching candidate; observed outcomes then enter the existing governed
+    trigger lifecycle.
+    """
+    contexts = learning_contexts or {}
+    if learning_service is None and contexts:
+        raise ValueError("learning_service is required when learning_contexts are supplied")
+    if learning_service is not None:
+        missing = tuple(cid for cid in HERMES_13_EXECUTION_ORDER if cid not in contexts)
+        if missing:
+            raise ValueError(
+                "learning_contexts must cover all 13 candidates when learning_service is supplied: "
+                + ", ".join(missing)
+            )
+
     probes = (
         ("EXT-CONTEXT-PLUGIN-HERMES", run_context_plugin_loop_probe),
         ("EXT-WORKTREE-HERMES", run_worktree_loop_probe),
@@ -120,7 +175,12 @@ def run_hermes_13_implementation_loop() -> Hermes13ImplementationLoopReport:
         ("EXT-HOOK-HERMES", run_hook_loop_probe),
     )
     report = Hermes13ImplementationLoopReport(tuple(
-        _normalize_probe_result(cid, probe)
+        _normalize_probe_result(
+            cid,
+            probe,
+            learning_service=learning_service,
+            learning_context=contexts.get(cid),
+        )
         for cid, probe in probes
     ))
     if not report.all_candidates_processed:
