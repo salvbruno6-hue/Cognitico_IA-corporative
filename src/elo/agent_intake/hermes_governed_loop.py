@@ -66,6 +66,24 @@ def _unresolved_context() -> ImplementationGovernanceContext:
     )
 
 
+def _implementation_review_decision(
+    candidate_id: str,
+    stage: ImplementationStage,
+    result: str,
+    reason: str,
+) -> ImplementationDecision:
+    return ImplementationDecision(
+        decision_id="",
+        candidate_id=candidate_id,
+        approved=False,
+        scope="",
+        stage=stage,
+        result=result,
+        canonical_mutation=False,
+        reason=reason,
+    )
+
+
 def _views(
     candidate: HermesCandidate,
     context: ImplementationGovernanceContext,
@@ -129,9 +147,9 @@ def advance_to_implementation(
     )
 
     if context_supplied and context.ownership == ImplementationOwnership.UNRESOLVED:
-        decision = ImplementationDecision(
+        decision = _implementation_review_decision(
             candidate.candidate_id, ImplementationStage.CANDIDATE,
-            "RETEST", False, "implementation ownership/branch linkage is unresolved",
+            "RETEST", "implementation ownership/branch linkage is unresolved",
         )
         _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result, evidence_refs=provenance_refs)
         return GovernedLoopHandoff(
@@ -140,11 +158,10 @@ def advance_to_implementation(
         )
 
     if functional_value_evidence is None or functional_value_evidence.candidate_id != candidate.candidate_id or not functional_value_evidence.functional_gain_proven:
-        decision = ImplementationDecision(
+        decision = _implementation_review_decision(
             candidate.candidate_id,
             ImplementationStage.MEASURED_GAIN,
             "RETEST",
-            False,
             "contract or boundary gain is insufficient; candidate-attributed functional value proof is required",
         )
         _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result, evidence_refs=provenance_refs)
@@ -154,9 +171,9 @@ def advance_to_implementation(
         )
 
     if not readiness.ready_for_loop:
-        decision = ImplementationDecision(
+        decision = _implementation_review_decision(
             candidate.candidate_id, ImplementationStage.CANDIDATE,
-            "RETEST", False, "implementation-loop entry evidence is incomplete",
+            "RETEST", "implementation-loop entry evidence is incomplete",
         )
         _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result, evidence_refs=provenance_refs)
         return GovernedLoopHandoff(
@@ -248,11 +265,10 @@ def close_approved_candidate(
     )
 
     if context.ownership == ImplementationOwnership.UNRESOLVED:
-        decision = ImplementationDecision(
+        decision = _implementation_review_decision(
             candidate.candidate_id,
             ImplementationStage.CANDIDATE,
             "RETEST",
-            False,
             "implementation ownership/branch linkage is unresolved",
         )
         _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
@@ -262,11 +278,10 @@ def close_approved_candidate(
         )
 
     if not readiness.ready_for_loop:
-        decision = ImplementationDecision(
+        decision = _implementation_review_decision(
             candidate.candidate_id,
             ImplementationStage.CANDIDATE,
             "RETEST",
-            False,
             "approved-candidate closure blocked by incomplete implementation evidence",
         )
         _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
@@ -276,11 +291,10 @@ def close_approved_candidate(
         )
 
     if not evolution_gate_approved or not elo_implementation_approved:
-        decision = ImplementationDecision(
+        decision = _implementation_review_decision(
             candidate.candidate_id,
             ImplementationStage.ELO_REVIEW,
             "READY_FOR_ELO_REVIEW",
-            False,
             "explicit Evolution Gate approval and implementation authorization are both required",
         )
         _, end_view = _views(candidate, context, stage=decision.stage.value, result=decision.result)
