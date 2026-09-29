@@ -62,3 +62,29 @@ Build:
 `next build`
 
 Valores públicos do Supabase podem ser usados somente para o fluxo de autenticação. Nenhuma credencial de Hermes ou segredo de infraestrutura deve ser exposto ao navegador.
+
+
+## Render
+
+O repositório possui um Blueprint em `/render.yaml` para publicar esta mesma superfície mínima no Render.
+
+Configuração:
+
+- serviço: `elo-web`;
+- runtime: Node;
+- Root Directory: `apps/elo-web`;
+- build: `npm install && npm run build`;
+- start: `npm start`;
+- health check: `/`.
+
+Variáveis obrigatórias no Render:
+
+- `NEXT_PUBLIC_SUPABASE_URL`;
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`;
+- `NEXT_PUBLIC_ELO_SITE_URL` com a URL pública do serviço.
+
+Depois que o Render fornecer a URL pública, o callback OAuth utilizado pelo navegador será:
+
+`https://<host-do-render>/auth/callback`
+
+Essa URL precisa estar cadastrada nos Redirect URLs do Supabase Auth/Google OAuth. O código não fixa domínio de hospedagem: o callback é derivado de `window.location.origin`.
