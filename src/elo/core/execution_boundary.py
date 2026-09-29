@@ -5,6 +5,7 @@ an explicit authorization token and a correlation context; failed preconditions 
 non-executing outcome instead of attempting a best-effort action.
 """
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Mapping, Protocol
 
@@ -13,6 +14,7 @@ class ExecutionStatus(StrEnum):
     READY = "READY"
     BLOCKED = "BLOCKED"
     EXECUTED = "EXECUTED"
+    FAILED = "FAILED"
     MONITORING = "MONITORING"
     DEGRADED = "DEGRADED"
 
@@ -36,10 +38,23 @@ class ExecutionOutcome:
     executed: bool
     reason: str
     provenance: Mapping[str, str]
+    evidence_ids: tuple[str, ...] = ()
+    correlation_id: str | None = None
+    authorization_id: str | None = None
+    occurred_at: datetime | None = None
 
 
 class ExecutionAdapter(Protocol):
     def execute(self, request: ExecutionRequest) -> Mapping[str, str]: ...
+
+
+def _outcome_context(request: ExecutionRequest) -> dict[str, object]:
+    return {
+        "evidence_ids": tuple(request.evidence_ids),
+        "correlation_id": request.correlation_id,
+        "authorization_id": request.authorization_id,
+        "occurred_at": datetime.now(timezone.utc),
+    }
 
 
 def validate_execution_request(request: ExecutionRequest) -> ExecutionOutcome | None:
@@ -57,12 +72,14 @@ def validate_execution_request(request: ExecutionRequest) -> ExecutionOutcome | 
     if not request.evidence_ids:
         missing.append("evidence_ids")
     if missing:
+        context = _outcome_context(request)
         return ExecutionOutcome(
             request_id=request.request_id,
             status=ExecutionStatus.BLOCKED,
             executed=False,
             reason="missing_execution_controls:" + ",".join(missing),
             provenance={"execution": "not_attempted"},
+            **context,
         )
     return None
 
@@ -72,7 +89,30 @@ def execute_governed(request: ExecutionRequest, adapter: ExecutionAdapter) -> Ex
     blocked = validate_execution_request(request)
     if blocked is not None:
         return blocked
-    result = dict(adapter.execute(request))
+
+    occurred_at = datetime.now(timezone.utc)
+    try:
+        result = dict(adapter.execute(request))
+    except Exception as exc:
+        return ExecutionOutcome(
+            request_id=request.request_id,
+            status=ExecutionStatus.FAILED,
+            executed=False,
+            reason=f"authorized_execution_failed:{type(exc).__name__}",
+            provenance={
+                "request_id": request.request_id,
+                "tenant_id": request.tenant_id,
+                "principal_id": request.principal_id,
+                "authorization_id": request.authorization_id or "",
+                "correlation_id": request.correlation_id or "",
+                "execution": "failed",
+            },
+            evidence_ids=request.evidence_ids,
+            correlation_id=request.correlation_id,
+            authorization_id=request.authorization_id,
+            occurred_at=occurred_at,
+        )
+
     result.update(
         {
             "request_id": request.request_id,
@@ -89,4 +129,8 @@ def execute_governed(request: ExecutionRequest, adapter: ExecutionAdapter) -> Ex
         executed=True,
         reason="authorized_execution_completed",
         provenance=result,
+        evidence_ids=request.evidence_ids,
+        correlation_id=request.correlation_id,
+        authorization_id=request.authorization_id,
+        occurred_at=occurred_at,
     )
