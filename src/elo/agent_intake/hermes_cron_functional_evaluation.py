@@ -59,4 +59,3 @@ def evaluate_cron_functional_gain() -> CronFunctionalEvidence:
     refs = tuple(ref for s in adapted for ref in s.source_refs)
     continuity = evaluate_cron_continuity_gain()
     return CronFunctionalEvidence(baseline_rate, adapted_rate, repeatable, boundary, refs, continuity[0], continuity[1], continuity[2], continuity[3], continuity[4])
-"
