@@ -83,3 +83,7 @@ A PTS explicita vistoria, pontos de grande peso, contradições de escopo, premi
 A PTS identifica necessidade e tratamento para orçamento; cotação continua sendo execução do especialista de orçamento e não uma lista operacional da PTS.
 
 Cadeia: FONTE → REQUISITO → EVIDÊNCIA → INTERPRETAÇÃO → SOLUÇÃO → QUANTITATIVO → ASSOCIAÇÃO ORÇAMENTÁRIA → VALIDAÇÃO → PTS PÓS.
+
+
+### Regra de complementaridade
+O contrato de maturidade é uma extensão aditiva da PTS Técnica canônica. A leitura da análise pode acrescentar evidências, interpretações, soluções, validações e pontos de grande peso, mas não apaga nem substitui os campos e seções existentes. A PTS continua sendo uma única estrutura canônica.
