@@ -14,9 +14,11 @@ import hashlib
 import json
 import sqlite3
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any, Callable, Mapping
+
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 
 
 class ResumeStatus(str, Enum):
@@ -56,6 +58,10 @@ class ExecutionState:
     canonical_mutation: bool
     production_authorized: bool
     promotion_authorized: bool
+    implementation_decision_id: str | None
+    implementation_scope: str | None
+    implementation_evidence_refs: tuple[str, ...]
+    authorization: AuthorizationDecision | None
     created_at: float
     updated_at: float
 
@@ -144,6 +150,10 @@ class SymbiontExecutionStore:
                 canonical_mutation INTEGER NOT NULL,
                 production_authorized INTEGER NOT NULL,
                 promotion_authorized INTEGER NOT NULL,
+                implementation_decision_id TEXT,
+                implementation_scope TEXT,
+                implementation_evidence_refs TEXT NOT NULL DEFAULT '[]',
+                authorization_json TEXT,
                 lease_owner TEXT,
                 lease_until REAL,
                 created_at REAL NOT NULL,
@@ -169,6 +179,17 @@ class SymbiontExecutionStore:
             )
             """
         )
+        columns = {row["name"] for row in self.connection.execute("PRAGMA table_info(symbiont_executions)").fetchall()}
+        migrations = {
+            "implementation_decision_id": "ALTER TABLE symbiont_executions ADD COLUMN implementation_decision_id TEXT",
+            "implementation_scope": "ALTER TABLE symbiont_executions ADD COLUMN implementation_scope TEXT",
+            "implementation_evidence_refs": "ALTER TABLE symbiont_executions ADD COLUMN implementation_evidence_refs TEXT NOT NULL DEFAULT '[]'",
+            "authorization_json": "ALTER TABLE symbiont_executions ADD COLUMN authorization_json TEXT",
+        }
+        for column, statement in migrations.items():
+            if column not in columns:
+                self.connection.execute(statement)
+        self.connection.commit()
         self.connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_sym_ops_execution "
             "ON symbiont_operations(execution_id, iteration)"
@@ -188,6 +209,10 @@ class SymbiontExecutionStore:
         current_stage: str,
         next_action: str,
         max_attempts: int = 3,
+        implementation_decision_id: str | None = None,
+        implementation_scope: str | None = None,
+        implementation_evidence_refs: tuple[str, ...] = (),
+        authorization: AuthorizationDecision | None = None,
     ) -> ExecutionState:
         if not all(
             value.strip()
@@ -206,20 +231,22 @@ class SymbiontExecutionStore:
         now = time.time()
         self.connection.execute(
             """
-            INSERT INTO symbiont_executions
-            VALUES (?, ?, ?, ?, 'ACTIVE', ?, 1, NULL, NULL, 1, ?, 0, ?,
-                    NULL, 0, 0, 0, 0, NULL, NULL, ?, ?)
+            INSERT INTO symbiont_executions (
+                execution_id, candidate_id, capability_id, owner, status,
+                current_stage, iteration, last_completed_step, last_completed_operation,
+                state_version, next_action, retry_count, max_attempts, boundary,
+                human_required, canonical_mutation, production_authorized, promotion_authorized,
+                implementation_decision_id, implementation_scope, implementation_evidence_refs,
+                authorization_json, lease_owner, lease_until, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, 'ACTIVE', ?, 1, NULL, NULL, 1, ?, 0, ?,
+                      NULL, 0, 0, 0, 0, ?, ?, ?, ?, NULL, NULL, ?, ?)
             """,
             (
-                execution_id,
-                candidate_id,
-                capability_id,
-                owner,
-                current_stage,
-                next_action,
-                max_attempts,
-                now,
-                now,
+                execution_id, candidate_id, capability_id, owner, current_stage,
+                next_action, max_attempts, implementation_decision_id,
+                implementation_scope, json.dumps(list(implementation_evidence_refs), sort_keys=True),
+                json.dumps(asdict(authorization), sort_keys=True) if authorization else None,
+                now, now,
             ),
         )
         self.connection.commit()
@@ -251,6 +278,10 @@ class SymbiontExecutionStore:
             canonical_mutation=bool(row["canonical_mutation"]),
             production_authorized=bool(row["production_authorized"]),
             promotion_authorized=bool(row["promotion_authorized"]),
+            implementation_decision_id=row["implementation_decision_id"],
+            implementation_scope=row["implementation_scope"],
+            implementation_evidence_refs=tuple(json.loads(row["implementation_evidence_refs"] or "[]")),
+            authorization=(AuthorizationDecision(**json.loads(row["authorization_json"])) if row["authorization_json"] else None),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
@@ -412,6 +443,36 @@ class SymbiontExecutionStore:
         )
         self.connection.commit()
         return self.get_execution(execution_id)
+
+
+def validate_implementation_authorization(
+    state: ExecutionState,
+    *,
+    candidate_id: str,
+    evidence_refs: tuple[str, ...],
+    scope: str,
+) -> tuple[bool, str]:
+    """Validate transported implementation authorization without issuing one."""
+    if state.candidate_id != candidate_id:
+        return False, "candidate binding mismatch"
+    if not state.implementation_decision_id:
+        return False, "implementation decision id missing"
+    if not state.implementation_scope or state.implementation_scope != scope:
+        return False, "implementation scope mismatch"
+    if not state.implementation_evidence_refs:
+        return False, "implementation evidence refs missing"
+    if tuple(evidence_refs) != tuple(state.implementation_evidence_refs):
+        return False, "implementation evidence refs mismatch"
+    authorization = state.authorization
+    if authorization is None:
+        return False, "canonical execution authorization missing"
+    if authorization.resource_id != candidate_id:
+        return False, "authorization resource binding mismatch"
+    if not authorization.is_transport_valid():
+        return False, "canonical execution authorization invalid or expired"
+    if authorization.evidence_ref not in state.implementation_evidence_refs:
+        return False, "authorization evidence is not bound to implementation decision"
+    return True, "authorized"
 
 
 Executor = Callable[[ExecutionState, Operation], ActionResult]
