@@ -74,7 +74,6 @@ class SymbiontLabObservation:
             raise ValueError("execution outcome requires execution identity")
         if not source_commit:
             raise ValueError("laboratory observation requires source commit")
-    def validate_execution_o
         return cls(
             observation_id=observation_id,
             tenant_id=tenant_id,
@@ -98,7 +97,7 @@ class SymbiontLabObservation:
             source_kind="benchmark",
         )
 
-utcome(self, outcome: ExecutionOutcome) -> None:
+    def validate_execution_outcome(self, outcome: ExecutionOutcome) -> None:
         """Fail closed when an observation is crossed with another execution."""
         if outcome.status is not ExecutionStatus.EXECUTED or not outcome.executed:
             raise ValueError("only successfully executed outcomes can back a laboratory observation")
