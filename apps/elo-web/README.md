@@ -1,72 +1,64 @@
 # ELO Web
 
-Next.js frontend for the ELO experience layer.
+Superfície web mínima para validação da autenticação e da sessão operacional do ELO.
 
-## Canonical web application
+## Fluxo de teste atual
 
-`apps/elo-web` is the canonical ELO Web application for the Vercel project `elo-web`. The legacy `frontend/` GitHub Pages application is a separate deployment surface and must not be used as the canonical ELO Web authentication surface.
+`Google OAuth → Supabase authenticated session → ELO Authorization establish_session → tela de confirmação`
 
-## Authentication boundary
+O navegador **não** emite grants de execução, commit ou merge.
 
-The entry flow is intentionally staged:
+## O que permanece nesta fase
 
-`Google OAuth → Supabase authenticated session → ELO Authorization establish_session → Operational Portal`
+- login Google;
+- callback OAuth em `/auth/callback`;
+- sessão autenticada do Supabase;
+- chamada governada `establish_session`;
+- revogação da sessão no logout;
+- tela mínima para confirmar o resultado.
 
-The browser never issues an authorization grant automatically. `elo-execution-authorized`, `elo-commit-authorized` and `elo-merge-authorized` remain governed authorization states and are not created as a side effect of Google login.
+## O que foi retirado da superfície de teste
 
-## Boundary
+- Terminal Hermes;
+- Portal Operacional;
+- operações de Lista-Mãe/Almoxarifado;
+- views de governança do Symbiont;
+- rotas e componentes de teste que não são necessários para validar a autenticação.
+
+Esses itens não são necessários para o primeiro teste de sessão e não devem participar do diagnóstico atual.
+
+## Fronteira
 
 ```text
-Browser
-  -> ELO Web (Vercel / Next.js)
-  -> ELO Cognitive API
-  -> Simbionte
-  -> governed Hermes execution boundary
-  -> Hermes runtime
-  -> Evidence / Outcome
-  -> Governed Learning / Evolution Gate
+Google
+  ↓
+Supabase Auth
+  ↓
+ELO Web
+  ↓
+/api/authorization
+  ↓
+elo-authz
+  ↓
+sessão ELO
 ```
 
-The browser is not an authority for governance, canonical knowledge, infrastructure credentials, or Hermes execution. Hermes remains an external execution runtime; ELO Cognitive owns authorization, routing, provenance and learning governance.
+O ELO Web não é autoridade de governança. A autorização continua no `elo-authz`.
 
-## Current implementation
+## Vercel
 
-- Shared ELO shell with sector navigation.
-- Existing ELO/Supabase authentication boundary.
-- Configurações for dark mode, sound and connector preferences.
-- Mission input and sector actions routed to the ELO Cognitive API through the Next.js server boundary.
-- Evidence/provenance surface for cognitive responses.
-- Static KPI values removed where no governed telemetry exists.
-- No browser exposure of Hermes/Supabase infrastructure secrets.
+Projeto: `elo-web`
 
-## Vercel project settings
-
-Use this repository with the Vercel project root set to:
+Root Directory:
 
 `apps/elo-web`
 
-Framework: **Next.js** (auto-detected).
+Framework:
 
-Build command: default (`next build`).
+`Next.js`
 
-Install command: default package-manager detection.
+Build:
 
-Required server-side environment variable:
+`next build`
 
-O ELO Web não depende de `ELO_COGNITIVE_API_URL`. O Cognitive Core opera dentro da própria fronteira `/api/cognitive`.
-
-Optional public tenant identifier:
-
-`NEXT_PUBLIC_ELO_TENANT_ID=multiteiner`
-
-Public Supabase values remain limited to the existing authentication/session boundary. Hermes credentials must remain server-side and are not accepted by the browser.
-
-Vercel Preview deployments should be used for every feature branch before production merge.
-
-## Hermes integration rule
-
-The Web layer must never call Hermes directly. The supported path is:
-
-`GPT → ELO Cognitive → Simbionte Contract → Hermes → Evidence → Governed Learning → Evolution Gate`
-
-The canonical Hermes contract explicitly keeps Hermes as an execution/orchestration provider and prevents it from becoming ELO Core, Memory, Router, authority, or Evolution Gate.
+Valores públicos do Supabase podem ser usados somente para o fluxo de autenticação. Nenhuma credencial de Hermes ou segredo de infraestrutura deve ser exposto ao navegador.
