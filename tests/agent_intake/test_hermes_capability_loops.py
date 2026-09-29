@@ -1,3 +1,4 @@
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 from elo.agent_intake.hermes_capability_loops import (
     CapabilityEvidence,
     CapabilityKind,
@@ -152,6 +153,18 @@ def test_approved_candidate_implementation_loop_activates_after_explicit_decisio
         approved=True,
         scope="controlled-runtime",
         evidence_refs=("decision-evidence-001",),
+        authorization=AuthorizationDecision(
+            authorized=True,
+            authority="elo-authz",
+            identity_id="identity-a",
+            role="ELO_ADMIN",
+            evidence_ref="decision-evidence-001",
+            session_id="session-a",
+            binding_id="binding-a",
+            grant_id="grant-a",
+            resource_id=candidate.candidate_id,
+            expires_at="2099-01-01T00:00:00+00:00",
+        ),
     )
     activation = __import__(
         "elo.agent_intake.hermes_capability_loops",
@@ -184,6 +197,17 @@ def test_approved_candidate_implementation_loop_fails_closed_without_gate():
         approved=True,
         scope="controlled-runtime",
         evidence_refs=("decision-evidence-002",),
+        authorization=AuthorizationDecision(
+            authorized=True,
+            authority="elo-authz",
+            identity_id="identity-a",
+            role="ELO_ADMIN",
+            evidence_ref="decision-evidence-002",
+            session_id="session-a",
+            binding_id="binding-a",
+            grant_id="grant-a",
+            expires_at="2099-01-01T00:00:00+00:00",
+        ),
     )
     activation = __import__(
         "elo.agent_intake.hermes_capability_loops",
@@ -216,6 +240,17 @@ def test_approved_candidate_implementation_loop_requires_matching_decision():
         approved=True,
         scope="controlled-runtime",
         evidence_refs=("decision-evidence-003",),
+        authorization=AuthorizationDecision(
+            authorized=True,
+            authority="elo-authz",
+            identity_id="identity-a",
+            role="ELO_ADMIN",
+            evidence_ref="decision-evidence-003",
+            session_id="session-a",
+            binding_id="binding-a",
+            grant_id="grant-a",
+            expires_at="2099-01-01T00:00:00+00:00",
+        ),
     )
     try:
         __import__(

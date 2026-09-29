@@ -13,7 +13,8 @@ No business operation is executed and Hermes is never mutated.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from enum import Enum
+from enum import StrEnum, Enum
+from elo.application.use_cases.orchestrator import AuthorizationDecision
 from typing import Callable, Iterable, Mapping
 
 
@@ -219,9 +220,20 @@ class HermesCapabilityLoops:
         )
         return stable, discovery_history, candidate, readiness
 
+class ImplementationStage(StrEnum):
+    OBSERVED = "OBSERVED"
+    CANDIDATE = "CANDIDATE"
+    CONTROLLED_TEST = "CONTROLLED_TEST"
+    MEASURED_GAIN = "MEASURED_GAIN"
+    REPEATABLE = "REPEATABLE"
+    EVOLUTION_GATE = "EVOLUTION_GATE"
+    ELO_REVIEW = "ELO_REVIEW"
+    IMPLEMENTATION_AUTHORIZED = "IMPLEMENTATION_AUTHORIZED"
+
+
 @dataclass(frozen=True)
 class ImplementationDecision:
-    """Explicit ELO decision authorizing implementation of an already-approved candidate."""
+    """Single owner for implementation decisions and their external authorization."""
 
     decision_id: str
     candidate_id: str
@@ -229,6 +241,19 @@ class ImplementationDecision:
     scope: str
     evidence_refs: tuple[str, ...] = ()
     authority: str = "elo_cognitive"
+    authorization: AuthorizationDecision | None = None
+    stage: ImplementationStage = ImplementationStage.ELO_REVIEW
+    result: str = "READY_FOR_ELO_REVIEW"
+    canonical_mutation: bool = False
+    reason: str = ""
+
+    def authorization_valid(self, *, now=None) -> bool:
+        auth = self.authorization
+        if auth is None or not auth.is_transport_valid(now=now):
+            return False
+        if auth.evidence_ref not in self.evidence_refs:
+            return False
+        return bool(self.decision_id and self.candidate_id and self.scope)
 
 
 @dataclass(frozen=True)
@@ -241,6 +266,7 @@ class ImplementationActivation:
     activated: bool
     scope: str
     reason: str = ""
+    authorization: AuthorizationDecision | None = None
 
 
 class ApprovedCandidateImplementationLoop:
@@ -267,6 +293,8 @@ class ApprovedCandidateImplementationLoop:
             raise ValueError("implementation decision requires scope")
         if not decision.evidence_refs:
             raise ValueError("implementation decision requires evidence_refs")
+        if decision.authority != "elo_cognitive":
+            raise ValueError("implementation decision owner must remain elo_cognitive")
         if not decision.approved:
             return ImplementationActivation(
                 decision_id=decision.decision_id,
@@ -275,6 +303,17 @@ class ApprovedCandidateImplementationLoop:
                 activated=False,
                 scope=decision.scope,
                 reason="implementation decision not approved",
+                authorization=decision.authorization,
+            )
+        if not decision.authorization_valid():
+            return ImplementationActivation(
+                decision_id=decision.decision_id,
+                candidate_id=candidate.candidate_id,
+                state="BLOCKED",
+                activated=False,
+                scope=decision.scope,
+                reason="canonical execution authorization is missing, invalid, expired, or not bound to decision evidence",
+                authorization=decision.authorization,
             )
         if not readiness.ready:
             return ImplementationActivation(
@@ -284,6 +323,7 @@ class ApprovedCandidateImplementationLoop:
                 activated=False,
                 scope=decision.scope,
                 reason="candidate is not fully approved",
+                authorization=decision.authorization,
             )
         return ImplementationActivation(
             decision_id=decision.decision_id,
@@ -291,4 +331,5 @@ class ApprovedCandidateImplementationLoop:
             state="IMPLEMENTATION_AUTHORIZED",
             activated=True,
             scope=decision.scope,
+            authorization=decision.authorization,
         )

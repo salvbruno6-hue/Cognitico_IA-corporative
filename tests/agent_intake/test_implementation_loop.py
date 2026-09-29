@@ -40,7 +40,10 @@ def test_loop_supports_minimization_gain_and_requires_elo_approval():
         repeatable=True, elo_approved=True, metric_directions={"latency": "minimize"},
     )
     assert authorized.stage is ImplementationStage.IMPLEMENTATION_AUTHORIZED
+    assert authorized.result == "IMPLEMENTATION_AUTHORIZED"
     assert authorized.canonical_mutation is False
+    assert "canonical Symbiont consumption" in authorized.reason
+    assert authorized.authorization is None
 
 
 def test_loop_rejects_regression():
