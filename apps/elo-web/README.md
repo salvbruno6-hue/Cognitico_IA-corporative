@@ -2,6 +2,18 @@
 
 Next.js frontend for the ELO experience layer.
 
+## Canonical web application
+
+`apps/elo-web` is the canonical ELO Web application for the Vercel project `elo-web`. The legacy `frontend/` GitHub Pages application is a separate deployment surface and must not be used as the canonical ELO Web authentication surface.
+
+## Authentication boundary
+
+The entry flow is intentionally staged:
+
+`Google OAuth → Supabase authenticated session → ELO Authorization establish_session → Operational Portal`
+
+The browser never issues an authorization grant automatically. `elo-execution-authorized`, `elo-commit-authorized` and `elo-merge-authorized` remain governed authorization states and are not created as a side effect of Google login.
+
 ## Boundary
 
 ```text
