@@ -73,3 +73,13 @@ O pipeline valida estrutura, IDs, referências técnicas, itens herdados, consul
 A PTS Pós é evidência estruturada. Ela não altera automaticamente orçamento, Lista-Mãe, Core ou conhecimento governado. O aprendizado segue a cadeia de análise, arbitragem e governança definida pelo ELO.
 
 Não criar implementação paralela em `pts-pos-orcamento/` ou em outra pasta. Estender este owner canônico.
+
+## Contrato de maturidade da PTS Técnica
+
+A matriz preserva separadamente requisito documental, evidência de layout/projeto, atendimento sugerido pela Multiteiner, tratamento orçamentário e validação. A solução sugerida não é requisito do cliente.
+
+A PTS explicita vistoria, pontos de grande peso, contradições de escopo, premissas e quantitativos TR × Layout × Orçamento. Divergências não são corrigidas silenciosamente.
+
+A PTS identifica necessidade e tratamento para orçamento; cotação continua sendo execução do especialista de orçamento e não uma lista operacional da PTS.
+
+Cadeia: FONTE → REQUISITO → EVIDÊNCIA → INTERPRETAÇÃO → SOLUÇÃO → QUANTITATIVO → ASSOCIAÇÃO ORÇAMENTÁRIA → VALIDAÇÃO → PTS PÓS.
