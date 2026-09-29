@@ -1,15 +1,224 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "title":"ELO PTS Técnica","type":"object",
-  "required":["identificacao","objetivo","escopo","matriz_tecnica","consultas","vistoria","pontos_grande_peso","contradicoes_escopo","premissas","quantitativos","resumo_executivo","legenda","rastreabilidade"],
-  "properties":{
-    "identificacao":{"type":"object"},"objetivo":{"type":"string"},"escopo":{"type":"array"},
-    "matriz_tecnica":{"type":"array","items":{"type":"object","required":["id","item_tr","trecho_tr","origem","exigencia","quantidade_tr","evidencia_layout","atendimento_multiteiner","tratamento_orcamentario","associacao_orcamento","validacao_associacao","responsabilidade","ponto_validacao","tipo","adequacao","status","curva","impacto","motivo","consulta_id"],"properties":{
-      "id":{"type":"string","minLength":1},"item_tr":{"type":"string"},"trecho_tr":{"type":"string"},
-      "origem":{"type":"array","items":{"enum":["TR","LAYOUT","PROJETO","VISTORIA","CONSULTA_CLIENTE","PADRAO_MULTITEINER","SOLUCAO_TECNICA","PREMISSA_COMERCIAL"]}},
-      "exigencia":{"type":"string"},"quantidade_tr":{},"evidencia_layout":{"type":"string"},"atendimento_multiteiner":{"type":"string"},"tratamento_orcamentario":{"type":"string"},"associacao_orcamento":{"type":"string"},"validacao_associacao":{"type":"string"},
-      "responsabilidade":{"enum":["ENG","PLA","FOR","CONTRATADA","FAB"]},"ponto_validacao":{"type":"string"},"tipo":{"enum":["PAD","EXC","PRJ","FOR","CLI"]},"adequacao":{"type":"string"},"status":{"enum":["🟢","🟡","🔴"]},"curva":{"enum":["A","B","C"]},"impacto":{"enum":["ALTO","MEDIO","BAIXO"]},"motivo":{"type":"string"},"consulta_id":{"type":["string","null"]}
-    }},
-    "consultas":{"type":"array"},"vistoria":{"type":"array"},"pontos_grande_peso":{"type":"array"},"contradicoes_escopo":{"type":"array"},"premissas":{"type":"array"},"quantitativos":{"type":"array"},"resumo_executivo":{"type":"array"},"legenda":{"type":"object"},"rastreabilidade":{"type":"array"}
-  },"additionalProperties":true
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ELO PTS Técnica",
+  "type": "object",
+  "required": [
+    "identificacao",
+    "objetivo",
+    "escopo",
+    "matriz_tecnica",
+    "consultas",
+    "resumo_executivo",
+    "legenda",
+    "rastreabilidade"
+  ],
+  "properties": {
+    "contrato_maturidade": {
+      "enum": [
+        "1.0"
+      ]
+    },
+    "identificacao": {
+      "type": "object"
+    },
+    "objetivo": {
+      "type": "string"
+    },
+    "escopo": {
+      "type": "array"
+    },
+    "matriz_tecnica": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "item_tr",
+          "trecho_tr",
+          "exigencia",
+          "tipo",
+          "adequacao",
+          "status",
+          "curva",
+          "motivo",
+          "responsavel",
+          "consulta_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "item_tr": {
+            "type": "string"
+          },
+          "trecho_tr": {
+            "type": "string"
+          },
+          "origem": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "TR",
+                "LAYOUT",
+                "PROJETO",
+                "VISTORIA",
+                "CONSULTA_CLIENTE",
+                "PADRAO_MULTITEINER",
+                "SOLUCAO_TECNICA",
+                "PREMISSA_COMERCIAL"
+              ]
+            }
+          },
+          "exigencia": {
+            "type": "string"
+          },
+          "quantidade_tr": {},
+          "evidencia_layout": {
+            "type": "string"
+          },
+          "atendimento_multiteiner": {
+            "type": "string"
+          },
+          "tratamento_orcamentario": {
+            "type": "string"
+          },
+          "associacao_orcamento": {
+            "type": "string"
+          },
+          "validacao_associacao": {
+            "type": "string"
+          },
+          "responsabilidade": {
+            "enum": [
+              "ENG",
+              "PLA",
+              "FOR",
+              "CONTRATADA",
+              "FAB"
+            ]
+          },
+          "ponto_validacao": {
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "PAD",
+              "EXC",
+              "PRJ",
+              "FOR",
+              "CLI"
+            ]
+          },
+          "adequacao": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "🟢",
+              "🟡",
+              "🔴"
+            ]
+          },
+          "curva": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "impacto": {
+            "enum": [
+              "ALTO",
+              "MEDIO",
+              "BAIXO"
+            ]
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "consulta_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "consultas": {
+      "type": "array"
+    },
+    "vistoria": {
+      "type": "array"
+    },
+    "pontos_grande_peso": {
+      "type": "array"
+    },
+    "contradicoes_escopo": {
+      "type": "array"
+    },
+    "premissas": {
+      "type": "array"
+    },
+    "quantitativos": {
+      "type": "array"
+    },
+    "resumo_executivo": {
+      "type": "array"
+    },
+    "legenda": {
+      "type": "object"
+    },
+    "rastreabilidade": {
+      "type": "array"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "contrato_maturidade"
+        ]
+      },
+      "then": {
+        "required": [
+          "vistoria",
+          "pontos_grande_peso",
+          "contradicoes_escopo",
+          "premissas",
+          "quantitativos"
+        ],
+        "properties": {
+          "matriz_tecnica": {
+            "items": {
+              "required": [
+                "id",
+                "item_tr",
+                "trecho_tr",
+                "origem",
+                "exigencia",
+                "quantidade_tr",
+                "evidencia_layout",
+                "atendimento_multiteiner",
+                "tratamento_orcamentario",
+                "associacao_orcamento",
+                "validacao_associacao",
+                "responsabilidade",
+                "ponto_validacao",
+                "tipo",
+                "adequacao",
+                "status",
+                "curva",
+                "impacto",
+                "motivo",
+                "consulta_id"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
 }
