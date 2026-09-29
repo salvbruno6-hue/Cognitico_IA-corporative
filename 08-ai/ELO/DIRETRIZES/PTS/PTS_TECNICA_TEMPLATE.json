@@ -1,15 +1,9 @@
 {
-  "identificacao": {},
-  "objetivo": "",
-  "escopo": [],
-  "matriz_tecnica": [],
-  "consultas": [],
-  "resumo_executivo": [],
+  "identificacao": {}, "objetivo": "", "escopo": [], "matriz_tecnica": [], "consultas": [],
+  "vistoria": [], "pontos_grande_peso": [], "contradicoes_escopo": [], "premissas": [], "quantitativos": [], "resumo_executivo": [],
   "legenda": {
-    "tipo": ["PAD", "EXC", "PRJ", "FOR", "CLI"],
-    "responsavel": ["ENG", "PLA", "FOR", "CONTRATADA", "FAB"],
-    "curva": ["A", "B", "C"],
-    "status": ["🟢", "🟡", "🔴"]
+    "origem":["TR","LAYOUT","PROJETO","VISTORIA","CONSULTA_CLIENTE","PADRAO_MULTITEINER","SOLUCAO_TECNICA","PREMISSA_COMERCIAL"],
+    "tipo":["PAD","EXC","PRJ","FOR","CLI"], "responsabilidade":["ENG","PLA","FOR","CONTRATADA","FAB"], "curva":["A","B","C"], "impacto":["ALTO","MEDIO","BAIXO"], "status":["🟢","🟡","🔴"]
   },
-  "rastreabilidade": []
+  "rastreabilidade":[]
 }
