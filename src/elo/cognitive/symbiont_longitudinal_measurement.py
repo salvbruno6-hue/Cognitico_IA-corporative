@@ -181,9 +181,66 @@ def _result(
     )
 
 
+def observations_from_implementation_evidence(
+    *,
+    observation_id: str,
+    skill_id: str,
+    tenant_id: str,
+    domain: str,
+    decision_id: str,
+    source_ref: str,
+    dataset_version: str,
+    baseline: dict[str, float],
+    adapted: dict[str, float],
+    metric_directions: dict[str, str],
+    evidence_refs: Sequence[str],
+    learning_context_ids: Sequence[str] = (),
+) -> tuple[SkillObservation, ...]:
+    """Expose existing implementation evidence as comparable observations.
+
+    This is an adapter only. The existing ImplementationEvidence contract
+    remains authoritative for the candidate's metric and direction.
+    """
+    common = baseline.keys() & adapted.keys()
+    return tuple(
+        SkillObservation(
+            observation_id=f"{observation_id}:baseline:{metric}",
+            skill_id=skill_id,
+            tenant_id=tenant_id,
+            domain=domain,
+            decision_id=decision_id,
+            metric=metric,
+            value=baseline[metric],
+            direction=metric_directions[metric],
+            evidence_refs=tuple(evidence_refs),
+            source_ref=source_ref,
+            dataset_version=dataset_version,
+            learning_context_ids=tuple(learning_context_ids),
+        )
+        for metric in sorted(common)
+    ) + tuple(
+        SkillObservation(
+            observation_id=f"{observation_id}:adapted:{metric}",
+            skill_id=skill_id,
+            tenant_id=tenant_id,
+            domain=domain,
+            decision_id=decision_id,
+            metric=metric,
+            value=adapted[metric],
+            direction=metric_directions[metric],
+            evidence_refs=tuple(evidence_refs),
+            source_ref=source_ref,
+            dataset_version=dataset_version,
+            learning_context_ids=tuple(learning_context_ids),
+        )
+        for metric in sorted(common)
+    )
+
+
 __all__ = [
     "LongitudinalMeasurement",
     "MeasurementStatus",
     "SkillObservation",
     "measure_longitudinal_change",
+    "observations_from_implementation_evidence",
 ]
