@@ -1,4 +1,4 @@
-""""Candidate-specific functional evaluation for EXT-CRON-HERMES."""
+"""Candidate-specific functional evaluation for EXT-CRON-HERMES."""
 from __future__ import annotations
 from dataclasses import dataclass
 from .hermes_cron_adapter import adapt_schedule
