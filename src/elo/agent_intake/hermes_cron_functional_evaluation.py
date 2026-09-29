@@ -1,8 +1,9 @@
-"""Candidate-specific functional evaluation for EXT-CRON-HERMES."""
+""""Candidate-specific functional evaluation for EXT-CRON-HERMES."""
 from __future__ import annotations
 from dataclasses import dataclass
 from .hermes_cron_adapter import adapt_schedule
 from .hermes_cron_boundary import ScheduleSignal
+from .hermes_cron_continuity_refinement import evaluate_cron_continuity_gain
 
 @dataclass(frozen=True, slots=True)
 class CronFunctionalEvidence:
@@ -58,3 +59,4 @@ def evaluate_cron_functional_gain() -> CronFunctionalEvidence:
     refs = tuple(ref for s in adapted for ref in s.source_refs)
     continuity = evaluate_cron_continuity_gain()
     return CronFunctionalEvidence(baseline_rate, adapted_rate, repeatable, boundary, refs, continuity[0], continuity[1], continuity[2], continuity[3], continuity[4])
+"
