@@ -59,6 +59,7 @@ class RuntimeOperationalEvidence:
     regression: bool
     repeatability: RepeatabilityEvidence
     evidence_hash: str
+    decision_pattern_candidate_ref: str | None = None
 
     @property
     def operational_outcome_proven(self) -> bool:
@@ -70,7 +71,10 @@ class RuntimeOperationalEvidence:
             and self.action_observed
             and bool(self.metric)
             and self.attribution == "candidate"
-            and ((self.direction == "minimize" and self.observed_value < self.baseline) or (self.direction != "minimize" and self.observed_value > self.baseline))
+            and (
+                (self.direction == "minimize" and self.observed_value < self.baseline)
+                or (self.direction != "minimize" and self.observed_value > self.baseline)
+            )
             and bool(self.provenance.commit)
             and bool(self.provenance.runtime_trace)
             and not self.regression
@@ -111,6 +115,47 @@ def create_execution_id(candidate_id: str, *, now: datetime | None = None) -> st
     return f"exec-{current.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex[:12]}"
 
 
+def _evidence_hash_payload(
+    *,
+    execution_id: str,
+    candidate_id: str,
+    owner: str,
+    runtime_entrypoint: str,
+    timestamp: str,
+    metric: str,
+    direction: str,
+    baseline: float,
+    observed_value: float,
+    attribution: str,
+    provenance: RuntimeProvenance,
+    regression: bool,
+    repeatability: RepeatabilityEvidence,
+    decision_pattern_candidate_ref: str | None,
+) -> str:
+    payload = "|".join(
+        (
+            execution_id,
+            candidate_id,
+            owner,
+            runtime_entrypoint,
+            timestamp,
+            metric,
+            direction,
+            str(baseline),
+            str(observed_value),
+            attribution,
+            provenance.commit,
+            provenance.runtime_trace,
+            provenance.test_run or "",
+            str(regression),
+            str(repeatability.executions),
+            str(repeatability.successful),
+            decision_pattern_candidate_ref or "",
+        )
+    )
+    return sha256(payload.encode("utf-8")).hexdigest()
+
+
 def create_runtime_evidence(
     *,
     execution_id: str,
@@ -127,6 +172,7 @@ def create_runtime_evidence(
     regression: bool,
     repeatability: RepeatabilityEvidence,
     timestamp: datetime | None = None,
+    decision_pattern_candidate_ref: str | None = None,
 ) -> RuntimeOperationalEvidence:
     """Build evidence from runtime-observed facts; never manufacture action."""
     if not execution_id:
@@ -137,35 +183,34 @@ def create_runtime_evidence(
         raise ValueError("operational evidence requires candidate attribution")
     if not provenance.commit or not provenance.runtime_trace:
         raise ValueError("commit and runtime_trace are required")
+    if decision_pattern_candidate_ref is not None and not decision_pattern_candidate_ref:
+        raise ValueError("decision pattern candidate reference cannot be empty")
+
     ts = (timestamp or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    payload = "|".join(
-        (
-            execution_id,
-            candidate_id,
-            owner,
-            runtime_entrypoint,
-            ts.isoformat(),
-            metric,
-            direction,
-            str(baseline),
-            str(observed_value),
-            attribution,
-            provenance.commit,
-            provenance.runtime_trace,
-            provenance.test_run or "",
-            str(regression),
-            str(repeatability.executions),
-            str(repeatability.successful),
-        )
+    timestamp_value = ts.isoformat()
+    evidence_hash = _evidence_hash_payload(
+        execution_id=execution_id,
+        candidate_id=candidate_id,
+        owner=owner,
+        runtime_entrypoint=runtime_entrypoint,
+        timestamp=timestamp_value,
+        metric=metric,
+        direction=direction,
+        baseline=baseline,
+        observed_value=observed_value,
+        attribution=attribution,
+        provenance=provenance,
+        regression=regression,
+        repeatability=repeatability,
+        decision_pattern_candidate_ref=decision_pattern_candidate_ref,
     )
-    evidence_hash = sha256(payload.encode("utf-8")).hexdigest()
 
     return RuntimeOperationalEvidence(
         execution_id=execution_id,
         candidate_id=candidate_id,
         owner=owner,
         runtime_entrypoint=runtime_entrypoint,
-        timestamp=ts.isoformat(),
+        timestamp=timestamp_value,
         action_observed=action_observed,
         metric=metric,
         direction=direction,
@@ -176,6 +221,7 @@ def create_runtime_evidence(
         regression=regression,
         repeatability=repeatability,
         evidence_hash=evidence_hash,
+        decision_pattern_candidate_ref=decision_pattern_candidate_ref,
     )
 
 
@@ -216,8 +262,10 @@ def aggregate_repeatability(
         and bool(item.provenance.commit)
         and bool(item.provenance.runtime_trace)
         and not item.regression
-        and ((item.direction == "minimize" and item.observed_value < item.baseline)
-             or (item.direction != "minimize" and item.observed_value > item.baseline))
+        and (
+            (item.direction == "minimize" and item.observed_value < item.baseline)
+            or (item.direction != "minimize" and item.observed_value > item.baseline)
+        )
         for item in observations
     )
     return RepeatabilityEvidence(

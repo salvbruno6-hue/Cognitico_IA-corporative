@@ -17,6 +17,37 @@ from .hermes_functional_value_proof import FunctionalValueEvidence
 from .runtime_operational_evidence import RuntimeOperationalEvidence, aggregate_repeatability
 
 
+def validate_decision_pattern_execution_binding(
+    *,
+    observation: RuntimeOperationalEvidence,
+    execution_outcome: ExecutionOutcome,
+) -> tuple[bool, tuple[str, ...]]:
+    """Validate the existing candidate provenance against a real execution.
+
+    This is a validation boundary only. It does not authorize, execute,
+    promote, or persist anything.
+    """
+    errors: list[str] = []
+
+    if execution_outcome.status is not ExecutionStatus.EXECUTED or not execution_outcome.executed:
+        errors.append("EXECUTION_NOT_COMPLETED")
+    if execution_outcome.request_id != observation.execution_id:
+        errors.append("EXECUTION_ID_MISMATCH")
+    if not execution_outcome.decision_pattern_candidate_ref:
+        errors.append("DECISION_PATTERN_PROVENANCE_MISSING")
+    if not observation.decision_pattern_candidate_ref:
+        errors.append("RUNTIME_EVIDENCE_PROVENANCE_MISSING")
+    if (
+        execution_outcome.decision_pattern_candidate_ref
+        and observation.decision_pattern_candidate_ref
+        and execution_outcome.decision_pattern_candidate_ref
+        != observation.decision_pattern_candidate_ref
+    ):
+        errors.append("DECISION_PATTERN_PROVENANCE_MISMATCH")
+
+    return not errors, tuple(errors)
+
+
 def to_operational_outcome(
     observations: tuple[RuntimeOperationalEvidence, ...],
 ) -> FunctionalValueEvidence:
@@ -37,6 +68,11 @@ def to_operational_outcome(
         raise ValueError("all observations must belong to the same owner")
     if any(item.runtime_entrypoint != first.runtime_entrypoint for item in observations):
         raise ValueError("all observations must use the same runtime entrypoint")
+    pattern_refs = {item.decision_pattern_candidate_ref for item in observations}
+    if len(pattern_refs - {None}) > 1:
+        raise ValueError("all observations must preserve the same decision pattern provenance")
+    if None in pattern_refs and len(pattern_refs - {None}) > 0:
+        raise ValueError("runtime observations must not mix bound and unbound decision pattern provenance")
 
     repeatability = aggregate_repeatability(observations)
     provenance = tuple(
@@ -79,6 +115,7 @@ def to_operational_outcome(
         production_proven=False,
     )
 
+
 def to_production_outcome(
     *,
     observations: tuple[RuntimeOperationalEvidence, ...],
@@ -112,6 +149,12 @@ def to_production_outcome(
     ):
         if observation.candidate_id != candidate_id:
             raise ValueError("all observations must belong to candidate_id")
+        binding_valid, binding_errors = validate_decision_pattern_execution_binding(
+            observation=observation,
+            execution_outcome=outcome,
+        )
+        if (observation.decision_pattern_candidate_ref is not None or outcome.decision_pattern_candidate_ref is not None) and not binding_valid:
+            raise ValueError("decision pattern provenance binding failed:" + ",".join(binding_errors))
         if outcome.status is not ExecutionStatus.EXECUTED or not outcome.executed:
             raise ValueError("production evidence requires successfully executed outcomes")
         if outcome.request_id != observation.execution_id:
@@ -165,4 +208,8 @@ def to_production_outcome(
     )
 
 
-__all__ = ["to_operational_outcome", "to_production_outcome"]
+__all__ = [
+    "to_operational_outcome",
+    "to_production_outcome",
+    "validate_decision_pattern_execution_binding",
+]
