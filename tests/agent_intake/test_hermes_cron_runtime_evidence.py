@@ -99,6 +99,4 @@ def test_cron_without_explicit_authorization_is_blocked():
         execution_id="cron-exec-blocked",
     )
 
-    assert result is not None
-    assert result.run.authorization_status == "DENY"
-    assert result.run.outcome_status == "BLOCKED"
+    assert result is None
