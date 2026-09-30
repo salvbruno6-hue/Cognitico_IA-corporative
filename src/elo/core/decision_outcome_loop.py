@@ -1,4 +1,4 @@
-"""Governed Decision Outcome Loop primitives.
+""""Governed Decision Outcome Loop primitives.
 
 The loop extends the existing DecisionRecord/OutcomeFeedback boundary. It is a
 stateful Core value/service layer only: it does not execute enterprise actions,
@@ -58,19 +58,23 @@ class DecisionLifecycle:
     outcome: OutcomeFeedback | None = None
     attribution: Mapping[str, float] = field(default_factory=dict)
     decision_pattern_candidate: Mapping[str, object] | None = None
+    decision_pattern_candidate_ref: str | None = None
     learning_candidate: Mapping[str, object] | None = None
     history: list[DecisionTransition] = field(default_factory=list)
 
     def attach_decision_pattern_candidate(
         self,
         candidate: Mapping[str, object],
+        *,
+        candidate_ref: str,
     ) -> None:
-        """Attach a synthesized candidate without treating it as learned knowledge.
+        """Attach a synthesized candidate and preserve its provenance identity.
 
-        The Core lifecycle stores only the candidate context. It does not
-        validate, promote, persist, or convert the candidate into a laboratory
-        observation. Those responsibilities remain with the existing governed
-        learning boundary.
+        The reference is an identity/provenance token supplied by the caller; it
+        is not interpreted as learned knowledge. The lifecycle stores the
+        candidate context only. It does not validate, promote, persist, or
+        convert
+        the candidate into a laboratory observation.
         """
         if self.state not in {
             DecisionState.PROPOSED,
@@ -81,11 +85,14 @@ class DecisionLifecycle:
             raise ValueError("decision pattern candidate can only be attached before evaluation")
         if not candidate:
             raise ValueError("decision pattern candidate is required")
+        if not candidate_ref:
+            raise ValueError("decision pattern candidate reference is required")
         if str(candidate.get("status", "")).upper() != "CANDIDATO":
             raise ValueError("decision pattern candidate must remain CANDIDATO")
         if not candidate.get("nome"):
             raise ValueError("decision pattern candidate requires nome")
         self.decision_pattern_candidate = dict(candidate)
+        self.decision_pattern_candidate_ref = candidate_ref
 
     def transition(
         self,
