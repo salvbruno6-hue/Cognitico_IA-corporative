@@ -1,10 +1,12 @@
 # ELO — Hermes Implementation Readiness Audit
 
-**Date:** 2026-09-27  
-**Canonical baseline:** `main` @ `52e467f7aeea29fc5ae4607aa3e846c489365a53`  
+**Date:** 2026-09-30  
+**Canonical baseline:** `main` @ `1a1489ea38049b5b575bc844c9afe799caaef084`  
 **Scope:** the 13 original Hermes candidates with accepted `FUNCTIONAL_CONTROLLED_GAIN` evidence.
 
 ## Executive finding
+
+Since the previous audit baseline, the canonical `main` now contains the longitudinal Skill measurement path (#863), Hermes longitudinal evidence adapter (#864), Hermes evidence preservation (#865), governed production-evidence admission boundary (#866), and the production capability-evolution chain regression coverage (#871). These additions strengthen the evidence pipeline but do not themselves constitute an actual production execution.
 
 All 13 original candidates have candidate-attributed controlled functional evidence and an existing governed handoff path.
 
@@ -21,12 +23,12 @@ No original candidate is promoted to state 3 or 4 by this audit.
 
 ## Candidate audit
 
-| Candidate | Functional evidence | Existing handoff | Runtime integration | Production proof | Current governance state | Remaining intervention |
+| Candidate | Functional evidence | Existing handoff | Runtime integration | Operational evidence path | Production proof | Current governance state | Remaining intervention |
 |---|---|---|---|---|---|---|
-| EXT-CONTEXT-PLUGIN-HERMES | 0.00 → 1.00 task success | yes | **yes — #868** | no | governed review | collect repeated operational observations on the integrated Context runtime |
-| EXT-WORKTREE-HERMES | 0.00 → 1.00 collision-free task rate | yes | no | no | governed review | connect isolation behavior to real Forge workspace lifecycle |
-| EXT-MULTIAGENT-HERMES | 0.00 → 1.00 context isolation | yes | no | no | governed review | integrate bounded isolation into real delegation execution path |
-| EXT-CRON-HERMES | 0.00 → 1.00 idempotency collision-free rate | yes | no | no | governed review | prove behavior against the actual scheduling/runtime boundary |
+| EXT-CONTEXT-PLUGIN-HERMES | 0.00 → 1.00 task success | yes | **yes — #868** | **instrumented — runtime evidence sink** | no | governed review | obtain repeated observations from an actual production runtime and persist/submit them through the governed evidence path |
+| EXT-WORKTREE-HERMES | 0.00 → 1.00 collision-free task rate | yes | no | **available through existing runtime evidence contracts** | no | governed review | connect isolation behavior to real Forge workspace lifecycle |
+| EXT-MULTIAGENT-HERMES | 0.00 → 1.00 context isolation | yes | no | **available through existing runtime evidence contracts** | no | governed review | integrate bounded isolation into real delegation execution path |
+| EXT-CRON-HERMES | 0.00 → 1.00 idempotency collision-free rate | yes | no | **available through existing runtime evidence contracts** | no | governed review | prove behavior against the actual scheduling/runtime boundary |
 | EXT-MEMPROVIDER-HERMES | 0.00 → 1.00 provider identity preservation | yes | no | no | governed review | connect provenance-preserving identity to real retrieval execution |
 | EXT-ROUTE-HERMES | 0.00 → 1.00 unsafe-route admission block | yes | no | no | governed review | integrate policy enforcement into the actual routing boundary |
 | EXT-PROFILE-HERMES | 0.00 → 1.00 collision-free profile task rate | yes | no | no | governed review | integrate profile isolation into real agent-context execution |
@@ -108,6 +110,7 @@ Prompt Cache remains outside the 13-original-candidate count because its current
 **13/13:** controlled functional evidence accepted.  
 **13/13:** governed handoff path present.  
 **1/13:** canonical runtime integration present — `EXT-CONTEXT-PLUGIN-HERMES` via #868.  
+**runtime evidence admission:** implemented and tested; this is an evidence path, not production proof.  
 **0/13:** production outcome proven by this evidence set.  
 **0/13:** autonomous implementation authorized by this audit.  
 **0:** new authority, Evolution Gate, or learning store introduced.
