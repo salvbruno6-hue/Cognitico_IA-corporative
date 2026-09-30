@@ -153,7 +153,7 @@ def to_production_outcome(
             observation=observation,
             execution_outcome=outcome,
         )
-        if observation.decision_pattern_candidate_ref is not None and not binding_valid:
+        if (observation.decision_pattern_candidate_ref is not None or outcome.decision_pattern_candidate_ref is not None) and not binding_valid:
             raise ValueError("decision pattern provenance binding failed:" + ",".join(binding_errors))
         if outcome.status is not ExecutionStatus.EXECUTED or not outcome.executed:
             raise ValueError("production evidence requires successfully executed outcomes")
