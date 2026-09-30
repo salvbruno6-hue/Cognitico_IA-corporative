@@ -1,0 +1,53 @@
+schema: ELO-FORGE-PROMOTION-PACKAGE.v1
+authority: ELO_COGNITIVO
+owner: FORGE
+purpose: "Pacote mínimo para transformar uma construção validada em candidato de promoção"
+
+required:
+  objective: true
+  canonical_constraints: true
+  scope: true
+  changed_artifacts: true
+  tests: true
+  evidence: true
+  divergences: true
+  corrections: true
+  decision: true
+  rollback: true
+  promotion_target: true
+
+classification:
+  allowed:
+    - FACT
+    - EVIDENCE
+    - PREMISE
+    - HYPOTHESIS
+    - DECISION
+    - DIVERGENCE
+    - VALIDATION
+    - GAP
+
+decision_states:
+  - PROMOTE
+  - CORRECT_AND_REVALIDATE
+  - ARCHITECTURAL_CANDIDATE
+  - EXPERIMENT_AGAIN
+  - ISOLATE
+  - REJECT
+
+gates:
+  G1_objective_defined: true
+  G2_canonical_boundary_read: true
+  G3_construction_complete: true
+  G4_tests_executed: true
+  G5_evidence_recorded: true
+  G6_canonical_comparison: true
+  G7_decision_explicit: true
+  G8_rollback_defined: true
+
+non_negotiables:
+  - no_silent_canonical_change
+  - no_direct_forge_to_core_promotion
+  - no_external_authority_override
+  - no_operational_data_promotion
+  - no_gap_as_fact
