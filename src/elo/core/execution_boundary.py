@@ -1,4 +1,4 @@
-"""Governed execution boundary for ELO's Observe -> Analyze -> Execute -> Monitor cycle.
+""""Governed execution boundary for ELO's Observe -> Analyze -> Execute -> Monitor cycle.
 
 Execution is deliberately separate from cognitive recommendation. A caller must provide
 an explicit authorization token and a correlation context; failed preconditions return a
@@ -29,6 +29,7 @@ class ExecutionRequest:
     evidence_ids: tuple[str, ...] = ()
     correlation_id: str | None = None
     expected_impact: str | None = None
+    decision_pattern_candidate_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class ExecutionOutcome:
     correlation_id: str | None = None
     authorization_id: str | None = None
     occurred_at: datetime | None = None
+    decision_pattern_candidate_ref: str | None = None
 
 
 class ExecutionAdapter(Protocol):
@@ -54,6 +56,7 @@ def _outcome_context(request: ExecutionRequest) -> dict[str, object]:
         "correlation_id": request.correlation_id,
         "authorization_id": request.authorization_id,
         "occurred_at": datetime.now(timezone.utc),
+        "decision_pattern_candidate_ref": request.decision_pattern_candidate_ref,
     }
 
 
@@ -105,12 +108,14 @@ def execute_governed(request: ExecutionRequest, adapter: ExecutionAdapter) -> Ex
                 "principal_id": request.principal_id,
                 "authorization_id": request.authorization_id or "",
                 "correlation_id": request.correlation_id or "",
+                "decision_pattern_candidate_ref": request.decision_pattern_candidate_ref or "",
                 "execution": "failed",
             },
             evidence_ids=request.evidence_ids,
             correlation_id=request.correlation_id,
             authorization_id=request.authorization_id,
             occurred_at=occurred_at,
+            decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
         )
 
     result.update(
@@ -120,6 +125,7 @@ def execute_governed(request: ExecutionRequest, adapter: ExecutionAdapter) -> Ex
             "principal_id": request.principal_id,
             "authorization_id": request.authorization_id or "",
             "correlation_id": request.correlation_id or "",
+            "decision_pattern_candidate_ref": request.decision_pattern_candidate_ref or "",
             "execution": "executed",
         }
     )
@@ -133,4 +139,5 @@ def execute_governed(request: ExecutionRequest, adapter: ExecutionAdapter) -> Ex
         correlation_id=request.correlation_id,
         authorization_id=request.authorization_id,
         occurred_at=occurred_at,
+        decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
     )
