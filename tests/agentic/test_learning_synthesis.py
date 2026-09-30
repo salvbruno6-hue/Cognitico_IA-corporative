@@ -59,3 +59,51 @@ def test_row_shape_matches_canonical_reasoning_pattern_fields():
         "heuristicas", "evidencias", "status",
     }.issubset(row)
     assert row["status"] == "CANDIDATO"
+
+
+def test_decision_pattern_candidate_attaches_to_existing_decision_lifecycle_without_learning():
+    from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
+    from elo.core.systemic_primitives import DecisionRecord
+
+    lifecycle = DecisionLifecycle(DecisionRecord("d-pattern", "replan", "capacity gap"))
+    pattern = synthesize_decision_pattern({
+        "contexto": "capacidade com condição identificável",
+        "decisoes": ["replanejar sob condição observada"],
+        "verificacoes": ["capacidade e prazo verificados"],
+    })
+
+    lifecycle.attach_decision_pattern_candidate(pattern.as_candidate_payload())
+
+    assert lifecycle.decision_pattern_candidate["status"] == "CANDIDATO"
+    assert lifecycle.decision_pattern_candidate["nome"] == pattern.nome
+    assert lifecycle.learning_candidate is None
+
+
+def test_decision_pattern_candidate_cannot_bypass_evaluation_boundary():
+    from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
+    from elo.core.systemic_primitives import DecisionRecord
+
+    lifecycle = DecisionLifecycle(DecisionRecord("d-pattern", "replan", "capacity gap"))
+    pattern = synthesize_decision_pattern({
+        "contexto": "capacidade com condição identificável",
+        "decisoes": ["replanejar sob condição observada"],
+        "verificacoes": ["capacidade e prazo verificados"],
+    })
+
+    lifecycle.attach_decision_pattern_candidate(pattern.as_candidate_payload())
+    lifecycle.transition(DecisionState.APPROVED)
+    lifecycle.transition(DecisionState.EXECUTED)
+    lifecycle.transition(DecisionState.OBSERVING)
+    lifecycle.attach_outcome(
+        __import__("elo.core.systemic_primitives", fromlist=["OutcomeFeedback"]).OutcomeFeedback(
+            "d-pattern", "ok", "ok", evidence_ids=("e-pattern",)
+        )
+    )
+    lifecycle.transition(DecisionState.EVALUATED, evidence_ids=("e-pattern",))
+
+    try:
+        lifecycle.attach_decision_pattern_candidate(pattern.as_candidate_payload())
+    except ValueError as exc:
+        assert "before evaluation" in str(exc)
+    else:
+        raise AssertionError("expected evaluated-state boundary")
