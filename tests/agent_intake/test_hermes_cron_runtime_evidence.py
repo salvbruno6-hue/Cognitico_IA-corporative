@@ -23,6 +23,7 @@ def _executor(contract) -> object:
     return {
         "schedule_id": contract.schedule_id,
         "idempotency_key": contract.idempotency_key,
+        "idempotency_collision_free": True,
     }
 
 
