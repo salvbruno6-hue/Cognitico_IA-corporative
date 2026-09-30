@@ -103,6 +103,10 @@ def to_production_outcome(
     if len(authorizations) != len(observations):
         raise ValueError("each runtime observation must have one authorization decision")
 
+    execution_ids = tuple(item.execution_id for item in observations)
+    if len(set(execution_ids)) != len(execution_ids):
+        raise ValueError("production evidence requires distinct execution identities")
+
     for observation, outcome, authorization in zip(
         observations, execution_outcomes, authorizations, strict=True
     ):
@@ -118,6 +122,10 @@ def to_production_outcome(
             raise ValueError("execution outcome is not bound to authorization grant")
         if authorization.resource_id != candidate_id:
             raise ValueError("authorization resource is not bound to candidate_id")
+        if authorization.evidence_ref not in outcome.evidence_ids:
+            raise ValueError("authorization evidence is not bound to execution evidence")
+        if outcome.provenance.get("source_commit") and outcome.provenance.get("source_commit") != observation.provenance.commit:
+            raise ValueError("execution source commit is not bound to runtime evidence")
         if not authorization.is_transport_valid(now=outcome.occurred_at):
             raise ValueError("authorization transport is not valid for production execution")
         if outcome.provenance.get("environment") != "production":
