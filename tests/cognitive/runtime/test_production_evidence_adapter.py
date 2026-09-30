@@ -163,3 +163,21 @@ def test_single_production_execution_is_not_enough_for_repeatable_proof():
             authorizations=(_authorization("grant-prod-005"),),
             candidate_id=CANDIDATE,
         )
+
+
+def test_duplicate_execution_identity_cannot_establish_production_repeatability():
+    outcome = _execution("exec-prod-006", "grant-prod-006")
+
+    with pytest.raises(ValueError, match="distinct execution identities"):
+        to_production_outcome(
+            observations=(
+                _observation("exec-prod-006", 80.0),
+                _observation("exec-prod-006", 75.0),
+            ),
+            execution_outcomes=(outcome, outcome),
+            authorizations=(
+                _authorization("grant-prod-006"),
+                _authorization("grant-prod-006"),
+            ),
+            candidate_id=CANDIDATE,
+        )
