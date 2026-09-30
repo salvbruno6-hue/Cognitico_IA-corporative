@@ -1,4 +1,4 @@
-"""Governed execution boundary for ELO's Observe -> Analyze -> Execute -> Monitor cycle.
+""""Governed execution boundary for ELO's Observe -> Analyze -> Execute -> Monitor cycle.
 
 Execution is deliberately separate from cognitive recommendation. A caller must provide
 an explicit authorization token and a correlation context; failed preconditions return a
@@ -81,10 +81,7 @@ def validate_execution_request(request: ExecutionRequest) -> ExecutionOutcome | 
             status=ExecutionStatus.BLOCKED,
             executed=False,
             reason="missing_execution_controls:" + ",".join(missing),
-            provenance={
-                "execution": "not_attempted",
-                "decision_pattern_candidate_ref": request.decision_pattern_candidate_ref or "",
-            },
+            provenance={"execution": "not_attempted"},
             **context,
         )
     return None
