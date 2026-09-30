@@ -45,6 +45,6 @@ O histórico permanece consultivo. Não há aplicação automática e não há t
 
 ## Limite de promoção
 
-A função de síntese não grava no Supabase e não promove conhecimento. Ela produz uma estrutura candidata compatível com elo_aprendizado_padroes_raciocinio.
+A função de síntese não grava no Supabase e não promove conhecimento. Ela produz uma estrutura candidata; eventual persistência em `elo_aprendizado_padroes_raciocinio` pertence ao adaptador/gate canônico e não é executada pela síntese.
 
 A promoção continua pertencendo ao ciclo cognitivo e ao gate canônico.
