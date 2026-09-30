@@ -120,13 +120,16 @@ def synthesize_decision_pattern(
         "registrar o resultado para futura validação do padrão",
     )
     prerequisites = tuple(dict.fromkeys((*dependencies, "evidência suficiente para sustentar a decisão")))
+    provenance_evidence = (
+        (f"origem_experiencia:{experience_id}",) if experience_id else ()
+    )
     evidence = tuple(
         dict.fromkeys(
             [
                 *verifications,
                 *result,
                 *corrections,
-                *(f"origem_experiencia:{experience_id}",) if experience_id else (),
+                *provenance_evidence,
             ]
         )
     )
