@@ -69,9 +69,9 @@ def to_operational_outcome(
     if any(item.runtime_entrypoint != first.runtime_entrypoint for item in observations):
         raise ValueError("all observations must use the same runtime entrypoint")
     pattern_refs = {item.decision_pattern_candidate_ref for item in observations}
-    if len(pattern_refs) > 1:
+    if len(pattern_refs - {None}) > 1:
         raise ValueError("all observations must preserve the same decision pattern provenance")
-    if None in pattern_refs and len(pattern_refs) > 0:
+    if None in pattern_refs and len(pattern_refs - {None}) > 0:
         raise ValueError("runtime observations must not mix bound and unbound decision pattern provenance")
 
     repeatability = aggregate_repeatability(observations)
