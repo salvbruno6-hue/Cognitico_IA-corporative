@@ -57,8 +57,35 @@ class DecisionLifecycle:
     state: DecisionState = DecisionState.PROPOSED
     outcome: OutcomeFeedback | None = None
     attribution: Mapping[str, float] = field(default_factory=dict)
+    decision_pattern_candidate: Mapping[str, object] | None = None
     learning_candidate: Mapping[str, object] | None = None
     history: list[DecisionTransition] = field(default_factory=list)
+
+    def attach_decision_pattern_candidate(
+        self,
+        candidate: Mapping[str, object],
+    ) -> None:
+        """Attach a synthesized candidate without treating it as learned knowledge.
+
+        The Core lifecycle stores only the candidate context. It does not
+        validate, promote, persist, or convert the candidate into a laboratory
+        observation. Those responsibilities remain with the existing governed
+        learning boundary.
+        """
+        if self.state not in {
+            DecisionState.PROPOSED,
+            DecisionState.APPROVED,
+            DecisionState.EXECUTED,
+            DecisionState.OBSERVING,
+        }:
+            raise ValueError("decision pattern candidate can only be attached before evaluation")
+        if not candidate:
+            raise ValueError("decision pattern candidate is required")
+        if str(candidate.get("status", "")).upper() != "CANDIDATO":
+            raise ValueError("decision pattern candidate must remain CANDIDATO")
+        if not candidate.get("nome"):
+            raise ValueError("decision pattern candidate requires nome")
+        self.decision_pattern_candidate = dict(candidate)
 
     def transition(
         self,
@@ -116,7 +143,6 @@ class DecisionLifecycle:
         if not candidate:
             raise ValueError("learning candidate is required")
         self.learning_candidate = dict(candidate)
-
 
     def handoff_to_symbiont(
         self,
