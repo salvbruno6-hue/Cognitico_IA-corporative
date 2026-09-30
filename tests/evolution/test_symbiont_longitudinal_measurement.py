@@ -137,3 +137,39 @@ def test_existing_implementation_evidence_can_feed_comparable_observations():
     assert observations[0].value == 0.80
     assert observations[1].value == 0.88
     assert observations[0].metric == observations[1].metric
+
+
+def test_hermes_13_process_evidence_can_be_compared_across_runs():
+    from types import SimpleNamespace
+    from elo.agent_intake.hermes_13_process_contract import HERMES_13_PROCESS_CONTRACTS
+    from elo.cognitive.symbiont_longitudinal_measurement import measure_implementation_evidence_change
+
+    for skill_id, contract in HERMES_13_PROCESS_CONTRACTS.items():
+        def evidence(value, source):
+            return SimpleNamespace(
+                candidate_id=skill_id,
+                baseline={contract.metric: 0.50},
+                adapted={contract.metric: value},
+                metric_directions={contract.metric: contract.direction},
+                repeatable=True,
+                provenance_refs=(source,),
+                boundary_integrity=True,
+            )
+
+        result = measure_implementation_evidence_change(
+            evidence(0.60, f"baseline:{skill_id}"),
+            evidence(0.80, f"current:{skill_id}"),
+            tenant_id="tenant-test",
+            domain="FORGE",
+            baseline_decision_id=f"decision-before:{skill_id}",
+            current_decision_id=f"decision-after:{skill_id}",
+            baseline_source_ref=f"run-before:{skill_id}",
+            current_source_ref=f"run-after:{skill_id}",
+            dataset_version="controlled-v1",
+        )
+        assert result.skill_id == skill_id
+        assert result.metric == contract.metric
+        assert result.direction == contract.direction
+        assert result.status is MeasurementStatus.IMPROVED
+        assert result.canonical_mutation is False
+        assert result.authorization_granted is False
