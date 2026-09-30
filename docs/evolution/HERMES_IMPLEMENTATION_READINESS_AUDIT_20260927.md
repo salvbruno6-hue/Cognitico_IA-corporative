@@ -1,7 +1,7 @@
 # ELO — Hermes Implementation Readiness Audit
 
 **Date:** 2026-09-27  
-**Canonical baseline:** `main` @ `0f9353b4c86af75942b0983b585587f24674602d`  
+**Canonical baseline:** `main` @ `52e467f7aeea29fc5ae4607aa3e846c489365a53`  
 **Scope:** the 13 original Hermes candidates with accepted `FUNCTIONAL_CONTROLLED_GAIN` evidence.
 
 ## Executive finding
@@ -21,21 +21,21 @@ No original candidate is promoted to state 3 or 4 by this audit.
 
 ## Candidate audit
 
-| Candidate | Functional evidence | Existing handoff | Production proof | Current governance state | Remaining intervention |
-|---|---|---|---|---|---|
-| EXT-CONTEXT-PLUGIN-HERMES | 0.00 → 1.00 task success | yes | no | governed review | wire adapter into real Context runtime and measure operational outcome |
-| EXT-WORKTREE-HERMES | 0.00 → 1.00 collision-free task rate | yes | no | governed review | connect isolation behavior to real Forge workspace lifecycle |
-| EXT-MULTIAGENT-HERMES | 0.00 → 1.00 context isolation | yes | no | governed review | integrate bounded isolation into real delegation execution path |
-| EXT-CRON-HERMES | 0.00 → 1.00 idempotency collision-free rate | yes | no | governed review | prove behavior against the actual scheduling/runtime boundary |
-| EXT-MEMPROVIDER-HERMES | 0.00 → 1.00 provider identity preservation | yes | no | governed review | connect provenance-preserving identity to real retrieval execution |
-| EXT-ROUTE-HERMES | 0.00 → 1.00 unsafe-route admission block | yes | no | governed review | integrate policy enforcement into the actual routing boundary |
-| EXT-PROFILE-HERMES | 0.00 → 1.00 collision-free profile task rate | yes | no | governed review | integrate profile isolation into real agent-context execution |
-| EXT-BATCH-HERMES | 0.00 → 1.00 collision-free batch task rate | yes | no | governed review | integrate batch identity into the real evaluation intake path |
-| EXT-LEARN-HERMES | 0.00 → 1.00 unsafe skill admission block | yes | no | governed review | prove admission control in the real learning path without autonomous promotion |
-| EXT-LEARNING-GRAPH-HERMES | 0.00 → 1.00 duplicate relation block rate | yes | no | governed review | move duplicate semantic relation protection from controlled proof into the graph runtime boundary |
-| EXT-CONTEXTREF-HERMES | 0.40 → 0.00 malformed-reference admission | yes | no | governed review | integrate pre-resolution validation into the real ContextRef path |
-| EXT-CHECKPOINT-HERMES | 0.00 → 1.00 stale-replay block | yes | no | governed review | integrate replay protection into the actual checkpoint/state-recovery path |
-| EXT-HOOK-HERMES | 0.00 → 1.00 lifecycle guardrail detection | yes | no | governed review | connect guardrail detection to the real lifecycle hook boundary |
+| Candidate | Functional evidence | Existing handoff | Runtime integration | Production proof | Current governance state | Remaining intervention |
+|---|---|---|---|---|---|---|
+| EXT-CONTEXT-PLUGIN-HERMES | 0.00 → 1.00 task success | yes | **yes — #868** | no | governed review | collect repeated operational observations on the integrated Context runtime |
+| EXT-WORKTREE-HERMES | 0.00 → 1.00 collision-free task rate | yes | no | no | governed review | connect isolation behavior to real Forge workspace lifecycle |
+| EXT-MULTIAGENT-HERMES | 0.00 → 1.00 context isolation | yes | no | no | governed review | integrate bounded isolation into real delegation execution path |
+| EXT-CRON-HERMES | 0.00 → 1.00 idempotency collision-free rate | yes | no | no | governed review | prove behavior against the actual scheduling/runtime boundary |
+| EXT-MEMPROVIDER-HERMES | 0.00 → 1.00 provider identity preservation | yes | no | no | governed review | connect provenance-preserving identity to real retrieval execution |
+| EXT-ROUTE-HERMES | 0.00 → 1.00 unsafe-route admission block | yes | no | no | governed review | integrate policy enforcement into the actual routing boundary |
+| EXT-PROFILE-HERMES | 0.00 → 1.00 collision-free profile task rate | yes | no | no | governed review | integrate profile isolation into real agent-context execution |
+| EXT-BATCH-HERMES | 0.00 → 1.00 collision-free batch task rate | yes | no | no | governed review | integrate batch identity into the real evaluation intake path |
+| EXT-LEARN-HERMES | 0.00 → 1.00 unsafe skill admission block | yes | no | no | governed review | prove admission control in the real learning path without autonomous promotion |
+| EXT-LEARNING-GRAPH-HERMES | 0.00 → 1.00 duplicate relation block rate | yes | no | no | governed review | move duplicate semantic relation protection from controlled proof into the graph runtime boundary |
+| EXT-CONTEXTREF-HERMES | 0.40 → 0.00 malformed-reference admission | yes | no | no | governed review | integrate pre-resolution validation into the real ContextRef path |
+| EXT-CHECKPOINT-HERMES | 0.00 → 1.00 stale-replay block | yes | no | no | governed review | integrate replay protection into the actual checkpoint/state-recovery path |
+| EXT-HOOK-HERMES | 0.00 → 1.00 lifecycle guardrail detection | yes | no | no | governed review | connect guardrail detection to the real lifecycle hook boundary |
 
 ## Architectural interpretation
 
@@ -53,13 +53,19 @@ It is not sufficient to answer:
 
 For the current evidence set, the answer is **not yet proven**.
 
+For `EXT-CONTEXT-PLUGIN-HERMES`, runtime integration is now present in the canonical Contextualize path through #868, but that integration is still distinct from production proof.
+
 ## Required promotion chain
 
-The next valid path for any candidate is:
+For a candidate not yet integrated:
 
 `FUNCTIONAL_CONTROLLED_GAIN → ELO_REVIEW → EVOLUTION_GATE → IMPLEMENTATION_AUTHORIZED → runtime integration → operational observation → OPERATIONAL_OUTCOME`
 
-The implementation loop must not skip ELO Review or Evolution Gate.
+For `EXT-CONTEXT-PLUGIN-HERMES`, the current path has reached runtime integration:
+
+`FUNCTIONAL_CONTROLLED_GAIN → GOVERNED_HANDOFF → runtime integration (#868) → operational observation → OPERATIONAL_OUTCOME`
+
+The implementation loop must not skip ELO Review or Evolution Gate for any authorization-sensitive transition.
 
 ## Anti-duplication constraints
 
@@ -101,6 +107,7 @@ Prompt Cache remains outside the 13-original-candidate count because its current
 
 **13/13:** controlled functional evidence accepted.  
 **13/13:** governed handoff path present.  
+**1/13:** canonical runtime integration present — `EXT-CONTEXT-PLUGIN-HERMES` via #868.  
 **0/13:** production outcome proven by this evidence set.  
 **0/13:** autonomous implementation authorized by this audit.  
 **0:** new authority, Evolution Gate, or learning store introduced.
