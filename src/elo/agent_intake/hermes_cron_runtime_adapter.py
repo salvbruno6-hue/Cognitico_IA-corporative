@@ -7,7 +7,7 @@ scheduler authority, a new evidence owner, or a second execution state machine.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Mapping
 
 from automation.workflow_contract import GovernedWorkflowRuntime, WorkflowRun
 from .hermes_cron_adapter import ScheduledInvocationContract, adapt_schedule
@@ -77,6 +77,7 @@ def execute_schedule_with_runtime_evidence(
         return result
 
     def observe(current_run: WorkflowRun, response: object) -> tuple[str, ...]:
+        collision_free = isinstance(response, Mapping) and response.get("idempotency_collision_free") is True
         evidence = create_runtime_evidence(
             execution_id=execution_id,
             candidate_id="EXT-CRON-HERMES",
@@ -86,13 +87,13 @@ def execute_schedule_with_runtime_evidence(
             metric="idempotency_collision_free_rate",
             direction="maximize",
             baseline=0.0,
-            observed_value=1.0,
+            observed_value=1.0 if collision_free else 0.0,
             attribution="candidate",
             provenance=RuntimeProvenance(
                 commit=source_commit,
                 runtime_trace=runtime_trace,
             ),
-            regression=False,
+            regression=not collision_free,
             repeatability=RepeatabilityEvidence(
                 executions=1,
                 successful=1,
