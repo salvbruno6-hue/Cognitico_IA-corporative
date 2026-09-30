@@ -46,6 +46,7 @@ def test_valid_execution_requires_explicit_controls_and_preserves_provenance():
         authorization_id="AUTH-1",
         evidence_ids=("EV-1",),
         correlation_id="CORR-2",
+        decision_pattern_candidate_ref="PATTERN-REF-2",
     )
     adapter = Adapter()
 
@@ -57,6 +58,26 @@ def test_valid_execution_requires_explicit_controls_and_preserves_provenance():
     assert adapter.calls == 1
     assert outcome.provenance["authorization_id"] == "AUTH-1"
     assert outcome.provenance["correlation_id"] == "CORR-2"
+    assert outcome.provenance["decision_pattern_candidate_ref"] == "PATTERN-REF-2"
+    assert outcome.decision_pattern_candidate_ref == "PATTERN-REF-2"
+
+
+def test_blocked_execution_preserves_candidate_provenance():
+    request = ExecutionRequest(
+        request_id="REQ-4",
+        tenant_id="TENANT-1",
+        principal_id="USER-1",
+        action_id="ACTION-1",
+        authorization_id=None,
+        evidence_ids=("EV-4",),
+        correlation_id="CORR-4",
+        decision_pattern_candidate_ref="PATTERN-REF-4",
+    )
+
+    outcome = execute_governed(request, Adapter())
+
+    assert outcome.status == ExecutionStatus.BLOCKED
+    assert outcome.decision_pattern_candidate_ref == "PATTERN-REF-4"
 
 
 def test_execution_never_falls_back_to_untracked_best_effort():
