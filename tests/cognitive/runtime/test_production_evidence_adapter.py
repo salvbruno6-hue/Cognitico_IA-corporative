@@ -107,7 +107,7 @@ def test_production_evidence_requires_external_authorization_and_real_execution(
 def test_controlled_runtime_cannot_be_reclassified_as_production():
     class ControlledAdapter:
         def execute(self, request):
-            return {"environment": "controlled", "source_commit": "test-only"}
+            return {"environment": "controlled", "source_commit": "prod-runtime-001"}
 
     outcome = execute_governed(
         ExecutionRequest(
