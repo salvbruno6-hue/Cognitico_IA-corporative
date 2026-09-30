@@ -67,7 +67,7 @@ def execute_schedule_with_runtime_evidence(
         return analysis
 
     def authorize(current_run: WorkflowRun, decision: object) -> bool:
-        return contract.disposition.value == "CANDIDATE"
+        return contract.disposition.value == "CANDIDATE" and signal.explicit_authorization
 
     def execute_action(current_run: WorkflowRun, decision: object) -> object:
         if contract.execution_permitted:
