@@ -48,6 +48,7 @@ class Hermes13LoopResult:
     evidence_present: bool
     process_contract_valid: bool
     learning_feedback: SkillLearningFeedback | None = None
+    evidence: object | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +134,7 @@ def _normalize_probe_result(
         evidence_present=True,
         process_contract_valid=True,
         learning_feedback=feedback,
+        evidence=evidence,
     )
 
 
