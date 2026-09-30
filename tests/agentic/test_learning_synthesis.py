@@ -62,7 +62,7 @@ def test_row_shape_matches_canonical_reasoning_pattern_fields():
 
 
 def test_decision_pattern_candidate_attaches_to_existing_decision_lifecycle_without_learning():
-    from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
+    from elo.core.decision_outcome_loop import DecisionLifecycle
     from elo.core.systemic_primitives import DecisionRecord
 
     lifecycle = DecisionLifecycle(DecisionRecord("d-pattern", "replan", "capacity gap"))
@@ -72,16 +72,20 @@ def test_decision_pattern_candidate_attaches_to_existing_decision_lifecycle_with
         "verificacoes": ["capacidade e prazo verificados"],
     })
 
-    lifecycle.attach_decision_pattern_candidate(pattern.as_candidate_payload())
+    lifecycle.attach_decision_pattern_candidate(
+        pattern.as_candidate_payload(),
+        candidate_ref="PATTERN-REF-1",
+    )
 
     assert lifecycle.decision_pattern_candidate["status"] == "CANDIDATO"
     assert lifecycle.decision_pattern_candidate["nome"] == pattern.nome
+    assert lifecycle.decision_pattern_candidate_ref == "PATTERN-REF-1"
     assert lifecycle.learning_candidate is None
 
 
 def test_decision_pattern_candidate_cannot_bypass_evaluation_boundary():
     from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
-    from elo.core.systemic_primitives import DecisionRecord
+    from elo.core.systemic_primitives import DecisionRecord, OutcomeFeedback
 
     lifecycle = DecisionLifecycle(DecisionRecord("d-pattern", "replan", "capacity gap"))
     pattern = synthesize_decision_pattern({
@@ -90,19 +94,23 @@ def test_decision_pattern_candidate_cannot_bypass_evaluation_boundary():
         "verificacoes": ["capacidade e prazo verificados"],
     })
 
-    lifecycle.attach_decision_pattern_candidate(pattern.as_candidate_payload())
+    lifecycle.attach_decision_pattern_candidate(
+        pattern.as_candidate_payload(),
+        candidate_ref="PATTERN-REF-1",
+    )
     lifecycle.transition(DecisionState.APPROVED)
     lifecycle.transition(DecisionState.EXECUTED)
     lifecycle.transition(DecisionState.OBSERVING)
     lifecycle.attach_outcome(
-        __import__("elo.core.systemic_primitives", fromlist=["OutcomeFeedback"]).OutcomeFeedback(
-            "d-pattern", "ok", "ok", evidence_ids=("e-pattern",)
-        )
+        OutcomeFeedback("d-pattern", "ok", "ok", evidence_ids=("e-pattern",))
     )
     lifecycle.transition(DecisionState.EVALUATED, evidence_ids=("e-pattern",))
 
     try:
-        lifecycle.attach_decision_pattern_candidate(pattern.as_candidate_payload())
+        lifecycle.attach_decision_pattern_candidate(
+            pattern.as_candidate_payload(),
+            candidate_ref="PATTERN-REF-1",
+        )
     except ValueError as exc:
         assert "before evaluation" in str(exc)
     else:
