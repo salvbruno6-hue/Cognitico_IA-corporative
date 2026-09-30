@@ -25,8 +25,8 @@ class DecisionPatternCandidate:
     status: str = "CANDIDATO"
     origem_experiencias: tuple[str, ...] = ()
 
-    def as_row(self) -> Mapping[str, Any]:
-        """Shape compatible with elo_aprendizado_padroes_raciocinio."""
+    def as_candidate_payload(self) -> Mapping[str, Any]:
+        """Structured candidate payload; persistence remains outside synthesis."""
         return {
             "nome": self.nome,
             "gatilhos": list(self.gatilhos),
@@ -140,8 +140,14 @@ def synthesize_decision_pattern(
             )
         )
 
+    pattern_name = (
+        "Orientação por padrão de decisão diante de arbitragem ausente ou insuficiente"
+        if arbitration_absent
+        else "Orientação por padrão de decisão sob condição identificável"
+    )
+
     return DecisionPatternCandidate(
-        nome="Orientação por padrão de decisão diante de arbitragem ausente ou insuficiente",
+        nome=pattern_name,
         gatilhos=gatilhos,
         pre_requisitos=prerequisites,
         sequencia=sequence,
