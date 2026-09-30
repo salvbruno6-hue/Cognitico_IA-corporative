@@ -53,7 +53,7 @@ def test_row_shape_matches_canonical_reasoning_pattern_fields():
     pattern = synthesize_decision_pattern(
         {"contexto": "caso", "decisoes": ["decidir sob condição"], "resultado": ["resultado observado"]}
     )
-    row = pattern.as_row()
+    row = pattern.as_candidate_payload()
     assert {
         "nome", "gatilhos", "pre_requisitos", "sequencia", "regras_decisao",
         "heuristicas", "evidencias", "status",
