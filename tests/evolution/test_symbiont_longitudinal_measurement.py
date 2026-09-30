@@ -145,6 +145,8 @@ def test_hermes_13_process_evidence_can_be_compared_across_runs():
     from elo.cognitive.symbiont_longitudinal_measurement import measure_implementation_evidence_change
 
     for skill_id, contract in HERMES_13_PROCESS_CONTRACTS.items():
+        improved_current_value = 0.80 if contract.direction == "maximize" else 0.40
+
         def evidence(value, source):
             return SimpleNamespace(
                 candidate_id=skill_id,
@@ -158,7 +160,7 @@ def test_hermes_13_process_evidence_can_be_compared_across_runs():
 
         result = measure_implementation_evidence_change(
             evidence(0.60, f"baseline:{skill_id}"),
-            evidence(0.80, f"current:{skill_id}"),
+            evidence(improved_current_value, f"current:{skill_id}"),
             tenant_id="tenant-test",
             domain="FORGE",
             baseline_decision_id=f"decision-before:{skill_id}",
