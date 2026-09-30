@@ -10,6 +10,7 @@ from elo.agent_intake.runtime_operational_evidence import (
 )
 from elo.agent_intake.runtime_operational_evidence_adapter import (
     to_operational_outcome,
+    to_production_outcome,
     validate_decision_pattern_execution_binding,
 )
 from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
@@ -158,3 +159,101 @@ def test_pattern_reference_participates_in_evidence_identity():
     second = _item("exec-1", pattern_ref="PATTERN-REF-2")
 
     assert first.evidence_hash != second.evidence_hash
+
+
+def _production_authorization() -> object:
+    from elo.application.use_cases.orchestrator import AuthorizationDecision
+
+    return AuthorizationDecision(
+        authorized=True,
+        authority="elo-authz",
+        identity_id="identity-1",
+        role="operator",
+        evidence_ref="evidence-1",
+        session_id="session-1",
+        binding_id="binding-1",
+        grant_id="grant-1",
+        operation="execute",
+        resource_id="EXT-CONTEXT-PLUGIN-HERMES",
+        expires_at="2026-10-01T00:00:00+00:00",
+    )
+
+
+def test_production_outcome_preserves_decision_pattern_provenance_binding():
+    observations = (
+        _item("exec-1", pattern_ref="PATTERN-REF-1"),
+        _item("exec-2", pattern_ref="PATTERN-REF-1"),
+    )
+    outcomes = (
+        _execution("exec-1", pattern_ref="PATTERN-REF-1"),
+        _execution("exec-2", pattern_ref="PATTERN-REF-1"),
+    )
+    authorizations = (_production_authorization(), _production_authorization())
+
+    evidence = to_production_outcome(
+        observations=observations,
+        execution_outcomes=outcomes,
+        authorizations=authorizations,
+        candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+    )
+
+    assert evidence.level == "OPERATIONAL_OUTCOME"
+    assert evidence.production_proven is True
+    assert evidence.repeatable is True
+    assert evidence.provenance_refs == (
+        "production:exec-1:trace-exec-1",
+        "production:exec-2:trace-exec-2",
+    )
+
+
+def test_production_outcome_rejects_pattern_provenance_mismatch():
+    observations = (
+        _item("exec-1", pattern_ref="PATTERN-REF-1"),
+        _item("exec-2", pattern_ref="PATTERN-REF-1"),
+    )
+    outcomes = (
+        _execution("exec-1", pattern_ref="PATTERN-REF-1"),
+        _execution("exec-2", pattern_ref="PATTERN-REF-2"),
+    )
+    authorizations = (_production_authorization(), _production_authorization())
+
+    with pytest.raises(ValueError, match="decision pattern provenance binding failed"):
+        to_production_outcome(
+            observations=observations,
+            execution_outcomes=outcomes,
+            authorizations=authorizations,
+            candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+        )
+
+
+def test_production_outcome_requires_explicit_production_environment():
+    observations = (
+        _item("exec-1", pattern_ref="PATTERN-REF-1"),
+        _item("exec-2", pattern_ref="PATTERN-REF-1"),
+    )
+    outcomes = (
+        _execution("exec-1", pattern_ref="PATTERN-REF-1"),
+        _execution("exec-2", pattern_ref="PATTERN-REF-1"),
+    )
+    outcomes = tuple(
+        ExecutionOutcome(
+            request_id=outcome.request_id,
+            status=outcome.status,
+            executed=outcome.executed,
+            reason=outcome.reason,
+            provenance={"source_commit": "commit-1", "environment": "staging"},
+            evidence_ids=outcome.evidence_ids,
+            authorization_id=outcome.authorization_id,
+            occurred_at=outcome.occurred_at,
+            decision_pattern_candidate_ref=outcome.decision_pattern_candidate_ref,
+        )
+        for outcome in outcomes
+    )
+
+    with pytest.raises(ValueError, match="explicit production environment provenance"):
+        to_production_outcome(
+            observations=observations,
+            execution_outcomes=outcomes,
+            authorizations=(_production_authorization(), _production_authorization()),
+            candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+        )
