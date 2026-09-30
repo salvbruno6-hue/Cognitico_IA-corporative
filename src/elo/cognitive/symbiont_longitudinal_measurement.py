@@ -237,10 +237,75 @@ def observations_from_implementation_evidence(
     )
 
 
+def measure_implementation_evidence_change(
+    baseline_evidence: object,
+    current_evidence: object,
+    *,
+    tenant_id: str,
+    domain: str,
+    baseline_decision_id: str,
+    current_decision_id: str,
+    baseline_source_ref: str,
+    current_source_ref: str,
+    dataset_version: str,
+    learning_context_ids: Sequence[str] = (),
+) -> LongitudinalMeasurement:
+    """Compare adapted metrics from two governed implementation observations.
+
+    The existing Hermes process contract remains authoritative for candidate
+    identity, metric and direction. Both evidence records must satisfy it.
+    """
+    from elo.agent_intake.hermes_13_process_contract import get_process_contract
+
+    candidate_id = getattr(current_evidence, "candidate_id", None)
+    baseline_candidate_id = getattr(baseline_evidence, "candidate_id", None)
+    if candidate_id != baseline_candidate_id:
+        raise ValueError("longitudinal comparison mismatch: candidate_id")
+
+    contract = get_process_contract(candidate_id)
+    contract.validate_evidence(baseline_evidence)
+    contract.validate_evidence(current_evidence)
+
+    baseline_values = getattr(baseline_evidence, "adapted", {})
+    current_values = getattr(current_evidence, "adapted", {})
+    if contract.metric not in baseline_values or contract.metric not in current_values:
+        raise ValueError(f"{candidate_id}: adapted metric missing from longitudinal evidence")
+
+    baseline = SkillObservation(
+        observation_id=f"{baseline_source_ref}:{contract.metric}",
+        skill_id=candidate_id,
+        tenant_id=tenant_id,
+        domain=domain,
+        decision_id=baseline_decision_id,
+        metric=contract.metric,
+        value=baseline_values[contract.metric],
+        direction=contract.direction,
+        evidence_refs=tuple(getattr(baseline_evidence, "provenance_refs", ())),
+        source_ref=baseline_source_ref,
+        dataset_version=dataset_version,
+    )
+    current = SkillObservation(
+        observation_id=f"{current_source_ref}:{contract.metric}",
+        skill_id=candidate_id,
+        tenant_id=tenant_id,
+        domain=domain,
+        decision_id=current_decision_id,
+        metric=contract.metric,
+        value=current_values[contract.metric],
+        direction=contract.direction,
+        evidence_refs=tuple(getattr(current_evidence, "provenance_refs", ())),
+        source_ref=current_source_ref,
+        dataset_version=dataset_version,
+        learning_context_ids=tuple(learning_context_ids),
+    )
+    return measure_longitudinal_change(baseline, current)
+
+
 __all__ = [
     "LongitudinalMeasurement",
     "MeasurementStatus",
     "SkillObservation",
     "measure_longitudinal_change",
+    "measure_implementation_evidence_change",
     "observations_from_implementation_evidence",
 ]
