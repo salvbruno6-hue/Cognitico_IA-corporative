@@ -1,6 +1,10 @@
 from elo.core.decision_outcome_loop import DecisionLifecycle, DecisionState
 from elo.core.precedent_index import PrecedentIndex
 from elo.core.systemic_primitives import DecisionRecord, OutcomeFeedback
+from elo.cognitive.symbionte_lab import SymbiontLabAdapter, SymbiontLabObservation
+from elo.core.learning_governance import GovernedLearningService
+from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
+from datetime import datetime, timezone
 
 
 def _closed_cycle() -> DecisionLifecycle:
@@ -124,3 +128,50 @@ def test_symbiont_handoff_preserves_decision_pattern_provenance():
     )
 
     assert observation.decision_pattern_candidate_ref == "PATTERN-REF-1"
+
+
+def test_symbiont_learning_candidate_retains_pattern_provenance():
+    class Memory:
+        def remember(self, **kwargs):
+            pass
+
+    outcome = ExecutionOutcome(
+        request_id="exec-pattern-2",
+        status=ExecutionStatus.EXECUTED,
+        executed=True,
+        reason="completed",
+        provenance={"source_commit": "commit-pattern"},
+        evidence_ids=("e-pattern-2",),
+        correlation_id="d-pattern-2",
+        occurred_at=datetime(2026, 9, 30, tzinfo=timezone.utc),
+        decision_pattern_candidate_ref="PATTERN-REF-2",
+    )
+    observation = SymbiontLabObservation.from_execution_outcome(
+        outcome,
+        decision_id="d-pattern-2",
+        domain="ORCAMENTO",
+        expected_outcome="ok",
+        observed_outcome="ok",
+        hypothesis="pattern",
+        baseline="before",
+        experiment="paired",
+        result="validated",
+        regression_status="PASS",
+        generalization_status="CONFIRMED",
+        risk="LOW",
+        existing_owner=None,
+        scope="tenant-a",
+        tenant_id="tenant-a",
+        observation_id="obs-pattern-2",
+        source_commit="commit-pattern",
+    )
+
+    evaluation = SymbiontLabAdapter(GovernedLearningService(Memory())).evaluate(
+        observation,
+        principal_id="p2",
+        dataset_version="ds-pattern",
+    )
+
+    assert evaluation.candidate is not None
+    assert evaluation.candidate.state == "CANDIDATE"
+    assert evaluation.candidate.provenance["decision_pattern_candidate_ref"] == "PATTERN-REF-2"
