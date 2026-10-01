@@ -48,7 +48,7 @@ def _execution(
         status=ExecutionStatus.EXECUTED,
         executed=True,
         reason="authorized_execution_completed",
-        provenance={"source_commit": "commit-1"},
+        provenance={"source_commit": "commit-1", "environment": "production"},
         evidence_ids=("evidence-1",),
         authorization_id="grant-1",
         occurred_at=datetime(2026, 9, 30, tzinfo=timezone.utc),
