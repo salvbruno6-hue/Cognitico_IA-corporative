@@ -45,3 +45,6 @@ The acceptance tests cover:
 6. blank identifiers → rejected.
 
 No business operation or Hermes runtime call is required by these tests.
+## Validation status
+
+CI validation is required before this candidate can be considered validated or merged.
