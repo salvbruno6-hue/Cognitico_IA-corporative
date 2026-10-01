@@ -31,6 +31,22 @@ def test_materializes_only_eligible_package():
     assert "mutation_authority" in result.content
 
 
+def test_materialization_preserves_decision_pattern_provenance_without_authority():
+    package = _package(
+        provenance={
+            "type": "validated_learning",
+            "source": "SO-123",
+            "decision_pattern_candidate_ref": "PATTERN-REF-1",
+        }
+    )
+
+    result = materialize_promotion_package(package)
+
+    assert '"decision_pattern_candidate_ref": "PATTERN-REF-1"' in result.content
+    assert '"mode": "CANDIDATE_ARTIFACT_ONLY"' in result.content
+    assert '"mutation_authority": false' in result.content
+
+
 def test_faculty_candidate_is_materializable_without_creating_faculty_authority():
     result = materialize_promotion_package(_package(status="FACULTY_CANDIDATE"))
     assert result.knowledge_key == "orcamento.validado.v1"
