@@ -38,6 +38,7 @@ class SymbiontLabObservation:
     scope: str
     tenant_scope: str | None = None
     source_kind: str | None = None
+    decision_pattern_candidate_ref: str | None = None
 
     @classmethod
     def from_execution_outcome(
@@ -95,6 +96,7 @@ class SymbiontLabObservation:
             scope=scope,
             tenant_scope=tenant_id,
             source_kind="benchmark",
+            decision_pattern_candidate_ref=outcome.decision_pattern_candidate_ref,
         )
 
     def validate_execution_outcome(self, outcome: ExecutionOutcome) -> None:
@@ -107,6 +109,8 @@ class SymbiontLabObservation:
             raise ValueError("execution evidence does not match laboratory observation")
         if outcome.correlation_id != self.decision_id:
             raise ValueError("execution decision binding does not match laboratory observation")
+        if outcome.decision_pattern_candidate_ref != self.decision_pattern_candidate_ref:
+            raise ValueError("execution decision pattern provenance does not match laboratory observation")
         if not outcome.occurred_at:
             raise ValueError("execution outcome requires timestamp")
 
@@ -191,6 +195,11 @@ class SymbiontLabAdapter:
             experience,
             dataset_version=dataset_version,
             hypothesis=observation.hypothesis,
+            provenance=(
+                {"decision_pattern_candidate_ref": observation.decision_pattern_candidate_ref}
+                if observation.decision_pattern_candidate_ref
+                else None
+            ),
         )
         return SymbiontLabEvaluation(
             observation=observation,
