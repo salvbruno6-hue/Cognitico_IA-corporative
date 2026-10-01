@@ -89,13 +89,13 @@ class GovernedLearningService:
         )
         return experience
 
-    def propose_candidate(self, experience: ExperienceRecord, *, dataset_version: str, hypothesis: str) -> LearningCandidate:
+    def propose_candidate(self, experience: ExperienceRecord, *, dataset_version: str, hypothesis: str, provenance: Mapping[str, Any] | None = None) -> LearningCandidate:
         if not dataset_version or not hypothesis:
             raise LearningGovernanceError("dataset_version and hypothesis are required")
         return LearningCandidate(
             candidate_id=str(uuid.uuid4()), experience_id=experience.experience_id,
             tenant_id=experience.tenant_id, domain=experience.domain, hypothesis=hypothesis,
-            dataset_version=dataset_version, provenance={"experience_id": experience.experience_id},
+            dataset_version=dataset_version, provenance={"experience_id": experience.experience_id, **dict(provenance or {})},
         )
 
     @staticmethod
