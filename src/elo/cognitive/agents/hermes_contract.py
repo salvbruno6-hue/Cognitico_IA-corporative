@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping
 
+from elo.agent_intake.hermes_skill_identity import validate_skill_execution_identity
 
 _CONTRACT_VERSION = "1.0"
 _FORBIDDEN_INFRASTRUCTURE_KEYS = frozenset(
@@ -73,6 +74,10 @@ class HermesExecutionRequest:
         _reject_infrastructure_leaks(self.context, "context")
         _reject_infrastructure_leaks(self.constraints, "constraints")
         _reject_infrastructure_leaks(self.execution_policy, "execution_policy")
+        validate_skill_execution_identity(
+            context=self.context,
+            authorized_capabilities=self.authorized_capabilities,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
