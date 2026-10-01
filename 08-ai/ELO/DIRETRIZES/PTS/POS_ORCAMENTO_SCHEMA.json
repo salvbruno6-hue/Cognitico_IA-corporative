@@ -15,27 +15,105 @@
     "matriz_de_riscos",
     "pendencias",
     "itens_nao_orcados_nao_confirmados",
+    "camada_analitica_competitividade",
     "checklist_de_completude",
     "conclusao_e_validacao",
     "regra_de_rastreabilidade"
   ],
   "referencia_pts_tecnica": {
-    "campos": ["pts_tecnica_ref", "itens_herdados", "consultas_abertas"],
+    "campos": [
+      "pts_tecnica_ref",
+      "itens_herdados",
+      "consultas_abertas"
+    ],
     "regra": "A PTS Pós recebe a PTS Técnica como referência formal e a confronta com o orçamento efetivamente elaborado. Referências não comprovadas devem ser registradas como ausência."
   },
   "matriz_principal_colunas": [
-    "n","ref_tecnica","topico","ref_tr","requisito","q_prev","q_orc","ref_orc","valor","status","divergencia"
+    "n",
+    "ref_tecnica",
+    "topico",
+    "ref_tr",
+    "requisito",
+    "q_prev",
+    "q_orc",
+    "ref_orc",
+    "valor",
+    "status",
+    "divergencia"
   ],
-  "conferencia_quantitativos_colunas": ["item","ref_tecnica","q_prev","q_orc","unidade","diferenca","motivo","status"],
-  "conferencia_valores_colunas": ["item","ref_orc","composicao","valor","fonte","status"],
-  "auditoria_reversa_colunas": ["item","ref_orc","valor","base","justificativa"],
-  "itens_premissa_colunas": ["item","origem","premissa","impacto","tratamento"],
-  "logistica_colunas": ["componente","calculo","valor","criterio"],
-  "mao_de_obra_colunas": ["titulo","linhas","total"],
-  "exclusoes_colunas": ["item","responsavel","orcado","status"],
-  "divergencias_colunas": ["n","item","tipo","previsto","orcado","motivo","impacto","acao"],
-  "riscos_colunas": ["risco","tipo","impacto","condicao","tratamento"],
-  "pendencias_colunas": ["pendencia","origem","impacto","acao","status"],
+  "conferencia_quantitativos_colunas": [
+    "item",
+    "ref_tecnica",
+    "q_prev",
+    "q_orc",
+    "unidade",
+    "diferenca",
+    "motivo",
+    "status"
+  ],
+  "conferencia_valores_colunas": [
+    "item",
+    "ref_orc",
+    "composicao",
+    "valor",
+    "fonte",
+    "status"
+  ],
+  "auditoria_reversa_colunas": [
+    "item",
+    "ref_orc",
+    "valor",
+    "base",
+    "justificativa"
+  ],
+  "itens_premissa_colunas": [
+    "item",
+    "origem",
+    "premissa",
+    "impacto",
+    "tratamento"
+  ],
+  "logistica_colunas": [
+    "componente",
+    "calculo",
+    "valor",
+    "criterio"
+  ],
+  "mao_de_obra_colunas": [
+    "titulo",
+    "linhas",
+    "total"
+  ],
+  "exclusoes_colunas": [
+    "item",
+    "responsavel",
+    "orcado",
+    "status"
+  ],
+  "divergencias_colunas": [
+    "n",
+    "item",
+    "tipo",
+    "previsto",
+    "orcado",
+    "motivo",
+    "impacto",
+    "acao"
+  ],
+  "riscos_colunas": [
+    "risco",
+    "tipo",
+    "impacto",
+    "condicao",
+    "tratamento"
+  ],
+  "pendencias_colunas": [
+    "pendencia",
+    "origem",
+    "impacto",
+    "acao",
+    "status"
+  ],
   "checklist_campos": [
     "Todos os requisitos principais possuem correspondência?",
     "Itens relevantes possuem origem/justificativa?",
@@ -59,5 +137,103 @@
     "flags_de_seguranca": "document_safe/documento_seguro/aplicado_na_so_atual=false bloqueia o registro",
     "historico": "registros consultivos ou históricos só atravessam a fronteira quando aplicados explicitamente à SO atual",
     "regra": "ACERVO CONSULTIVO → ELO → SO ATUAL → ORÇAMENTO ATUAL → PTS PÓS"
+  },
+  "camada_analitica_competitividade": {
+    "natureza": "complementar",
+    "nao_substitui": [
+      "matriz_principal_tr_orcamento",
+      "conferencia_de_quantitativos",
+      "conferencia_de_valores",
+      "itens_premissa",
+      "exclusoes_e_responsabilidades",
+      "matriz_de_divergencias",
+      "matriz_de_riscos",
+      "pendencias"
+    ],
+    "indicadores": [
+      "abc",
+      "peso_financeiro",
+      "conhecimento",
+      "flexibilidade",
+      "risco",
+      "decisao"
+    ],
+    "conhecimento": [
+      "FORTE",
+      "MEDIO",
+      "FRACO",
+      "AUSENTE",
+      "CONFLITANTE"
+    ],
+    "flexibilidade": [
+      "ALTA",
+      "MEDIA",
+      "BAIXA",
+      "INDETERMINADA"
+    ],
+    "risco": [
+      "BAIXO",
+      "MEDIO",
+      "ALTO",
+      "CRITICO"
+    ],
+    "decisao": [
+      "MANTER",
+      "REVISAR",
+      "NEGOCIAR",
+      "SUBSTITUIR",
+      "REESTRUTURAR",
+      "CONFIRMAR",
+      "NAO_REDUZIR",
+      "AGUARDAR_DECISAO"
+    ],
+    "cenarios": [
+      "BASE",
+      "COMPETITIVO",
+      "MAXIMO"
+    ],
+    "regra": "A camada analítica recebe a auditoria como entrada, preserva divergências/premissas/riscos/pendências e não altera orçamento ou requisito automaticamente."
+  },
+  "competitividade": {
+    "indicadores_colunas": [
+      "item",
+      "abc",
+      "peso",
+      "conhecimento",
+      "flexibilidade",
+      "risco",
+      "decisao",
+      "evidencia",
+      "oportunidade",
+      "responsavel"
+    ],
+    "curva_abc_colunas": [
+      "classe",
+      "criterio",
+      "itens",
+      "peso_acumulado",
+      "tratamento"
+    ],
+    "oportunidades_colunas": [
+      "item",
+      "abc",
+      "o_que",
+      "quanto",
+      "por_que",
+      "evidencia",
+      "impacto",
+      "risco",
+      "quem_decide",
+      "resultado"
+    ],
+    "cenarios_colunas": [
+      "nome",
+      "valor_total",
+      "variacao_rs",
+      "variacao_pct",
+      "itens_alterados",
+      "premissas_alteradas",
+      "risco"
+    ]
   }
 }
