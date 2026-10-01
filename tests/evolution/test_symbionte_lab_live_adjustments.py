@@ -111,6 +111,101 @@ def test_promotion_package_requires_gate_decision_and_never_grants_mutation_auth
     assert decision.canonical_mutation_allowed is False
 
 
+def test_promotion_package_preserves_decision_pattern_provenance():
+    decision = make_compatible_decision()
+    learning = GovernedLearningService(MemoryStub())
+    experience = learning.capture_outcome(
+        tenant_id="tenant-a",
+        domain="ORCAMENTO",
+        principal_id="principal-1",
+        decision_id="decision-1",
+        expected_outcome="resultado reproduzivel",
+        observed_outcome="resultado reproduzivel",
+        evidence_ids=("e-1", "e-2"),
+    )
+    candidate = learning.propose_candidate(
+        experience,
+        dataset_version="ds-1",
+        hypothesis="ajuste governado melhora resultado",
+        provenance={"decision_pattern_candidate_ref": "PATTERN-REF-1"},
+    )
+    evaluation = learning.evaluate(
+        candidate, metric="lab_validation", score=0.9, threshold=0.8, evaluator="lab"
+    )
+    approved = learning.approve_for_promotion(candidate, evaluation, human_approved=True)
+
+    package = learning.prepare_knowledge_promotion(
+        learning_id=approved.candidate_id,
+        knowledge_key="ELO.LAB.AJUSTE.004",
+        title="Ajuste com proveniência",
+        concept="Ajuste controlado com proveniência preservada",
+        provenance={
+            "source_ref": "pr:lab-adjustments",
+            "decision_pattern_candidate_ref": "PATTERN-REF-1",
+        },
+        scope="tenant-a",
+        evidence_refs=("e-1", "e-2"),
+        confidence=0.9,
+        evolution_decision=decision,
+        learning_candidate=approved,
+    )
+
+    assert package.status == "PROMOTABLE_KNOWLEDGE"
+    assert package.payload["provenance"]["decision_pattern_candidate_ref"] == "PATTERN-REF-1"
+
+
+def test_promotion_package_blocks_missing_or_mismatched_decision_pattern_provenance():
+    decision = make_compatible_decision()
+    learning = GovernedLearningService(MemoryStub())
+    experience = learning.capture_outcome(
+        tenant_id="tenant-a",
+        domain="ORCAMENTO",
+        principal_id="principal-1",
+        decision_id="decision-1",
+        expected_outcome="resultado reproduzivel",
+        observed_outcome="resultado reproduzivel",
+        evidence_ids=("e-1", "e-2"),
+    )
+    candidate = learning.propose_candidate(
+        experience,
+        dataset_version="ds-1",
+        hypothesis="ajuste governado melhora resultado",
+        provenance={"decision_pattern_candidate_ref": "PATTERN-REF-1"},
+    )
+    evaluation = learning.evaluate(
+        candidate, metric="lab_validation", score=0.9, threshold=0.8, evaluator="lab"
+    )
+    approved = learning.approve_for_promotion(candidate, evaluation, human_approved=True)
+
+    common = dict(
+        learning_id=approved.candidate_id,
+        knowledge_key="ELO.LAB.AJUSTE.005",
+        title="Ajuste bloqueado",
+        concept="Ajuste sem proveniência íntegra",
+        scope="tenant-a",
+        evidence_refs=("e-1", "e-2"),
+        confidence=0.9,
+        evolution_decision=decision,
+        learning_candidate=approved,
+    )
+
+    missing = learning.prepare_knowledge_promotion(
+        **common, provenance={"source_ref": "pr:lab-adjustments"}
+    )
+    assert missing.status == "PROMOTION_BLOCKED"
+    assert missing.reason == "decision_pattern_provenance_missing"
+
+    mismatch = learning.prepare_knowledge_promotion(
+        **common,
+        provenance={
+            "source_ref": "pr:lab-adjustments",
+            "decision_pattern_candidate_ref": "PATTERN-REF-OTHER",
+        },
+    )
+    assert mismatch.status == "PROMOTION_BLOCKED"
+    assert mismatch.reason == "decision_pattern_provenance_mismatch"
+
+
 def test_promotion_package_fails_closed_without_evidence_or_gate():
     missing_evidence = GovernedLearningService.prepare_knowledge_promotion(
         learning_id="learning-1",
