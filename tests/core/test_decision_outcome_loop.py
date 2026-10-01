@@ -82,3 +82,45 @@ def test_attributed_outcome_handoffs_to_existing_symbiont():
     assert evaluation.candidate.candidate_id == "c1"
     assert lifecycle.state == DecisionState.LEARNED
     assert lifecycle.learning_candidate["candidate_id"] == "c1"
+
+
+def test_symbiont_handoff_preserves_decision_pattern_provenance():
+    from elo.cognitive.symbionte_lab import SymbiontLabObservation
+
+    lifecycle = DecisionLifecycle(DecisionRecord("d-pattern", "replan", "gap", expected_outcome="ok"))
+    lifecycle.transition(DecisionState.APPROVED)
+    lifecycle.transition(DecisionState.EXECUTED)
+
+    outcome = __import__("elo.core.execution_boundary", fromlist=["ExecutionOutcome", "ExecutionStatus"]).ExecutionOutcome(
+        request_id="exec-pattern-1",
+        status=__import__("elo.core.execution_boundary", fromlist=["ExecutionStatus"]).ExecutionStatus.EXECUTED,
+        executed=True,
+        reason="completed",
+        provenance={"source_commit": "commit-pattern"},
+        evidence_ids=("e-pattern",),
+        correlation_id="d-pattern",
+        occurred_at=__import__("datetime").datetime(2026, 9, 30),
+        decision_pattern_candidate_ref="PATTERN-REF-1",
+    )
+
+    observation = SymbiontLabObservation.from_execution_outcome(
+        outcome,
+        decision_id="d-pattern",
+        domain="ORCAMENTO",
+        expected_outcome="ok",
+        observed_outcome="ok",
+        hypothesis="pattern",
+        baseline="before",
+        experiment="paired",
+        result="validated",
+        regression_status="PASS",
+        generalization_status="CONFIRMED",
+        risk="LOW",
+        existing_owner=None,
+        scope="tenant-a",
+        tenant_id="tenant-a",
+        observation_id="obs-pattern-1",
+        source_commit="commit-pattern",
+    )
+
+    assert observation.decision_pattern_candidate_ref == "PATTERN-REF-1"
