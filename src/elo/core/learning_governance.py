@@ -160,6 +160,27 @@ class GovernedLearningService:
             return PromotionPackage("PROMOTION_BLOCKED", "promotion_candidate_mismatch", learning_id, knowledge_key, {})
         if learning_candidate.state != "APPROVED":
             return PromotionPackage("PROMOTION_BLOCKED", "promotion_candidate_not_approved", learning_id, knowledge_key, {})
+
+        candidate_pattern_ref = learning_candidate.provenance.get("decision_pattern_candidate_ref")
+        supplied_pattern_ref = provenance.get("decision_pattern_candidate_ref")
+        if candidate_pattern_ref is not None:
+            if supplied_pattern_ref is None:
+                return PromotionPackage(
+                    "PROMOTION_BLOCKED",
+                    "decision_pattern_provenance_missing",
+                    learning_id,
+                    knowledge_key,
+                    {},
+                )
+            if supplied_pattern_ref != candidate_pattern_ref:
+                return PromotionPackage(
+                    "PROMOTION_BLOCKED",
+                    "decision_pattern_provenance_mismatch",
+                    learning_id,
+                    knowledge_key,
+                    {},
+                )
+
         status = "FACULTY_CANDIDATE" if faculty_relevant else "PROMOTABLE_KNOWLEDGE"
         payload = {
             "knowledge_key": knowledge_key.strip(), "title": title.strip(), "concept": concept.strip(),
