@@ -195,6 +195,11 @@ class SymbiontLabAdapter:
             experience,
             dataset_version=dataset_version,
             hypothesis=observation.hypothesis,
+            provenance=(
+                {"decision_pattern_candidate_ref": observation.decision_pattern_candidate_ref}
+                if observation.decision_pattern_candidate_ref
+                else None
+            ),
         )
         return SymbiontLabEvaluation(
             observation=observation,
