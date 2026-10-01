@@ -1,0 +1,128 @@
+{
+  "so": "SO 184.26",
+  "cliente": "SANEPAR/PR",
+  "objeto": "Fornecimento de 4 unidades de container/modular 20 pés — Almoxarifado Tipo F, com ar-condicionado, conforme código de material 339607 e EB/GPES/164.",
+  "revisao": "0",
+  "pts_tecnica_ref": "PTS-TEC-SO-184.26",
+  "itens_herdados": [],
+  "consultas_abertas": ["C184-01","C184-02","C184-03","C184-04","C184-05","C184-06","C184-07"],
+  "documentos": [
+    "SO 184.26 — SANEPAR/PR — Pregão 1503/2026 — material 339607 — quantidade 4 — entrega em Matinhos/PR.",
+    "EB/GPES/164 — versão 31 — 24/04/2026 — EB20.15.3.003.",
+    "ANEXO II — Especificação Técnica — Tipo F, instalações, inspeção, garantia e anexos.",
+    "Layout Tipo F / Anexo 25 — Almoxarifado 20 pés.",
+    "Orçamento de venda da SO 184.26 — revisão 0 — 01/10/2026."
+  ],
+  "objetivo_texto": "Confrontar o orçamento elaborado com a PTS Técnica, identificando correspondências, ausências, duplicidades, premissas, divergências de quantitativo/composição/valor, logística e responsabilidades antes do fechamento da proposta.",
+  "matriz_principal": [
+    {"n":1,"ref_tecnica":"T184-01","topico":"Produto principal","ref_tr":"material 339607","requisito":"Container/modular 20 pés Tipo F, almoxarifado, com ar-condicionado, quantidade 4.","q_prev":"4 UN","q_orc":"1 UN no item comercial","ref_orc":"1.1","valor":"não informado no item 1.1","status":"🟡","divergencia":"SO exige 4 unidades; orçamento comercial registra 1 unidade. Confirmar se o preço é unitário."},
+    {"n":2,"ref_tecnica":"T184-02","topico":"Inspeção, liberação e garantia","ref_tr":"requisitos de fabricação/inspeção/entrega","requisito":"Inspeção prévia em fábrica, liberação formal antes do transporte, entrega em Matinhos/PR e garantia mínima de 12 meses.","q_prev":"4 UN","q_orc":"não há linha específica","ref_orc":"observações","valor":"—","status":"🟡","divergencia":"Requisitos documentais/operacionais não aparecem como composição financeira específica."},
+    {"n":3,"ref_tecnica":"T184-03","topico":"Isolamento e fechamento","ref_tr":"EB/GPES/164 — paredes","requisito":"Isolamento PET 50 mm, densidade 10 kg/m³ e fechamento/acabamento conforme solução definida.","q_prev":"1 solução por unidade","q_orc":"verba","ref_orc":"2.2.1","valor":"R$ 8.651,43","status":"🟡","divergencia":"Orçamento inclui PET 50 mm e PIR 32 mm; aplicação do PIR no Tipo F precisa ser reconciliada com a solução técnica e com eventual acabamento interno."},
+    {"n":4,"ref_tecnica":"T184-04","topico":"Piso","ref_tr":"EB/GPES/164 — piso","requisito":"Porcelanato acetinado claro, juntas, perdas e arremates conforme layout.","q_prev":"conforme layout","q_orc":"15,7966 m²","ref_orc":"2.2.3","valor":"R$ 2.342,64","status":"🟡","divergencia":"Layout observado indica área interna aproximada de 13,68 m²; diferença precisa de justificativa de compra/perdas/rodapé ou outro parâmetro."},
+    {"n":5,"ref_tecnica":"T184-05","topico":"Ar-condicionado","ref_tr":"material 339607 + EB","requisito":"Split definido no código/material, instalação prevista e proteção da condensadora.","q_prev":"1 UN por módulo","q_orc":"1 UN + kit + mão de obra + grade","ref_orc":"2.2.6 a 2.2.9","valor":"R$ 3.495,31","status":"🟡","divergencia":"O código 339607 já informa C/AR CONDICIONADO; verificar fronteira entre fornecimento principal e itens adicionais para evitar dupla contagem."},
+    {"n":6,"ref_tecnica":"T184-06","topico":"Elétrica","ref_tr":"EB/GPES/164 — tabelas elétricas","requisito":"Instalação elétrica completa; 8 pontos gerais para 20 pés de almoxarifado; iluminação e aterramento conforme EB.","q_prev":"8 pontos + iluminação + aterramento","q_orc":"8 tomadas + 3 LED","ref_orc":"2.2.18","valor":"R$ 2.725,81","status":"🟡","divergencia":"8 tomadas estão alinhadas ao requisito geral; layout observado anteriormente apresenta menos pontos. Confirmar com Sérgio/SANEPAR. Aterramento interno deve permanecer na composição elétrica; SPDA/interligações externas estão excluídos."},
+    {"n":7,"ref_tecnica":"T184-07","topico":"Hidráulica e caixa d'água","ref_tr":"EB/GPES/164 — hidráulica","requisito":"Caixa d'água 250/300 L e pontos hidráulicos aplicáveis ao Tipo F.","q_prev":"1 caixa + pontos aplicáveis","q_orc":"1 caixa + pontos/base/proteção agregados","ref_orc":"2.2.14 a 2.2.16","valor":"R$ 4.295,71","status":"🟡","divergencia":"Caixa 250 L está orçada; item 2.2.15 agrega base, proteção, metalon e hidráulica e necessita segregação."},
+    {"n":8,"ref_tecnica":"T184-08","topico":"Casa de proteção da caixa d'água","ref_tr":"layout/vistas externas","requisito":"Casa de proteção conforme representação gráfica observada.","q_prev":"conforme desenho","q_orc":"incluída em composição agregada","ref_orc":"2.2.15","valor":"R$ 3.919,71","status":"🟡","divergencia":"O valor não é auditável isoladamente porque o item também inclui base e hidráulica. Composição preliminar separada reconstruída anteriormente: custo direto R$ 1.421,50, sem substituir o valor orçado até reconciliação."},
+    {"n":9,"ref_tecnica":"T184-09","topico":"Esquadrias e ventilação","ref_tr":"layout Tipo F + requisitos gerais","requisito":"Aberturas conforme layout e aplicabilidade dos requisitos gerais.","q_prev":"conforme layout","q_orc":"R$ 0,00 para 2.2.10–2.2.12","ref_orc":"2.2.10 a 2.2.12","valor":"R$ 0,00","status":"🟡","divergencia":"Não há janela evidente no layout Tipo F analisado; manter em validação, sem transformar requisito genérico em quantidade confirmada."},
+    {"n":10,"ref_tecnica":"T184-10","topico":"Pintura","ref_tr":"EB/GPES/164 — acabamento","requisito":"Esquema externo C5 branco; acabamento interno depende da solução definida.","q_prev":"externa definida; interna a validar","q_orc":"externa + interna","ref_orc":"2.2.4","valor":"R$ 4.982,40","status":"🟡","divergencia":"Pintura externa é documentada; escopo de pintura interna precisa ser separado como solução/decisão comercial a confirmar."},
+    {"n":11,"ref_tecnica":"T184-11","topico":"Revestimento interno da parede","ref_tr":"solução técnica adotada","requisito":"Forração interna sobre parede metálica: guia/montante 70 mm + lã PET 50 mm + Drywall RU 12,5 mm em uma face + tratamento das juntas; sem pintura neste estágio.","q_prev":"conforme desenvolvimento","q_orc":"não individualizado","ref_orc":"pendente / confrontar 2.2.1","valor":"não orçado separadamente","status":"🟡","divergencia":"A solução existe como composição técnica, mas não foi individualizada na planilha apresentada; reconciliar com 2.2.1 para evitar duplicidade."},
+    {"n":12,"ref_tecnica":"T184-12","topico":"Mão de obra externa","ref_tr":"logística de execução","requisito":"Equipe externa para atendimento em Matinhos.","q_prev":"3 dias por colaborador","q_orc":"3 dias por colaborador","ref_orc":"2.4.1 a 2.4.3","valor":"R$ 2.879,84","status":"🟢","divergencia":"3 dias = 1 dia de ida + 1 dia de serviço em Matinhos + 1 dia de retorno. Não representam 3 dias de execução."},
+    {"n":13,"ref_tecnica":"T184-13","topico":"Deslocamento","ref_tr":"logística orçamentária","requisito":"Mobilização da equipe.","q_prev":"critério do orçamento","q_orc":"2.038 km","ref_orc":"2.1.2","valor":"R$ 3.118,14","status":"🟢","divergencia":"Valor corresponde ao deslocamento da equipe e deve permanecer separado do transporte do contêiner."},
+    {"n":14,"ref_tecnica":"T184-14","topico":"Aterramento","ref_tr":"EB/GPES/164 — elétrica","requisito":"Barra de aterramento interligada à estrutura metálica com cabos de cobre.","q_prev":"interno por módulo","q_orc":"incluído na verba elétrica","ref_orc":"2.2.18","valor":"incluído","status":"🟡","divergencia":"A instalação interna está na verba elétrica; não há quantitativo explícito de eletrodo externo. Não inventar SPDA/haste."},
+    {"n":15,"ref_tecnica":"T184-15","topico":"Dormentes","ref_tr":"EB/GPES/164 — suporte","requisito":"Dormentes a cada 3 m, seção mínima 40x40 cm e comprimento 285 cm, quando especificados no código do material.","q_prev":"condicional","q_orc":"não orçado","ref_orc":"—","valor":"R$ 0,00","status":"🟢","divergencia":"Código 339607 não informa fornecimento de dormentes; item não foi incluído."},
+    {"n":16,"ref_tecnica":"T184-16","topico":"Internet","ref_tr":"EB/GPES/164 — comunicação","requisito":"2 pontos de internet por container/módulo, salvo exceções.","q_prev":"2 por módulo","q_orc":"2 UN","ref_orc":"2.2.19","valor":"R$ 232,00","status":"🟡","divergencia":"Quantidade lançada parece unitária frente a uma SO de 4 unidades; confirmar se é por módulo ou total."},
+    {"n":17,"ref_tecnica":"T184-17","topico":"Pontos/equipamento de água","ref_tr":"EB/GPES/164 — tabelas hidráulicas","requisito":"Pontos de água/esgoto e apoio operacional conforme aplicabilidade.","q_prev":"conforme módulo","q_orc":"pontos + purificador","ref_orc":"2.2.16 e 2.2.20","valor":"R$ 935,00","status":"🟡","divergencia":"Confirmar aplicabilidade e quantidade para as 4 unidades."}
+  ],
+  "blocos_quantitativos": [
+    {"titulo":"Quantidade comercial","corpo":"SO/material 339607: 4 unidades. Orçamento comercial item 1.1: 1 unidade. Necessário definir se o orçamento está em base unitária ou se foi montado para apenas uma unidade."},
+    {"titulo":"Mão de obra externa","corpo":"3 dias por colaborador: 1 dia de ida + 1 dia de execução em Matinhos + 1 dia de retorno. Portanto, somente 1 dia é execução no local."},
+    {"titulo":"Piso","corpo":"15,7966 m² orçados versus área interna aproximada de 13,68 m² observada no layout. Diferença não deve ser corrigida silenciosamente."},
+    {"titulo":"Revestimento interno","corpo":"Sistema definido: montante 70 mm + guia 70 mm + lã PET 50 mm + Drywall RU 12,5 mm em uma face + fixadores + massa e fita; sem pintura neste estágio. Quantitativo definitivo dos montantes ainda depende do fechamento geométrico."},
+    {"titulo":"Casa da caixa d'água","corpo":"Composição preliminar separada: metalon 50x30x1,2 mm + TP-40 galvanizado, sem lã PET, 1 dia profissional + 1 dia ajudante e 10% de insumos sobre materiais; custo direto reconstruído R$ 1.421,50. Não substituir 2.2.15 sem reconciliação."}
+  ],
+  "conferencia_valores":{"Subtotal geral":"R$ 39.811,66","Taxa administrativa":"R$ 3.981,17","BDI":"96,00%","Total geral":"R$ 82.012,02"},
+  "auditoria_reversa":[
+    {"item":"2.2.1 Isolamento PET 50 mm + PIR 32 mm","ref":"2.2.1","valor":"R$ 8.651,43","base":"verba","justificativa":"Descrição do orçamento; composição detalhada não apresentada no resumo."},
+    {"item":"2.2.4 Pintura","ref":"2.2.4","valor":"R$ 4.982,40","base":"verba","justificativa":"Prime WEG-Epoxi PW + PU; escopo interno/externo a validar."},
+    {"item":"2.2.15 Base/proteção caixa d'água","ref":"2.2.15","valor":"R$ 3.919,71","base":"composição agregada","justificativa":"Base + proteção + hidráulica + metalon não estão segregados."},
+    {"item":"2.1.2 Deslocamento","ref":"2.1.2","valor":"R$ 3.118,14","base":"2.038 km x R$ 1,53/km","justificativa":"Critério expresso no orçamento; transporte do produto está excluído."},
+    {"item":"2.3 + 2.4 Mão de obra","ref":"2.3.1–2.4.3","valor":"R$ 5.705,99","base":"dias x colaboradores x valor diário","justificativa":"MO interna e externa separadas; externa com 3 dias = ida + execução + retorno."}
+  ],
+  "itens_premissa":[
+    {"item":"Quantidade comercial 1 x 4","origem":"SO atual + orçamento atual","premissa":"Item 1.1 representa preço unitário ou uma única unidade.","impacto":"ALTO","tratamento":"Confirmar antes do fechamento."},
+    {"item":"PET + PIR 32 mm","origem":"Orçamento atual / solução técnica","premissa":"PIR 32 mm aplicado a paredes e cobertura.","impacto":"ALTO","tratamento":"Reconciliar aplicação e sobreposição."},
+    {"item":"Pintura interna","origem":"Orçamento atual","premissa":"Pintura interna integra o escopo.","impacto":"MEDIO","tratamento":"Confirmar com Sérgio."},
+    {"item":"Esquadrias","origem":"Layout + orçamento","premissa":"Aberturas não estão claramente definidas no layout Tipo F analisado.","impacto":"MEDIO","tratamento":"Confirmar."},
+    {"item":"Porta interna de vidro","origem":"EB + orçamento","premissa":"Aplicabilidade em ambiente único.","impacto":"MEDIO","tratamento":"Confirmar com Sérgio."},
+    {"item":"2.2.15 agregado","origem":"Orçamento atual","premissa":"Base/proteção/hidráulica em item único.","impacto":"ALTO","tratamento":"Segregar composição."},
+    {"item":"MO externa 3 dias","origem":"critério operacional informado","premissa":"1 dia ida + 1 dia serviço + 1 dia retorno.","impacto":"MEDIO","tratamento":"Manter 3 dias e explicitar a composição."}
+  ],
+  "logistica":[
+    {"componente":"Deslocamento da equipe","calculo":"2.038 km x R$ 1,53/km","valor":"R$ 3.118,14","criterio":"Mobilização da equipe; separado do transporte do produto."},
+    {"componente":"Estadia","calculo":"verba","valor":"R$ 1.200,00","criterio":"Orçamento atual."},
+    {"componente":"Alimentação","calculo":"verba","valor":"R$ 225,00","criterio":"Orçamento atual."},
+    {"componente":"Mão de obra externa","calculo":"3 dias por colaborador = ida + execução + retorno","valor":"R$ 2.879,84","criterio":"Critério operacional informado."},
+    {"componente":"Transporte do container","calculo":"não orçado","valor":"R$ 0,00","criterio":"Exclusão expressa."}
+  ],
+  "mao_de_obra":[
+    {"titulo":"MO interna","linhas":[
+      {"funcao":"Encarregado","dias":"0,1","colab":"2","v_unit":"R$ 448,21","parcial":"R$ 89,64"},
+      {"funcao":"Montador","dias":"2","colab":"2","v_unit":"R$ 275,82","parcial":"R$ 1.103,28"},
+      {"funcao":"Ajudante","dias":"2","colab":"2","v_unit":"R$ 235,92","parcial":"R$ 943,67"},
+      {"funcao":"Eletricista","dias":"1","colab":"2","v_unit":"R$ 275,82","parcial":"R$ 551,64"},
+      {"funcao":"Bombeiro","dias":"0,5","colab":"1","v_unit":"R$ 275,82","parcial":"R$ 137,91"}],"total":"R$ 2.826,15"},
+    {"titulo":"MO externa","linhas":[
+      {"funcao":"Encarregado","dias":"3","colab":"1","v_unit":"R$ 448,21","parcial":"R$ 1.344,62"},
+      {"funcao":"Profissional","dias":"3","colab":"1","v_unit":"R$ 275,82","parcial":"R$ 827,46"},
+      {"funcao":"Ajudante","dias":"3","colab":"1","v_unit":"R$ 235,92","parcial":"R$ 707,76"}],"total":"R$ 2.879,84"}
+  ],
+  "exclusoes":[
+    {"item":"SPDA","responsavel":"Não definido no orçamento atual","orcado":"Não","status":"Excluído"},
+    {"item":"Transporte do contêiner","responsavel":"Não definido no orçamento atual","orcado":"Não","status":"Excluído"},
+    {"item":"Interligações externas de esgoto, elétrica e hidráulica","responsavel":"Não definido no orçamento atual","orcado":"Não","status":"Excluído"}
+  ],
+  "divergencias":[
+    {"n":1,"item":"Quantidade do produto principal","tipo":"quantitativo","previsto":"4 UN","orcado":"1 UN","motivo":"SO/material 339607 indica 4 unidades; orçamento apresenta 1 unidade comercial.","impacto":"ALTO","acao":"Confirmar base unitária/total."},
+    {"n":2,"item":"2.2.1 PET + PIR 32 mm","tipo":"escopo/composição","previsto":"PET 50 mm","orcado":"PET + PIR 32 mm","motivo":"Aplicação do PIR no Tipo F precisa validação.","impacto":"ALTO","acao":"Validar tecnicamente e comercialmente."},
+    {"n":3,"item":"2.2.4 pintura interna","tipo":"escopo","previsto":"interno não fechado documentalmente","orcado":"externa + interna","motivo":"Escopo interno a validar.","impacto":"MEDIO","acao":"Confirmar."},
+    {"n":4,"item":"2.2.15","tipo":"composição","previsto":"base/proteção/hidráulica segregados","orcado":"item agregado","motivo":"Sem composição detalhada não é possível atribuir parcelas com segurança.","impacto":"ALTO","acao":"Segregar e reconciliar."},
+    {"n":5,"item":"Esquadrias 2.2.10–2.2.12","tipo":"evidência","previsto":"conforme layout","orcado":"R$ 0,00","motivo":"Layout não mostra claramente janelas; requisitos gerais existem.","impacto":"MEDIO","acao":"Consultar Sérgio/SANEPAR."},
+    {"n":6,"item":"Porta interna 2.2.13","tipo":"aplicabilidade","previsto":"se aplicável","orcado":"1 UN","motivo":"Ambiente único; aplicabilidade não fechada.","impacto":"MEDIO","acao":"Consultar."},
+    {"n":7,"item":"Internet/equipamentos","tipo":"quantidade","previsto":"por módulo","orcado":"quantidade unitária aparente","motivo":"SO possui 4 unidades.","impacto":"MEDIO","acao":"Definir base unitária ou total."},
+    {"n":8,"item":"Total com BDI","tipo":"valor","previsto":"conferência matemática","orcado":"R$ 82.012,02","motivo":"O total informado é reproduzível como subtotal + taxa de administração + 96% sobre o subtotal; incidência do BDI sobre subtotal + administração produziria outro resultado.","impacto":"ALTO","acao":"Confirmar regra adotada pelo modelo."}
+  ],
+  "riscos":[
+    {"risco":"Fechamento com quantidade inferior à SO","tipo":"escopo","impacto":"ALTO","condicao":"1 UN no item comercial versus 4 UN solicitadas.","tratamento":"Confirmar base de precificação."},
+    {"risco":"Duplicidade PET/PIR/acabamento","tipo":"composição","impacto":"ALTO","condicao":"2.2.1 e revestimento interno separado.","tratamento":"Reconciliar camadas e áreas."},
+    {"risco":"2.2.15 sem rastreabilidade interna","tipo":"custo","impacto":"ALTO","condicao":"Verba agregada.","tratamento":"Segregar composição."},
+    {"risco":"Esquadrias/porta não confirmadas","tipo":"escopo","impacto":"MEDIO","condicao":"Itens zerados ou provisórios.","tratamento":"Validar com Sérgio/SANEPAR."},
+    {"risco":"Transporte do container excluído","tipo":"logística","impacto":"ALTO","condicao":"Observação expressa do orçamento.","tratamento":"Manter exclusão e confirmar responsabilidade."}
+  ],
+  "pendencias":[
+    {"pendencia":"Quantidade comercial do item 1.1","origem":"SO/material 339607 x orçamento","impacto":"ALTO","acao":"Confirmar se o item 1.1 é preço unitário e deve ser aplicado às 4 unidades.","status":"ABERTA"},
+    {"pendencia":"Aplicação do PIR 32 mm","origem":"2.2.1 / solução técnica","impacto":"ALTO","acao":"Confirmar aplicação por unidade e superfícies.","status":"ABERTA"},
+    {"pendencia":"Esquadrias","origem":"2.2.10 a 2.2.12","impacto":"MEDIO","acao":"Confirmar existência e quantidade.","status":"ABERTA"},
+    {"pendencia":"Porta interna de vidro","origem":"2.2.13","impacto":"MEDIO","acao":"Confirmar aplicabilidade ao Tipo F.","status":"ABERTA"},
+    {"pendencia":"Casa/base/hidráulica","origem":"2.2.15","impacto":"ALTO","acao":"Segregar e conferir memória de cálculo.","status":"ABERTA"},
+    {"pendencia":"Quantidade dos pontos/equipamentos","origem":"2.2.18 a 2.2.20","impacto":"MEDIO","acao":"Confirmar se valores são por unidade ou para o conjunto de 4.","status":"ABERTA"},
+    {"pendencia":"BDI/administração","origem":"fechamento do orçamento","impacto":"ALTO","acao":"Confirmar regra de incidência do BDI.","status":"ABERTA"}
+  ],
+  "itens_nao_orcados":"Revestimento interno em Drywall RU com estrutura 70 mm, lã PET 50 mm e tratamento de juntas não aparece como item separado; deve ser reconciliado com 2.2.1. Transporte do container, SPDA e interligações externas permanecem excluídos.",
+  "checklist":{
+    "Todos os requisitos principais possuem correspondência?":"PARCIAL",
+    "Itens relevantes possuem origem/justificativa?":"PARCIAL",
+    "Quantitativos confrontados?":"SIM, com pendências",
+    "Áreas molhadas reavaliadas?":"SIM",
+    "Valores conferidos?":"PARCIAL",
+    "Maiores custos justificados?":"PARCIAL",
+    "Premissas registradas?":"SIM",
+    "Exclusões registradas?":"SIM",
+    "Pendências registradas?":"SIM",
+    "Riscos registrados?":"SIM",
+    "Responsabilidades verificadas?":"PARCIAL",
+    "Logística conferida?":"SIM",
+    "Licenças/ART/RRT completamente confirmadas?":"NÃO EVIDENCIADO NO ORÇAMENTO",
+    "BDI/taxa/total conferidos?":"PARCIAL"
+  },
+  "conclusao":"PTS Pós da SO 184.26 estruturada conforme contrato canônico do ELO. Permanecem pendências relevantes antes do fechamento: quantidade 4 x 1, fronteira do ar-condicionado, composição PET/PIR/Drywall, casa/base da caixa d'água, esquadrias, porta interna, quantidades unitárias dos pontos/equipamentos e regra de BDI/administração. A mão de obra externa está registrada como 3 dias por colaborador, sendo 1 dia de ida + 1 dia de execução em Matinhos + 1 dia de retorno. Resultado da Pós: VALIDADO_COM_PENDÊNCIAS. A PTS Pós não altera automaticamente orçamento nem promove aprendizado ao Core."
+}
