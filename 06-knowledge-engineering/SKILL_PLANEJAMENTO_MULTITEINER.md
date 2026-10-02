@@ -1128,18 +1128,33 @@ Até essa evidência existir, o estado correto é:
 
 ## 32. GAP de segurança identificado no estado atual
 
-A inspeção atual do Supabase identificou que `public.lista_mae_alteracoes` está com RLS desabilitado.
+A inspeção do Supabase identificou que `public.lista_mae_alteracoes` estava com RLS desabilitado.
 
-O advisor de segurança classifica esse estado como crítico porque a tabela está em schema exposto e não possui a proteção de Row Level Security.
+A investigação do repositório encontrou o contrato canônico em `09-governance/contracts/expected_state/supabase_rls.yaml`, que já declara:
 
-A correção **não deve ser aplicada automaticamente** sem definir o modelo de acesso. Habilitar RLS sem políticas pode bloquear o acesso legítimo.
+- RLS esperado: `true`;
+- policies: `[]`;
+- criticidade: alta;
+- comportamento esperado: fail-closed.
 
-Remediação mínima apresentada pelo advisor:
+O ADR-0017 também confirma que `lista_mae_alteracoes` é o histórico obrigatório das alterações da Lista-Mãe. O trigger `lista_mae_guard()` grava nesse histórico usando `SECURITY DEFINER`, portanto a proteção da tabela não exige criar uma policy de INSERT para usuários da aplicação.
+
+A remediação aplicada foi somente:
 
 ```sql
 ALTER TABLE public.lista_mae_alteracoes ENABLE ROW LEVEL SECURITY;
 ```
 
-Antes de executar a alteração, deve ser definido quem pode consultar e/ou alterar esse histórico e quais políticas correspondem ao modelo de autorização existente.
+Nenhuma policy foi criada. Assim, não foi introduzido um novo caminho de leitura ou escrita para usuários da aplicação.
 
-Esse GAP é independente do cálculo de capacidade de RH e não deve ser misturado à lógica do PCP.
+Após a alteração, a verificação do estado ao vivo confirmou:
+
+- `rls_enabled = true`;
+- nenhuma policy em `lista_mae_alteracoes`;
+- nenhum registro de teste foi inserido.
+
+A migration correspondente foi registrada em:
+
+`supabase/migrations/20261002190000_enable_rls_lista_mae_alteracoes.sql`
+
+Esse GAP de segurança é independente do cálculo de capacidade de RH e não deve ser misturado à lógica do PCP.
