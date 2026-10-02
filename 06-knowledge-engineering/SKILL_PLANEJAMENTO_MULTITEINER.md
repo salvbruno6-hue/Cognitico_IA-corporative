@@ -870,3 +870,159 @@ No estado atual do Supabase, as estruturas de montagem externa e PCP consultadas
 
 O próximo dado operacional necessário para fechar o ciclo é o preenchimento de equipes planejadas com datas, funções e pessoas e, posteriormente, uma fonte compatível de disponibilidade de RH.
 
+
+
+## 28. Catálogo de views PCP disponíveis para solicitação
+
+Quando o usuário pedir uma análise, o ELO pode oferecer diretamente as views já implementadas abaixo. O nome deve ser tratado como identificador operacional da consulta.
+
+### 28.1 Views já prontas
+
+| View | Finalidade | Principais informações |
+|---|---|---|
+| `v_elo_pcp_inteligente` | Visão integrada do PCP | demanda, planejamento e indicadores já consolidados pela estrutura existente |
+| `v_elo_pcp_montagem_externa` | Acompanhamento de montagem externa | ordens, clientes, módulos, equipe, horas, aderência e prazo |
+| `v_elo_pcp_capacidade_montagem_externa` | Capacidade planejada de equipe | função, período, colaboradores, horas e ordens |
+| `v_elo_pcp_indicadores_montagem_externa` | Indicadores consolidados da montagem | ordens, atrasos, módulos, equipe, horas e aderência |
+| `v_elo_pcp_montagem_externa_integrada` | PCP + montagem externa | quantidade PCP, planos, módulos, equipe, cobertura e produtividade planejada |
+| `v_elo_pcp_capacidade_rh_montagem` | Pico de necessidade de RH | colaboradores simultâneos, ordens simultâneas e função por data |
+
+### 28.2 Pedidos que o usuário pode fazer
+
+O usuário pode solicitar, por exemplo:
+
+- **“Abra a visão geral do PCP.”**
+- **“Mostre a montagem externa.”**
+- **“Mostre a capacidade da equipe de montagem.”**
+- **“Mostre os indicadores da montagem externa.”**
+- **“Cruze PCP com montagem externa.”**
+- **“Mostre o pico de necessidade de RH por função.”**
+- **“Mostre os pedidos atrasados da montagem externa.”**
+- **“Mostre a aderência entre horas planejadas e realizadas.”**
+- **“Mostre módulos por colaborador.”**
+- **“Mostre a cobertura de módulos pelo PCP.”**
+- **“Mostre o desvio de prazo por ordem.”**
+- **“Mostre a necessidade de equipe por dia.”**
+
+O ELO deve primeiro consultar a view existente antes de propor uma nova estrutura.
+
+## 29. Sugestões de novas views que podem ser solicitadas
+
+As sugestões abaixo são oportunidades de evolução e **não significam que essas views já existam**.
+
+### PCP e capacidade
+
+1. **Demanda × capacidade por período**
+   - demanda planejada;
+   - capacidade disponível;
+   - diferença;
+   - utilização;
+   - período.
+
+2. **Gargalos de capacidade**
+   - recurso/centro;
+   - carga;
+   - capacidade;
+   - ocupação;
+   - excesso de carga.
+
+3. **Carga futura do PCP**
+   - ordens abertas;
+   - horas planejadas;
+   - distribuição por semana/mês;
+   - concentração de carga.
+
+### RH
+
+4. **Gap de RH por função**
+   - necessidade;
+   - disponibilidade;
+   - gap;
+   - período.
+
+5. **Custo de mão de obra planejada**
+   - necessidade de colaboradores;
+   - custo diário/mensal disponível;
+   - custo estimado;
+   - função/cargo.
+
+6. **Produtividade de equipe**
+   - horas planejadas;
+   - horas realizadas;
+   - módulos;
+   - horas por módulo;
+   - módulos por colaborador.
+
+### Prazo e execução
+
+7. **Atrasos por ordem**
+   - prazo planejado;
+   - prazo realizado;
+   - dias de desvio;
+   - status.
+
+8. **Planejado × realizado**
+   - quantidade;
+   - horas;
+   - início;
+   - fim;
+   - desvio percentual.
+
+9. **Mapa de ordens críticas**
+   - atraso;
+   - carga;
+   - falta de capacidade;
+   - dependências;
+   - evidências disponíveis.
+
+### Demanda e comercial
+
+10. **Demanda confirmada × previsão**
+    - pedido confirmado;
+    - previsão;
+    - quantidade líquida;
+    - horizonte.
+
+11. **Demanda por cliente/localização**
+    - cliente;
+    - localização;
+    - quantidade;
+    - modelos;
+    - prazo.
+
+12. **Demanda por modelo**
+    - modelo;
+    - quantidade;
+    - pedidos;
+    - período.
+
+### Estoque e sincronização
+
+13. **Componentes críticos para montagem**
+    - necessidade;
+    - estoque;
+    - faltante;
+    - produção;
+    - situação de sincronização.
+
+14. **Estrutura × componentes × montagem**
+    - módulos;
+    - componentes necessários;
+    - disponibilidade;
+    - condição para montagem.
+
+### Regra para solicitar novas views
+
+Quando uma view sugerida for solicitada, o ELO deve:
+
+`META → verificar views existentes → verificar tabelas/fontes → identificar sobreposição → definir indicadores → implementar somente se houver justificativa → testar → validar`
+
+Não criar uma view apenas porque um indicador pode ser imaginado. A nova view deve representar uma necessidade analítica real e não duplicar uma autoridade existente.
+
+### 29.1 Pedido atualmente incorporado
+
+O pedido que originou este catálogo fica registrado como requisito funcional:
+
+> **“Incluir uma lista de opções de views que já estão prontas e sugestões de views que podem ser solicitadas, permitindo ao usuário escolher diretamente a próxima análise.”**
+
+Esse catálogo deve ser atualizado sempre que uma nova view for criada e validada.
