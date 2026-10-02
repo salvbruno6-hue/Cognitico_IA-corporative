@@ -1160,172 +1160,157 @@ A migration correspondente foi registrada em:
 Esse GAP de segurança é independente do cálculo de capacidade de RH e não deve ser misturado à lógica do PCP.
 
 
-## 33. Fator de correção da projeção de demanda — histórico × Comercial
 
-O PCP deve separar **demanda histórica observada** de **sinal futuro de demanda Comercial**.
+## 33. Fator de correção da demanda — histórico × Comercial
 
-A experiência histórica fornece a linha de base para projetar a necessidade operacional. Entretanto, essa linha de base não deve ser tratada como previsão rígida quando o Comercial sinalizar crescimento ou redução futura da demanda.
+O Comercial **não informa quantidade de pessoas**. A fonte Comercial informa a **quantidade de produtos/atendimentos esperados** para determinado contexto de demanda.
 
-A regra é aplicar uma **média ponderada entre a projeção histórica e a projeção Comercial**, produzindo um fator de correção que ajuste os indicadores operacionais.
+O PCP utiliza essa informação para identificar crescimento ou redução futura e corrigir a leitura histórica da necessidade operacional.
 
-### 33.1 Variáveis
+### 33.1 Fontes do sinal de demanda
 
-- H = projeção de demanda obtida a partir do histórico operacional;
-- C = projeção de demanda futura informada pelo Comercial;
-- w_H = peso atribuído ao histórico;
-- w_C = peso atribuído ao Comercial;
-- w_H + w_C = 1;
-- P_C = projeção corrigida;
-- F_C = fator de correção.
+O sinal futuro pode ser classificado como:
+- **EVENTO** — demanda associada a evento recorrente ou identificável;
+- **SPOT** — demanda pontual ou extraordinária;
+- **SAZONALIDADE** — variação associada a períodos ou ciclos recorrentes.
 
-### 33.2 Fórmula principal
+Quando houver histórico comparável, a comparação deve priorizar o **mesmo evento ou contexto equivalente**, e não simplesmente o mês anterior.
 
-A projeção corrigida será:
+### 33.2 Variáveis
 
-P_C = (H × w_H) + (C × w_C)
+- Q_base = quantidade de produtos do período/evento histórico de referência;
+- Q_comercial = quantidade de produtos prevista pelo Comercial para o próximo período/evento;
+- F_demanda = fator de correção da demanda;
+- V_demanda = variação percentual da demanda;
+- D_histórica = demanda humana histórica/base obtida pelo PCP;
+- D_projetada = demanda humana projetada.
 
-O fator de correção aplicado sobre o histórico será:
+### 33.3 Fator de crescimento ou redução
 
-F_C = P_C / H, quando H > 0.
+Quando existir histórico comparável:
 
-De forma equivalente:
+F_demanda = Q_comercial / Q_base
 
-F_C = 1 + w_C × ((C - H) / H)
+V_demanda = (F_demanda - 1) × 100
 
-Essa forma evidencia que o Comercial corrige a projeção histórica na proporção do peso definido para o sinal futuro.
+Interpretação:
+- F_demanda > 1 → crescimento projetado;
+- F_demanda < 1 → redução projetada;
+- F_demanda = 1 → manutenção da demanda.
 
-### 33.3 Aplicação ao indicador do PCP
+### 33.4 Aplicação à demanda humana
 
-Quando um indicador operacional tiver sido calculado com base histórica, o PCP deve aplicar:
+O Comercial não transforma diretamente produtos em pessoas.
 
-Indicador_corrigido = Indicador_histórico × F_C
+O PCP primeiro identifica, no histórico operacional, a relação observada entre volume produzido/atendido e necessidade de mão de obra.
 
-Assim:
+D_projetada = D_histórica × F_demanda
 
-- se C > H, o fator tende a ser maior que 1, corrigindo a projeção para cima;
-- se C < H, o fator tende a ser menor que 1, corrigindo a projeção para baixo;
-- se C = H, o fator será 1, mantendo a projeção histórica;
-- quanto maior o peso w_C, maior será a influência da sinalização Comercial.
+Exemplo: 100 produtos no período/evento anterior, 130 produtos no próximo evento e 10 pessoas como demanda humana histórica.
 
-### 33.4 Exemplo controlado
+F_demanda = 130 / 100 = 1,30
 
-Supondo:
+D_projetada = 10 × 1,30 = 13
 
-- projeção histórica H = 100 pessoas;
-- projeção Comercial C = 130 pessoas;
-- peso histórico w_H = 0,60;
-- peso Comercial w_C = 0,40.
+O resultado é uma projeção de 13 pessoas, derivada do comportamento histórico da operação e corrigida pela variação de volume informada pelo Comercial.
 
-Então:
+### 33.5 Média ponderada do histórico
 
-P_C = (100 × 0,60) + (130 × 0,40) = 112
+Quando houver mais de um período histórico comparável, a base pode ser calculada por média ponderada:
 
-F_C = 112 / 100 = 1,12
+Q_base = Σ(Q_i × w_i), com Σw_i = 1.
 
-Logo, um indicador histórico de necessidade de 100 pessoas passa a indicar 112 pessoas após a correção.
+Os pesos podem representar a relevância dos períodos históricos conforme regra posteriormente validada.
 
-Em cenário de queda, por exemplo C = 70:
+A comparação passa a ser:
 
-P_C = (100 × 0,60) + (70 × 0,40) = 88
+F_demanda = Q_comercial / Q_base
 
-F_C = 0,88
+Isso evita que um único período atípico determine sozinho a projeção.
 
-O mesmo mecanismo reduz a projeção em 12%.
+### 33.6 Regra específica para eventos
 
-Os valores acima são apenas exemplo matemático. Os pesos efetivos não devem ser fixados como regra universal sem validação com dados históricos, erro de previsão e confiabilidade das fontes.
+Para eventos recorrentes, o sistema deve procurar primeiro:
 
-### 33.5 Histórico também pode ser ponderado
+mesmo evento → período equivalente anterior → quantidade de produtos
 
-Quando houver vários períodos históricos, a projeção histórica H pode ser construída por média ponderada dos períodos:
+Exemplo conceitual:
 
-H = Σ(H_i × w_i), com Σw_i = 1.
+Evento A / ano atual → Evento A / ano anterior
 
-Caso a regra aprovada dê maior relevância aos períodos mais recentes, os períodos recentes podem receber pesos maiores.
+Não comparar automaticamente mês atual com mês anterior quando existir referência equivalente do próprio evento.
 
-A estrutura completa passa a ser:
+### 33.7 Spot
 
-H = Σ(H_i × w_i)
+Para uma demanda SPOT, a comparação com evento anterior somente deve ser feita se existir histórico operacional realmente comparável.
 
-P_C = (H × w_H) + (C × w_C)
+Se não existir:
+- registrar HISTORICO_COMPARAVEL_NAO_LOCALIZADO;
+- não inventar fator histórico;
+- utilizar a evidência Comercial disponível como previsão de volume;
+- manter explícita a limitação da projeção humana.
 
-F_C = P_C / H
+### 33.8 Sazonalidade
 
-Indicador_corrigido = Indicador_histórico × F_C
+Para demanda sazonal, a referência deve priorizar o período sazonal equivalente.
 
-### 33.6 Regra de governança
+Exemplo conceitual:
 
-O fator de correção não deve substituir a evidência histórica nem criar uma previsão artificial.
+Dezembro/ano atual × Dezembro/ano anterior
+
+em vez de simplesmente:
+
+Dezembro/ano atual × Novembro/ano atual.
+
+A sazonalidade é uma característica da demanda, não uma quantidade de mão de obra fornecida pelo Comercial.
+
+### 33.9 Governança do indicador
 
 O ELO/PCP deve registrar separadamente:
+1. origem da demanda: EVENTO, SPOT ou SAZONALIDADE;
+2. evento/contexto;
+3. período de referência;
+4. Q_base;
+5. Q_comercial;
+6. F_demanda;
+7. V_demanda;
+8. demanda humana histórica/base;
+9. demanda humana projetada;
+10. fonte e período de cada dado;
+11. indicação de ausência de histórico comparável, quando aplicável.
 
-1. histórico utilizado;
-2. pesos históricos, quando houver;
-3. projeção histórica H;
-4. projeção Comercial C;
-5. pesos w_H e w_C;
-6. projeção corrigida P_C;
-7. fator de correção F_C;
-8. indicador antes da correção;
-9. indicador após a correção;
-10. período e fonte de cada entrada.
+A fórmula deve ser reproduzível e auditável.
 
-A correção deve ser reproduzível e auditável.
+### 33.10 Fluxo do indicador
 
-### 33.7 Regra para o indicador de demanda humana
+Comercial → Quantidade de produtos → Comparação com histórico equivalente → Fator de crescimento/redução → PCP → Demanda humana projetada → RH
 
-Para a demanda humana das operações externas, a sequência conceitual será:
+Portanto, **o Comercial fornece o volume futuro; o PCP traduz a variação desse volume em necessidade humana projetada**.
 
-Operações planejadas → Demanda histórica/base → Sinal futuro Comercial → Fator de correção → Demanda humana projetada → RH
+### 33.11 Escopo atual
 
-Esta etapa **não calcula disponibilidade de RH**.
+Nesta etapa, o mecanismo será aplicado somente à **demanda humana das operações externas**.
 
-O resultado entregue ao RH é a necessidade projetada de pessoas por período e função, considerando a base operacional e o ajuste de tendência Comercial.
+Não faz parte desta etapa modelar disponibilidade de RH, jornada, escala, turno, afastamento, férias, folga, alocação disponível ou GAP de capacidade de RH.
 
-### 33.8 Tratamento de histórico igual a zero
+A demanda humana das operações internas será tratada posteriormente.
 
-Se H = 0, o fator F_C = P_C/H não deve ser calculado por divisão.
+### 33.12 Histórico igual a zero
 
-Nesse caso, o estado deve ser explicitamente tratado como:
+Se Q_base = 0, o fator F_demanda não deve ser calculado por divisão.
 
-- HISTORICO_ZERO;
-- FATOR_CORRECAO = NAO_CALCULAVEL;
-- se C > 0, utilizar a projeção Comercial como evidência futura disponível, sem inventar um fator multiplicativo;
-- registrar a limitação para posterior validação.
+O estado deve ser:
+- BASE_HISTORICA_ZERO;
+- FATOR_DEMANDA = NAO_CALCULAVEL;
+- não criar fator arbitrário;
+- registrar a necessidade de uma base comparável validada.
 
-Não criar fator arbitrário para contornar divisão por zero.
+### 33.13 Regra cognitiva
 
-### 33.9 Escopo atual
+A pergunta do ELO deve ser:
 
-Nesta etapa, o mecanismo deve ser aplicado à **demanda humana das operações externas**.
+> **Quanto a demanda futura de produtos, informada pelo Comercial, mudou em relação ao período/evento comparável anterior e qual impacto proporcional essa mudança produz sobre a necessidade humana operacional?**
 
-Fluxo atual:
+Não: “Quantas pessoas o Comercial informou?”
 
-PCP → Operações externas → Demanda humana → Correção pela projeção Comercial → RH
-
-A demanda humana das operações internas será tratada posteriormente, em etapa separada.
-
-Não faz parte desta etapa modelar:
-
-- disponibilidade de RH;
-- jornada;
-- escala;
-- turno;
-- afastamento;
-- férias;
-- folga;
-- alocação disponível;
-- GAP de capacidade de RH.
-
-O objetivo atual é calcular e comunicar **necessidade futura de pessoas**, e não disponibilidade.
-
-### 33.10 Regra cognitiva
-
-O ELO deve responder à pergunta:
-
-> Qual é a necessidade humana projetada considerando o que a operação indica historicamente e o que o Comercial sinaliza para o futuro?
-
-E não apenas:
-
-> Quantas pessoas foram necessárias no passado?
-
-A diferença é o uso controlado do fator de correção para transformar evidência histórica em projeção ajustada ao cenário futuro.
+Essa distinção é obrigatória para manter a responsabilidade de cada domínio.
