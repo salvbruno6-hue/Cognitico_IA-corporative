@@ -114,11 +114,16 @@ def preparar_documento(dados: dict) -> dict:
         responsavel=responsavel,
         justificativa=justificativa,
     )
+    competitividade = dict(integracao.competitividade)
+    validacao = dict(integracao.validacao)
+    resultado_arbitrado = dict(integracao.resultado_arbitrado)
+    elo_aprender = dict(integracao.elo_aprender)
+    filtrado["competitividade"] = competitividade
     filtrado["integracao"] = {
-        "competitividade": dict(integracao.competitividade),
-        "validacao": dict(integracao.validacao),
-        "resultado_arbitrado": dict(integracao.resultado_arbitrado),
-        "elo_aprender": dict(integracao.elo_aprender),
+        "competitividade": competitividade,
+        "validacao": validacao,
+        "resultado_arbitrado": resultado_arbitrado,
+        "elo_aprender": elo_aprender,
     }
     return filtrado
 
