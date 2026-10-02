@@ -159,7 +159,40 @@ A camada abaixo complementa a auditoria anterior. Ela não substitui TR × orça
 
 **Regra:** BASE preserva o orçamento original; COMPETITIVO aplica somente oportunidades sustentadas; MÁXIMO demonstra limite possível sem representar autorização de execução.
 
-## 15. CHECKLIST DE COMPLETUDE
+## 16. INTEGRAÇÃO — VALIDAÇÃO, ARBITRAGEM E ELO APRENDER
+
+A integração operacional conecta as duas camadas sem criar uma segunda PTS.
+
+### 16.1 Validação
+
+| Campo | Resultado |
+|---|---|
+| Status proposto | {{ integracao.validacao.status_proposto | default("não executada") }} |
+| Divergências | {{ integracao.validacao.divergencias | default("—") }} |
+| Pendências | {{ integracao.validacao.pendencias | default("—") }} |
+| Checklist inconclusivo | {{ integracao.validacao.checklist_inconclusivo | default("—") }} |
+| Requer arbitragem | {{ integracao.validacao.requer_arbitragem | default("sim") }} |
+
+### 16.2 Resultado arbitrado
+
+| Campo | Resultado |
+|---|---|
+| Status | {{ integracao.resultado_arbitrado.status | default("AGUARDANDO_ARBITRAGEM") }} |
+| Responsável | {{ integracao.resultado_arbitrado.responsavel | default("não informado") }} |
+| Justificativa | {{ integracao.resultado_arbitrado.justificativa | default("arbitragem ainda não registrada") }} |
+| Arbitragem explícita | {{ integracao.resultado_arbitrado.arbitragem_explicita | default(false) }} |
+
+### 16.3 ELO APRENDER
+
+| Campo | Resultado |
+|---|---|
+| Status | {{ integracao.elo_aprender.status | default("CANDIDATA") }} |
+| Origem | {{ integracao.elo_aprender.origem | default("PTS Pós-Orçamento") }} |
+| Resultado arbitrado | {{ integracao.elo_aprender.resultado_arbitrado | default("aguardando arbitragem") }} |
+
+**Regra de governança:** o pacote do ELO APRENDER é evidência candidata. Não promove regra, memória ou conhecimento ao Core e não altera o orçamento automaticamente.
+
+## 17. CHECKLIST DE COMPLETUDE
 
 | Verificação | Resultado |
 |---|---|
@@ -167,7 +200,7 @@ A camada abaixo complementa a auditoria anterior. Ela não substitui TR × orça
 | {{ k }} | {{ v }}
 {% endfor %}
 
-## 16. CONCLUSÃO E VALIDAÇÃO
+## 18. CONCLUSÃO E VALIDAÇÃO
 
 {{ conclusao | default("não informada") }}
 
@@ -177,7 +210,7 @@ PTS Técnica → requisito → solução → quantitativo previsto → orçament
 
 A PTS Pós não aprova automaticamente alteração de orçamento nem promove aprendizado ao Core.
 
-## 17. REGRA DE RASTREABILIDADE
+## 19. REGRA DE RASTREABILIDADE
 
 A cadeia canônica é:
 

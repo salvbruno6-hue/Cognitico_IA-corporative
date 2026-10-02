@@ -18,7 +18,8 @@
     "camada_analitica_competitividade",
     "checklist_de_completude",
     "conclusao_e_validacao",
-    "regra_de_rastreabilidade"
+    "regra_de_rastreabilidade",
+    "integracao_validacao_arbitragem_aprender"
   ],
   "referencia_pts_tecnica": {
     "campos": [
@@ -234,6 +235,33 @@
       "itens_alterados",
       "premissas_alteradas",
       "risco"
+    ]
+  },
+  "integracao_validacao_arbitragem_aprender": {
+    "ordem": [
+      "AUDITORIA",
+      "CAMADA_ANALITICA_DE_COMPETITIVIDADE",
+      "VALIDACAO",
+      "RESULTADO_ARBITRADO",
+      "ELO_APRENDER"
+    ],
+    "campos": [
+      "competitividade",
+      "validacao",
+      "resultado_arbitrado",
+      "elo_aprender"
+    ],
+    "regra": "A competitividade consome a auditoria. A validação produz apenas uma proposta. O resultado arbitrado exige responsável e justificativa explícitos. O pacote ELO APRENDER permanece candidato e não é persistido/promovido automaticamente.",
+    "status_validacao": [
+      "VALIDADO",
+      "VALIDADO_COM_PENDENCIAS",
+      "NAO_VALIDADO"
+    ],
+    "status_arbitragem": [
+      "AGUARDANDO_ARBITRAGEM",
+      "VALIDADO",
+      "VALIDADO_COM_PENDENCIAS",
+      "NAO_VALIDADO"
     ]
   }
 }

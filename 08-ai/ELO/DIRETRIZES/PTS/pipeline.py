@@ -12,6 +12,8 @@ import json
 import sys
 from pathlib import Path
 
+from POS_ORCAMENTO_INTEGRATION import integrate
+
 TECH_TYPES = {"PAD", "EXC", "PRJ", "FOR", "CLI"}
 RESPONSAVEIS = {"ENG", "PLA", "FOR", "CONTRATADA", "FAB"}
 CURVAS = {"A", "B", "C"}
@@ -186,7 +188,12 @@ def main():
         )
         print("[OK] itens herdados: sem referências órfãs")
         print("[OK] validação cruzada: PTS Técnica ↔ Orçamento ↔ PTS Pós")
-        print("[OK] rastreabilidade: TR → PTS Técnica → Orçamento → PTS Pós → Validação")
+        integracao = integrate(pos)
+        print("[OK] camada analítica de competitividade: integrada à auditoria")
+        print("[OK] validação: proposta " + integracao.validacao["status_proposto"])
+        print("[OK] arbitragem: " + integracao.arbitrado["status"])
+        print("[OK] ELO APRENDER: pacote candidato, sem promoção automática")
+        print("[OK] rastreabilidade: TR → PTS Técnica → Orçamento → PTS Pós → Auditoria → Competitividade → Validação → Arbitragem → ELO APRENDER")
         return 0
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         print(f"[ERRO] {exc}", file=sys.stderr)

@@ -29,7 +29,11 @@ ORÇAMENTO
  ↓
 PTS PÓS-ORÇAMENTO
  ↓
-VALIDAÇÃO CRUZADA
+AUDITORIA
+ ↓
+CAMADA ANALÍTICA DE COMPETITIVIDADE
+ ↓
+VALIDAÇÃO
  ↓
 RESULTADO ARBITRADO
  ↓
@@ -224,11 +228,37 @@ PTS Técnica ──────┐
 PTS Pós ──────────┘
 ```
 
+A validação é um **gate**: ela produz uma proposta de resultado, mas não arbitra sozinha.
+
 Resultado possível:
 
 - `VALIDADO`;
 - `VALIDADO_COM_PENDÊNCIAS`;
 - `NÃO_VALIDADO`.
+
+### 16.1 Arbitragem explícita
+
+O resultado arbitrado somente pode ser registrado quando houver:
+
+- status arbitrado;
+- responsável;
+- justificativa;
+- evidências que sustentem a decisão.
+
+Sem esses elementos, o estado permanece:
+
+`AGUARDANDO_ARBITRAGEM`.
+
+### 16.2 ELO APRENDER
+
+Após a arbitragem, a PTS Pós pode gerar um **pacote candidato** para o ELO APRENDER contendo resultado, decisões, evidências, memórias de cálculo, padrões e limitações.
+
+Esse pacote:
+
+- não promove conhecimento ao Core;
+- não altera orçamento;
+- não cria uma nova autoridade de memória;
+- depende da governança do ELO APRENDER para eventual promoção.
 
 ## 17. Regra de rastreabilidade
 
