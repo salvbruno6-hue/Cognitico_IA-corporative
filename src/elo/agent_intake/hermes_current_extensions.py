@@ -33,6 +33,33 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-PROMPT-CACHE-HERMES", "cross-session prompt caching", "ELO Model/Tool Routing", "bounded cache scope and invalidation contract"),
 )
 
+CURRENT_DISCOVERY_DATE = "2026-10-02"
+CURRENT_DISCOVERY_SOURCE = "Hermes public capability documentation"
+
+
+@dataclass(frozen=True, slots=True)
+class HermesSurfaceObservation:
+    """Current source observation; never an ELO authorization or promotion."""
+
+    candidate_id: str
+    change: str
+    interface: str
+    dependencies: tuple[str, ...]
+    relations: tuple[str, ...]
+    safety_boundary: tuple[str, ...]
+    validation_state: str = "SOURCE_OBSERVED_CANDIDATE_ONLY"
+
+
+CURRENT_SURFACE_OBSERVATIONS: tuple[HermesSurfaceObservation, ...] = (
+    HermesSurfaceObservation("EXT-TOOL-SEARCH-HERMES", "Progressive disclosure now defers MCP/plugin tools and optionally named built-ins behind tool_search/tool_describe/tool_call; connector results can be searched remotely.", "tool_search(queries), tool_describe(names), tool_call(calls)", ("MCP", "plugin tools", "connector gateway"), ("ELO Model/Tool Routing", "ELO External Capability Gateway", "skills"), ("selected tool is not executed during discovery", "catalog size and schema disclosure remain bounded")),
+    HermesSurfaceObservation("EXT-MCP-HERMES", "MCP supports stdio and HTTP servers, startup discovery, per-server filtering, and connector-backed remote discovery.", "MCP server descriptor + filtered tool registration", ("MCP transport", "external tool server", "connector gateway"), ("ELO External Capability Gateway", "ELO Model/Tool Routing"), ("server/tool allowlist", "external results are untrusted data")),
+    HermesSurfaceObservation("EXT-PLUGIN-CATALOG-HERMES", "Plugin discovery is broader: general, memory-provider, context-engine, and model-provider surfaces; installs/updates apply static security scanning and activation remains explicit for general plugins.", "plugin.yaml + register(ctx) + provider selection", ("plugin catalog", "security scanner", "MCP allowlist"), ("skills", "tool routing", "external capability gateway"), ("discovery is not activation", "untrusted plugin code is not treated as audited")),
+    HermesSurfaceObservation("EXT-MEMPROVIDER-HERMES", "Current documentation lists eight external memory providers; exactly one external provider is active while built-in memory remains additive.", "memory.provider selection + provider lifecycle", ("persistent memory", "provider plugin"), ("ELO Memory", "ELO Context", "learning governance"), ("provider does not become memory authority", "scope/provenance must remain explicit")),
+    HermesSurfaceObservation("EXT-CODE-EXEC-HERMES", "execute_code runs programmatic tool orchestration in a child process through RPC; intermediate tool results stay out of model context.", "execute_code script + Hermes RPC transport", ("tool registry", "sandbox/child process", "RPC"), ("ELO Model/Tool Routing", "ExecutionBoundary", "evidence"), ("no business operation during discovery", "authorization and side-effect class remain ELO controls")),
+    HermesSurfaceObservation("EXT-API-HERMES", "API surface now includes OpenAI-compatible chat/responses, runs/events, jobs, capability discovery, idempotency keys and session-key correlation.", "HTTP API + bearer auth + run/session metadata", ("API server", "profile routing", "persistent response/session state"), ("ELO External Capability Gateway", "ELO Workflow/Automation", "ELO Agent Context & Delegation"), ("authenticated boundary", "idempotent retries must preserve identity", "read-only capability discovery")),
+    HermesSurfaceObservation("EXT-ACP-HERMES", "ACP exposes a curated editor toolset including terminal, execute_code and delegation while intentionally excluding cron/messaging; hosts may own MCP per session.", "ACP stdio session + curated toolset", ("agent-client protocol", "MCP session injection", "host approvals"), ("ELO Agent Context & Delegation", "ELO Context", "ELO External Capability Gateway"), ("host-controlled permissions can be unattended", "session identity and authorization must not be inferred")),
+)
+
 
 @dataclass(frozen=True, slots=True)
 class HermesCandidate:
@@ -62,15 +89,7 @@ def build_candidate(candidate_id: str) -> HermesCandidate:
     raise ValueError(f"unknown Hermes candidate: {candidate_id}")
 
 
-def evaluate_candidate(
-    candidate: HermesCandidate,
-    baseline: Mapping[str, float],
-    adapted: Mapping[str, float],
-    *,
-    regressions: tuple[str, ...] = (),
-    repeatable: bool = False,
-    metric_directions: Mapping[str, str] | None = None,
-) -> CandidateMeasurement:
+def evaluate_candidate(candidate: HermesCandidate, baseline: Mapping[str, float], adapted: Mapping[str, float], *, regressions: tuple[str, ...] = (), repeatable: bool = False, metric_directions: Mapping[str, str] | None = None) -> CandidateMeasurement:
     if candidate.promotion_state != "candidate_only" or candidate.canonical_mutation:
         return CandidateMeasurement(candidate.candidate_id, baseline, adapted, regressions, repeatable, "REJECT")
     common = baseline.keys() & adapted.keys()
@@ -95,4 +114,4 @@ def evaluate_candidate(
     return CandidateMeasurement(candidate.candidate_id, baseline, adapted, regressions, repeatable, result)
 
 
-__all__ = ["CANDIDATES", "CandidateMeasurement", "HermesCandidate", "build_candidate", "evaluate_candidate"]
+__all__ = ["CANDIDATES", "CURRENT_DISCOVERY_DATE", "CURRENT_DISCOVERY_SOURCE", "CURRENT_SURFACE_OBSERVATIONS", "CandidateMeasurement", "HermesCandidate", "HermesSurfaceObservation", "build_candidate", "evaluate_candidate"]
