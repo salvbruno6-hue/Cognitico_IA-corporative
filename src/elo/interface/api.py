@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from time import perf_counter
+from uuid import uuid4
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 
 from elo.cognitive import CognitiveCore
 from .contracts import CognitiveRequest, CognitiveResponse, ErrorContract
