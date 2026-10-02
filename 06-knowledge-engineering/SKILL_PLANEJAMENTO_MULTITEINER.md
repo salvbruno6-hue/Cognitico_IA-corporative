@@ -829,3 +829,44 @@ Quando nova evidência for incorporada:
 - se alterar a conclusão, registrar qual evidência provocou a mudança.
 
 O mesmo conjunto de dados, meta e versão da Skill deve produzir o mesmo resultado quantitativo determinístico.
+
+
+## 27. Capacidade de RH aplicada à montagem externa
+
+A camada de evidência PCP passa a reconhecer a necessidade de capacidade humana sem criar uma nova autoridade de RH.
+
+A fonte operacional é a equipe planejada da montagem externa:
+
+- `mt_equipe_montagem_externa`;
+- `mt_funcoes_montagem`.
+
+A visão `v_elo_pcp_capacidade_rh_montagem` consolida, por data e função:
+
+- colaboradores simultâneos planejados;
+- ordens simultâneas;
+- código e nome da função.
+
+A leitura cognitiva é:
+
+`DEMANDA/PLANO → ORDEM → EQUIPE → FUNÇÃO → PICO SIMULTÂNEO`
+
+### 27.1 Regra de capacidade
+
+O pico de colaboradores é uma evidência de necessidade de mão de obra planejada, não uma afirmação de capacidade disponível.
+
+A comparação com disponibilidade real de RH somente deve ser calculada quando existir fonte operacional que registre essa disponibilidade na mesma unidade e período.
+
+Portanto:
+
+- `PICO_COLABORADORES` = necessidade planejada observada;
+- `CAPACIDADE_RH_DISPONIVEL` = somente quando houver fonte compatível;
+- `GAP_RH` = somente quando ambos forem localizados e comparáveis.
+
+Não utilizar `mt_capacidade_diaria` para representar automaticamente capacidade de pessoas, pois sua estrutura registra capacidade quantitativa de centro de trabalho e não estabelece, por si só, equivalência com colaboradores.
+
+### 27.2 Evidência atual
+
+No estado atual do Supabase, as estruturas de montagem externa e PCP consultadas não possuem registros operacionais. Assim, a visão está implementada e validada estruturalmente, mas ainda não há pico real calculável.
+
+O próximo dado operacional necessário para fechar o ciclo é o preenchimento de equipes planejadas com datas, funções e pessoas e, posteriormente, uma fonte compatível de disponibilidade de RH.
+
