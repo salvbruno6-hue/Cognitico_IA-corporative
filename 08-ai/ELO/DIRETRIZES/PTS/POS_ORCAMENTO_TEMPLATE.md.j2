@@ -121,6 +121,44 @@ A matriz confronta PTS Técnica, TR e orçamento. Ela não substitui a PTS Técn
 
 {{ itens_nao_orcados | default("não informado") }}
 
+## 15. CAMADA ANALÍTICA DE COMPETITIVIDADE
+
+A camada abaixo complementa a auditoria anterior. Ela não substitui TR × orçamento, divergências, riscos ou pendências.
+
+### 15.1 Indicadores
+
+| Item | Classe ABC | Peso % | Conhecimento | Flexibilidade | Risco | Decisão | Evidência | Oportunidade | Responsável |
+|---|---|---:|---|---|---|---|---|---|---|
+{% for c in competitividade.indicadores | default([]) -%}
+| {{ c.item }} | {{ c.abc }} | {{ c.peso }} | {{ c.conhecimento }} | {{ c.flexibilidade }} | {{ c.risco }} | {{ c.decisao }} | {{ c.evidencia }} | {{ c.oportunidade }} | {{ c.responsavel }} |
+{% endfor %}
+
+### 15.2 Curva ABC
+
+| Classe | Critério | Itens | Peso acumulado | Tratamento |
+|---|---|---|---:|---|
+{% for c in competitividade.curva_abc | default([]) -%}
+| {{ c.classe }} | {{ c.criterio }} | {{ c.itens }} | {{ c.peso_acumulado }} | {{ c.tratamento }} |
+{% endfor %}
+
+### 15.3 Oportunidades
+
+| Item | ABC | O que | Quanto | Por quê | Evidência | Impacto | Risco | Quem decide | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+{% for o in competitividade.oportunidades | default([]) -%}
+| {{ o.item }} | {{ o.abc }} | {{ o.o_que }} | {{ o.quanto }} | {{ o.por_que }} | {{ o.evidencia }} | {{ o.impacto }} | {{ o.risco }} | {{ o.quem_decide }} | {{ o.resultado }} |
+{% endfor %}
+
+### 15.4 Cenários
+
+| Cenário | Valor total | Variação R$ | Variação % | Itens alterados | Premissas alteradas | Risco |
+|---|---:|---:|---:|---|---|---|
+{% for s in competitividade.cenarios | default([]) -%}
+| {{ s.nome }} | {{ s.valor_total }} | {{ s.variacao_rs }} | {{ s.variacao_pct }} | {{ s.itens_alterados }} | {{ s.premissas_alteradas }} | {{ s.risco }} |
+{% endfor %}
+
+**Regra:** BASE preserva o orçamento original; COMPETITIVO aplica somente oportunidades sustentadas; MÁXIMO demonstra limite possível sem representar autorização de execução.
+
 ## 15. CHECKLIST DE COMPLETUDE
 
 | Verificação | Resultado |

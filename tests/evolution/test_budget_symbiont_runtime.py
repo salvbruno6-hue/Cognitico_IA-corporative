@@ -19,7 +19,7 @@ class FakeLearning:
         self.captured += 1
         return ExperienceRecord("exp-1", kwargs["tenant_id"], kwargs["domain"], kwargs["decision_id"], kwargs["expected_outcome"], kwargs["observed_outcome"], kwargs["evidence_ids"], 0.0)
 
-    def propose_candidate(self, experience, *, dataset_version, hypothesis):
+    def propose_candidate(self, experience, *, dataset_version, hypothesis, provenance=None):
         return LearningCandidate("cand-1", experience.experience_id, experience.tenant_id, experience.domain, hypothesis, dataset_version, {"experience_id": experience.experience_id})
 
 

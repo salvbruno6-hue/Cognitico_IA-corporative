@@ -7,6 +7,15 @@
 
 A PTS Pós-Orçamento acontece **depois do orçamento**. Ela não refaz a PTS Técnica e não substitui a planilha orçamentária. Sua função é confrontar o que foi tecnicamente identificado com o que efetivamente foi orçado.
 
+A PTS Pós possui **duas camadas complementares e não sobrepostas**:
+
+1. **Camada de Auditoria** — comprova correspondência, ausência ou divergência entre PTS Técnica, TR e orçamento.
+2. **Camada Analítica de Competitividade** — recebe a auditoria como entrada e analisa prioridade econômica, conhecimento, evidência, flexibilidade, risco, oportunidades, cenários e decisão.
+
+A segunda camada **não corrige, apaga ou substitui** o resultado da primeira. Ela trabalha sobre os itens já rastreados e preserva suas divergências, premissas e pendências.
+
+A camada de competitividade é definida operacionalmente em `docs/orcamento/ELO_PTS_POS_COMPETITIVIDADE.md`. Ela é uma extensão da PTS Pós, não uma segunda PTS.
+
 Fluxo canônico:
 
 ```text
@@ -135,6 +144,45 @@ A PTS Pós não resolve silenciosamente uma consulta ainda não confirmada.
 Relaciona requisitos, soluções ou componentes sem correspondente confirmado no orçamento.
 
 Ausência de correspondência é um resultado válido da auditoria.
+
+## 15A. CAMADA ANALÍTICA DE COMPETITIVIDADE
+
+Após a auditoria, a PTS Pós pode aplicar a camada analítica de competitividade. Esta camada não reabre silenciosamente a PTS Técnica nem altera o orçamento.
+
+### Indicadores
+
+| Indicador | Valores permitidos | Função |
+|---|---|---|
+| Conhecimento | FORTE / MEDIO / FRACO / AUSENTE / CONFLITANTE | Mede a sustentação cognitiva do item |
+| Flexibilidade | ALTA / MEDIA / BAIXA / INDETERMINADA | Indica possibilidade de revisão |
+| Risco | BAIXO / MEDIO / ALTO / CRITICO | Expõe consequência da alteração |
+| Decisão | MANTER / REVISAR / NEGOCIAR / SUBSTITUIR / REESTRUTURAR / CONFIRMAR / NAO_REDUZIR / AGUARDAR_DECISAO | Registra a decisão competente |
+
+### Curva ABC e cenários
+
+A Curva ABC deve priorizar a análise econômica; não representa criticidade técnica nem autorização de redução.
+
+Os cenários, quando aplicáveis, são:
+
+- **BASE** — preserva o orçamento original;
+- **COMPETITIVO** — aplica somente oportunidades sustentadas por evidência e viabilidade;
+- **MÁXIMO** — demonstra limite tecnicamente possível, explicitando risco e premissas, sem autorização automática.
+
+A análise deve preservar a cadeia:
+
+**item → classe ABC → peso financeiro → conhecimento → evidência → flexibilidade → risco → oportunidade → cenário → decisão → responsável.**
+
+### Regra de complementaridade
+
+A camada analítica não pode:
+
+- converter premissa em fato;
+- eliminar divergência da auditoria;
+- transformar risco em decisão automática;
+- alterar quantitativo ou preço sem arbitragem;
+- promover conhecimento ao Core.
+
+A camada de auditoria responde **“o orçamento corresponde ao que foi definido?”**. A camada analítica responde **“o que merece análise prioritária e sob quais condições?”**.
 
 ## 15. Checklist de completude
 
