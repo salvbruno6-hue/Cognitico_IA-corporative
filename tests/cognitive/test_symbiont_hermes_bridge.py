@@ -8,7 +8,7 @@ def _request(capabilities=("skill:execute",)):
     return HermesExecutionRequest(
         request_id="symbiont-hermes-001",
         intent="executar capacidade autorizada",
-        context={"domain": "test"},
+        context={"domain": "test", "skill_id": "skill:test", "decision_id": "decision:test"},
         tenant_scope="tenant-test",
         mission_class="skill_execution",
         authorized_capabilities=capabilities,
