@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from .hermes_learning_graph_functional_evaluation import LearningGraphFunctionalEvidence
 from .hermes_learning_boundary import LearningGraphRelation, validate_graph_relation
 from .runtime_operational_evidence import (
     RepeatabilityEvidence,
