@@ -59,3 +59,31 @@ def test_non_repeatable_gain_requires_retest():
     candidate = build_candidate("EXT-BATCH-HERMES")
     result = evaluate_candidate(candidate, {"recall": 0.60}, {"recall": 0.70}, repeatable=False, metric_directions={"recall": "maximize"})
     assert result.result == "RETEST"
+
+
+def test_current_surface_observations_are_bounded_and_non_authoritative():
+    from src.elo.agent_intake.hermes_current_extensions import (
+        CURRENT_DISCOVERY_DATE,
+        CURRENT_SURFACE_OBSERVATIONS,
+    )
+
+    assert CURRENT_DISCOVERY_DATE == "2026-10-02"
+    assert len(CURRENT_SURFACE_OBSERVATIONS) == 7
+    assert len({item.candidate_id for item in CURRENT_SURFACE_OBSERVATIONS}) == 7
+    for item in CURRENT_SURFACE_OBSERVATIONS:
+        assert item.validation_state == "SOURCE_OBSERVED_CANDIDATE_ONLY"
+        assert item.dependencies
+        assert item.relations
+        assert item.safety_boundary
+        assert "authority" not in item.change.lower()
+        assert "promotion" not in item.change.lower()
+
+
+def test_current_surface_observations_map_to_registered_candidates():
+    from src.elo.agent_intake.hermes_current_extensions import (
+        CANDIDATES,
+        CURRENT_SURFACE_OBSERVATIONS,
+    )
+
+    registered = {candidate_id for candidate_id, *_ in CANDIDATES}
+    assert {item.candidate_id for item in CURRENT_SURFACE_OBSERVATIONS} <= registered
