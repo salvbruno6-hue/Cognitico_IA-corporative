@@ -1161,156 +1161,191 @@ Esse GAP de segurança é independente do cálculo de capacidade de RH e não de
 
 
 
-## 33. Fator de correção da demanda — histórico × Comercial
 
-O Comercial **não informa quantidade de pessoas**. A fonte Comercial informa a **quantidade de produtos/atendimentos esperados** para determinado contexto de demanda.
+## 33. Fator de correção da demanda — volume Comercial × produtividade por função
 
-O PCP utiliza essa informação para identificar crescimento ou redução futura e corrigir a leitura histórica da necessidade operacional.
+O Comercial **não informa quantidade de pessoas** e o fator de crescimento **não representa automaticamente percentual de contratação**.
 
-### 33.1 Fontes do sinal de demanda
+O Comercial informa a quantidade futura de produtos/atendimentos associada a `EVENTO`, `SPOT` ou `SAZONALIDADE`. O PCP transforma a variação desse volume em **carga futura equivalente** e, somente depois, relaciona essa carga à produtividade histórica de cada função.
 
-O sinal futuro pode ser classificado como:
-- **EVENTO** — demanda associada a evento recorrente ou identificável;
-- **SPOT** — demanda pontual ou extraordinária;
-- **SAZONALIDADE** — variação associada a períodos ou ciclos recorrentes.
+### 33.1 Regra central
 
-Quando houver histórico comparável, a comparação deve priorizar o **mesmo evento ou contexto equivalente**, e não simplesmente o mês anterior.
+O raciocínio correto é:
 
-### 33.2 Variáveis
+Comercial → volume futuro → fator de crescimento/redução → carga projetada → produtividade por função → capacidade humana necessária → RH
 
-- Q_base = quantidade de produtos do período/evento histórico de referência;
-- Q_comercial = quantidade de produtos prevista pelo Comercial para o próximo período/evento;
-- F_demanda = fator de correção da demanda;
-- V_demanda = variação percentual da demanda;
-- D_histórica = demanda humana histórica/base obtida pelo PCP;
-- D_projetada = demanda humana projetada.
+Portanto:
 
-### 33.3 Fator de crescimento ou redução
+**30% de crescimento da demanda não significa contratar automaticamente 30% de pessoas.**
 
-Quando existir histórico comparável:
+Significa que a carga de produtos/atendimentos projetada aumenta 30%. O impacto em cada função depende da produtividade e da participação daquela função na execução.
 
-F_demanda = Q_comercial / Q_base
+### 33.2 Exemplo com 50 novos contratos
 
-V_demanda = (F_demanda - 1) × 100
+Supondo que os dados de `EVENTO`, `SPOT` e `SAZONALIDADE` indiquem **50 novos contratos** para o período futuro e que a comparação com o período/evento equivalente produza um crescimento de `30%`.
 
-Interpretação:
-- F_demanda > 1 → crescimento projetado;
-- F_demanda < 1 → redução projetada;
-- F_demanda = 1 → manutenção da demanda.
+O fator de demanda será:
 
-### 33.4 Aplicação à demanda humana
+F_demanda = 1,30
 
-O Comercial não transforma diretamente produtos em pessoas.
+A carga projetada equivalente será:
 
-O PCP primeiro identifica, no histórico operacional, a relação observada entre volume produzido/atendido e necessidade de mão de obra.
+50 × 1,30 = 65 contratos-equivalentes
 
-D_projetada = D_histórica × F_demanda
+A diferença projetada é:
 
-Exemplo: 100 produtos no período/evento anterior, 130 produtos no próximo evento e 10 pessoas como demanda humana histórica.
+65 - 50 = 15 contratos-equivalentes adicionais
 
-F_demanda = 130 / 100 = 1,30
+Esses 30% representam **crescimento da demanda**, e não 30% de contratação.
 
-D_projetada = 10 × 1,30 = 13
+### 33.3 Distribuição por função
 
-O resultado é uma projeção de 13 pessoas, derivada do comportamento histórico da operação e corrigida pela variação de volume informada pelo Comercial.
+As funções devem ser analisadas individualmente, porque cada uma possui produtividade e participação operacional diferentes.
 
-### 33.5 Média ponderada do histórico
+Exemplos de funções:
 
-Quando houver mais de um período histórico comparável, a base pode ser calculada por média ponderada:
+- eletricista;
+- bombeiro hidráulico;
+- montador;
+- ajudante;
+- serralheiro;
+- soldador.
 
-Q_base = Σ(Q_i × w_i), com Σw_i = 1.
+Para cada função `f`, o PCP deve possuir uma referência de produtividade, por exemplo:
 
-Os pesos podem representar a relevância dos períodos históricos conforme regra posteriormente validada.
+Produtividade_f = contratos atendidos por colaborador da função no período de referência.
 
-A comparação passa a ser:
+A capacidade humana necessária pode ser estimada por:
 
-F_demanda = Q_comercial / Q_base
+Demanda_colaboradores_f = Carga_projetada_f / Produtividade_f
 
-Isso evita que um único período atípico determine sozinho a projeção.
+Quando a produtividade estiver expressa como contratos por colaborador/período.
 
-### 33.6 Regra específica para eventos
+### 33.4 Exemplo conceitual por produtividade
 
-Para eventos recorrentes, o sistema deve procurar primeiro:
+Se a carga futura for de 65 contratos-equivalentes e, hipoteticamente, determinada função tiver produtividade histórica de 10 contratos por colaborador no período:
 
-mesmo evento → período equivalente anterior → quantidade de produtos
+65 / 10 = 6,5 colaboradores-equivalentes
 
-Exemplo conceitual:
+O valor não significa automaticamente seis ou sete contratações. Ele representa uma **necessidade de capacidade humana equivalente**, que posteriormente deve ser confrontada com a forma de trabalho, arredondamento operacional, composição da equipe e regras do domínio responsável.
 
-Evento A / ano atual → Evento A / ano anterior
+Para outra função com produtividade diferente, o resultado será diferente mesmo diante dos mesmos 65 contratos-equivalentes.
 
-Não comparar automaticamente mês atual com mês anterior quando existir referência equivalente do próprio evento.
+### 33.5 Alternativa quando existe histórico de colaboradores por função
 
-### 33.7 Spot
+Se o histórico já relacionar diretamente volume e colaboradores por função, o PCP pode utilizar a relação observada:
 
-Para uma demanda SPOT, a comparação com evento anterior somente deve ser feita se existir histórico operacional realmente comparável.
+Coeficiente_f = colaboradores_históricos_f / volume_histórico
 
-Se não existir:
-- registrar HISTORICO_COMPARAVEL_NAO_LOCALIZADO;
-- não inventar fator histórico;
-- utilizar a evidência Comercial disponível como previsão de volume;
-- manter explícita a limitação da projeção humana.
+Então:
 
-### 33.8 Sazonalidade
+Demanda_f_projetada = Carga_projetada × Coeficiente_f
 
-Para demanda sazonal, a referência deve priorizar o período sazonal equivalente.
+Quando a produtividade estiver disponível, a relação equivalente pode ser expressa por:
 
-Exemplo conceitual:
+Coeficiente_f = 1 / Produtividade_f
 
-Dezembro/ano atual × Dezembro/ano anterior
+As duas formas devem produzir resultados compatíveis quando utilizarem a mesma unidade de período e volume.
 
-em vez de simplesmente:
+### 33.6 O que os 30% realmente corrigem
 
-Dezembro/ano atual × Novembro/ano atual.
+O fator de 30% corrige primeiro o **volume/carga de demanda**:
 
-A sazonalidade é uma característica da demanda, não uma quantidade de mão de obra fornecida pelo Comercial.
+Volume_base → Volume_projetado × 1,30
 
-### 33.9 Governança do indicador
+Depois o PCP converte essa carga em necessidade por função:
 
-O ELO/PCP deve registrar separadamente:
-1. origem da demanda: EVENTO, SPOT ou SAZONALIDADE;
-2. evento/contexto;
-3. período de referência;
-4. Q_base;
-5. Q_comercial;
-6. F_demanda;
-7. V_demanda;
-8. demanda humana histórica/base;
-9. demanda humana projetada;
-10. fonte e período de cada dado;
-11. indicação de ausência de histórico comparável, quando aplicável.
+Carga_projetada → produtividade da função → colaboradores-equivalentes
 
-A fórmula deve ser reproduzível e auditável.
+Assim, o fator não deve ser aplicado indistintamente como:
 
-### 33.10 Fluxo do indicador
+colaboradores atuais × 1,30 = contratações.
 
-Comercial → Quantidade de produtos → Comparação com histórico equivalente → Fator de crescimento/redução → PCP → Demanda humana projetada → RH
+Essa operação só seria uma aproximação válida se houver evidência de que a produtividade e a composição das equipes permanecerão constantes.
 
-Portanto, **o Comercial fornece o volume futuro; o PCP traduz a variação desse volume em necessidade humana projetada**.
+### 33.7 Regra de produtividade
+
+A produtividade deve ser observada por função sempre que os dados permitirem.
+
+O PCP deve preservar a distinção entre:
+
+- **volume de demanda** — quantidade de produtos/atendimentos;
+- **carga de trabalho** — esforço necessário para executar esse volume;
+- **produtividade** — relação entre volume e capacidade humana;
+- **demanda humana** — colaboradores-equivalentes necessários;
+- **contratação** — decisão posterior do domínio responsável, não determinada automaticamente pelo fator.
+
+### 33.8 Fórmula consolidada
+
+Para cada função `f`:
+
+1. calcular o volume futuro:
+
+Q_futuro = Q_base × F_demanda
+
+2. determinar a carga atribuída à função conforme a estrutura operacional validada;
+
+Carga_f = Q_futuro × Participação_f
+
+3. aplicar a produtividade da função:
+
+Demanda_colaboradores_f = Carga_f / Produtividade_f
+
+Quando a função participar integralmente de cada contrato e a produtividade já estiver definida diretamente em contratos por colaborador, `Participação_f` pode ser 1.
+
+A participação por função não deve ser inventada quando não houver evidência.
+
+### 33.9 Exemplo completo simplificado
+
+Considere:
+
+- demanda futura informada pelo Comercial: `50 contratos`;
+- crescimento identificado pela comparação histórica: `30%`;
+- fator: `1,30`;
+- carga projetada: `65 contratos-equivalentes`.
+
+Agora o PCP consulta a produtividade histórica de cada função. Se, apenas como exemplo matemático, os coeficientes históricos forem:
+
+- eletricista: 20 contratos/colaborador;
+- bombeiro hidráulico: 25 contratos/colaborador;
+- montador: 10 contratos/colaborador;
+- ajudante: 10 contratos/colaborador;
+- serralheiro: 30 contratos/colaborador;
+- soldador: 30 contratos/colaborador;
+
+a carga de 65 não deve ser dividida cegamente por todos esses números. Primeiro é necessário saber **qual parcela dos 65 contratos exige cada função**.
+
+Se um determinado subconjunto de contratos exigir 20 contratos-equivalentes de montagem, por exemplo:
+
+20 / 10 = 2 montadores-equivalentes.
+
+O mesmo princípio é aplicado às demais funções conforme a composição operacional validada.
+
+### 33.10 Regra de governança
+
+O indicador deve registrar separadamente:
+
+1. volume histórico de produtos/contratos;
+2. volume futuro informado pelo Comercial;
+3. origem: EVENTO, SPOT ou SAZONALIDADE;
+4. fator de crescimento/redução;
+5. volume/carga projetada;
+6. composição da carga por função;
+7. produtividade histórica por função;
+8. demanda humana equivalente por função;
+9. fonte e período de cada indicador;
+10. limitações da projeção.
+
+O sistema não deve converter automaticamente `+30% de demanda` em `+30% de contratação`.
 
 ### 33.11 Escopo atual
 
-Nesta etapa, o mecanismo será aplicado somente à **demanda humana das operações externas**.
+Nesta etapa, o resultado entregue ao RH deve ser a **necessidade humana projetada por função e período para operações externas**.
 
-Não faz parte desta etapa modelar disponibilidade de RH, jornada, escala, turno, afastamento, férias, folga, alocação disponível ou GAP de capacidade de RH.
+Não está sendo modelada nesta etapa a disponibilidade de RH nem a decisão de contratação.
 
-A demanda humana das operações internas será tratada posteriormente.
+O fluxo é:
 
-### 33.12 Histórico igual a zero
+PCP → volume Comercial → fator de demanda → carga projetada → produtividade por função → demanda humana projetada → RH
 
-Se Q_base = 0, o fator F_demanda não deve ser calculado por divisão.
-
-O estado deve ser:
-- BASE_HISTORICA_ZERO;
-- FATOR_DEMANDA = NAO_CALCULAVEL;
-- não criar fator arbitrário;
-- registrar a necessidade de uma base comparável validada.
-
-### 33.13 Regra cognitiva
-
-A pergunta do ELO deve ser:
-
-> **Quanto a demanda futura de produtos, informada pelo Comercial, mudou em relação ao período/evento comparável anterior e qual impacto proporcional essa mudança produz sobre a necessidade humana operacional?**
-
-Não: “Quantas pessoas o Comercial informou?”
-
-Essa distinção é obrigatória para manter a responsabilidade de cada domínio.
+A demanda das operações internas será tratada posteriormente.
