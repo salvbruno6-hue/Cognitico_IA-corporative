@@ -1,14 +1,14 @@
 # ELO — Hermes Runtime Integration Audit
 
 **Date:** 2026-09-27  
-**Canonical baseline:** `main` @ `463b73a94e2cfc4145fbd9d3d4cf24cf125ace12`  
+**Canonical baseline:** `main` @ `a68475c02f23a23d417f129aab1e148270093177`  
 **Purpose:** distinguish governed handoff code from actual production/runtime integration.
 
 ## Result
 
 The repository contains controlled evaluation adapters, functional-value evaluators, tests, and governed implementation-loop handoffs for the original Hermes candidates.
 
-The audit found **no production proof for any of the 13 original candidates**.
+The audit found **no production proof for any of the 13 original candidates**. Three candidates have now crossed the canonical runtime-integration boundary: `EXT-CRON-HERMES` (#870), `EXT-PROFILE-HERMES` (#890), and `EXT-CONTEXT-PLUGIN-HERMES` (#891).
 
 The existence of a module named `*_loop_integration.py`, a governed handoff, or a passing controlled evaluation is **not** treated as runtime deployment evidence.
 
@@ -21,19 +21,19 @@ The existence of a module named `*_loop_integration.py`, a governed handoff, or 
 | RUNTIME_INTEGRATION_REQUIRED | Candidate behavior is not yet proven on the real owner/runtime path. |
 | OPERATIONAL_OUTCOME | Real runtime/production observation proves the property over operational executions. |
 
-All 13 original candidates currently stop at **GOVERNED_HANDOFF + RUNTIME_INTEGRATION_REQUIRED**.
+The 10 candidates without canonical runtime integration currently stop at **GOVERNED_HANDOFF + RUNTIME_INTEGRATION_REQUIRED**. `EXT-CRON-HERMES`, `EXT-PROFILE-HERMES`, and `EXT-CONTEXT-PLUGIN-HERMES` have crossed the runtime-integration boundary, while none has production proof.
 
 ## Candidate findings
 
 | Candidate | Current evidence | Handoff surface | Runtime/production proof | Required next intervention |
 |---|---|---|---|---|
-| EXT-CONTEXT-PLUGIN-HERMES | controlled task gain | HERMES-CONTEXT shared handoff | not proven | integrate bounded plugin behavior with real ELO Context execution |
+| EXT-CONTEXT-PLUGIN-HERMES | controlled task gain | canonical ExecutionBoundary | **integrated — #891; production not proven** | obtain repeated observations from actual production Context runtime |
 | EXT-WORKTREE-HERMES | collision-free task gain | governed Hermes handoff | not proven | connect isolation to real Forge workspace lifecycle |
 | EXT-MULTIAGENT-HERMES | context-isolation gain | HERMES-DELEGATION shared handoff | not proven | connect isolation to real delegated execution |
-| EXT-CRON-HERMES | idempotency gain | HERMES-AUTOMATION shared handoff | not proven | connect idempotency identity to actual scheduler boundary |
+| EXT-CRON-HERMES | idempotency gain | canonical GovernedWorkflowRuntime | **integrated — #870; production not proven** | obtain repeated observations from actual production scheduler/runtime boundary |
 | EXT-MEMPROVIDER-HERMES | provider-identity gain | HERMES-MEMORY shared handoff | not proven | connect identity/provenance preservation to actual retrieval |
 | EXT-ROUTE-HERMES | unsafe-route blocking gain | dedicated governed handoff surface | not proven | enforce policy at actual routing boundary |
-| EXT-PROFILE-HERMES | collision-free profile gain | dedicated governed handoff surface | not proven | connect profile isolation to actual context execution |
+| EXT-PROFILE-HERMES | collision-free profile gain | canonical AgentOrchestrator | **integrated — #890; production not proven** | obtain repeated observations from actual profile/context runtime |
 | EXT-BATCH-HERMES | collision-free batch gain | dedicated governed handoff surface | not proven | connect batch identity to actual evaluation intake |
 | EXT-LEARN-HERMES | unsafe-admission blocking gain | dedicated governed handoff surface | not proven | connect admission control to actual learning path |
 | EXT-LEARNING-GRAPH-HERMES | duplicate-relation blocking gain | dedicated governed handoff surface | not proven | connect duplicate suppression to graph runtime |
@@ -61,7 +61,7 @@ Therefore:
 
 ## Symbiont interpretation
 
-The Hermes loop remains an operational intake/experimentation path of the Symbiont.
+The Hermes loop remains an operational intake/experimentation path of the Symbiont. The three integrated candidates reuse canonical owner runtimes and existing evidence contracts; none introduces a parallel authority or evidence owner.
 
 The correct composition is:
 
@@ -88,7 +88,8 @@ Only then may `IMPLEMENTATION_AUTHORIZED` be considered.
 
 - **13/13:** controlled functional evidence accepted.
 - **13/13:** governed handoff available.
-- **13/13:** runtime integration still requires proof.
+- **10/13:** runtime integration still requires proof.
+- **3/13:** canonical runtime integration established — Cron (#870), Profile (#890), Context Plugin (#891).
 - **0/13:** production outcome established by this audit.
 - **0:** new authority or parallel Evolution Gate introduced.
 - **0:** autonomous promotion performed.
