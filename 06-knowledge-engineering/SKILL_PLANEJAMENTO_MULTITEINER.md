@@ -886,6 +886,7 @@ Quando o usuário pedir uma análise, o ELO pode oferecer diretamente as views j
 | `v_elo_pcp_indicadores_montagem_externa` | Indicadores consolidados da montagem | ordens, atrasos, módulos, equipe, horas e aderência |
 | `v_elo_pcp_montagem_externa_integrada` | PCP + montagem externa | quantidade PCP, planos, módulos, equipe, cobertura e produtividade planejada |
 | `v_elo_pcp_capacidade_rh_montagem` | Pico de necessidade de RH | colaboradores simultâneos, ordens simultâneas e função por data |
+| `v_elo_pcp_carga_capacidade_periodo` | Carga PCP × capacidade por período | carga teórica, capacidade disponível, folga e utilização quando as unidades forem compatíveis |
 
 ### 28.2 Pedidos que o usuário pode fazer
 
