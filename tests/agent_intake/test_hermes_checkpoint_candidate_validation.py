@@ -80,4 +80,4 @@ def test_checkpoint_candidate_requires_repeatable_gain_before_evolution_gate():
     )
 
     assert first.result == "RETEST"
-    assert repeatable.result == "RETEST"
+    assert repeatable.result == "EVOLUTION_GATE_REQUIRED"
