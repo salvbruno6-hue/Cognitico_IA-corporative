@@ -11,11 +11,21 @@ from elo.cognitive import CognitiveCore
 from .contracts import CognitiveRequest, CognitiveResponse, ErrorContract
 from .response import ResponseBuilder
 from .session import SessionManager
+from .pts_pos import render_pts_pos
 
 app = FastAPI(title="ELO Interface API", version="0.1.0")
 core = CognitiveCore()
 session_manager = SessionManager()
 response_builder = ResponseBuilder()
+
+
+class PTSPosRequest(BaseModel):
+    request_id: str = Field(default_factory=lambda: str(uuid4()))
+    correlation_id: str = Field(default_factory=lambda: str(uuid4()))
+    session_id: str | None = None
+    tenant_id: str
+    principal_id: str | None = None
+    dados: dict[str, Any]
 
 
 @app.get("/")
@@ -43,6 +53,38 @@ def cognitive_endpoint(request: CognitiveRequest) -> CognitiveResponse:
 @app.post("/cognitive", response_model=CognitiveResponse)
 def cognitive(request: CognitiveRequest) -> CognitiveResponse:
     return cognitive_endpoint(request)
+
+
+@app.post("/pts-pos")
+def pts_pos(request: PTSPosRequest) -> dict[str, Any]:
+    """Renderiza a PTS Pós pelo owner canônico; não persiste nem arbitra."""
+    if not request.tenant_id.strip():
+        raise HTTPException(status_code=400, detail="tenant_id é obrigatório.")
+    try:
+        markdown, integracao = render_pts_pos(request.dados)
+        return {
+            "request_id": request.request_id,
+            "correlation_id": request.correlation_id,
+            "session_id": request.session_id,
+            "tenant_id": request.tenant_id,
+            "status": "RENDERED",
+            "markdown": markdown,
+            "integracao": {
+                "resultado_arbitrado": integracao.get("resultado_arbitrado", {}),
+                "elo_aprender": integracao.get("elo_aprender", {}),
+            },
+            "provenance": {
+                "owner": "08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO_RENDER.py",
+                "operation": "render_pts_pos",
+                "persisted": False,
+                "arbitrated_automatically": False,
+                "principal_id": request.principal_id,
+            },
+        }
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail="Falha ao renderizar PTS Pós pelo owner canônico.") from exc
 
 
 @app.post("/sessions/{session_id}/clear")
