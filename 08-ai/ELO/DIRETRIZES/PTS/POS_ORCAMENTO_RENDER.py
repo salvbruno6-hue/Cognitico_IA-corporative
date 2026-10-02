@@ -45,23 +45,18 @@ def _normalizar_so(valor: Any) -> str:
 def _eh_so_atual(item: Any, so_atual: str) -> bool:
     if not isinstance(item, dict):
         return True
-
     so = _normalizar_so(so_atual)
-
     for field in FALSE_DOCUMENT_FLAGS:
         if field in item and item[field] is False:
             return False
-
     for field in SOURCE_SO_FIELDS:
         if field in item and item[field] not in (None, ""):
             origem = _normalizar_so(item[field])
             if origem and origem != so:
                 return False
-
     tipo = str(item.get("fonte_tipo", item.get("tipo_fonte", ""))).strip().lower()
     if tipo in HISTORICAL_SOURCE_TYPES and item.get("aplicado_na_so_atual") is not True:
         return False
-
     return True
 
 
@@ -73,21 +68,17 @@ def _filtrar_registro(item: Any, so_atual: str) -> Any:
             if filtrado is not None:
                 resultado.append(filtrado)
         return resultado
-
     if isinstance(item, dict):
         if not _eh_so_atual(item, so_atual):
             return None
-
         resultado = {}
         for chave, valor in item.items():
-            # O acervo é consultivo. Nunca é renderizado diretamente na PTS.
             if chave in {"fontes_consultivas", "acervo_historico", "historico_consultivo"}:
                 continue
             filtrado = _filtrar_registro(valor, so_atual)
             if filtrado is not None:
                 resultado[chave] = filtrado
         return resultado
-
     return item
 
 
@@ -96,7 +87,6 @@ def _arbitragem_explicitada(dados: dict) -> tuple[str | None, str | None, str | 
     arbitragem = dados.get("resultado_arbitrado")
     if not isinstance(arbitragem, dict):
         return None, None, None
-
     return (
         str(arbitragem.get("status") or "").strip() or None,
         str(arbitragem.get("responsavel") or "").strip() or None,
@@ -108,19 +98,15 @@ def preparar_documento(dados: dict) -> dict:
     """Aplica a fronteira documental e injeta a integração canônica."""
     if not isinstance(dados, dict):
         raise TypeError("os dados da PTS Pós devem ser um objeto JSON.")
-
     documento = copy.deepcopy(dados)
     so_atual = documento.get("so")
     if not so_atual:
         raise ValueError("campo 'so' é obrigatório para aplicar a fronteira documental.")
-
     for chave in ("fontes_consultivas", "acervo_historico", "historico_consultivo"):
         documento.pop(chave, None)
-
     filtrado = _filtrar_registro(documento, str(so_atual))
     if not isinstance(filtrado, dict):
         raise ValueError("os dados fornecidos não são seguros para gerar a PTS Pós.")
-
     resultado, responsavel, justificativa = _arbitragem_explicitada(filtrado)
     integracao = integrate(
         filtrado,
@@ -128,8 +114,6 @@ def preparar_documento(dados: dict) -> dict:
         responsavel=responsavel,
         justificativa=justificativa,
     )
-
-    # O runtime é a única origem destes campos no documento renderizado.
     filtrado["integracao"] = {
         "competitividade": dict(integracao.competitividade),
         "validacao": dict(integracao.validacao),
@@ -139,8 +123,8 @@ def preparar_documento(dados: dict) -> dict:
     return filtrado
 
 
-def render(dados: dict) -> str:
-    dados_documentais = preparar_documento(dados)
+def render_prepared(dados_documentais: dict) -> str:
+    """Renderiza um documento já preparado pelo owner canônico."""
     ambiente = Environment(
         loader=FileSystemLoader(ROOT),
         undefined=StrictUndefined,
@@ -151,19 +135,20 @@ def render(dados: dict) -> str:
     return template.render(**dados_documentais)
 
 
+def render(dados: dict) -> str:
+    return render_prepared(preparar_documento(dados))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Renderiza PTS Pós-Orçamento; por padrão, apresenta em tela e não cria arquivo.")
     parser.add_argument("dados", type=Path, help="Arquivo JSON com os dados da SO.")
     parser.add_argument("-o", "--out", type=Path, default=None, help="Persistir Markdown somente quando explicitamente solicitado.")
     args = parser.parse_args()
-
     try:
         if not args.dados.exists():
             raise FileNotFoundError(f"arquivo não encontrado: {args.dados}")
-
         dados = carregar_json(args.dados)
         markdown = render(dados)
-
         if args.out is not None:
             args.out.parent.mkdir(parents=True, exist_ok=True)
             args.out.write_text(markdown, encoding="utf-8")
