@@ -1,12 +1,12 @@
 # ELO — Hermes Implementation Readiness Audit
 
 **Date:** 2026-09-30  
-**Canonical baseline:** `main` @ `1a1489ea38049b5b575bc844c9afe799caaef084`  
+**Canonical baseline:** `main` @ `a68475c02f23a23d417f129aab1e148270093177`  
 **Scope:** the 13 original Hermes candidates with accepted `FUNCTIONAL_CONTROLLED_GAIN` evidence.
 
 ## Executive finding
 
-Since the previous audit baseline, the canonical `main` now contains the longitudinal Skill measurement path (#863), Hermes longitudinal evidence adapter (#864), Hermes evidence preservation (#865), governed production-evidence admission boundary (#866), and the production capability-evolution chain regression coverage (#871). These additions strengthen the evidence pipeline but do not themselves constitute an actual production execution.
+Since the previous audit baseline, the canonical `main` now contains the longitudinal Skill measurement path (#863), Hermes longitudinal evidence adapter (#864), Hermes evidence preservation (#865), governed production-evidence admission boundary (#866), and the production capability-evolution chain regression coverage (#871). These additions strengthen the evidence pipeline. PR #870 integrates EXT-CRON-HERMES with the canonical GovernedWorkflowRuntime; #890 integrates EXT-PROFILE-HERMES with the canonical AgentOrchestrator; #891 integrates EXT-CONTEXT-PLUGIN-HERMES through the canonical ExecutionBoundary. These integrations record governed runtime behavior but do not constitute production proof.
 
 All 13 original candidates have candidate-attributed controlled functional evidence and an existing governed handoff path.
 
@@ -25,13 +25,13 @@ No original candidate is promoted to state 3 or 4 by this audit.
 
 | Candidate | Functional evidence | Existing handoff | Runtime integration | Operational evidence path | Production proof | Current governance state | Remaining intervention |
 |---|---|---|---|---|---|---|
-| EXT-CONTEXT-PLUGIN-HERMES | 0.00 → 1.00 task success | yes | **yes — #868** | **instrumented — runtime evidence sink** | no | governed review | obtain repeated observations from an actual production runtime and persist/submit them through the governed evidence path |
+| EXT-CONTEXT-PLUGIN-HERMES | 0.00 → 1.00 task success | yes | **yes — #891** | **instrumented — runtime evidence sink** | no | governed review | obtain repeated observations from an actual production runtime and persist/submit them through the governed evidence path |
 | EXT-WORKTREE-HERMES | 0.00 → 1.00 collision-free task rate | yes | no | **available through existing runtime evidence contracts** | no | governed review | connect isolation behavior to real Forge workspace lifecycle |
 | EXT-MULTIAGENT-HERMES | 0.00 → 1.00 context isolation | yes | no | **available through existing runtime evidence contracts** | no | governed review | integrate bounded isolation into real delegation execution path |
-| EXT-CRON-HERMES | 0.00 → 1.00 idempotency collision-free rate | yes | no | **available through existing runtime evidence contracts** | no | governed review | prove behavior against the actual scheduling/runtime boundary |
+| EXT-CRON-HERMES | 0.00 → 1.00 idempotency collision-free rate | yes | **yes — #870** | **instrumented — runtime evidence sink** | no | governed review | prove behavior against the actual scheduling/runtime boundary |
 | EXT-MEMPROVIDER-HERMES | 0.00 → 1.00 provider identity preservation | yes | no | no | governed review | connect provenance-preserving identity to real retrieval execution |
 | EXT-ROUTE-HERMES | 0.00 → 1.00 unsafe-route admission block | yes | no | no | governed review | integrate policy enforcement into the actual routing boundary |
-| EXT-PROFILE-HERMES | 0.00 → 1.00 collision-free profile task rate | yes | no | no | governed review | integrate profile isolation into real agent-context execution |
+| EXT-PROFILE-HERMES | 0.00 → 1.00 collision-free profile task rate | yes | **yes — #890** | **instrumented — runtime evidence sink** | no | governed review | integrate profile isolation into real agent-context execution |
 | EXT-BATCH-HERMES | 0.00 → 1.00 collision-free batch task rate | yes | no | no | governed review | integrate batch identity into the real evaluation intake path |
 | EXT-LEARN-HERMES | 0.00 → 1.00 unsafe skill admission block | yes | no | no | governed review | prove admission control in the real learning path without autonomous promotion |
 | EXT-LEARNING-GRAPH-HERMES | 0.00 → 1.00 duplicate relation block rate | yes | no | no | governed review | move duplicate semantic relation protection from controlled proof into the graph runtime boundary |
@@ -55,7 +55,7 @@ It is not sufficient to answer:
 
 For the current evidence set, the answer is **not yet proven**.
 
-For `EXT-CONTEXT-PLUGIN-HERMES`, runtime integration is now present in the canonical Contextualize path through #868, but that integration is still distinct from production proof.
+For `EXT-CONTEXT-PLUGIN-HERMES`, runtime integration is now present through the governed `ExecutionBoundary` path in #891. `EXT-CRON-HERMES` is integrated through #870 and `EXT-PROFILE-HERMES` through #890. All three remain distinct from production proof.
 
 ## Required promotion chain
 
@@ -63,9 +63,13 @@ For a candidate not yet integrated:
 
 `FUNCTIONAL_CONTROLLED_GAIN → ELO_REVIEW → EVOLUTION_GATE → IMPLEMENTATION_AUTHORIZED → runtime integration → operational observation → OPERATIONAL_OUTCOME`
 
-For `EXT-CONTEXT-PLUGIN-HERMES`, the current path has reached runtime integration:
+For the three candidates with canonical runtime integration, the current paths have reached the runtime-observation boundary:
 
-`FUNCTIONAL_CONTROLLED_GAIN → GOVERNED_HANDOFF → runtime integration (#868) → operational observation → OPERATIONAL_OUTCOME`
+`EXT-CONTEXT-PLUGIN-HERMES: FUNCTIONAL_CONTROLLED_GAIN → GOVERNED_HANDOFF → runtime integration (#891) → operational observation → OPERATIONAL_OUTCOME`
+
+`EXT-CRON-HERMES: FUNCTIONAL_CONTROLLED_GAIN → GOVERNED_HANDOFF → runtime integration (#870) → runtime operational evidence → operational observation → OPERATIONAL_OUTCOME`
+
+`EXT-PROFILE-HERMES: FUNCTIONAL_CONTROLLED_GAIN → GOVERNED_HANDOFF → runtime integration (#890) → runtime operational evidence → operational observation → OPERATIONAL_OUTCOME`
 
 The implementation loop must not skip ELO Review or Evolution Gate for any authorization-sensitive transition.
 
@@ -109,7 +113,7 @@ Prompt Cache remains outside the 13-original-candidate count because its current
 
 **13/13:** controlled functional evidence accepted.  
 **13/13:** governed handoff path present.  
-**1/13:** canonical runtime integration present — `EXT-CONTEXT-PLUGIN-HERMES` via #868.  
+**3/13:** canonical runtime integration present — `EXT-CONTEXT-PLUGIN-HERMES` via #891, `EXT-CRON-HERMES` via #870, and `EXT-PROFILE-HERMES` via #890.  
 **runtime evidence admission:** implemented and tested; this is an evidence path, not production proof.  
 **0/13:** production outcome proven by this evidence set.  
 **0/13:** autonomous implementation authorized by this audit.  
