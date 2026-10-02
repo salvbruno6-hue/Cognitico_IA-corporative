@@ -1,12 +1,15 @@
 """Controlled validation bridge for EXT-CHECKPOINT-HERMES.
 
-This test proves the candidate maps to an existing native ELO capability
-instead of introducing a parallel checkpoint authority.
+This test proves the candidate maps to existing native ELO recovery authority
+without introducing a parallel checkpoint capability.
 """
 
 from src.elo.agent_intake.hermes_current_extensions import build_candidate, evaluate_candidate
 from src.elo.agent_intake.native_capabilities import execute_candidate
-from src.elo.agent_intake.state_recovery_integrity import evaluate_state_recovery
+from src.elo.agent_intake.state_recovery_integrity import (
+    evaluate_state_recovery,
+    verify_recovery_isolation,
+)
 
 
 def test_checkpoint_candidate_maps_to_existing_native_recovery_without_promotion():
@@ -42,6 +45,22 @@ def test_checkpoint_candidate_maps_to_existing_native_recovery_without_promotion
         "promotion_state": "candidate_only",
         "canonical_mutation": False,
     }
+
+
+def test_checkpoint_candidate_preserves_tenant_recovery_isolation():
+    first, second = verify_recovery_isolation(
+        request_id="hermes-checkpoint-isolation-01",
+        tenant_a="tenant-a",
+        tenant_b="tenant-b",
+    )
+
+    assert first.status == "recovered"
+    assert second.status == "recovered"
+    assert first.tenant_scope == "tenant-a"
+    assert second.tenant_scope == "tenant-b"
+    assert first.recovered_state["value"] == "A"
+    assert second.recovered_state["value"] == "B"
+    assert first.recovered_state["tenant_scope"] != second.recovered_state["tenant_scope"]
 
 
 def test_checkpoint_candidate_requires_repeatable_gain_before_evolution_gate():
