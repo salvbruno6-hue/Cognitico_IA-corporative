@@ -6,7 +6,7 @@ def test_integration_symbiont_to_hermes_closes_with_evidence_and_outcome():
     request = HermesExecutionRequest(
         request_id="integration-symbiont-hermes-001",
         intent="executar missão governada de integração",
-        context={"domain": "integration", "source": "elo-cognitive"},
+        context={"domain": "integration", "source": "elo-cognitive", "skill_id": "skill:integration", "decision_id": "decision:integration"},
         tenant_scope="integration-tenant",
         mission_class="skill_execution",
         authorized_capabilities=("skill:execute",),
