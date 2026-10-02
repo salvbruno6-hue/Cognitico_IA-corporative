@@ -18,6 +18,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from POS_ORCAMENTO_INTEGRATION import integrate
+
 ROOT = Path(__file__).parent
 TEMPLATE_NAME = "POS_ORCAMENTO_TEMPLATE.md.j2"
 
@@ -89,8 +91,21 @@ def _filtrar_registro(item: Any, so_atual: str) -> Any:
     return item
 
 
+def _arbitragem_explicitada(dados: dict) -> tuple[str | None, str | None, str | None]:
+    """Lê somente uma arbitragem já declarada no documento de entrada."""
+    arbitragem = dados.get("resultado_arbitrado")
+    if not isinstance(arbitragem, dict):
+        return None, None, None
+
+    return (
+        str(arbitragem.get("status") or "").strip() or None,
+        str(arbitragem.get("responsavel") or "").strip() or None,
+        str(arbitragem.get("justificativa") or "").strip() or None,
+    )
+
+
 def preparar_documento(dados: dict) -> dict:
-    """Aplica a fronteira: ACERVO → ELO → SO ATUAL → ORÇAMENTO → PTS."""
+    """Aplica a fronteira documental e injeta a integração canônica."""
     if not isinstance(dados, dict):
         raise TypeError("os dados da PTS Pós devem ser um objeto JSON.")
 
@@ -106,6 +121,21 @@ def preparar_documento(dados: dict) -> dict:
     if not isinstance(filtrado, dict):
         raise ValueError("os dados fornecidos não são seguros para gerar a PTS Pós.")
 
+    resultado, responsavel, justificativa = _arbitragem_explicitada(filtrado)
+    integracao = integrate(
+        filtrado,
+        resultado=resultado,
+        responsavel=responsavel,
+        justificativa=justificativa,
+    )
+
+    # O runtime é a única origem destes campos no documento renderizado.
+    filtrado["integracao"] = {
+        "competitividade": dict(integracao.competitividade),
+        "validacao": dict(integracao.validacao),
+        "resultado_arbitrado": dict(integracao.resultado_arbitrado),
+        "elo_aprender": dict(integracao.elo_aprender),
+    }
     return filtrado
 
 
