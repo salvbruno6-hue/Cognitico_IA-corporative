@@ -124,7 +124,24 @@ def preparar_documento(dados: dict) -> dict:
 
 
 def render_prepared(dados_documentais: dict) -> str:
-    """Renderiza um documento já preparado pelo owner canônico."""
+    """Renderiza um documento já preparado pelo owner canônico.
+
+    Campos opcionais do contrato documental recebem defaults explícitos para que
+    uma SO válida, ainda em composição, não falhe apenas por ausência de seção.
+    """
+    contexto = dict(dados_documentais)
+    contexto.setdefault("cliente", "não informado")
+    contexto.setdefault("documentos", [])
+    contexto.setdefault("blocos_quantitativos", [])
+    contexto.setdefault("conferencia_valores", {})
+    contexto.setdefault("auditoria_reversa", [])
+    contexto.setdefault("itens_premissa", [])
+    contexto.setdefault("logistica", [])
+    contexto.setdefault("mao_de_obra", [])
+    contexto.setdefault("exclusoes", [])
+    contexto.setdefault("itens_nao_orcados", "não informado")
+    contexto.setdefault("checklist", {})
+    contexto.setdefault("conclusao", "não informada")
     ambiente = Environment(
         loader=FileSystemLoader(ROOT),
         undefined=StrictUndefined,
@@ -132,7 +149,7 @@ def render_prepared(dados_documentais: dict) -> str:
         lstrip_blocks=True,
     )
     template = ambiente.get_template(TEMPLATE_NAME)
-    return template.render(**dados_documentais)
+    return template.render(**contexto)
 
 
 def render(dados: dict) -> str:
