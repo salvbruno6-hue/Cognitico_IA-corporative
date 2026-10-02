@@ -1026,3 +1026,52 @@ O pedido que originou este catálogo fica registrado como requisito funcional:
 > **“Incluir uma lista de opções de views que já estão prontas e sugestões de views que podem ser solicitadas, permitindo ao usuário escolher diretamente a próxima análise.”**
 
 Esse catálogo deve ser atualizado sempre que uma nova view for criada e validada.
+
+
+## 30. Carga PCP × capacidade por período
+
+A view `v_elo_pcp_carga_capacidade_periodo` foi adicionada como evidência analítica para comparar a carga teórica do planejamento com a capacidade diária dos centros de trabalho.
+
+### 30.1 Fonte e cálculo
+
+A view combina:
+
+- `mt_linhas_plano_pcp` — quantidade e intervalo planejado;
+- `mt_operacoes_roteiro` — centro de trabalho e tempos padrão/setup;
+- `mt_capacidade_diaria` — capacidade padrão, recuperação, bloqueada e disponível;
+- `mt_centros_trabalho` — unidade de capacidade e identificação do recurso.
+
+A carga horária é distribuída entre os dias do intervalo planejado da linha. Essa distribuição é uma **carga teórica para análise**, não uma programação finita de operações.
+
+### 30.2 Regra de comparabilidade
+
+A view somente calcula `folga_horas`, `utilizacao_pct` e `excesso_carga` quando a unidade de capacidade do centro está registrada como hora.
+
+Quando a unidade não for compatível com horas:
+
+- a capacidade continua sendo exibida;
+- a carga teórica continua sendo exibida;
+- não é produzido percentual de utilização;
+- não é declarado excesso de carga.
+
+Portanto:
+
+`CARGA × CAPACIDADE` só pode gerar um diagnóstico de utilização quando as unidades forem comparáveis.
+
+### 30.3 Estado atual
+
+No estado atual do Supabase, as estruturas operacionais de PCP, roteiro e capacidade consultadas estão sem registros. A view foi criada e consultada com sucesso, mas ainda não há carga ou capacidade operacional para calcular utilização.
+
+A análise futura deve preservar a distinção:
+
+- **DADO** — carga/capacidade registrada;
+- **INFERÊNCIA CONTROLADA** — carga teórica derivada do plano e roteiro;
+- **NÃO LOCALIZADO** — comparação impossível quando a unidade não é compatível ou quando faltam dados.
+
+### 30.4 Solicitação
+
+O usuário pode solicitar:
+
+> “Mostre a carga PCP versus capacidade por período.”
+
+A Skill deve consultar primeiro `v_elo_pcp_carga_capacidade_periodo` antes de propor outra estrutura para a mesma análise.
