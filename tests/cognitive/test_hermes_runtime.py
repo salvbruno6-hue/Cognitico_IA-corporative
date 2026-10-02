@@ -8,7 +8,7 @@ def _request(capability="skill:execute"):
     return HermesExecutionRequest(
         request_id="elo-hermes-001",
         intent="executar habilidade governada",
-        context={"domain": "test", "scope": "integration"},
+        context={"domain": "test", "scope": "integration", "skill_id": "skill:test", "decision_id": "decision:test"},
         tenant_scope="tenant-test",
         mission_class="skill_execution",
         authorized_capabilities=(capability,),
