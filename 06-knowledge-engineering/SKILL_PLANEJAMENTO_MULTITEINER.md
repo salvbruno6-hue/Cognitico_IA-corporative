@@ -1076,3 +1076,70 @@ O usuário pode solicitar:
 > “Mostre a carga PCP versus capacidade por período.”
 
 A Skill deve consultar primeiro `v_elo_pcp_carga_capacidade_periodo` antes de propor outra estrutura para a mesma análise.
+
+
+## 31. Gap de disponibilidade de RH por função
+
+A análise de necessidade de RH da montagem externa foi confrontada com as estruturas existentes para verificar se já existe uma autoridade de capacidade/disponibilidade humana.
+
+### 31.1 Evidência localizada
+
+Existem fontes para:
+
+- pessoas: `mt_pessoas`;
+- funções de montagem: `mt_funcoes_montagem`;
+- equipe planejada por ordem: `mt_equipe_montagem_externa`;
+- mão de obra realizada: `mt_mao_obra_montagem_externa`;
+- custos de mão de obra: `rh_mao_obra_custos`.
+
+A view `v_elo_pcp_capacidade_rh_montagem` representa a **necessidade planejada/simultânea** por função e data.
+
+### 31.2 Lacuna identificada
+
+Não foi localizada uma fonte canônica que registre, na mesma unidade de análise, a **disponibilidade efetiva de pessoas por função e período**.
+
+Consequentemente, ainda não é sustentado o cálculo:
+
+`GAP_RH = NECESSIDADE_PLANEJADA - DISPONIBILIDADE_RH`
+
+Também não deve ser usado automaticamente:
+
+- `mt_capacidade_diaria` como capacidade de pessoas;
+- quantidade total de `mt_pessoas` como disponibilidade diária;
+- `rh_mao_obra_custos` como capacidade, pois essa tabela é uma base de custos e não um calendário de disponibilidade.
+
+### 31.3 Próxima evidência mínima
+
+Para fechar o cálculo do gap sem criar autoridade duplicada, é necessário localizar ou formalizar, sob governança do domínio RH, uma fonte que permita determinar:
+
+- pessoa/colaborador disponível;
+- função aplicável;
+- período de disponibilidade;
+- indisponibilidades/bloqueios relevantes;
+- unidade de capacidade, quando diferente de pessoa simultânea.
+
+Até essa evidência existir, o estado correto é:
+
+`NECESSIDADE_RH = CALCULÁVEL QUANDO HOUVER EQUIPE PLANEJADA`
+
+`DISPONIBILIDADE_RH = NÃO LOCALIZADA`
+
+`GAP_RH = NÃO CALCULÁVEL`
+
+## 32. GAP de segurança identificado no estado atual
+
+A inspeção atual do Supabase identificou que `public.lista_mae_alteracoes` está com RLS desabilitado.
+
+O advisor de segurança classifica esse estado como crítico porque a tabela está em schema exposto e não possui a proteção de Row Level Security.
+
+A correção **não deve ser aplicada automaticamente** sem definir o modelo de acesso. Habilitar RLS sem políticas pode bloquear o acesso legítimo.
+
+Remediação mínima apresentada pelo advisor:
+
+```sql
+ALTER TABLE public.lista_mae_alteracoes ENABLE ROW LEVEL SECURITY;
+```
+
+Antes de executar a alteração, deve ser definido quem pode consultar e/ou alterar esse histórico e quais políticas correspondem ao modelo de autorização existente.
+
+Esse GAP é independente do cálculo de capacidade de RH e não deve ser misturado à lógica do PCP.
