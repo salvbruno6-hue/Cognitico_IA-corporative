@@ -1158,3 +1158,174 @@ A migration correspondente foi registrada em:
 `supabase/migrations/20261002190000_enable_rls_lista_mae_alteracoes.sql`
 
 Esse GAP de segurança é independente do cálculo de capacidade de RH e não deve ser misturado à lógica do PCP.
+
+
+## 33. Fator de correção da projeção de demanda — histórico × Comercial
+
+O PCP deve separar **demanda histórica observada** de **sinal futuro de demanda Comercial**.
+
+A experiência histórica fornece a linha de base para projetar a necessidade operacional. Entretanto, essa linha de base não deve ser tratada como previsão rígida quando o Comercial sinalizar crescimento ou redução futura da demanda.
+
+A regra é aplicar uma **média ponderada entre a projeção histórica e a projeção Comercial**, produzindo um fator de correção que ajuste os indicadores operacionais.
+
+### 33.1 Variáveis
+
+- H = projeção de demanda obtida a partir do histórico operacional;
+- C = projeção de demanda futura informada pelo Comercial;
+- w_H = peso atribuído ao histórico;
+- w_C = peso atribuído ao Comercial;
+- w_H + w_C = 1;
+- P_C = projeção corrigida;
+- F_C = fator de correção.
+
+### 33.2 Fórmula principal
+
+A projeção corrigida será:
+
+P_C = (H × w_H) + (C × w_C)
+
+O fator de correção aplicado sobre o histórico será:
+
+F_C = P_C / H, quando H > 0.
+
+De forma equivalente:
+
+F_C = 1 + w_C × ((C - H) / H)
+
+Essa forma evidencia que o Comercial corrige a projeção histórica na proporção do peso definido para o sinal futuro.
+
+### 33.3 Aplicação ao indicador do PCP
+
+Quando um indicador operacional tiver sido calculado com base histórica, o PCP deve aplicar:
+
+Indicador_corrigido = Indicador_histórico × F_C
+
+Assim:
+
+- se C > H, o fator tende a ser maior que 1, corrigindo a projeção para cima;
+- se C < H, o fator tende a ser menor que 1, corrigindo a projeção para baixo;
+- se C = H, o fator será 1, mantendo a projeção histórica;
+- quanto maior o peso w_C, maior será a influência da sinalização Comercial.
+
+### 33.4 Exemplo controlado
+
+Supondo:
+
+- projeção histórica H = 100 pessoas;
+- projeção Comercial C = 130 pessoas;
+- peso histórico w_H = 0,60;
+- peso Comercial w_C = 0,40.
+
+Então:
+
+P_C = (100 × 0,60) + (130 × 0,40) = 112
+
+F_C = 112 / 100 = 1,12
+
+Logo, um indicador histórico de necessidade de 100 pessoas passa a indicar 112 pessoas após a correção.
+
+Em cenário de queda, por exemplo C = 70:
+
+P_C = (100 × 0,60) + (70 × 0,40) = 88
+
+F_C = 0,88
+
+O mesmo mecanismo reduz a projeção em 12%.
+
+Os valores acima são apenas exemplo matemático. Os pesos efetivos não devem ser fixados como regra universal sem validação com dados históricos, erro de previsão e confiabilidade das fontes.
+
+### 33.5 Histórico também pode ser ponderado
+
+Quando houver vários períodos históricos, a projeção histórica H pode ser construída por média ponderada dos períodos:
+
+H = Σ(H_i × w_i), com Σw_i = 1.
+
+Caso a regra aprovada dê maior relevância aos períodos mais recentes, os períodos recentes podem receber pesos maiores.
+
+A estrutura completa passa a ser:
+
+H = Σ(H_i × w_i)
+
+P_C = (H × w_H) + (C × w_C)
+
+F_C = P_C / H
+
+Indicador_corrigido = Indicador_histórico × F_C
+
+### 33.6 Regra de governança
+
+O fator de correção não deve substituir a evidência histórica nem criar uma previsão artificial.
+
+O ELO/PCP deve registrar separadamente:
+
+1. histórico utilizado;
+2. pesos históricos, quando houver;
+3. projeção histórica H;
+4. projeção Comercial C;
+5. pesos w_H e w_C;
+6. projeção corrigida P_C;
+7. fator de correção F_C;
+8. indicador antes da correção;
+9. indicador após a correção;
+10. período e fonte de cada entrada.
+
+A correção deve ser reproduzível e auditável.
+
+### 33.7 Regra para o indicador de demanda humana
+
+Para a demanda humana das operações externas, a sequência conceitual será:
+
+Operações planejadas → Demanda histórica/base → Sinal futuro Comercial → Fator de correção → Demanda humana projetada → RH
+
+Esta etapa **não calcula disponibilidade de RH**.
+
+O resultado entregue ao RH é a necessidade projetada de pessoas por período e função, considerando a base operacional e o ajuste de tendência Comercial.
+
+### 33.8 Tratamento de histórico igual a zero
+
+Se H = 0, o fator F_C = P_C/H não deve ser calculado por divisão.
+
+Nesse caso, o estado deve ser explicitamente tratado como:
+
+- HISTORICO_ZERO;
+- FATOR_CORRECAO = NAO_CALCULAVEL;
+- se C > 0, utilizar a projeção Comercial como evidência futura disponível, sem inventar um fator multiplicativo;
+- registrar a limitação para posterior validação.
+
+Não criar fator arbitrário para contornar divisão por zero.
+
+### 33.9 Escopo atual
+
+Nesta etapa, o mecanismo deve ser aplicado à **demanda humana das operações externas**.
+
+Fluxo atual:
+
+PCP → Operações externas → Demanda humana → Correção pela projeção Comercial → RH
+
+A demanda humana das operações internas será tratada posteriormente, em etapa separada.
+
+Não faz parte desta etapa modelar:
+
+- disponibilidade de RH;
+- jornada;
+- escala;
+- turno;
+- afastamento;
+- férias;
+- folga;
+- alocação disponível;
+- GAP de capacidade de RH.
+
+O objetivo atual é calcular e comunicar **necessidade futura de pessoas**, e não disponibilidade.
+
+### 33.10 Regra cognitiva
+
+O ELO deve responder à pergunta:
+
+> Qual é a necessidade humana projetada considerando o que a operação indica historicamente e o que o Comercial sinaliza para o futuro?
+
+E não apenas:
+
+> Quantas pessoas foram necessárias no passado?
+
+A diferença é o uso controlado do fator de correção para transformar evidência histórica em projeção ajustada ao cenário futuro.
