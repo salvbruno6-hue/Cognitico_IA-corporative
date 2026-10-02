@@ -14,6 +14,13 @@ def _base_document() -> dict:
         "divergencias": [], "riscos": [], "pendencias": [], "checklist": {},
     }
 
+def test_pts_pos_renderer_direct_smoke() -> None:
+    from elo.interface.pts_pos import render_pts_pos
+
+    markdown, integracao = render_pts_pos(_base_document())
+    assert "PTS PÓS-ORÇAMENTO" in markdown
+    assert integracao["resultado_arbitrado"]["status"] == "AGUARDANDO_ARBITRAGEM"
+
 def test_pts_pos_endpoint_uses_canonical_renderer() -> None:
     response = TestClient(app).post("/pts-pos", json={
         "tenant_id": "multiteiner", "principal_id": "principal-test", "dados": _base_document(),
