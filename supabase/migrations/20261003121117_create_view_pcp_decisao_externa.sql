@@ -71,10 +71,11 @@ projecao as (
 composicao_gap as (
   select
     g.tenant_id,
-    g.modelo_id,
+    u.modelo_id,
     count(*) as gaps_composicao
   from public.v_elo_pcp_gap_composicao_humana_externa g
-  group by g.tenant_id, g.modelo_id
+  cross join lateral unnest(g.modelos_ids) as u(modelo_id)
+  group by g.tenant_id, u.modelo_id
 )
 select
   coalesce(f.tenant_id, c.tenant_id, h.tenant_id, p.tenant_id) as tenant_id,
