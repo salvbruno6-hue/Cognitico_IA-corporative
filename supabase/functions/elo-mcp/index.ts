@@ -140,6 +140,21 @@ const TOOLS = [
     },
   },
   {
+    name: "elo_pcp_orquestrador_dialogo",
+    title: "Orchestrate PCP data collection dialogue",
+    description: "Runs the governed PCP collection dialogue one step at a time. It reads the first blocking gap, records the user's response, validates explicitly supplied fields without inference, and returns the next question or a validated handoff. It does not change canonical operational data.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sessao_id: { type: "string", description: "Optional UUID for the dialogue session. A new session is created when omitted." },
+        resposta: { type: "string", description: "The user's latest answer, preserved verbatim for traceability." },
+        dados_fornecidos: { type: "object", description: "Structured fields explicitly supplied by the user in the latest answer. Missing fields must be omitted, never guessed." },
+        fonte_informada: { type: "string", description: "The source named by the user for the supplied data, if any." }
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "elo_pcp_dados_pendentes",
     title: "Read PCP missing data requests",
     description: "Returns the canonical PCP data gaps that ELO must ask the user for through GPT. It never invents missing values and identifies the current gate, authorized source, exact fields and question.",
@@ -247,7 +262,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.2.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. The ELO is also authorized to autonomously create a communication and point out missing inputs, process items that should be inserted, and improvement points. It does not need a separate approval to communicate a governed gap; it must not alter canonical data/rules or execute a blocked decision. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. Use elo_pcp_orquestrador_dialogo to persist each turn, validate explicitly supplied fields, explain missing fields one at a time, and continue until the current gap is closed or the source is unresolved. The ELO is also authorized to autonomously create a communication and point out missing inputs, process items that should be inserted, and improvement points. It does not need a separate approval to communicate a governed gap; it must not alter canonical data/rules or execute a blocked decision. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -397,6 +412,148 @@ Deno.serve(async (req: Request) => {
         comunicado,
         pontos_melhorar_inserir: pontos,
         regra: "O ELO pode comunicar e apontar autonomamente; qualquer alteração de dado, regra canônica ou execução bloqueada segue a governança correspondente.",
+      }) }] });
+    }
+
+
+    if (name === "elo_pcp_orquestrador_dialogo") {
+      const suppliedSessionId = typeof args.sessao_id === "string" && /^[0-9a-fA-F-]{36}$/.test(args.sessao_id)
+        ? args.sessao_id
+        : null;
+      const sessionId = suppliedSessionId ?? crypto.randomUUID();
+      const resposta = typeof args.resposta === "string" ? args.resposta : "";
+      const dados = args.dados_fornecidos && typeof args.dados_fornecidos === "object" && !Array.isArray(args.dados_fornecidos)
+        ? args.dados_fornecidos
+        : {};
+      const fonte = typeof args.fonte_informada === "string" ? args.fonte_informada.trim() : null;
+
+      const { data: requests, error: requestError } = await supabase
+        .from("v_elo_pcp_dados_pendentes")
+        .select("prioridade,codigo,tipo_solicitacao,gate,fonte_autorizada,pergunta_gpt,motivo,bloqueia_execucao,campos_obrigatorios")
+        .order("prioridade", { ascending: true })
+        .limit(20);
+
+      if (requestError) {
+        await audit(auth.user.id, "elo_pcp_orquestrador_dialogo", "error", { error: requestError.message });
+        return rpcError(id, -32007, "pcp_dialogue_rules_failed");
+      }
+
+      const primeiro = requests?.[0] ?? null;
+
+      if (!primeiro) {
+        await audit(auth.user.id, "elo_pcp_orquestrador_dialogo", "success", { session_id: sessionId, state: "CICLO_SEM_GAP_PENDENTE" });
+        return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+          sessao_id: sessionId,
+          estado: "CICLO_SEM_GAP_PENDENTE",
+          mensagem: "Não há GAP bloqueante pendente no PCP neste momento. O orquestrador não deve criar uma nova solicitação por conta própria.",
+          proxima_pergunta: null,
+          pode_calcular: true,
+          regra: "A ausência de GAP nesta fila não substitui os gates de validação do processo canônico.",
+        }) }] });
+      }
+
+      const required = Array.isArray(primeiro.campos_obrigatorios) ? primeiro.campos_obrigatorios.map(String) : [];
+      const providedKeys = Object.keys(dados);
+      const missing = required.filter((field: string) => {
+        const value = (dados as any)[field];
+        return value === undefined || value === null || (typeof value === "string" && value.trim() === "");
+      });
+      const validProvided = required.filter((field: string) => {
+        const value = (dados as any)[field];
+        return value !== undefined && value !== null && !(typeof value === "string" && value.trim() === "");
+      });
+
+      const outsideFields = providedKeys.filter((field: string) => !required.includes(field));
+      const hasResponse = resposta.trim().length > 0 || Object.keys(dados).length > 0 || Boolean(fonte);
+
+      let state = "PENDENTE";
+      let message = primeiro.pergunta_gpt;
+      let nextQuestion = primeiro.pergunta_gpt;
+
+      if (hasResponse) {
+        const validSource = !fonte || fonte === primeiro.fonte_autorizada;
+        const sourceIssue = fonte && !validSource
+          ? `A fonte informada "${fonte}" não corresponde à fonte autorizada "${primeiro.fonte_autorizada}". Não vou substituir a fonte autorizada por inferência.`
+          : null;
+
+        if (missing.length === 0 && validSource) {
+          state = "VALIDADO";
+          message = `Recebi os campos necessários para o GAP "${primeiro.codigo}". Antes de alterar qualquer dado operacional, o orquestrador precisa concluir a validação da fonte e do conteúdo. Os dados foram registrados como resposta validada do diálogo, não como fato operacional.`;
+          nextQuestion = `Confirme a fonte oficial: "${primeiro.fonte_autorizada}". Se essa é a fonte correta, responda "confirmo". Se não for, informe qual fonte oficial deve ser usada.`;
+        } else {
+          state = "PENDENTE";
+          const missingText = missing.length
+            ? `Ainda faltam: ${missing.join(", ")}.`
+            : "";
+          message = [
+            "Recebi sua resposta, mas o GAP ainda não pode ser fechado.",
+            sourceIssue,
+            missingText,
+            outsideFields.length ? `Também recebi campos que não pertencem ao pedido atual: ${outsideFields.join(", ")}. Não vou usá-los neste gate.` : null,
+          ].filter(Boolean).join(" ");
+          nextQuestion = missing.length
+            ? `Vamos completar somente o que falta. ${missing.map((field: string) => {
+                const labels: Record<string,string> = {
+                  modelo_id: "qual é o modelo/produto identificado no cadastro oficial?",
+                  periodo_inicio: "qual é a data inicial do registro?",
+                  periodo_fim: "qual é a data final do registro?",
+                  quantidade_real: "qual é a quantidade real registrada?",
+                  natureza_demanda: "qual é a natureza da demanda conforme o cadastro/relatório oficial?",
+                  chave_comparabilidade: "qual é a chave de comparabilidade? Se não existir porque a demanda não é comparável, informe explicitamente isso.",
+                };
+                return labels[field] ? `${field}: ${labels[field]}` : field;
+              }).join(" ")}`
+            : (sourceIssue ?? nextQuestion);
+        }
+
+        const { error: turnError } = await supabase
+          .schema("elo_private")
+          .from("pcp_dialogo_turnos")
+          .insert({
+            sessao_id: sessionId,
+            turno: 1,
+            actor_user_id: auth.user.id,
+            gap_codigo: primeiro.codigo,
+            gate: primeiro.gate,
+            resposta_original: resposta || null,
+            dados_fornecidos: dados,
+            fonte_informada: fonte,
+            estado: state,
+            campos_validos: validProvided,
+            campos_faltantes: missing,
+            mensagem_orquestrador: message,
+          });
+
+        if (turnError) {
+          await audit(auth.user.id, "elo_pcp_orquestrador_dialogo", "error", { session_id: sessionId, error: turnError.message });
+          return rpcError(id, -32008, "pcp_dialogue_state_write_failed");
+        }
+      }
+
+      await audit(auth.user.id, "elo_pcp_orquestrador_dialogo", "success", {
+        session_id: sessionId,
+        gap: primeiro.codigo,
+        state,
+        missing_fields: missing,
+      });
+
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        sessao_id: sessionId,
+        estado: state,
+        gap_atual: {
+          codigo: primeiro.codigo,
+          gate: primeiro.gate,
+          fonte_autorizada: primeiro.fonte_autorizada,
+          bloqueia_execucao: primeiro.bloqueia_execucao,
+        },
+        resposta_registrada: hasResponse,
+        campos_validos: validProvided,
+        campos_faltantes: missing,
+        mensagem: message,
+        proxima_pergunta: nextQuestion,
+        deve_perguntar_antes_de_calcular: primeiro.bloqueia_execucao === true,
+        pode_alterar_dado_canonico: false,
+        regra: "O orquestrador conduz, explica, registra e valida explicitamente fornecimentos; não inventa valores, não altera regras canônicas e não libera cálculo bloqueado.",
       }) }] });
     }
 
