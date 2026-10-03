@@ -1,3 +1,12 @@
+---
+parent: PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md
+level: 2
+type: diretriz_visual
+purpose: representar visualmente o fluxo do processo de demanda
+---
+
+> **Documento de apoio visual.** A autoridade normativa desta etapa está no documento mestre e no processo de demanda. Este arquivo não cria regras adicionais.
+
 # Fluxo — demanda de crescimento e referência comparável
 
 ```text
