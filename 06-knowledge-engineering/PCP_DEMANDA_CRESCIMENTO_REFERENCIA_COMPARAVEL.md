@@ -285,6 +285,8 @@ As quatro alterações PCP já estão presentes no banco sob as versões efetiva
 | 20261003033912 | refinamento dos horizontes da referência comparável |
 | 20261003033929 | documentação dos campos de comparabilidade |
 | 20261003041027 | fator → demanda humana → loop ELO |
+| 20261003121245 | cockpit decisório e gatilhos do PCP externo |
+| 20261003121322 | correção do resumo decisório para observabilidade sem dados |
 
 O repositório deve usar essas mesmas versões como prefixo dos arquivos de migração, preservando o conteúdo já aplicado. Essa é uma reconciliação de identificação/versionamento; não deve gerar uma segunda aplicação do mesmo DDL.
 
