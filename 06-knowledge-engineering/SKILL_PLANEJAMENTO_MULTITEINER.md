@@ -1162,196 +1162,38 @@ Esse GAP de segurança é independente do cálculo de capacidade de RH e não de
 
 
 
+## 33. Demanda de crescimento — referência canônica
 
-## 33. Demanda de crescimento — referência histórica comparável antes da composição funcional
+Esta skill não replica nem redefine as regras do ciclo de crescimento.
 
-A implantação da demanda de crescimento deve começar pela construção correta da **referência histórica comparável**. Nesta etapa, o PCP **não deve calcular ainda a necessidade por função**.
+A autoridade é:
+1. `06-knowledge-engineering/PCP_INSTRUCOES_GERAIS_GOVERNANCA.md` — governança e gates;
+2. `06-knowledge-engineering/PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md` — processo de demanda;
+3. instruções especializadas subordinadas ao processo;
+4. views, funções e triggers do Supabase — implementação;
+5. ELO — interpretação e orquestração.
 
-### 33.1 Regra central
+Para qualquer pergunta sobre crescimento, comparabilidade, fator, cobertura, demanda humana ou RH, esta skill deve consultar a cadeia acima e aplicar exatamente o estado/gate retornado.
 
-A ordem obrigatória é:
+Esta skill pode fornecer métodos de planejamento, análise de capacidade, sequenciamento, gargalos e execução, mas não pode:
+- redefinir a ordem dos gates;
+- calcular com dado ausente;
+- transformar experiência Multiteiner em regra geral;
+- tratar `mt_pessoas` como disponibilidade de RH;
+- aplicar crescimento ao quadro atual de RH;
+- substituir a regra canônica do PCP.
 
-`Comercial → Modelo/Taxonomia → demanda futura → natureza da demanda → histórico equivalente → fator → carga projetada → composição operacional → produtividade → demanda por função → RH`
+Quando uma técnica desta skill entrar em conflito com uma regra PCP, a técnica fica subordinada à regra PCP e o conflito deve ser registrado para reconciliação documental.
 
-O primeiro gate é responder:
+### Estado operacional atual
 
-> **O que exatamente queremos prever para setembro/2026 a fevereiro/2027?**
+O ciclo de crescimento permanece condicionado ao gate de referência histórica comparável. A existência de views de projeção humana ou cockpit decisório representa capacidade implantada, não autorização de execução.
 
-Somente depois dessa definição o histórico de setembro/2025 a fevereiro/2026 pode ser reconstruído para comparação.
+### 33.1 Referências canônicas
 
-### 33.2 Bases de demanda
+- `PCP_INSTRUCOES_GERAIS_GOVERNANCA.md`
+- `PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md`
+- `PCP_VINCULO_REPARO_UNIDADE_MODULAR.md`
+- `PCP_ELO_INTEGRACAO_REPAROS.md`
 
-Para setembro/2025 a fevereiro/2026, o PCP deve separar as bases por:
-
-- natureza da demanda;
-- modelo/taxonomia;
-- produto, quando aplicável;
-- quantidade;
-- período;
-- evento ou chave de comparabilidade;
-- unidade de medida.
-
-Exemplo estrutural:
-
-| Natureza | Produto | Quantidade | Referência |
-|---|---|---:|---|
-| Sazonalidade | Módulos | 375 | set/2025–fev/2026 |
-| Sazonalidade/Eventos | Contêineres | 75 | set/2025–fev/2026 |
-| SPOT | Produtos | 150 | set/2025–fev/2026 |
-| Grande porte | Módulos | ~400 | operação específica |
-
-Esses valores são exemplos de estrutura, não dados operacionais validados.
-
-Essas linhas não devem ser somadas automaticamente. Primeiro é necessário determinar quais representam a mesma dimensão de demanda.
-
-### 33.3 Modelo/Taxonomia
-
-O tipo de produto informado pelo Comercial corresponde ao **Modelo/Taxonomia** existente no domínio de produtos.
-
-Quando a previsão Comercial for estruturada por modelo, o histórico deve preservar o mesmo nível de granularidade.
-
-A lista-mãe não é requisito para o cálculo do crescimento. Ela não deve ser introduzida no cálculo apenas por estar relacionada ao modelo.
-
-A estrutura/chassi também não é requisito desta etapa.
-
-### 33.4 Referência comparável
-
-A previsão futura define a estrutura que o histórico precisa reproduzir.
-
-Exemplo:
-
-**Histórico — set/2025 → fev/2026**
-
-| Natureza | Produto | Quantidade |
-|---|---|---:|
-| Eventos | Módulos | 120 |
-| Eventos | Contêineres | 30 |
-| Sazonalidade | Módulos | 255 |
-| Sazonalidade | Contêineres | 45 |
-| SPOT | Produtos | 150 |
-
-**Previsão — set/2026 → fev/2027**
-
-| Natureza | Produto | Quantidade |
-|---|---|---:|
-| Eventos | Módulos | X |
-| Eventos | Contêineres | X |
-| Sazonalidade | Módulos | X |
-| Sazonalidade | Contêineres | X |
-| SPOT | Produtos | X |
-
-A comparação deve ocorrer entre dimensões equivalentes: evento com evento, sazonalidade com sazonalidade, SPOT com SPOT e modelo/produto equivalente com modelo/produto equivalente.
-
-Quando não houver histórico válido para uma dimensão futura, registrar **GAP de comparabilidade**.
-
-### 33.5 Fator por dimensão comparável
-
-Depois de validada a referência, o fator pode ser calculado por dimensão comparável.
-
-**Fator = demanda futura comparável / demanda histórica comparável**
-
-**Variação = (fator - 1) × 100**
-
-Exemplo meramente hipotético:
-
-| Natureza | 2025 | 2026 | Fator | Variação |
-|---|---:|---:|---:|---:|
-| Evento | 120 | 150 | 1,250 | +25,00% |
-| Sazonalidade | 255 | 150 | 0,588 | -41,18% |
-| SPOT | 150 | 200 | 1,333 | +33,33% |
-
-Não se deve assumir um único fator para toda a demanda. A composição futura pode mudar mesmo quando o volume total não cresce.
-
-### 33.6 Gate antes da composição funcional
-
-Após o cálculo dos fatores, o processo deve parar antes de calcular pessoas por função.
-
-Antes de avançar, o PCP deve ter:
-
-1. estrutura futura definida;
-2. histórico equivalente reconstruído;
-3. dimensões comparáveis identificadas;
-4. unidades compatíveis;
-5. fatores calculáveis;
-6. GAPs documentados;
-7. ausência de agregações indevidas.
-
-### 33.7 Composição operacional — etapa posterior
-
-Somente depois da referência histórica comparável será investigada a composição operacional.
-
-A pergunta será:
-
-> **Para cada natureza e modelo/produto, quais funções participaram da execução e em que proporção?**
-
-| Produto/Modelo | Eletricista | Hidráulica | Montador | Ajudante | Serralheiro | Soldador |
-|---|---:|---:|---:|---:|---:|---:|
-| Módulo | ? | ? | ? | ? | ? | ? |
-| Contêiner | ? | ? | ? | ? | ? | ? |
-
-Os pontos de interrogação representam dados ainda não localizados. Não devem ser transformados em percentuais por inferência.
-
-### 33.8 Produtividade — etapa posterior
-
-Depois da composição operacional, o PCP poderá calcular produtividade histórica por função.
-
-Exemplo estrutural: 200 módulos realizados com 10 montadores gera uma produtividade histórica preliminar de 20 módulos por montador no período.
-
-Esse indicador ainda precisa ser validado considerando produto/modelo, complexidade, período, horas trabalhadas, composição da equipe, natureza da demanda e escopo realizado.
-
-### 33.9 Aplicação do fator à demanda humana histórica
-
-A regra operacional é:
-
-> **O fator é calculado sobre produtos comparáveis e, depois, aplicado à demanda humana histórica correspondente por função.**
-
-Não aplicar o fator ao quadro atual do RH.
-
-`Demanda futura comparável ÷ demanda histórica comparável = fator`
-
-Depois:
-
-`Demanda humana projetada por função = demanda humana histórica por função × fator`
-
-Essa multiplicação só é válida quando natureza, produto/modelo, unidade e composição operacional forem comparáveis. Quando a composição mudar, o PCP deve calcular a carga por produto e função, evitando um fator global indiscriminado.
-
-### 33.10 Demanda humana histórica externa
-
-A fonte operacional atual é a montagem externa. A reconstrução histórica por função usa:
-
-`mt_ordens_montagem_externa → mt_pedidos_venda → mt_pedidos_venda_itens → mt_equipe_montagem_externa → mt_funcoes_montagem`
-
-Somente ordens cujo pedido possui exatamente um modelo recebem atribuição automática de demanda humana ao modelo.
-
-Pedidos com múltiplos modelos são GAP de rastreabilidade e não recebem rateio inferido.
-
-### 33.11 Views do ciclo
-
-- `v_elo_pcp_referencia_demanda_comparavel`: referência histórica/futura + fator;
-- `v_elo_pcp_demanda_humana_historica_externa`: demanda humana histórica por modelo/função;
-- `v_elo_pcp_gap_composicao_humana_externa`: GAP de pedidos com múltiplos modelos;
-- `v_elo_pcp_demanda_humana_projetada_externa`: aplicação do fator à demanda humana histórica correspondente.
-
-### 33.12 Gatilho e pergunta do ELO
-
-Quando houver dados nos dois horizontes, o banco cria uma execução `PENDING_INPUT` na automação `elo_pcp_demanda_crossing`.
-
-O ELO deve então perguntar:
-
-> **Os dados históricos e a previsão foram inseridos. Posso cruzar os produtos comparáveis, calcular os fatores de crescimento/redução e aplicar esses fatores à demanda humana histórica por função?**
-
-O gatilho não calcula contratação, não altera o quadro de RH e não promove aprendizado. Ele apenas abre o próximo passo analítico mediante confirmação.
-
-### 33.13 Loop governado
-
-`dados inseridos → trigger → PENDING_INPUT → ELO pergunta → confirmação → cruzamento → fator → demanda humana projetada → RH`
-
-Se faltar histórico, previsão, chave de comparabilidade ou composição rastreável, o processo deve parar e registrar GAP.
-
-### 33.13 Escopo atual
-
-Esta etapa trata exclusivamente da construção da referência histórica comparável para a demanda Comercial.
-
-O objetivo imediato é preparar uma base confiável para o período **setembro/2026 a fevereiro/2027**, utilizando **setembro/2025 a fevereiro/2026** como referência histórica equivalente.
-
-Somente após a validação desse gate o processo poderá avançar para composição funcional, produtividade, demanda humana e entrega ao RH.
+Demais seções desta skill devem ser interpretadas como aplicação metodológica e evidência contextual, nunca como uma segunda instrução PCP.
