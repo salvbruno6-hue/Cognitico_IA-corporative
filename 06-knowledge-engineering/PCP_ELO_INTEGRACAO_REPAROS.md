@@ -1,3 +1,11 @@
+---
+parent: PCP_INSTRUCOES_GERAIS_GOVERNANCA.md
+level: 3
+type: instrucao_especializada
+process: PCP externo — cobertura física e integração ELO
+purpose: detalhar a interpretação do ELO sobre reparos e cobertura
+---
+
 # Instrução ELO: integração PCP, reparos e cobertura de demanda
 
 ## Objetivo

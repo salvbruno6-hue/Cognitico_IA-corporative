@@ -201,6 +201,10 @@ Antes de criar uma nova instrução PCP:
 
 'PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md'
 
+### Apoio visual do processo de demanda
+
+'PCP_DEMANDA_CRESCIMENTO_FLUXO.md' — representação visual subordinada ao processo de demanda; não cria regra própria.
+
 ### Especialização de reparos
 
 'PCP_VINCULO_REPARO_UNIDADE_MODULAR.md'

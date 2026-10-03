@@ -1,3 +1,11 @@
+---
+parent: PCP_INSTRUCOES_GERAIS_GOVERNANCA.md
+level: 3
+type: instrucao_especializada
+process: PCP externo — cobertura física e reparos
+purpose: detalhar o vínculo entre ordem de reparo e unidade modular física
+---
+
 # Instrução PCP: vínculo entre reparo e unidade modular
 
 ## Objetivo
