@@ -829,3 +829,529 @@ Quando nova evidência for incorporada:
 - se alterar a conclusão, registrar qual evidência provocou a mudança.
 
 O mesmo conjunto de dados, meta e versão da Skill deve produzir o mesmo resultado quantitativo determinístico.
+
+
+## 27. Capacidade de RH aplicada à montagem externa
+
+A camada de evidência PCP passa a reconhecer a necessidade de capacidade humana sem criar uma nova autoridade de RH.
+
+A fonte operacional é a equipe planejada da montagem externa:
+
+- `mt_equipe_montagem_externa`;
+- `mt_funcoes_montagem`.
+
+A visão `v_elo_pcp_capacidade_rh_montagem` consolida, por data e função:
+
+- colaboradores simultâneos planejados;
+- ordens simultâneas;
+- código e nome da função.
+
+A leitura cognitiva é:
+
+`DEMANDA/PLANO → ORDEM → EQUIPE → FUNÇÃO → PICO SIMULTÂNEO`
+
+### 27.1 Regra de capacidade
+
+O pico de colaboradores é uma evidência de necessidade de mão de obra planejada, não uma afirmação de capacidade disponível.
+
+A comparação com disponibilidade real de RH somente deve ser calculada quando existir fonte operacional que registre essa disponibilidade na mesma unidade e período.
+
+Portanto:
+
+- `PICO_COLABORADORES` = necessidade planejada observada;
+- `CAPACIDADE_RH_DISPONIVEL` = somente quando houver fonte compatível;
+- `GAP_RH` = somente quando ambos forem localizados e comparáveis.
+
+Não utilizar `mt_capacidade_diaria` para representar automaticamente capacidade de pessoas, pois sua estrutura registra capacidade quantitativa de centro de trabalho e não estabelece, por si só, equivalência com colaboradores.
+
+### 27.2 Evidência atual
+
+No estado atual do Supabase, as estruturas de montagem externa e PCP consultadas não possuem registros operacionais. Assim, a visão está implementada e validada estruturalmente, mas ainda não há pico real calculável.
+
+O próximo dado operacional necessário para fechar o ciclo é o preenchimento de equipes planejadas com datas, funções e pessoas e, posteriormente, uma fonte compatível de disponibilidade de RH.
+
+
+
+## 28. Catálogo de views PCP disponíveis para solicitação
+
+Quando o usuário pedir uma análise, o ELO pode oferecer diretamente as views já implementadas abaixo. O nome deve ser tratado como identificador operacional da consulta.
+
+### 28.1 Views já prontas
+
+| View | Finalidade | Principais informações |
+|---|---|---|
+| `v_elo_pcp_inteligente` | Visão integrada do PCP | demanda, planejamento e indicadores já consolidados pela estrutura existente |
+| `v_elo_pcp_montagem_externa` | Acompanhamento de montagem externa | ordens, clientes, módulos, equipe, horas, aderência e prazo |
+| `v_elo_pcp_capacidade_montagem_externa` | Capacidade planejada de equipe | função, período, colaboradores, horas e ordens |
+| `v_elo_pcp_indicadores_montagem_externa` | Indicadores consolidados da montagem | ordens, atrasos, módulos, equipe, horas e aderência |
+| `v_elo_pcp_montagem_externa_integrada` | PCP + montagem externa | quantidade PCP, planos, módulos, equipe, cobertura e produtividade planejada |
+| `v_elo_pcp_capacidade_rh_montagem` | Pico de necessidade de RH | colaboradores simultâneos, ordens simultâneas e função por data |
+| `v_elo_pcp_carga_capacidade_periodo` | Carga PCP × capacidade por período | carga teórica, capacidade disponível, folga e utilização quando as unidades forem compatíveis |
+| `v_elo_pcp_referencia_demanda_comparavel` | Referência histórica comparável | histórico × previsão por modelo, natureza e chave de comparabilidade, com GAPs explícitos |
+
+### 28.2 Pedidos que o usuário pode fazer
+
+O usuário pode solicitar, por exemplo:
+
+- **“Abra a visão geral do PCP.”**
+- **“Mostre a montagem externa.”**
+- **“Mostre a capacidade da equipe de montagem.”**
+- **“Mostre os indicadores da montagem externa.”**
+- **“Cruze PCP com montagem externa.”**
+- **“Mostre o pico de necessidade de RH por função.”**
+- **“Mostre os pedidos atrasados da montagem externa.”**
+- **“Mostre a aderência entre horas planejadas e realizadas.”**
+- **“Mostre módulos por colaborador.”**
+- **“Mostre a cobertura de módulos pelo PCP.”**
+- **“Mostre o desvio de prazo por ordem.”**
+- **“Mostre a necessidade de equipe por dia.”**
+
+O ELO deve primeiro consultar a view existente antes de propor uma nova estrutura.
+
+## 29. Sugestões de novas views que podem ser solicitadas
+
+As sugestões abaixo são oportunidades de evolução e **não significam que essas views já existam**.
+
+### PCP e capacidade
+
+1. **Demanda × capacidade por período**
+   - demanda planejada;
+   - capacidade disponível;
+   - diferença;
+   - utilização;
+   - período.
+
+2. **Gargalos de capacidade**
+   - recurso/centro;
+   - carga;
+   - capacidade;
+   - ocupação;
+   - excesso de carga.
+
+3. **Carga futura do PCP**
+   - ordens abertas;
+   - horas planejadas;
+   - distribuição por semana/mês;
+   - concentração de carga.
+
+### RH
+
+4. **Gap de RH por função**
+   - necessidade;
+   - disponibilidade;
+   - gap;
+   - período.
+
+5. **Custo de mão de obra planejada**
+   - necessidade de colaboradores;
+   - custo diário/mensal disponível;
+   - custo estimado;
+   - função/cargo.
+
+6. **Produtividade de equipe**
+   - horas planejadas;
+   - horas realizadas;
+   - módulos;
+   - horas por módulo;
+   - módulos por colaborador.
+
+### Prazo e execução
+
+7. **Atrasos por ordem**
+   - prazo planejado;
+   - prazo realizado;
+   - dias de desvio;
+   - status.
+
+8. **Planejado × realizado**
+   - quantidade;
+   - horas;
+   - início;
+   - fim;
+   - desvio percentual.
+
+9. **Mapa de ordens críticas**
+   - atraso;
+   - carga;
+   - falta de capacidade;
+   - dependências;
+   - evidências disponíveis.
+
+### Demanda e comercial
+
+10. **Demanda confirmada × previsão**
+    - pedido confirmado;
+    - previsão;
+    - quantidade líquida;
+    - horizonte.
+
+11. **Demanda por cliente/localização**
+    - cliente;
+    - localização;
+    - quantidade;
+    - modelos;
+    - prazo.
+
+12. **Demanda por modelo**
+    - modelo;
+    - quantidade;
+    - pedidos;
+    - período.
+
+### Estoque e sincronização
+
+13. **Componentes críticos para montagem**
+    - necessidade;
+    - estoque;
+    - faltante;
+    - produção;
+    - situação de sincronização.
+
+14. **Estrutura × componentes × montagem**
+    - módulos;
+    - componentes necessários;
+    - disponibilidade;
+    - condição para montagem.
+
+### Regra para solicitar novas views
+
+Quando uma view sugerida for solicitada, o ELO deve:
+
+`META → verificar views existentes → verificar tabelas/fontes → identificar sobreposição → definir indicadores → implementar somente se houver justificativa → testar → validar`
+
+Não criar uma view apenas porque um indicador pode ser imaginado. A nova view deve representar uma necessidade analítica real e não duplicar uma autoridade existente.
+
+### 29.1 Pedido atualmente incorporado
+
+O pedido que originou este catálogo fica registrado como requisito funcional:
+
+> **“Incluir uma lista de opções de views que já estão prontas e sugestões de views que podem ser solicitadas, permitindo ao usuário escolher diretamente a próxima análise.”**
+
+Esse catálogo deve ser atualizado sempre que uma nova view for criada e validada.
+
+
+## 30. Carga PCP × capacidade por período
+
+A view `v_elo_pcp_carga_capacidade_periodo` foi adicionada como evidência analítica para comparar a carga teórica do planejamento com a capacidade diária dos centros de trabalho.
+
+### 30.1 Fonte e cálculo
+
+A view combina:
+
+- `mt_linhas_plano_pcp` — quantidade e intervalo planejado;
+- `mt_operacoes_roteiro` — centro de trabalho e tempos padrão/setup;
+- `mt_capacidade_diaria` — capacidade padrão, recuperação, bloqueada e disponível;
+- `mt_centros_trabalho` — unidade de capacidade e identificação do recurso.
+
+A carga horária é distribuída entre os dias do intervalo planejado da linha. Essa distribuição é uma **carga teórica para análise**, não uma programação finita de operações.
+
+### 30.2 Regra de comparabilidade
+
+A view somente calcula `folga_horas`, `utilizacao_pct` e `excesso_carga` quando a unidade de capacidade do centro está registrada como hora.
+
+Quando a unidade não for compatível com horas:
+
+- a capacidade continua sendo exibida;
+- a carga teórica continua sendo exibida;
+- não é produzido percentual de utilização;
+- não é declarado excesso de carga.
+
+Portanto:
+
+`CARGA × CAPACIDADE` só pode gerar um diagnóstico de utilização quando as unidades forem comparáveis.
+
+### 30.3 Estado atual
+
+No estado atual do Supabase, as estruturas operacionais de PCP, roteiro e capacidade consultadas estão sem registros. A view foi criada e consultada com sucesso, mas ainda não há carga ou capacidade operacional para calcular utilização.
+
+A análise futura deve preservar a distinção:
+
+- **DADO** — carga/capacidade registrada;
+- **INFERÊNCIA CONTROLADA** — carga teórica derivada do plano e roteiro;
+- **NÃO LOCALIZADO** — comparação impossível quando a unidade não é compatível ou quando faltam dados.
+
+### 30.4 Solicitação
+
+O usuário pode solicitar:
+
+> “Mostre a carga PCP versus capacidade por período.”
+
+A Skill deve consultar primeiro `v_elo_pcp_carga_capacidade_periodo` antes de propor outra estrutura para a mesma análise.
+
+
+## 31. Gap de disponibilidade de RH por função
+
+A análise de necessidade de RH da montagem externa foi confrontada com as estruturas existentes para verificar se já existe uma autoridade de capacidade/disponibilidade humana.
+
+### 31.1 Evidência localizada
+
+Existem fontes para:
+
+- pessoas: `mt_pessoas`;
+- funções de montagem: `mt_funcoes_montagem`;
+- equipe planejada por ordem: `mt_equipe_montagem_externa`;
+- mão de obra realizada: `mt_mao_obra_montagem_externa`;
+- custos de mão de obra: `rh_mao_obra_custos`.
+
+A view `v_elo_pcp_capacidade_rh_montagem` representa a **necessidade planejada/simultânea** por função e data.
+
+### 31.2 Lacuna identificada
+
+Não foi localizada uma fonte canônica que registre, na mesma unidade de análise, a **disponibilidade efetiva de pessoas por função e período**.
+
+Consequentemente, ainda não é sustentado o cálculo:
+
+`GAP_RH = NECESSIDADE_PLANEJADA - DISPONIBILIDADE_RH`
+
+Também não deve ser usado automaticamente:
+
+- `mt_capacidade_diaria` como capacidade de pessoas;
+- quantidade total de `mt_pessoas` como disponibilidade diária;
+- `rh_mao_obra_custos` como capacidade, pois essa tabela é uma base de custos e não um calendário de disponibilidade.
+
+### 31.3 Próxima evidência mínima
+
+Para fechar o cálculo do gap sem criar autoridade duplicada, é necessário localizar ou formalizar, sob governança do domínio RH, uma fonte que permita determinar:
+
+- pessoa/colaborador disponível;
+- função aplicável;
+- período de disponibilidade;
+- indisponibilidades/bloqueios relevantes;
+- unidade de capacidade, quando diferente de pessoa simultânea.
+
+Até essa evidência existir, o estado correto é:
+
+`NECESSIDADE_RH = CALCULÁVEL QUANDO HOUVER EQUIPE PLANEJADA`
+
+`DISPONIBILIDADE_RH = NÃO LOCALIZADA`
+
+`GAP_RH = NÃO CALCULÁVEL`
+
+## 32. GAP de segurança identificado no estado atual
+
+A inspeção do Supabase identificou que `public.lista_mae_alteracoes` estava com RLS desabilitado.
+
+A investigação do repositório encontrou o contrato canônico em `09-governance/contracts/expected_state/supabase_rls.yaml`, que já declara:
+
+- RLS esperado: `true`;
+- policies: `[]`;
+- criticidade: alta;
+- comportamento esperado: fail-closed.
+
+O ADR-0017 também confirma que `lista_mae_alteracoes` é o histórico obrigatório das alterações da Lista-Mãe. O trigger `lista_mae_guard()` grava nesse histórico usando `SECURITY DEFINER`, portanto a proteção da tabela não exige criar uma policy de INSERT para usuários da aplicação.
+
+A remediação aplicada foi somente:
+
+```sql
+ALTER TABLE public.lista_mae_alteracoes ENABLE ROW LEVEL SECURITY;
+```
+
+Nenhuma policy foi criada. Assim, não foi introduzido um novo caminho de leitura ou escrita para usuários da aplicação.
+
+Após a alteração, a verificação do estado ao vivo confirmou:
+
+- `rls_enabled = true`;
+- nenhuma policy em `lista_mae_alteracoes`;
+- nenhum registro de teste foi inserido.
+
+A migration correspondente foi registrada em:
+
+`supabase/migrations/20261002190000_enable_rls_lista_mae_alteracoes.sql`
+
+Esse GAP de segurança é independente do cálculo de capacidade de RH e não deve ser misturado à lógica do PCP.
+
+
+
+
+## 33. Demanda de crescimento — referência histórica comparável antes da composição funcional
+
+A implantação da demanda de crescimento deve começar pela construção correta da **referência histórica comparável**. Nesta etapa, o PCP **não deve calcular ainda a necessidade por função**.
+
+### 33.1 Regra central
+
+A ordem obrigatória é:
+
+`Comercial → Modelo/Taxonomia → demanda futura → natureza da demanda → histórico equivalente → fator → carga projetada → composição operacional → produtividade → demanda por função → RH`
+
+O primeiro gate é responder:
+
+> **O que exatamente queremos prever para setembro/2026 a fevereiro/2027?**
+
+Somente depois dessa definição o histórico de setembro/2025 a fevereiro/2026 pode ser reconstruído para comparação.
+
+### 33.2 Bases de demanda
+
+Para setembro/2025 a fevereiro/2026, o PCP deve separar as bases por:
+
+- natureza da demanda;
+- modelo/taxonomia;
+- produto, quando aplicável;
+- quantidade;
+- período;
+- evento ou chave de comparabilidade;
+- unidade de medida.
+
+Exemplo estrutural:
+
+| Natureza | Produto | Quantidade | Referência |
+|---|---|---:|---|
+| Sazonalidade | Módulos | 375 | set/2025–fev/2026 |
+| Sazonalidade/Eventos | Contêineres | 75 | set/2025–fev/2026 |
+| SPOT | Produtos | 150 | set/2025–fev/2026 |
+| Grande porte | Módulos | ~400 | operação específica |
+
+Esses valores são exemplos de estrutura, não dados operacionais validados.
+
+Essas linhas não devem ser somadas automaticamente. Primeiro é necessário determinar quais representam a mesma dimensão de demanda.
+
+### 33.3 Modelo/Taxonomia
+
+O tipo de produto informado pelo Comercial corresponde ao **Modelo/Taxonomia** existente no domínio de produtos.
+
+Quando a previsão Comercial for estruturada por modelo, o histórico deve preservar o mesmo nível de granularidade.
+
+A lista-mãe não é requisito para o cálculo do crescimento. Ela não deve ser introduzida no cálculo apenas por estar relacionada ao modelo.
+
+A estrutura/chassi também não é requisito desta etapa.
+
+### 33.4 Referência comparável
+
+A previsão futura define a estrutura que o histórico precisa reproduzir.
+
+Exemplo:
+
+**Histórico — set/2025 → fev/2026**
+
+| Natureza | Produto | Quantidade |
+|---|---|---:|
+| Eventos | Módulos | 120 |
+| Eventos | Contêineres | 30 |
+| Sazonalidade | Módulos | 255 |
+| Sazonalidade | Contêineres | 45 |
+| SPOT | Produtos | 150 |
+
+**Previsão — set/2026 → fev/2027**
+
+| Natureza | Produto | Quantidade |
+|---|---|---:|
+| Eventos | Módulos | X |
+| Eventos | Contêineres | X |
+| Sazonalidade | Módulos | X |
+| Sazonalidade | Contêineres | X |
+| SPOT | Produtos | X |
+
+A comparação deve ocorrer entre dimensões equivalentes: evento com evento, sazonalidade com sazonalidade, SPOT com SPOT e modelo/produto equivalente com modelo/produto equivalente.
+
+Quando não houver histórico válido para uma dimensão futura, registrar **GAP de comparabilidade**.
+
+### 33.5 Fator por dimensão comparável
+
+Depois de validada a referência, o fator pode ser calculado por dimensão comparável.
+
+**Fator = demanda futura comparável / demanda histórica comparável**
+
+**Variação = (fator - 1) × 100**
+
+Exemplo meramente hipotético:
+
+| Natureza | 2025 | 2026 | Fator | Variação |
+|---|---:|---:|---:|---:|
+| Evento | 120 | 150 | 1,250 | +25,00% |
+| Sazonalidade | 255 | 150 | 0,588 | -41,18% |
+| SPOT | 150 | 200 | 1,333 | +33,33% |
+
+Não se deve assumir um único fator para toda a demanda. A composição futura pode mudar mesmo quando o volume total não cresce.
+
+### 33.6 Gate antes da composição funcional
+
+Após o cálculo dos fatores, o processo deve parar antes de calcular pessoas por função.
+
+Antes de avançar, o PCP deve ter:
+
+1. estrutura futura definida;
+2. histórico equivalente reconstruído;
+3. dimensões comparáveis identificadas;
+4. unidades compatíveis;
+5. fatores calculáveis;
+6. GAPs documentados;
+7. ausência de agregações indevidas.
+
+### 33.7 Composição operacional — etapa posterior
+
+Somente depois da referência histórica comparável será investigada a composição operacional.
+
+A pergunta será:
+
+> **Para cada natureza e modelo/produto, quais funções participaram da execução e em que proporção?**
+
+| Produto/Modelo | Eletricista | Hidráulica | Montador | Ajudante | Serralheiro | Soldador |
+|---|---:|---:|---:|---:|---:|---:|
+| Módulo | ? | ? | ? | ? | ? | ? |
+| Contêiner | ? | ? | ? | ? | ? | ? |
+
+Os pontos de interrogação representam dados ainda não localizados. Não devem ser transformados em percentuais por inferência.
+
+### 33.8 Produtividade — etapa posterior
+
+Depois da composição operacional, o PCP poderá calcular produtividade histórica por função.
+
+Exemplo estrutural: 200 módulos realizados com 10 montadores gera uma produtividade histórica preliminar de 20 módulos por montador no período.
+
+Esse indicador ainda precisa ser validado considerando produto/modelo, complexidade, período, horas trabalhadas, composição da equipe, natureza da demanda e escopo realizado.
+
+### 33.9 Aplicação do fator à demanda humana histórica
+
+A regra operacional é:
+
+> **O fator é calculado sobre produtos comparáveis e, depois, aplicado à demanda humana histórica correspondente por função.**
+
+Não aplicar o fator ao quadro atual do RH.
+
+`Demanda futura comparável ÷ demanda histórica comparável = fator`
+
+Depois:
+
+`Demanda humana projetada por função = demanda humana histórica por função × fator`
+
+Essa multiplicação só é válida quando natureza, produto/modelo, unidade e composição operacional forem comparáveis. Quando a composição mudar, o PCP deve calcular a carga por produto e função, evitando um fator global indiscriminado.
+
+### 33.10 Demanda humana histórica externa
+
+A fonte operacional atual é a montagem externa. A reconstrução histórica por função usa:
+
+`mt_ordens_montagem_externa → mt_pedidos_venda → mt_pedidos_venda_itens → mt_equipe_montagem_externa → mt_funcoes_montagem`
+
+Somente ordens cujo pedido possui exatamente um modelo recebem atribuição automática de demanda humana ao modelo.
+
+Pedidos com múltiplos modelos são GAP de rastreabilidade e não recebem rateio inferido.
+
+### 33.11 Views do ciclo
+
+- `v_elo_pcp_referencia_demanda_comparavel`: referência histórica/futura + fator;
+- `v_elo_pcp_demanda_humana_historica_externa`: demanda humana histórica por modelo/função;
+- `v_elo_pcp_gap_composicao_humana_externa`: GAP de pedidos com múltiplos modelos;
+- `v_elo_pcp_demanda_humana_projetada_externa`: aplicação do fator à demanda humana histórica correspondente.
+
+### 33.12 Gatilho e pergunta do ELO
+
+Quando houver dados nos dois horizontes, o banco cria uma execução `PENDING_INPUT` na automação `elo_pcp_demanda_crossing`.
+
+O ELO deve então perguntar:
+
+> **Os dados históricos e a previsão foram inseridos. Posso cruzar os produtos comparáveis, calcular os fatores de crescimento/redução e aplicar esses fatores à demanda humana histórica por função?**
+
+O gatilho não calcula contratação, não altera o quadro de RH e não promove aprendizado. Ele apenas abre o próximo passo analítico mediante confirmação.
+
+### 33.13 Loop governado
+
+`dados inseridos → trigger → PENDING_INPUT → ELO pergunta → confirmação → cruzamento → fator → demanda humana projetada → RH`
+
+Se faltar histórico, previsão, chave de comparabilidade ou composição rastreável, o processo deve parar e registrar GAP.
+
+### 33.13 Escopo atual
+
+Esta etapa trata exclusivamente da construção da referência histórica comparável para a demanda Comercial.
+
+O objetivo imediato é preparar uma base confiável para o período **setembro/2026 a fevereiro/2027**, utilizando **setembro/2025 a fevereiro/2026** como referência histórica equivalente.
+
+Somente após a validação desse gate o processo poderá avançar para composição funcional, produtividade, demanda humana e entrega ao RH.

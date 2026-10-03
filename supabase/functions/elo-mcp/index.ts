@@ -122,6 +122,12 @@ const TOOLS = [
     },
   },
   {
+    name: "elo_pcp_demanda_crossing_status",
+    title: "Read PCP demand crossing",
+    description: "Reads the governed PCP demand-crossing state. When historical and forecast demand data are ready, returns the exact pending question that ELO must ask before performing the crossing.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "elo_dol_read",
     title: "Read Decision Outcome Loop",
     description: "Reads Decision Outcome Loop records from the cognitive projection. Read-only and audited.",
@@ -217,7 +223,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.2.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -265,6 +271,49 @@ Deno.serve(async (req: Request) => {
       }
       await audit(auth.user.id, "elo_read", "success", { table, row_count: data?.length ?? 0 });
       return rpc(id, { content: [{ type: "text", text: JSON.stringify({ table, count: data?.length ?? 0, rows: data ?? [] }) }] });
+    }
+
+    if (name === "elo_pcp_demanda_crossing_status") {
+      const { data: pending, error: pendingError } = await supabase
+        .from("elo_automation_runs")
+        .select("id,automation_id,started_at,status,rows_affected,details,elo_automation_registry!inner(code,name,requires_validation)")
+        .eq("status", "PENDING_INPUT")
+        .eq("elo_automation_registry.code", "elo_pcp_demanda_crossing")
+        .order("started_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingError) {
+        await audit(auth.user.id, "elo_pcp_demanda_crossing_status", "error", { error: pendingError.message });
+        return rpcError(id, -32003, "pcp_crossing_status_failed");
+      }
+
+      const { data: factors, error: factorError } = await supabase
+        .from("v_elo_pcp_referencia_demanda_comparavel")
+        .select("natureza_demanda,modelo_codigo,modelo_nome,taxonomia_tipo,chave_comparabilidade,quantidade_historica,quantidade_prevista,fator_demanda,variacao_percentual,estado_comparabilidade,estado_fator")
+        .limit(100);
+
+      const { data: projections, error: projectionError } = await supabase
+        .from("v_elo_pcp_demanda_humana_projetada_externa")
+        .select("natureza_demanda,modelo_codigo,modelo_nome,funcao_codigo,funcao_nome,demanda_humana_historica_media_dia,fator_demanda,demanda_humana_projetada_media_dia,estado_projecao")
+        .limit(100);
+
+      await audit(auth.user.id, "elo_pcp_demanda_crossing_status", "success", {
+        pending: Boolean(pending),
+        factor_rows: factors?.length ?? 0,
+        projection_rows: projections?.length ?? 0,
+        factor_error: factorError?.message ?? null,
+        projection_error: projectionError?.message ?? null,
+      });
+
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        ready: Boolean(pending),
+        pending_run: pending ?? null,
+        next_question: pending?.details?.next_question ?? null,
+        rule: pending?.details?.rule ?? "Nao aplicar o fator ao quadro de RH.",
+        fator_rows: factors ?? [],
+        demanda_humana_projetada: projections ?? [],
+      }) }] });
     }
 
     if (name === "elo_dol_read") {
