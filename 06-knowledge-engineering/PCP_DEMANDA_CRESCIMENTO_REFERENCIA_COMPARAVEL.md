@@ -252,3 +252,74 @@ O ELO deve solicitar essa confirmação antes do cruzamento. A confirmação nã
 
 Se houver GAP de comparabilidade, modelo sem histórico, previsão sem histórico ou composição não rastreável, o loop deve parar naquele ponto e solicitar o dado faltante.
 
+
+
+## 18. Reconciliação Git × Supabase e gates técnicos
+
+A implantação deste processo possui duas autoridades complementares:
+
+- **GitHub** é a autoridade canônica do código, das migrações e da documentação versionada.
+- **Supabase** é a autoridade do estado operacional do banco, das views, funções, triggers e registros efetivamente existentes.
+
+A presença de um objeto no schema do Supabase não prova, sozinha, que o arquivo de migração correspondente esteja reconciliado no histórico versionado. Da mesma forma, a presença de um arquivo no GitHub não prova que sua alteração tenha sido aplicada ao banco.
+
+### 18.1 Regra para divergência
+
+Quando GitHub e Supabase apresentarem estados diferentes:
+
+1. registrar o GAP;
+2. identificar se a divergência é de **schema**, **histórico de migração**, **código** ou **documentação**;
+3. comparar o estado efetivo antes de qualquer nova aplicação;
+4. reconciliar por uma alteração versionada e rastreável;
+5. validar novamente o schema e o histórico;
+6. não inserir manualmente registros em `supabase_migrations.schema_migrations`;
+7. não reaplicar cegamente uma migração apenas para fazer o histórico parecer alinhado.
+
+### 18.2 Reconciliação das migrações deste processo
+
+As quatro alterações PCP já estão presentes no banco sob as versões efetivamente registradas no histórico de migrações:
+
+| Versão aplicada | Alteração canônica |
+|---|---|
+| 20261003033848 | criação de `v_elo_pcp_referencia_demanda_comparavel` |
+| 20261003033912 | refinamento dos horizontes da referência comparável |
+| 20261003033929 | documentação dos campos de comparabilidade |
+| 20261003041027 | fator → demanda humana → loop ELO |
+
+O repositório deve usar essas mesmas versões como prefixo dos arquivos de migração, preservando o conteúdo já aplicado. Essa é uma reconciliação de identificação/versionamento; não deve gerar uma segunda aplicação do mesmo DDL.
+
+### 18.3 Gate técnico antes do cruzamento ponta a ponta
+
+O processo só pode entrar no cruzamento analítico quando todos os gates abaixo estiverem satisfeitos:
+
+`Git main atualizado` → `arquivos de migração versionados` → `histórico de migração reconciliado` → `schema Supabase validado` → `views/funções/triggers validados` → `ELO-MCP validado` → `histórico + previsão inseridos` → `PENDING_INPUT criado` → `confirmação do ELO` → `cruzamento comparável` → `fator` → `demanda humana histórica` → `demanda humana projetada` → `RH`
+
+A implantação de código pode existir antes desses dados estarem disponíveis. Isso não significa que o processo esteja liberado para cálculo.
+
+### 18.4 Estado bloqueado
+
+Enquanto qualquer gate obrigatório estiver pendente, o estado operacional é:
+
+**BLOQUEADO PARA EXECUÇÃO ANALÍTICA**
+
+Nesse estado:
+
+- não calcular fator;
+- não projetar demanda humana;
+- não consultar disponibilidade de RH como base de cálculo;
+- não gerar contratação;
+- não substituir dado ausente por inferência.
+
+Quando o dado histórico e a previsão estiverem presentes, o trigger deve gerar `PENDING_INPUT`. O ELO deve fazer a pergunta registrada e aguardar a confirmação antes de executar o cruzamento.
+
+### 18.5 Critério de fechamento técnico
+
+Antes da execução ponta a ponta, validar conjuntamente:
+
+1. GitHub `main` contém os arquivos canônicos;
+2. os quatro prefixos de migração correspondem às quatro versões efetivamente aplicadas;
+3. views, funções e triggers existem no schema esperado;
+4. `elo_pcp_demanda_crossing` está habilitada e exige validação;
+5. `elo_pcp_demanda_crossing_status` está disponível no ELO-MCP;
+6. as fontes históricas e futuras ainda podem estar vazias — isso é GAP operacional, não erro técnico;
+7. nenhum cálculo é executado antes da confirmação registrada pelo ELO.
