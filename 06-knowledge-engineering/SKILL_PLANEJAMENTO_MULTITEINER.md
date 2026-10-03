@@ -887,6 +887,7 @@ Quando o usuário pedir uma análise, o ELO pode oferecer diretamente as views j
 | `v_elo_pcp_montagem_externa_integrada` | PCP + montagem externa | quantidade PCP, planos, módulos, equipe, cobertura e produtividade planejada |
 | `v_elo_pcp_capacidade_rh_montagem` | Pico de necessidade de RH | colaboradores simultâneos, ordens simultâneas e função por data |
 | `v_elo_pcp_carga_capacidade_periodo` | Carga PCP × capacidade por período | carga teórica, capacidade disponível, folga e utilização quando as unidades forem compatíveis |
+| `v_elo_pcp_referencia_demanda_comparavel` | Referência histórica comparável | histórico × previsão por modelo, natureza e chave de comparabilidade, com GAPs explícitos |
 
 ### 28.2 Pedidos que o usuário pode fazer
 
