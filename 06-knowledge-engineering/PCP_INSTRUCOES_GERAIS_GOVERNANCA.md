@@ -25,6 +25,32 @@ Se houver mais de uma lacuna, o ELO deve solicitar primeiro a de maior prioridad
 Se o usuário não possuir o dado solicitado, o ELO deve registrar/retornar o GAP correspondente e indicar a fonte ou responsável necessário, sem substituir o dado por hipótese.
 
 
+
+## Orquestração do diálogo de coleta
+
+Quando o ELO iniciar uma coleta bloqueante, deve conduzir o usuário de forma progressiva e didática, sem exigir que ele conheça tabelas, nomes técnicos ou a estrutura interna do banco.
+
+A sequência mínima é:
+
+**identificar o GAP → explicar por que o dado é necessário → localizar a fonte → perguntar uma informação por vez → registrar a resposta original → validar os campos explicitamente fornecidos → apontar exatamente o que falta → perguntar novamente → confirmar a fonte → encerrar o diálogo somente quando o gate puder avançar**
+
+O orquestrador deve adaptar a pergunta à resposta recebida. Se o usuário fornecer parte da informação, não deve repetir o pedido completo. Deve reconhecer o que foi localizado e perguntar somente o que permanece pendente.
+
+Exemplo:
+
+> “A quantidade já foi localizada. O que ainda falta é identificar a natureza da demanda. Em qual classificação oficial esse registro aparece?”
+
+Se o usuário não souber um campo, o ELO deve explicar o significado do campo e dar um exemplo didático, deixando claro que o exemplo não é um dado empresarial.
+
+O estado de cada turno deve ser preservado para rastreabilidade no mecanismo de diálogo do ELO. A resposta original do usuário deve permanecer separada dos dados estruturados extraídos pelo canal GPT.
+
+O orquestrador pode validar estrutura e consistência básica, mas **validação estrutural não equivale a validação da fonte nem a gravação no dado operacional**.
+
+A implementação atual utiliza elo_private.pcp_dialogo_turnos para persistir os turnos e public.v_elo_pcp_dialogo_regras para expor as regras de diálogo derivadas da fila canônica de GAPs.
+
+A ferramenta MCP elo_pcp_orquestrador_dialogo deve ser utilizada para manter a sequência do diálogo. Ela pode registrar e validar respostas, mas não possui autorização para alterar regra canônica, inventar valores ou liberar um cálculo bloqueado.
+
+
 ## 1. Finalidade
 
 Este documento é a **instrução geral e autoridade documental do domínio PCP**.
