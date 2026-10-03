@@ -323,3 +323,83 @@ Antes da execução ponta a ponta, validar conjuntamente:
 5. `elo_pcp_demanda_crossing_status` está disponível no ELO-MCP;
 6. as fontes históricas e futuras ainda podem estar vazias — isso é GAP operacional, não erro técnico;
 7. nenhum cálculo é executado antes da confirmação registrada pelo ELO.
+
+
+## 19. Cockpit decisório e gatilho de leitura integrada do PCP externo
+
+O processo passa a possuir uma camada de decisão integrada, sem criar uma nova autoridade de dados.
+
+As views:
+
+- `v_elo_pcp_decisao_externa_detalhe`
+- `v_elo_pcp_decisao_externa_resumo`
+
+consolidam, em uma mesma leitura, os seguintes elementos:
+
+`demanda comercial → referência histórica → previsão → comparabilidade → fator → operação externa → demanda humana histórica → demanda humana projetada → gaps → informação faltante para decisão`
+
+A camada é **analítica e descritiva**. Ela não transforma crescimento comercial em aumento automático de quadro de RH e não substitui validação operacional.
+
+### 19.1 Fontes que funcionam como gatilho
+
+A automação `elo_pcp_decisao_externa` registra uma nova leitura decisória quando houver inserção ou alteração em:
+
+- `mt_pedidos_venda`;
+- `mt_pedidos_venda_itens`;
+- `mt_demanda_historico`;
+- `mt_previsoes_demanda`;
+- `mt_ordens_montagem_externa`;
+- `mt_equipe_montagem_externa`.
+
+A equipe externa representa a evidência operacional de demanda humana por função. O gatilho não interpreta `mt_pessoas` como capacidade disponível para contratação.
+
+### 19.2 O que o resumo deve demonstrar
+
+O resumo expõe:
+
+- estado atual da análise;
+- pedidos e unidades comerciais;
+- quantidade histórica e prevista;
+- quantidade de fatores calculados;
+- fatores de crescimento e redução;
+- ordens externas;
+- horas planejadas de montagem externa;
+- demanda humana histórica média;
+- demanda humana projetada média;
+- gaps de composição;
+- informações que ainda precisam ser validadas.
+
+### 19.3 Motivo analítico
+
+Cada linha detalhada possui um `motivo_analitico`, por exemplo:
+
+- `GAP_COMPOSICAO_OPERACIONAL`;
+- `SEM_HISTORICO_HUMANO`;
+- `DADO_COMERCIAL_NAO_COMPARAVEL`;
+- `HISTORICO_ZERO_SEM_FATOR`;
+- `AUMENTO_DEMANDA_COMPARAVEL`;
+- `REDUCAO_DEMANDA_COMPARAVEL`;
+- `DEMANDA_ESTAVEL`.
+
+Esses motivos explicam o estado observado. Eles não são recomendações de contratação.
+
+### 19.4 Informações que aumentam a precisão da decisão
+
+A leitura deve solicitar ou destacar, quando ausentes:
+
+1. chave de comparabilidade validada;
+2. previsão por modelo e natureza;
+3. histórico real por modelo e natureza;
+4. início, fim e horas planejadas das ordens externas;
+5. composição funcional validada;
+6. histórico humano por função;
+7. confiabilidade da previsão;
+8. origem comercial rastreável.
+
+Para uma decisão futura de dimensionamento de RH, ainda será necessário acrescentar produtividade validada por função e, somente depois, confrontar a demanda projetada com a capacidade efetivamente autorizada pelo processo de RH.
+
+### 19.5 Regra de execução
+
+`inserção/alteração de dado → trigger → PENDING_INPUT → ELO consolida o cockpit → validação → cruzamento comparável → fator → impacto na demanda humana → análise por função → etapa RH`
+
+O cockpit pode existir e atualizar-se antes de haver dados suficientes para cálculo. Nesse caso, seu papel é demonstrar o estado, os impactos observáveis e os dados faltantes, mantendo o processo bloqueado onde a evidência ainda não é suficiente.
