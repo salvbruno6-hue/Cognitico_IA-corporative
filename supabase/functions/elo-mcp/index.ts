@@ -128,6 +128,12 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
+    name: "elo_pcp_decisao_externa_status",
+    title: "Read PCP external decision cockpit",
+    description: "Reads the governed PCP external decision cockpit, including summary indicators, impacts, analytical reasons, missing information and pending validation.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "elo_dol_read",
     title: "Read Decision Outcome Loop",
     description: "Reads Decision Outcome Loop records from the cognitive projection. Read-only and audited.",
@@ -223,7 +229,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.2.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -313,6 +319,54 @@ Deno.serve(async (req: Request) => {
         rule: pending?.details?.rule ?? "Nao aplicar o fator ao quadro de RH.",
         fator_rows: factors ?? [],
         demanda_humana_projetada: projections ?? [],
+      }) }] });
+    }
+
+    if (name === "elo_pcp_decisao_externa_status") {
+      const { data: pending, error: pendingError } = await supabase
+        .from("elo_automation_runs")
+        .select("id,automation_id,started_at,status,rows_affected,details,elo_automation_registry!inner(code,name,requires_validation)")
+        .eq("status", "PENDING_INPUT")
+        .eq("elo_automation_registry.code", "elo_pcp_decisao_externa")
+        .order("started_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingError) {
+        await audit(auth.user.id, "elo_pcp_decisao_externa_status", "error", { error: pendingError.message });
+        return rpcError(id, -32004, "pcp_decisao_externa_status_failed");
+      }
+
+      const { data: summary, error: summaryError } = await supabase
+        .from("v_elo_pcp_decisao_externa_resumo")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      const { data: details, error: detailsError } = await supabase
+        .from("v_elo_pcp_decisao_externa_detalhe")
+        .select("*")
+        .limit(200);
+
+      await audit(auth.user.id, "elo_pcp_decisao_externa_status", "success", {
+        pending: Boolean(pending),
+        summary_available: Boolean(summary),
+        detail_rows: details?.length ?? 0,
+        summary_error: summaryError?.message ?? null,
+        details_error: detailsError?.message ?? null,
+      });
+
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        ready: Boolean(pending),
+        pending_run: pending ?? null,
+        next_question: pending?.details?.next_question ?? null,
+        rule: pending?.details?.rule ?? "A camada e analitica; nao inferir contratacao ou quadro de RH sem produtividade, composicao e validacao.",
+        resumo: summary ?? null,
+        detalhes: details ?? [],
+        erros_leitura: {
+          resumo: summaryError?.message ?? null,
+          detalhes: detailsError?.message ?? null,
+        },
       }) }] });
     }
 
