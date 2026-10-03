@@ -237,8 +237,8 @@ select
   o.ordens_externas,
   o.horas_planejadas_externas,
 
-  coalesce(sum(d.demanda_humana_historica_media_dia) filter (where d.demanda_humana_historica_media_dia is not null),0) as demanda_humana_historica_media_total_dia,
-  coalesce(sum(d.demanda_humana_projetada_media_dia) filter (where d.demanda_humana_projetada_media_dia is not null),0) as demanda_humana_projetada_media_total_dia,
+  coalesce((select sum(x.demanda_humana_historica_media_dia) from d x where x.demanda_humana_historica_media_dia is not null),0) as demanda_humana_historica_media_total_dia,
+  coalesce((select sum(x.demanda_humana_projetada_media_dia) from d x where x.demanda_humana_projetada_media_dia is not null),0) as demanda_humana_projetada_media_total_dia,
 
   gg.linhas_com_gap_composicao,
   gg.linhas_com_informacao_pendente,
