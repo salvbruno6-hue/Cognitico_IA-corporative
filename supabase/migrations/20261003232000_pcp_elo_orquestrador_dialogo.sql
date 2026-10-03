@@ -60,3 +60,11 @@ order by prioridade, codigo;
 
 comment on view public.v_elo_pcp_dialogo_regras is
 'Regras de diálogo derivadas da fila canônica de dados pendentes. O orquestrador deve conduzir um gap por vez, começando pelo primeiro bloqueante, e não pode inferir campos ausentes.';
+
+
+create policy "service_role_pcp_dialogo_turnos"
+on elo_private.pcp_dialogo_turnos
+for all
+to service_role
+using (true)
+with check (true);
