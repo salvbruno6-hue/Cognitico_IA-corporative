@@ -1299,60 +1299,54 @@ Exemplo estrutural: 200 módulos realizados com 10 montadores gera uma produtivi
 
 Esse indicador ainda precisa ser validado considerando produto/modelo, complexidade, período, horas trabalhadas, composição da equipe, natureza da demanda e escopo realizado.
 
-### 33.9 Demanda humana — etapa posterior
+### 33.9 Aplicação do fator à demanda humana histórica
 
-Somente depois da composição e da produtividade será possível calcular demanda humana por função.
+A regra operacional é:
 
-O fluxo matemático será:
+> **O fator é calculado sobre produtos comparáveis e, depois, aplicado à demanda humana histórica correspondente por função.**
 
-`histórico comparável → previsão futura → fator → carga projetada → composição por função → produtividade → demanda por função`
+Não aplicar o fator ao quadro atual do RH.
 
-Não calcular ainda quantidade de eletricistas, montadores, ajudantes ou outras funções nesta etapa.
+`Demanda futura comparável ÷ demanda histórica comparável = fator`
 
-### 33.10 Resultado futuro para RH
+Depois:
 
-Quando todas as etapas estiverem comprovadas, o PCP deverá entregar ao RH uma visão como:
+`Demanda humana projetada por função = demanda humana histórica por função × fator`
 
-| Função | Demanda projetada PCP | RH possui/contratou | Diferença | Qualificação |
-|---|---:|---:|---:|---|
-| Eletricista | X | Y | Z | Eletricista |
-| Bombeiro hidráulico | X | Y | Z | Bombeiro hidráulico |
-| Montador | X | Y | Z | Montador |
-| Ajudante | X | Y | Z | Ajudante |
-| Serralheiro | X | Y | Z | Serralheiro |
-| Soldador | X | Y | Z | Soldador |
+Essa multiplicação só é válida quando natureza, produto/modelo, unidade e composição operacional forem comparáveis. Quando a composição mudar, o PCP deve calcular a carga por produto e função, evitando um fator global indiscriminado.
 
-Essa saída representa demanda projetada por função, período e qualificação; não contratação automática.
+### 33.10 Demanda humana histórica externa
 
-### 33.11 Rastreabilidade
+A fonte operacional atual é a montagem externa. A reconstrução histórica por função usa:
 
-Cada número entregue ao RH deve ser rastreável à demanda Comercial que o originou.
+`mt_ordens_montagem_externa → mt_pedidos_venda → mt_pedidos_venda_itens → mt_equipe_montagem_externa → mt_funcoes_montagem`
 
-`AF/CA → Modelo/Taxonomia → Produto → Natureza → Histórico equivalente → Fator → Carga projetada → Composição operacional → Produtividade → Demanda por função → RH → Contratos + qualificação → Demanda × fornecimento`
+Somente ordens cujo pedido possui exatamente um modelo recebem atribuição automática de demanda humana ao modelo.
 
-### 33.12 Regra de governança
+Pedidos com múltiplos modelos são GAP de rastreabilidade e não recebem rateio inferido.
 
-O sistema deve distinguir:
+### 33.11 Views do ciclo
 
-- dado histórico;
-- previsão Comercial;
-- referência comparável;
-- fator calculado;
-- carga projetada;
-- composição operacional;
-- produtividade;
-- demanda humana;
-- informação de RH.
+- `v_elo_pcp_referencia_demanda_comparavel`: referência histórica/futura + fator;
+- `v_elo_pcp_demanda_humana_historica_externa`: demanda humana histórica por modelo/função;
+- `v_elo_pcp_gap_composicao_humana_externa`: GAP de pedidos com múltiplos modelos;
+- `v_elo_pcp_demanda_humana_projetada_externa`: aplicação do fator à demanda humana histórica correspondente.
 
-**Dado ausente gera GAP; nunca gera inferência silenciosa.**
+### 33.12 Gatilho e pergunta do ELO
 
-Não devem ser produzidos:
+Quando houver dados nos dois horizontes, o banco cria uma execução `PENDING_INPUT` na automação `elo_pcp_demanda_crossing`.
 
-- quantidade de pessoas por função sem histórico;
-- produtividade hipotética tratada como fato;
-- composição funcional presumida;
-- contratação automática derivada de percentual de crescimento;
-- um único fator aplicado indiscriminadamente a todas as funções.
+O ELO deve então perguntar:
+
+> **Os dados históricos e a previsão foram inseridos. Posso cruzar os produtos comparáveis, calcular os fatores de crescimento/redução e aplicar esses fatores à demanda humana histórica por função?**
+
+O gatilho não calcula contratação, não altera o quadro de RH e não promove aprendizado. Ele apenas abre o próximo passo analítico mediante confirmação.
+
+### 33.13 Loop governado
+
+`dados inseridos → trigger → PENDING_INPUT → ELO pergunta → confirmação → cruzamento → fator → demanda humana projetada → RH`
+
+Se faltar histórico, previsão, chave de comparabilidade ou composição rastreável, o processo deve parar e registrar GAP.
 
 ### 33.13 Escopo atual
 
