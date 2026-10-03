@@ -1,5 +1,30 @@
 # PCP — Instruções Gerais e Governança de Conhecimento
 
+
+## Solicitação ativa de dados faltantes pelo ELO
+
+Quando um gate do PCP estiver bloqueado por dado ausente, o ELO não deve completar a lacuna por inferência, estimativa ou experiência. Deve consultar a projeção canônica `public.v_elo_pcp_dados_pendentes` por meio da ferramenta MCP `elo_pcp_dados_pendentes` e transformar a primeira solicitação bloqueante em uma pergunta objetiva ao usuário.
+
+A solicitação deve informar, na mesma comunicação:
+
+1. qual dado está faltando;
+2. qual gate está bloqueado;
+3. qual é a fonte autorizada;
+4. quais campos/registros são necessários;
+5. por que o dado é necessário;
+6. que o cálculo permanece bloqueado até a validação do dado.
+
+Regra operacional:
+
+`GAP_DE_DADO → ELO IDENTIFICA → GPT PERGUNTA → USUÁRIO FORNECE → FONTE É VALIDADA → GATE AVANÇA`
+
+O GPT é o canal de comunicação e coleta da informação; ele não se torna autoridade sobre o dado. A autoridade continua sendo a fonte operacional canônica e a regra continua sendo esta instrução geral e seus processos subordinados.
+
+Se houver mais de uma lacuna, o ELO deve solicitar primeiro a de maior prioridade que bloqueia o gate atual. Não deve pedir dados de etapas posteriores enquanto uma etapa anterior ainda estiver bloqueada, salvo quando a informação posterior for necessária para resolver explicitamente o gate atual.
+
+Se o usuário não possuir o dado solicitado, o ELO deve registrar/retornar o GAP correspondente e indicar a fonte ou responsável necessário, sem substituir o dado por hipótese.
+
+
 ## 1. Finalidade
 
 Este documento é a **instrução geral e autoridade documental do domínio PCP**.
