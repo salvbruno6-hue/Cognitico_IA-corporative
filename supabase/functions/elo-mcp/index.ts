@@ -128,6 +128,12 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
+    name: "elo_pcp_dados_pendentes",
+    title: "Read PCP missing data requests",
+    description: "Returns the canonical PCP data gaps that ELO must ask the user for through GPT. It never invents missing values and identifies the current gate, authorized source, exact fields and question.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "elo_pcp_decisao_externa_status",
     title: "Read PCP external decision cockpit",
     description: "Reads the governed PCP external decision cockpit, including summary indicators, impacts, analytical reasons, missing information and pending validation.",
@@ -229,7 +235,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.2.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -319,6 +325,33 @@ Deno.serve(async (req: Request) => {
         rule: pending?.details?.rule ?? "Nao aplicar o fator ao quadro de RH.",
         fator_rows: factors ?? [],
         demanda_humana_projetada: projections ?? [],
+      }) }] });
+    }
+
+    if (name === "elo_pcp_dados_pendentes") {
+      const { data, error } = await supabase
+        .from("v_elo_pcp_dados_pendentes")
+        .select("prioridade,codigo,tipo_solicitacao,gate,fonte_autorizada,pergunta_gpt,motivo,bloqueia_execucao,campos_obrigatorios,atualizado_em")
+        .order("prioridade", { ascending: true })
+        .limit(20);
+
+      if (error) {
+        await audit(auth.user.id, "elo_pcp_dados_pendentes", "error", { error: error.message });
+        return rpcError(id, -32005, "pcp_missing_data_failed");
+      }
+
+      const bloqueios = (data ?? []).filter((item: any) => item.bloqueia_execucao === true);
+      await audit(auth.user.id, "elo_pcp_dados_pendentes", "success", {
+        request_count: data?.length ?? 0,
+        blocking_count: bloqueios.length,
+      });
+
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        action: data?.length ? "ASK_USER_FOR_DATA" : "NO_DATA_REQUEST_PENDING",
+        must_not_infer: true,
+        requests: data ?? [],
+        next_question: data?.[0]?.pergunta_gpt ?? null,
+        rule: "Quando houver solicitacao bloqueante, o ELO deve pedir o dado indicado ao usuario antes de calcular, recomendar ou preencher por inferencia.",
       }) }] });
     }
 
