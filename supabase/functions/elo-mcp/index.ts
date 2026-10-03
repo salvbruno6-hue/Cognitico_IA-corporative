@@ -128,6 +128,18 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
+    name: "elo_pcp_comunicacao_melhoria",
+    title: "Create ELO communication and improvement points",
+    description: "Builds a governed communication from current PCP gaps/evidence and identifies missing inputs, process points to insert, and points to improve. Communication is autonomous at the GPT channel; facts, rules and operational data are never invented or changed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        contexto: { type: "string", description: "Optional context or audience for the communication." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "elo_pcp_dados_pendentes",
     title: "Read PCP missing data requests",
     description: "Returns the canonical PCP data gaps that ELO must ask the user for through GPT. It never invents missing values and identifies the current gate, authorized source, exact fields and question.",
@@ -235,7 +247,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.2.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. The ELO is also authorized to autonomously create a communication and point out missing inputs, process items that should be inserted, and improvement points. It does not need a separate approval to communicate a governed gap; it must not alter canonical data/rules or execute a blocked decision. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -325,6 +337,66 @@ Deno.serve(async (req: Request) => {
         rule: pending?.details?.rule ?? "Nao aplicar o fator ao quadro de RH.",
         fator_rows: factors ?? [],
         demanda_humana_projetada: projections ?? [],
+      }) }] });
+    }
+
+    if (name === "elo_pcp_comunicacao_melhoria") {
+      const { data, error } = await supabase
+        .from("v_elo_pcp_dados_pendentes")
+        .select("prioridade,codigo,gate,fonte_autorizada,pergunta_gpt,motivo,bloqueia_execucao,campos_obrigatorios")
+        .order("prioridade", { ascending: true })
+        .limit(20);
+
+      if (error) {
+        await audit(auth.user.id, "elo_pcp_comunicacao_melhoria", "error", { error: error.message });
+        return rpcError(id, -32006, "pcp_communication_failed");
+      }
+
+      const requests = data ?? [];
+      const contexto = typeof args.contexto === "string" ? args.contexto.trim() : "";
+      const primeiro = requests[0] ?? null;
+      const comunicado = primeiro
+        ? [
+            "COMUNICADO ELO — PONTO DE ATENÇÃO PCP",
+            contexto ? `Contexto: ${contexto}` : null,
+            "",
+            `Situação: o gate "${primeiro.gate}" está bloqueado por ausência/validação de dado.`,
+            `Dado necessário: ${primeiro.codigo}.`,
+            `Fonte autorizada: ${primeiro.fonte_autorizada}.`,
+            `Ação solicitada: ${primeiro.pergunta_gpt}`,
+            `Motivo: ${primeiro.motivo}`,
+            "",
+            "O cálculo/decisão permanece bloqueado até a informação ser fornecida e validada.",
+          ].filter(Boolean).join("\n")
+        : "COMUNICADO ELO — Não há solicitação bloqueante de dados neste momento.";
+
+      const pontos = requests.map((r: any) => ({
+        tipo: "INSERIR_OU_MELHORAR",
+        prioridade: r.prioridade,
+        gate: r.gate,
+        ponto: r.codigo,
+        acao: r.pergunta_gpt,
+        fonte: r.fonte_autorizada,
+        motivo: r.motivo,
+      }));
+
+      await audit(auth.user.id, "elo_pcp_comunicacao_melhoria", "success", {
+        blocking_count: requests.filter((r: any) => r.bloqueia_execucao).length,
+        point_count: pontos.length,
+      });
+
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        autonomia: {
+          criar_comunicado: true,
+          apontar_pontos_faltantes: true,
+          apontar_melhorias: true,
+          alterar_dados: false,
+          alterar_regras_canonicas: false,
+          executar_decisao_bloqueada: false,
+        },
+        comunicado,
+        pontos_melhorar_inserir: pontos,
+        regra: "O ELO pode comunicar e apontar autonomamente; qualquer alteração de dado, regra canônica ou execução bloqueada segue a governança correspondente.",
       }) }] });
     }
 
