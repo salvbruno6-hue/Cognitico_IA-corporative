@@ -469,6 +469,33 @@ Deno.serve(async (req: Request) => {
       let state = "PENDENTE";
       let message = primeiro.pergunta_gpt;
       let nextQuestion = primeiro.pergunta_gpt;
+      const semanticErrors: string[] = [];
+
+      if (primeiro.codigo === "HISTORICO_COMPARAVEL" && hasResponse) {
+        const inicio = typeof (dados as any).periodo_inicio === "string" ? String((dados as any).periodo_inicio) : "";
+        const fim = typeof (dados as any).periodo_fim === "string" ? String((dados as any).periodo_fim) : "";
+        const quantidade = Number((dados as any).quantidade_real);
+        const semChave = (dados as any).sem_chave_comparabilidade === true;
+
+        if (inicio && !/^\\d{4}-\\d{2}-\\d{2}$/.test(inicio)) semanticErrors.push("periodo_inicio deve estar no formato AAAA-MM-DD.");
+        if (fim && !/^\\d{4}-\\d{2}-\\d{2}$/.test(fim)) semanticErrors.push("periodo_fim deve estar no formato AAAA-MM-DD.");
+        if (inicio && /^\\d{4}-\\d{2}-\\d{2}$/.test(inicio) && inicio < "2025-09-01") semanticErrors.push("periodo_inicio está antes do horizonte histórico autorizado.");
+        if (fim && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim) && fim > "2026-02-28") semanticErrors.push("periodo_fim está depois do horizonte histórico autorizado.");
+        if (inicio && fim && /^\\d{4}-\\d{2}-\\d{2}$/.test(inicio) && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim) && inicio > fim) semanticErrors.push("periodo_inicio não pode ser posterior ao periodo_fim.");
+        if (Number.isNaN(quantidade) || quantidade < 0) semanticErrors.push("quantidade_real deve ser um número maior ou igual a zero.");
+        if (!String((dados as any).natureza_demanda ?? "").trim()) semanticErrors.push("natureza_demanda precisa ser informada conforme a fonte oficial.");
+        if (!String((dados as any).chave_comparabilidade ?? "").trim() && !semChave) semanticErrors.push("chave_comparabilidade precisa ser informada ou o usuário deve declarar explicitamente que não existe correspondência comparável.");
+        if (semChave && String((dados as any).chave_comparabilidade ?? "").trim()) semanticErrors.push("Não informe chave e sem_chave_comparabilidade ao mesmo tempo; escolha a condição real.");
+        if (String((dados as any).modelo_id ?? "").trim()) {
+          const { data: modelo, error: modeloError } = await supabase
+            .from("modelos")
+            .select("id,codigo,nome,ativo")
+            .eq("id", String((dados as any).modelo_id))
+            .maybeSingle();
+          if (modeloError || !modelo) semanticErrors.push("modelo_id não foi localizado no cadastro oficial de modelos.");
+          else if (modelo.ativo !== true) semanticErrors.push("modelo_id localizado, mas o modelo não está ativo no cadastro oficial.");
+        }
+      }
 
       if (hasResponse) {
         const validSource = !fonte || fonte === primeiro.fonte_autorizada;
@@ -476,19 +503,19 @@ Deno.serve(async (req: Request) => {
           ? `A fonte informada "${fonte}" não corresponde à fonte autorizada "${primeiro.fonte_autorizada}". Não vou substituir a fonte autorizada por inferência.`
           : null;
 
-        if (missing.length === 0 && validSource) {
+        if (missing.length === 0 && validSource && semanticErrors.length === 0) {
           state = "VALIDADO";
-          message = `Recebi os campos necessários para o GAP "${primeiro.codigo}". Antes de alterar qualquer dado operacional, o orquestrador precisa concluir a validação da fonte e do conteúdo. Os dados foram registrados como resposta validada do diálogo, não como fato operacional.`;
-          nextQuestion = `Confirme a fonte oficial: "${primeiro.fonte_autorizada}". Se essa é a fonte correta, responda "confirmo". Se não for, informe qual fonte oficial deve ser usada.`;
+          message = `Recebi os campos necessários para o GAP "${primeiro.codigo}" e a validação estrutural passou. Isso ainda não grava o dado na tabela operacional: a resposta permanece registrada no diálogo até a confirmação da fonte e da autoridade de gravação.`;
+          nextQuestion = `Confirme a fonte oficial "${primeiro.fonte_autorizada}" e, se houver mais registros históricos, envie o próximo registro. Se este for o último registro, informe "último registro" para o orquestrador iniciar o fechamento do conjunto.`;
         } else {
           state = "PENDENTE";
-          const missingText = missing.length
-            ? `Ainda faltam: ${missing.join(", ")}.`
-            : "";
+          const missingText = missing.length ? `Ainda faltam: ${missing.join(", ")}.` : "";
+          const semanticText = semanticErrors.length ? `Também encontrei: ${semanticErrors.join(" ")}` : "";
           message = [
             "Recebi sua resposta, mas o GAP ainda não pode ser fechado.",
             sourceIssue,
             missingText,
+            semanticText,
             outsideFields.length ? `Também recebi campos que não pertencem ao pedido atual: ${outsideFields.join(", ")}. Não vou usá-los neste gate.` : null,
           ].filter(Boolean).join(" ");
           nextQuestion = missing.length
@@ -499,19 +526,34 @@ Deno.serve(async (req: Request) => {
                   periodo_fim: "qual é a data final do registro?",
                   quantidade_real: "qual é a quantidade real registrada?",
                   natureza_demanda: "qual é a natureza da demanda conforme o cadastro/relatório oficial?",
-                  chave_comparabilidade: "qual é a chave de comparabilidade? Se não existir porque a demanda não é comparável, informe explicitamente isso.",
+                  chave_comparabilidade: "qual é a chave de comparabilidade? Se não existir porque a demanda não é comparável, declare explicitamente que não existe correspondência comparável.",
                 };
                 return labels[field] ? `${field}: ${labels[field]}` : field;
               }).join(" ")}`
-            : (sourceIssue ?? nextQuestion);
+            : (semanticErrors.length ? semanticErrors.join(" ") : (sourceIssue ?? nextQuestion));
         }
 
+        const { data: lastTurn, error: lastTurnError } = await supabase
+          .schema("elo_private")
+          .from("pcp_dialogo_turnos")
+          .select("turno")
+          .eq("sessao_id", sessionId)
+          .order("turno", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (lastTurnError) {
+          await audit(auth.user.id, "elo_pcp_orquestrador_dialogo", "error", { session_id: sessionId, error: lastTurnError.message });
+          return rpcError(id, -32008, "pcp_dialogue_state_read_failed");
+        }
+
+        const turno = Number(lastTurn?.turno ?? 0) + 1;
         const { error: turnError } = await supabase
           .schema("elo_private")
           .from("pcp_dialogo_turnos")
           .insert({
             sessao_id: sessionId,
-            turno: 1,
+            turno,
             actor_user_id: auth.user.id,
             gap_codigo: primeiro.codigo,
             gate: primeiro.gate,
