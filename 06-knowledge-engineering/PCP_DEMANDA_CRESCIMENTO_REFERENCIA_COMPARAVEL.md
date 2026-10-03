@@ -184,3 +184,71 @@ Somente depois dessa resposta o fator de crescimento passa a ter significado ope
 **Direção de implantação atual:**
 
 > **Primeiro construir a referência histórica comparável. Não calcular ainda a necessidade por função.**
+## 13. Aplicação do fator à demanda humana histórica
+
+A regra operacional foi refinada:
+
+> **O fator é calculado sobre a quantidade de produtos comparáveis e, somente depois, aplicado à demanda humana histórica correspondente por função.**
+
+Não aplicar o fator diretamente sobre o quadro atual de RH.
+
+A cadeia passa a ser:
+
+`Produto comparável histórico → produto comparável futuro → fator → demanda humana histórica por função → demanda humana projetada por função → RH`
+
+Exemplo:
+
+`450 produtos → 350 produtos → 350/450 = 0,7778`
+
+Se a demanda humana histórica validada de montadores for 12, a projeção ilustrativa seria:
+
+`12 × 0,7778 = 9,33`
+
+Esse cálculo é ilustrativo até que os dados históricos reais por função estejam disponíveis.
+
+## 14. Controle de composição
+
+O fator global somente pode ser aplicado diretamente às funções quando a composição operacional for comparável.
+
+Se o histórico tiver 375 módulos + 75 contêineres e a previsão tiver uma composição muito diferente, o fator global pode ocultar diferenças de carga por função.
+
+Nesse caso, o PCP deve trabalhar no nível de produto/modelo e natureza:
+
+`Carga futura por produto × composição funcional validada → demanda por função`
+
+Não fazer rateio de mão de obra entre modelos quando uma ordem externa possuir múltiplos modelos sem uma regra operacional validada. Essa situação é registrada como GAP.
+
+## 15. Views operacionais
+
+As views governadas são:
+
+- `v_elo_pcp_referencia_demanda_comparavel` — quantidade histórica, quantidade futura, fator e estado de comparabilidade;
+- `v_elo_pcp_demanda_humana_historica_externa` — demanda humana histórica externa por modelo e função, usando somente ordens vinculadas a um único modelo;
+- `v_elo_pcp_gap_composicao_humana_externa` — pedidos/ordens com múltiplos modelos que não podem receber rateio automático;
+- `v_elo_pcp_demanda_humana_projetada_externa` — aplica o fator à demanda humana histórica da mesma combinação de modelo/natureza/chave e expõe o estado do cálculo.
+
+A projeção não consulta o quadro de RH e não produz contratação.
+
+## 16. Gatilho do loop ELO
+
+Quando os dois horizontes possuírem dados em `mt_demanda_historico` e `mt_previsoes_demanda`, os triggers:
+
+- `trg_elo_pcp_demanda_historico_crossing`;
+- `trg_elo_pcp_previsoes_crossing`
+
+acionam `elo_pcp_disparar_crossing_demanda()`.
+
+O trigger não calcula silenciosamente. Ele cria uma execução `PENDING_INPUT` em `elo_automation_runs` para a automação `elo_pcp_demanda_crossing`.
+
+A pergunta registrada para o ELO é:
+
+> **Os dados históricos e a previsão foram inseridos. Posso cruzar os produtos comparáveis, calcular os fatores de crescimento/redução e aplicar esses fatores à demanda humana histórica por função?**
+
+O ELO deve solicitar essa confirmação antes do cruzamento. A confirmação não autoriza contratação automática; ela apenas libera a etapa analítica de cruzamento.
+
+## 17. Loop de execução
+
+`Dados inseridos → trigger → PENDING_INPUT → ELO lê o estado → ELO pergunta → confirmação → cruzamento → fator → aplicação à demanda humana histórica → resultado por função → RH`
+
+Se houver GAP de comparabilidade, modelo sem histórico, previsão sem histórico ou composição não rastreável, o loop deve parar naquele ponto e solicitar o dado faltante.
+
