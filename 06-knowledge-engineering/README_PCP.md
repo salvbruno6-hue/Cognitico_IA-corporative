@@ -42,3 +42,17 @@ Se a alteração for apenas operacional e específica, pode permanecer no docume
 ## Regra contra documentos paralelos
 
 Arquivos de auditoria, skill, evidência ou implementação podem conter conteúdo PCP sem pertencer à hierarquia normativa. Eles não substituem o documento mestre nem criam autoridade concorrente.
+
+## Regra de unidade cognitiva
+
+O índice não representa apenas uma lista de arquivos. Ele representa uma cadeia única de raciocínio. Processos, instruções especializadas, skills, auditorias e experiências devem apontar para a regra canônica e preservar o mesmo estado e gate.
+
+### Ordem obrigatória
+
+**Pergunta → Governança → Processo → Fonte → Evidência → Gate → Cálculo → Validação → Próximo estado**
+
+### Documentos não normativos
+
+Skills, auditorias, experiências e fontes externas podem auxiliar a análise, mas não podem redefinir a sequência, o significado dos campos, a autoridade das fontes ou os gates do PCP.
+
+O antigo plano separado de implantação da referência histórica foi consolidado no processo `PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md` para evitar duas instruções sobre a mesma etapa.
