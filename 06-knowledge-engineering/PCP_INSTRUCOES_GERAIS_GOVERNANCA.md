@@ -221,7 +221,145 @@ Alterações em uma instrução especializada que alterem princípio, autoridade
 
 Alterações que apenas detalhem uma execução podem permanecer no documento especializado, desde que não contradigam o nível superior.
 
-## 18. Estado de governança
+## 18. Modelo de operação — uma única mente PCP
+
+O PCP deve ser tratado como **uma mente governada**, não como uma coleção de instruções que o ELO escolhe conforme o texto encontrado.
+
+A regra é: **uma pergunta → uma cadeia canônica → um estado → um próximo gate → uma evidência exigida → um resultado rastreável**.
+
+As instruções especializadas aprofundam uma etapa. Elas não podem reordenar a cadeia, substituir uma fonte, liberar um gate ou criar um cálculo que o processo pai ainda não liberou.
+
+### 18.1 Ordem canônica de raciocínio
+
+1. Identificar a pergunta decisória.
+2. Classificar o tipo de demanda/processo.
+3. Localizar a fonte de autoridade correspondente.
+4. Verificar identidade do produto/modelo/taxonomia.
+5. Verificar período, unidade, natureza e comparabilidade.
+6. Separar fato, previsão, cálculo, hipótese e GAP.
+7. Executar somente o cálculo autorizado pelo gate atual.
+8. Verificar cobertura física antes de converter crescimento em fabricação.
+9. Verificar carga, capacidade e gargalos antes de converter carga em necessidade humana.
+10. Somente depois avaliar composição funcional, produtividade e demanda humana.
+11. RH somente após a demanda humana estar validada e houver fonte autorizada de capacidade/disponibilidade.
+12. Registrar resultado, evidências, GAPs e próximo passo.
+
+### 18.2 Regra de estado
+
+A implantação técnica de uma capacidade não significa que a execução analítica esteja liberada.
+
+Devem ser diferenciados:
+- **CAPACIDADE_IMPLANTADA** — código, view, função ou skill existe;
+- **DADO_DISPONÍVEL** — fonte necessária possui registros válidos;
+- **GATE_VALIDADO** — critérios do processo foram satisfeitos;
+- **EXECUÇÃO_LIBERADA** — o próximo cálculo pode ocorrer;
+- **RESULTADO_VALIDADO** — cálculo foi executado e conferido.
+
+Uma view de demanda humana projetada pode existir no Supabase enquanto o PCP permanece em `AGUARDANDO_HISTORICO` ou `AGUARDANDO_VALIDACAO_DE_COMPARABILIDADE`. A existência da view não autoriza antecipar a etapa.
+
+### 18.3 Regra de conflito entre instruções
+
+Se duas instruções apresentarem redações diferentes:
+1. prevalece o documento mestre;
+2. depois, o processo pai;
+3. depois, a especialização;
+4. documentos de skill, auditoria, experiência ou fonte externa não podem substituir a regra normativa;
+5. se a diferença alterar o resultado, o cálculo fica bloqueado até a reconciliação;
+6. a reconciliação ocorre no documento de maior autoridade, e não por interpretação ad hoc do ELO.
+
+O ELO **não escolhe a versão que parece mais conveniente**.
+
+### 18.4 Regra de duplicação de conhecimento
+
+Não repetir uma regra normativa em múltiplos documentos como se cada cópia fosse autoridade.
+
+Quando uma regra precisar ser reutilizada: **referenciar a regra canônica → explicar apenas sua aplicação local → preservar o mesmo gate e a mesma terminologia.**
+
+### 18.5 Separação entre implantação e execução
+
+O sistema pode possuir antecipadamente views, funções, triggers, cockpit, ferramentas ELO-MCP, skills e documentação. Esses objetos representam **capacidade preparada**.
+
+**capacidade preparada ≠ cálculo autorizado ≠ decisão tomada.**
+
+## 19. Regra específica do ciclo de crescimento
+
+O ciclo atual de crescimento externo possui quatro macroestados:
+
+### Estado A — REFERÊNCIA_HISTÓRICA
+`Comercial → previsão futura → reconstrução histórica → comparabilidade → GAPs`
+Saída: referência histórica validada.
+
+### Estado B — COBERTURA_E_CARGA
+`referência validada → fator → cobertura por estoque/reparo/produção → necessidade adicional de fabricação → carga/capacidade/gargalos`
+Saída: carga operacional e saldo de fabricação validados.
+
+### Estado C — DEMANDA_HUMANA
+`carga validada → composição funcional → produtividade → demanda humana por função`
+Saída: demanda humana PCP.
+
+### Estado D — RH
+`demanda humana validada → fonte autorizada de disponibilidade/capacidade RH → confronto`
+Saída: análise de fornecimento de RH.
+
+O processo pode parar em qualquer estado. Não é permitido saltar de A para D.
+
+## 20. Regra de fator e reparo
+
+O fator de crescimento pertence à **demanda comparável**.
+
+Ele não pertence ao estoque, ao reparo, à unidade física ou à quantidade de pessoas do RH.
+
+Quando a composição funcional histórica for validada e a composição futura permanecer comparável, o fator pode ser aplicado à **demanda humana histórica correspondente**. Isso não é aplicação do fator ao quadro de RH.
+
+Se a composição mudar, o fator global deixa de ser suficiente e a análise deve retornar à carga por produto/natureza/função.
+
+## 21. Regra de RH
+
+PCP calcula **demanda humana**, não disponibilidade de RH.
+
+Sem fonte autorizada pelo domínio RH:
+`DEMANDA_HUMANA = pode ser calculável quando seus gates forem satisfeitos`
+`DISPONIBILIDADE_RH = não localizada`
+`GAP_RH = não calculável`
+
+## 22. Regra de fonte por camada
+
+| Camada | Fonte/autoridade |
+|---|---|
+| Demanda Comercial | Comercial / tabelas comerciais governadas |
+| Produto | `modelos` + `taxonomia` |
+| Histórico de demanda | `mt_demanda_historico` |
+| Previsão | `mt_previsoes_demanda` |
+| Comparabilidade | campos e regras governados pelo PCP |
+| Cobertura física | unidades modulares, reparos e produção programada conforme regra PCP |
+| Carga operacional | execução/ordens e tempos validados |
+| Composição funcional | evidência operacional validada |
+| Produtividade | histórico validado, não hipótese |
+| Demanda humana | cálculo PCP |
+| Disponibilidade RH | fonte autorizada pelo domínio RH |
+| Regra | GitHub |
+| Estado efetivo | Supabase |
+| Orquestração/interpretação | ELO |
+
+Nenhuma camada pode substituir a autoridade de outra sem contrato explícito.
+
+## 23. Regra para skills, auditorias e experiências
+
+### Skills
+Aplicam métodos ao processo canônico. Não redefinem o processo.
+
+### Auditorias
+Comprovam estado, estrutura, inconsistência ou evidência. Não criam regra de negócio.
+
+### Experiências
+Registram contexto e resultado. Não se tornam regra geral automaticamente.
+
+### Fontes externas
+Fornecem método ou conhecimento externo. Não se tornam fato empresarial.
+
+Todos devem apontar para a instrução ou processo canônico quando tratarem de PCP.
+
+## 24. Estado de governança
 
 O objetivo é impedir que o conhecimento do PCP se transforme em um conjunto de arquivos independentes.
 

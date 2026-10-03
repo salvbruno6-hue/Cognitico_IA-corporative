@@ -184,6 +184,10 @@ Somente depois dessa resposta o fator de crescimento passa a ter significado ope
 **Direção de implantação atual:**
 
 > **Primeiro construir a referência histórica comparável. Não calcular ainda a necessidade por função.**
+## 13. Capacidade posterior já especificada — não liberada no gate atual
+
+As seções 13 em diante descrevem a capacidade que será executada depois que os gates anteriores forem satisfeitos. Elas não antecipam a execução atual. A implantação de views, triggers ou ferramentas pode existir previamente, mas o estado operacional continua bloqueado enquanto o gate histórico/comparabilidade não estiver validado.
+
 ## 13. Aplicação do fator à demanda humana histórica
 
 A regra operacional foi refinada:
