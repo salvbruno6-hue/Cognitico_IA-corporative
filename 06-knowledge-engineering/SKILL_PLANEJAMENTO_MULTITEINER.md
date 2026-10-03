@@ -1162,190 +1162,201 @@ Esse GAP de segurança é independente do cálculo de capacidade de RH e não de
 
 
 
-## 33. Fator de correção da demanda — volume Comercial × produtividade por função
+## 33. Demanda de crescimento — referência histórica comparável antes da composição funcional
 
-O Comercial **não informa quantidade de pessoas** e o fator de crescimento **não representa automaticamente percentual de contratação**.
-
-O Comercial informa a quantidade futura de produtos/atendimentos associada a `EVENTO`, `SPOT` ou `SAZONALIDADE`. O PCP transforma a variação desse volume em **carga futura equivalente** e, somente depois, relaciona essa carga à produtividade histórica de cada função.
+A implantação da demanda de crescimento deve começar pela construção correta da **referência histórica comparável**. Nesta etapa, o PCP **não deve calcular ainda a necessidade por função**.
 
 ### 33.1 Regra central
 
-O raciocínio correto é:
+A ordem obrigatória é:
 
-Comercial → volume futuro → fator de crescimento/redução → carga projetada → produtividade por função → capacidade humana necessária → RH
+`Comercial → Modelo/Taxonomia → demanda futura → natureza da demanda → histórico equivalente → fator → carga projetada → composição operacional → produtividade → demanda por função → RH`
 
-Portanto:
+O primeiro gate é responder:
 
-**30% de crescimento da demanda não significa contratar automaticamente 30% de pessoas.**
+> **O que exatamente queremos prever para setembro/2026 a fevereiro/2027?**
 
-Significa que a carga de produtos/atendimentos projetada aumenta 30%. O impacto em cada função depende da produtividade e da participação daquela função na execução.
+Somente depois dessa definição o histórico de setembro/2025 a fevereiro/2026 pode ser reconstruído para comparação.
 
-### 33.2 Exemplo com 50 novos contratos
+### 33.2 Bases de demanda
 
-Supondo que os dados de `EVENTO`, `SPOT` e `SAZONALIDADE` indiquem **50 novos contratos** para o período futuro e que a comparação com o período/evento equivalente produza um crescimento de `30%`.
+Para setembro/2025 a fevereiro/2026, o PCP deve separar as bases por:
 
-O fator de demanda será:
+- natureza da demanda;
+- modelo/taxonomia;
+- produto, quando aplicável;
+- quantidade;
+- período;
+- evento ou chave de comparabilidade;
+- unidade de medida.
 
-F_demanda = 1,30
+Exemplo estrutural:
 
-A carga projetada equivalente será:
+| Natureza | Produto | Quantidade | Referência |
+|---|---|---:|---|
+| Sazonalidade | Módulos | 375 | set/2025–fev/2026 |
+| Sazonalidade/Eventos | Contêineres | 75 | set/2025–fev/2026 |
+| SPOT | Produtos | 150 | set/2025–fev/2026 |
+| Grande porte | Módulos | ~400 | operação específica |
 
-50 × 1,30 = 65 contratos-equivalentes
+Esses valores são exemplos de estrutura, não dados operacionais validados.
 
-A diferença projetada é:
+Essas linhas não devem ser somadas automaticamente. Primeiro é necessário determinar quais representam a mesma dimensão de demanda.
 
-65 - 50 = 15 contratos-equivalentes adicionais
+### 33.3 Modelo/Taxonomia
 
-Esses 30% representam **crescimento da demanda**, e não 30% de contratação.
+O tipo de produto informado pelo Comercial corresponde ao **Modelo/Taxonomia** existente no domínio de produtos.
 
-### 33.3 Distribuição por função
+Quando a previsão Comercial for estruturada por modelo, o histórico deve preservar o mesmo nível de granularidade.
 
-As funções devem ser analisadas individualmente, porque cada uma possui produtividade e participação operacional diferentes.
+A lista-mãe não é requisito para o cálculo do crescimento. Ela não deve ser introduzida no cálculo apenas por estar relacionada ao modelo.
 
-Exemplos de funções:
+A estrutura/chassi também não é requisito desta etapa.
 
-- eletricista;
-- bombeiro hidráulico;
-- montador;
-- ajudante;
-- serralheiro;
-- soldador.
+### 33.4 Referência comparável
 
-Para cada função `f`, o PCP deve possuir uma referência de produtividade, por exemplo:
+A previsão futura define a estrutura que o histórico precisa reproduzir.
 
-Produtividade_f = contratos atendidos por colaborador da função no período de referência.
+Exemplo:
 
-A capacidade humana necessária pode ser estimada por:
+**Histórico — set/2025 → fev/2026**
 
-Demanda_colaboradores_f = Carga_projetada_f / Produtividade_f
+| Natureza | Produto | Quantidade |
+|---|---|---:|
+| Eventos | Módulos | 120 |
+| Eventos | Contêineres | 30 |
+| Sazonalidade | Módulos | 255 |
+| Sazonalidade | Contêineres | 45 |
+| SPOT | Produtos | 150 |
 
-Quando a produtividade estiver expressa como contratos por colaborador/período.
+**Previsão — set/2026 → fev/2027**
 
-### 33.4 Exemplo conceitual por produtividade
+| Natureza | Produto | Quantidade |
+|---|---|---:|
+| Eventos | Módulos | X |
+| Eventos | Contêineres | X |
+| Sazonalidade | Módulos | X |
+| Sazonalidade | Contêineres | X |
+| SPOT | Produtos | X |
 
-Se a carga futura for de 65 contratos-equivalentes e, hipoteticamente, determinada função tiver produtividade histórica de 10 contratos por colaborador no período:
+A comparação deve ocorrer entre dimensões equivalentes: evento com evento, sazonalidade com sazonalidade, SPOT com SPOT e modelo/produto equivalente com modelo/produto equivalente.
 
-65 / 10 = 6,5 colaboradores-equivalentes
+Quando não houver histórico válido para uma dimensão futura, registrar **GAP de comparabilidade**.
 
-O valor não significa automaticamente seis ou sete contratações. Ele representa uma **necessidade de capacidade humana equivalente**, que posteriormente deve ser confrontada com a forma de trabalho, arredondamento operacional, composição da equipe e regras do domínio responsável.
+### 33.5 Fator por dimensão comparável
 
-Para outra função com produtividade diferente, o resultado será diferente mesmo diante dos mesmos 65 contratos-equivalentes.
+Depois de validada a referência, o fator pode ser calculado por dimensão comparável.
 
-### 33.5 Alternativa quando existe histórico de colaboradores por função
+**Fator = demanda futura comparável / demanda histórica comparável**
 
-Se o histórico já relacionar diretamente volume e colaboradores por função, o PCP pode utilizar a relação observada:
+**Variação = (fator - 1) × 100**
 
-Coeficiente_f = colaboradores_históricos_f / volume_histórico
+Exemplo meramente hipotético:
 
-Então:
+| Natureza | 2025 | 2026 | Fator | Variação |
+|---|---:|---:|---:|---:|
+| Evento | 120 | 150 | 1,250 | +25,00% |
+| Sazonalidade | 255 | 150 | 0,588 | -41,18% |
+| SPOT | 150 | 200 | 1,333 | +33,33% |
 
-Demanda_f_projetada = Carga_projetada × Coeficiente_f
+Não se deve assumir um único fator para toda a demanda. A composição futura pode mudar mesmo quando o volume total não cresce.
 
-Quando a produtividade estiver disponível, a relação equivalente pode ser expressa por:
+### 33.6 Gate antes da composição funcional
 
-Coeficiente_f = 1 / Produtividade_f
+Após o cálculo dos fatores, o processo deve parar antes de calcular pessoas por função.
 
-As duas formas devem produzir resultados compatíveis quando utilizarem a mesma unidade de período e volume.
+Antes de avançar, o PCP deve ter:
 
-### 33.6 O que os 30% realmente corrigem
+1. estrutura futura definida;
+2. histórico equivalente reconstruído;
+3. dimensões comparáveis identificadas;
+4. unidades compatíveis;
+5. fatores calculáveis;
+6. GAPs documentados;
+7. ausência de agregações indevidas.
 
-O fator de 30% corrige primeiro o **volume/carga de demanda**:
+### 33.7 Composição operacional — etapa posterior
 
-Volume_base → Volume_projetado × 1,30
+Somente depois da referência histórica comparável será investigada a composição operacional.
 
-Depois o PCP converte essa carga em necessidade por função:
+A pergunta será:
 
-Carga_projetada → produtividade da função → colaboradores-equivalentes
+> **Para cada natureza e modelo/produto, quais funções participaram da execução e em que proporção?**
 
-Assim, o fator não deve ser aplicado indistintamente como:
+| Produto/Modelo | Eletricista | Hidráulica | Montador | Ajudante | Serralheiro | Soldador |
+|---|---:|---:|---:|---:|---:|---:|
+| Módulo | ? | ? | ? | ? | ? | ? |
+| Contêiner | ? | ? | ? | ? | ? | ? |
 
-colaboradores atuais × 1,30 = contratações.
+Os pontos de interrogação representam dados ainda não localizados. Não devem ser transformados em percentuais por inferência.
 
-Essa operação só seria uma aproximação válida se houver evidência de que a produtividade e a composição das equipes permanecerão constantes.
+### 33.8 Produtividade — etapa posterior
 
-### 33.7 Regra de produtividade
+Depois da composição operacional, o PCP poderá calcular produtividade histórica por função.
 
-A produtividade deve ser observada por função sempre que os dados permitirem.
+Exemplo estrutural: 200 módulos realizados com 10 montadores gera uma produtividade histórica preliminar de 20 módulos por montador no período.
 
-O PCP deve preservar a distinção entre:
+Esse indicador ainda precisa ser validado considerando produto/modelo, complexidade, período, horas trabalhadas, composição da equipe, natureza da demanda e escopo realizado.
 
-- **volume de demanda** — quantidade de produtos/atendimentos;
-- **carga de trabalho** — esforço necessário para executar esse volume;
-- **produtividade** — relação entre volume e capacidade humana;
-- **demanda humana** — colaboradores-equivalentes necessários;
-- **contratação** — decisão posterior do domínio responsável, não determinada automaticamente pelo fator.
+### 33.9 Demanda humana — etapa posterior
 
-### 33.8 Fórmula consolidada
+Somente depois da composição e da produtividade será possível calcular demanda humana por função.
 
-Para cada função `f`:
+O fluxo matemático será:
 
-1. calcular o volume futuro:
+`histórico comparável → previsão futura → fator → carga projetada → composição por função → produtividade → demanda por função`
 
-Q_futuro = Q_base × F_demanda
+Não calcular ainda quantidade de eletricistas, montadores, ajudantes ou outras funções nesta etapa.
 
-2. determinar a carga atribuída à função conforme a estrutura operacional validada;
+### 33.10 Resultado futuro para RH
 
-Carga_f = Q_futuro × Participação_f
+Quando todas as etapas estiverem comprovadas, o PCP deverá entregar ao RH uma visão como:
 
-3. aplicar a produtividade da função:
+| Função | Demanda projetada PCP | RH possui/contratou | Diferença | Qualificação |
+|---|---:|---:|---:|---|
+| Eletricista | X | Y | Z | Eletricista |
+| Bombeiro hidráulico | X | Y | Z | Bombeiro hidráulico |
+| Montador | X | Y | Z | Montador |
+| Ajudante | X | Y | Z | Ajudante |
+| Serralheiro | X | Y | Z | Serralheiro |
+| Soldador | X | Y | Z | Soldador |
 
-Demanda_colaboradores_f = Carga_f / Produtividade_f
+Essa saída representa demanda projetada por função, período e qualificação; não contratação automática.
 
-Quando a função participar integralmente de cada contrato e a produtividade já estiver definida diretamente em contratos por colaborador, `Participação_f` pode ser 1.
+### 33.11 Rastreabilidade
 
-A participação por função não deve ser inventada quando não houver evidência.
+Cada número entregue ao RH deve ser rastreável à demanda Comercial que o originou.
 
-### 33.9 Exemplo completo simplificado
+`AF/CA → Modelo/Taxonomia → Produto → Natureza → Histórico equivalente → Fator → Carga projetada → Composição operacional → Produtividade → Demanda por função → RH → Contratos + qualificação → Demanda × fornecimento`
 
-Considere:
+### 33.12 Regra de governança
 
-- demanda futura informada pelo Comercial: `50 contratos`;
-- crescimento identificado pela comparação histórica: `30%`;
-- fator: `1,30`;
-- carga projetada: `65 contratos-equivalentes`.
+O sistema deve distinguir:
 
-Agora o PCP consulta a produtividade histórica de cada função. Se, apenas como exemplo matemático, os coeficientes históricos forem:
+- dado histórico;
+- previsão Comercial;
+- referência comparável;
+- fator calculado;
+- carga projetada;
+- composição operacional;
+- produtividade;
+- demanda humana;
+- informação de RH.
 
-- eletricista: 20 contratos/colaborador;
-- bombeiro hidráulico: 25 contratos/colaborador;
-- montador: 10 contratos/colaborador;
-- ajudante: 10 contratos/colaborador;
-- serralheiro: 30 contratos/colaborador;
-- soldador: 30 contratos/colaborador;
+**Dado ausente gera GAP; nunca gera inferência silenciosa.**
 
-a carga de 65 não deve ser dividida cegamente por todos esses números. Primeiro é necessário saber **qual parcela dos 65 contratos exige cada função**.
+Não devem ser produzidos:
 
-Se um determinado subconjunto de contratos exigir 20 contratos-equivalentes de montagem, por exemplo:
+- quantidade de pessoas por função sem histórico;
+- produtividade hipotética tratada como fato;
+- composição funcional presumida;
+- contratação automática derivada de percentual de crescimento;
+- um único fator aplicado indiscriminadamente a todas as funções.
 
-20 / 10 = 2 montadores-equivalentes.
+### 33.13 Escopo atual
 
-O mesmo princípio é aplicado às demais funções conforme a composição operacional validada.
+Esta etapa trata exclusivamente da construção da referência histórica comparável para a demanda Comercial.
 
-### 33.10 Regra de governança
+O objetivo imediato é preparar uma base confiável para o período **setembro/2026 a fevereiro/2027**, utilizando **setembro/2025 a fevereiro/2026** como referência histórica equivalente.
 
-O indicador deve registrar separadamente:
-
-1. volume histórico de produtos/contratos;
-2. volume futuro informado pelo Comercial;
-3. origem: EVENTO, SPOT ou SAZONALIDADE;
-4. fator de crescimento/redução;
-5. volume/carga projetada;
-6. composição da carga por função;
-7. produtividade histórica por função;
-8. demanda humana equivalente por função;
-9. fonte e período de cada indicador;
-10. limitações da projeção.
-
-O sistema não deve converter automaticamente `+30% de demanda` em `+30% de contratação`.
-
-### 33.11 Escopo atual
-
-Nesta etapa, o resultado entregue ao RH deve ser a **necessidade humana projetada por função e período para operações externas**.
-
-Não está sendo modelada nesta etapa a disponibilidade de RH nem a decisão de contratação.
-
-O fluxo é:
-
-PCP → volume Comercial → fator de demanda → carga projetada → produtividade por função → demanda humana projetada → RH
-
-A demanda das operações internas será tratada posteriormente.
+Somente após a validação desse gate o processo poderá avançar para composição funcional, produtividade, demanda humana e entrega ao RH.
