@@ -222,7 +222,7 @@ def test_orchestrator_two_runtime_executions_produce_repeatable_runtime_evidence
             hermes_routing_signal=signal,
             runtime_commit="67c1ca9",
             runtime_trace=f"orchestrator-runtime-trace-{run}",
-            execution_id=f"orchestrator-runtime-{run}",
+            execution_id=f"request-runtime-{run}",
         )
         assert selection.status == "SELECTED"
         assert outcome is not None
