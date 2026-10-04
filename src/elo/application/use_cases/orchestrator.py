@@ -88,6 +88,7 @@ class OrchestrationRequest:
     authorization: AuthorizationDecision | None = None
     request_id: str = ""
     correlation_id: str = ""
+    decision_pattern_candidate_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -291,6 +292,7 @@ class GovernedOrchestrator:
             authorization_id=request.authorization.grant_id,
             evidence_ids=request.evidence_ids,
             correlation_id=request.correlation_id,
+            decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
         )
         outcome = execute_governed(execution_request, RoutedExecutionAdapter())
         return selection, outcome
