@@ -7,7 +7,7 @@ class RoutingDisposition(str,Enum): OBSERVATION="OBSERVATION"; CANDIDATE="CANDID
 @dataclass(frozen=True)
 class RoutingSignal:
     route_id:str; tenant_scope:str; source_refs:Tuple[str,...]; primary_provider:str; fallback_providers:Tuple[str,...]; credential_pool_strategy:str
-    provenance_verified:bool=False; explicit_policy:bool=False; canonical_routing_authority:bool=False; governance_bypass:bool=False
+    provenance_verified:bool=False; explicit_policy:bool=False; canonical_routing_authority:bool=False; governance_bypass:bool=False; max_fallbacks:int=2
 @dataclass(frozen=True)
 class RoutingAssessment:
     route_id:str; disposition:RoutingDisposition; evidence_refs:Tuple[str,...]; canonical_authority:bool=False; execution_permitted:bool=False; governance_bypass_permitted:bool=False
