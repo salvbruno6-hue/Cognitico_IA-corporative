@@ -34,12 +34,14 @@ def _signals(prefix: str) -> tuple[DelegationSignal, ...]:
             resource_scope=(f"task:{i}", "read-only"),
             provenance_verified=True,
             isolated_context=True,
+            delegation_depth=1,
+            max_child_concurrency=2,
+            heartbeat_ref=f"controlled-eval:heartbeat:{prefix.lower()}/{i}",
         )
         for i in (1, 2)
     )
 
 def _baseline(signals: tuple[DelegationSignal, ...]) -> float:
-    # Baseline models the failure mode: both delegated tasks observe one shared context.
     contexts = ("shared-context", "shared-context")
     return float(len(set(contexts)) == len(signals))
 
@@ -64,6 +66,9 @@ def evaluate_multiagent_functional_gain() -> MultiagentFunctionalEvidence:
     items = tuple(adapt_delegation(signal) for signal in adapted)
     boundary = all(
         item is not None and item.isolated_context
+        and item.heartbeat_ref
+        and 1 <= item.delegation_depth <= 2
+        and 1 <= item.max_child_concurrency <= 4
         and not item.child_authority and not item.promotion_permitted
         for item in items
     )
