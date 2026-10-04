@@ -106,9 +106,9 @@ def build_global_capability_visibility(
     registry_snapshot: Sequence[CapabilitySnapshot],
     implementation_views: Sequence[SymbiontImplementationView] = (),
     declared_capabilities: Sequence[str] = (),
-    consumers: Mapping[str, str] = {},
-    canonical_routes: Mapping[str, str] = {},
-    execution_boundaries: Mapping[str, str] = {},
+    consumers: Mapping[str, str] | None = None,
+    canonical_routes: Mapping[str, str] | None = None,
+    execution_boundaries: Mapping[str, str] | None = None,
 ) -> GlobalCapabilityVisibility:
     """Reconcile existing capability visibility without inferring runtime.
 
@@ -116,6 +116,9 @@ def build_global_capability_visibility(
     evidence supplied by the caller. File existence or registry visibility does
     not infer any of these relationships.
     """
+    consumers = consumers or {}
+    canonical_routes = canonical_routes or {}
+    execution_boundaries = execution_boundaries or {}
     snapshots = {item.name: item for item in registry_snapshot}
     views_by_capability: dict[str, SymbiontImplementationView] = {}
     for view in implementation_views:
