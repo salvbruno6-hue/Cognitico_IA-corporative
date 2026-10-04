@@ -43,13 +43,13 @@ class CapabilityVisibilityRecord:
     available: bool
     implementation_visible: bool
     owner: str | None
-    consumer: str | None = None
-    canonical_route: str | None = None
-    execution_boundary: str | None = None
     runtime_status: str | None
     evolution_status: str | None
     evidence_refs: tuple[str, ...]
     state: CapabilityVisibilityState
+    consumer: str | None = None
+    canonical_route: str | None = None
+    execution_boundary: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
