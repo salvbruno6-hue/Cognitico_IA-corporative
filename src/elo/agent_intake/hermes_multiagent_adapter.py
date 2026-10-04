@@ -32,6 +32,9 @@ class DelegatedWorkItem:
     isolated_context: bool
     child_authority: bool = False
     promotion_permitted: bool = False
+    delegation_depth: int = 1
+    max_child_concurrency: int = 1
+    heartbeat_ref: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,6 +61,9 @@ class MultiagentAdapter:
             resource_scope=signal.resource_scope,
             source_refs=assessment.evidence_refs,
             isolated_context=signal.isolated_context,
+            delegation_depth=signal.delegation_depth,
+            max_child_concurrency=signal.max_child_concurrency,
+            heartbeat_ref=signal.heartbeat_ref or "",
         )
 
 
@@ -107,6 +113,9 @@ def dispatch_delegation_with_runtime_evidence(
         and child_task.context_refs == work_item.resource_scope
         and observation.agent_id == work_item.child_agent_id
         and observation.tenant_id == work_item.tenant_scope
+        and bool(work_item.heartbeat_ref)
+        and 1 <= work_item.delegation_depth <= 2
+        and 1 <= work_item.max_child_concurrency <= 4
     )
     evidence = create_runtime_evidence(
         execution_id=execution_id,
