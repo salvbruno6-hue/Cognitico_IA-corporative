@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from elo.agent_intake.deployment_environment_reality import DeploymentEnvironmentEvidence
 from elo.agent_intake.hermes_functional_value_proof import FunctionalValueEvidence
 from elo.agent_intake.runtime_operational_evidence import (
     RepeatabilityEvidence,
@@ -161,6 +162,23 @@ def test_pattern_reference_participates_in_evidence_identity():
     assert first.evidence_hash != second.evidence_hash
 
 
+def _deployment_reality() -> DeploymentEnvironmentEvidence:
+    return DeploymentEnvironmentEvidence(
+        environment_id="elo-web-prod",
+        environment_kind="vercel-production",
+        deployment_id="deployment-test-001",
+        commit_sha="commit-1",
+        artifact_ref="artifact:elo-web:test",
+        runtime_endpoint="https://runtime.example.invalid/health",
+        healthcheck_ref="healthcheck:test-001",
+        runtime_observed=True,
+        operational_observed=True,
+        production_outcome_observed=False,
+        governance_approved=False,
+        evidence_refs=("deployment:test-001", "runtime:test-001"),
+    )
+
+
 def _production_authorization() -> object:
     from elo.application.use_cases.orchestrator import AuthorizationDecision
 
@@ -195,6 +213,7 @@ def test_production_outcome_preserves_decision_pattern_provenance_binding():
         execution_outcomes=outcomes,
         authorizations=authorizations,
         candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+        deployment_reality=_deployment_reality(),
     )
 
     assert evidence.level == "OPERATIONAL_OUTCOME"
@@ -223,6 +242,7 @@ def test_production_outcome_rejects_pattern_provenance_mismatch():
             execution_outcomes=outcomes,
             authorizations=authorizations,
             candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+            deployment_reality=_deployment_reality(),
         )
 
 
@@ -256,4 +276,5 @@ def test_production_outcome_requires_explicit_production_environment():
             execution_outcomes=outcomes,
             authorizations=(_production_authorization(), _production_authorization()),
             candidate_id="EXT-CONTEXT-PLUGIN-HERMES",
+            deployment_reality=_deployment_reality(),
         )

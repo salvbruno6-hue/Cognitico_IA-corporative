@@ -13,6 +13,11 @@ from __future__ import annotations
 from elo.application.use_cases.orchestrator import AuthorizationDecision
 from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
 
+from .deployment_environment_reality import (
+    DeploymentEnvironmentEvidence,
+    DeploymentRealityStatus,
+    assess_deployment_reality,
+)
 from .hermes_functional_value_proof import FunctionalValueEvidence
 from .runtime_operational_evidence import RuntimeOperationalEvidence, aggregate_repeatability
 
@@ -122,14 +127,13 @@ def to_production_outcome(
     execution_outcomes: tuple[ExecutionOutcome, ...],
     authorizations: tuple[AuthorizationDecision, ...],
     candidate_id: str,
+    deployment_reality: DeploymentEnvironmentEvidence | None = None,
 ) -> FunctionalValueEvidence:
     """Admit production evidence only from externally authorized real executions.
 
-    This function is an evidence adapter, not an authorization authority. It
-    never executes work and never changes canonical state. Production status is
-    accepted only when the external runtime explicitly reports environment=production
-    and each execution is bound to a transport-valid elo-authz decision, the
-    candidate, and its own runtime observation.
+    Deployment reality is an independent prerequisite. This function remains an
+    evidence adapter: it never authorizes deployment, execution, promotion, or
+    governance approval.
     """
     if not candidate_id:
         raise ValueError("candidate_id is required")
@@ -139,6 +143,15 @@ def to_production_outcome(
         raise ValueError("each runtime observation must have one execution outcome")
     if len(authorizations) != len(observations):
         raise ValueError("each runtime observation must have one authorization decision")
+
+    reality = assess_deployment_reality(deployment_reality)
+    if reality.status not in {
+        DeploymentRealityStatus.OPERATIONALLY_VERIFIED,
+        DeploymentRealityStatus.PRODUCTION_PROVEN,
+    }:
+        raise ValueError(
+            "production evidence requires independently verified operational deployment reality"
+        )
 
     execution_ids = tuple(item.execution_id for item in observations)
     if len(set(execution_ids)) != len(execution_ids):
