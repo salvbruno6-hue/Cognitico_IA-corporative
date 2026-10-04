@@ -60,6 +60,7 @@ class IntelligenceRouter:
         runtime_commit: str | None = None,
         runtime_trace: str | None = None,
         execution_id: str | None = None,
+        decision_pattern_candidate_ref: str | None = None,
     ) -> tuple[RoutingDecision, AIResponse]:
         """Preserve the legacy convenience path while keeping routing canonical."""
         decision = self.execution_router.route(
@@ -75,6 +76,7 @@ class IntelligenceRouter:
             runtime_commit=runtime_commit,
             runtime_trace=runtime_trace,
             execution_id=execution_id,
+            decision_pattern_candidate_ref=decision_pattern_candidate_ref,
         )
         return decision, response
 
@@ -87,6 +89,7 @@ class IntelligenceRouter:
         runtime_commit: str | None = None,
         runtime_trace: str | None = None,
         execution_id: str | None = None,
+        decision_pattern_candidate_ref: str | None = None,
     ) -> AIResponse:
         """Execute an already-selected route without performing a second route.
 
@@ -141,6 +144,7 @@ class IntelligenceRouter:
                         runtime_trace=runtime_trace,
                     ),
                     repeatability=RepeatabilityEvidence(1, 1, 1.0),
+                    decision_pattern_candidate_ref=decision_pattern_candidate_ref,
                 )
             )
         return response
