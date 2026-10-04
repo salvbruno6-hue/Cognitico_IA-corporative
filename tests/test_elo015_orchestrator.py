@@ -4,6 +4,11 @@ from elo.application.use_cases.orchestrator import (
     OrchestrationRequest,
     OrchestrationStage,
 )
+from elo.cognitive.symbiont_capability_governance import (
+    CapabilityVisibilityRecord,
+    CapabilityVisibilityState,
+    GlobalCapabilityVisibility,
+)
 
 
 ORCHESTRATOR = GovernedOrchestrator()
@@ -92,3 +97,60 @@ def test_canonical_authorization_and_evidence_permit_execution() -> None:
     )
     assert result.stage is OrchestrationStage.EXECUTE
     assert result.status == "AUTHORIZED"
+
+
+def _visibility(capability_id: str, state: CapabilityVisibilityState) -> GlobalCapabilityVisibility:
+    return GlobalCapabilityVisibility(
+        records=(
+            CapabilityVisibilityRecord(
+                capability_id=capability_id,
+                registry_visible=state in {
+                    CapabilityVisibilityState.REGISTERED_VISIBLE,
+                    CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW,
+                    CapabilityVisibilityState.UNRESOLVED_OWNER,
+                },
+                available=True,
+                implementation_visible=state in {
+                    CapabilityVisibilityState.REGISTERED_VISIBLE,
+                    CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED,
+                    CapabilityVisibilityState.UNRESOLVED_OWNER,
+                },
+                owner="owner-a" if state is not CapabilityVisibilityState.UNRESOLVED_OWNER else None,
+                runtime_status="INTEGRATED",
+                evolution_status="REQUIRED",
+                evidence_refs=("ev-visibility",),
+                state=state,
+            ),
+        ),
+    )
+
+
+def test_orchestrator_advises_use_of_existing_canonical_capability() -> None:
+    result = ORCHESTRATOR.advise_capability(
+        _visibility("cap-a", CapabilityVisibilityState.REGISTERED_VISIBLE),
+        "cap-a",
+        authorized_actions=frozenset({"USE_CANONICAL"}),
+    )
+    assert result.action == "USE_CANONICAL"
+    assert result.authorized is True
+    assert result.owner == "owner-a"
+
+
+def test_orchestrator_surfaces_connection_gap_without_authorizing_it() -> None:
+    result = ORCHESTRATOR.advise_capability(
+        _visibility("cap-b", CapabilityVisibilityState.EXISTING_BUT_UNWIRED),
+        "cap-b",
+    )
+    assert result.action == "CONNECT_CANONICAL"
+    assert result.authorized is False
+
+
+def test_orchestrator_does_not_infer_unknown_capability() -> None:
+    result = ORCHESTRATOR.advise_capability(
+        GlobalCapabilityVisibility(records=()),
+        "missing-capability",
+        authorized_actions=frozenset({"INVESTIGATE"}),
+    )
+    assert result.action == "INVESTIGATE"
+    assert result.authorized is True
+    assert result.state == "UNKNOWN"
