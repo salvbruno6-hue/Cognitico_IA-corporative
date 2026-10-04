@@ -60,3 +60,16 @@ def test_collaborator_has_no_github_binding_by_definition():
     migration = Path("supabase/migrations/20260919220406_elo_access_tiers.sql").read_text(encoding="utf-8")
     assert "No identity is auto-provisioned by this migration." in migration
     assert "no GitHub repository binding" in migration
+
+def test_execution_grant_is_candidate_bound():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert 'const resourceId=typeof body.resource_id==="string"?body.resource_id.trim():"";' in source
+    assert 'metadata:{issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}' in source
+    assert 'resource_id:resourceId' in source
+    assert "evidence_ref" in source
+
+
+def test_authorization_state_check_requires_candidate_resource():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert "authorization_state_operation_repository_resource_required" in source
+    assert "resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository,resourceId)" in source
