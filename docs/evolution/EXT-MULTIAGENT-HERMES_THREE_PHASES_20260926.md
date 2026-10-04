@@ -36,3 +36,19 @@ The authorization granted for test and positive validation is used only for this
 ## 2026-09-29 refinement — live steering
 
 `REF-LIVE-STEERING-HERMES` is integrated as a refinement of `EXT-MULTIAGENT-HERMES` / `HERMES-DELEGATION`. The contract requires parent/child execution identity, explicit directive, directive digest and provenance. Implicit steering or authority transfer is rejected. Controlled ELO-side evidence: 0.00 → 1.00 boundary integrity, repeatability PASS, canonical mutation false. No live Hermes steering is executed.
+
+## 2026-10-04 promotion step — bounded delegation controls
+
+The existing canonical AgentOrchestrator runtime bridge now carries three explicit delegation controls:
+
+- delegation_depth: accepted only in the bounded range 1..2;
+- max_child_concurrency: accepted only in the bounded range 1..4;
+- heartbeat_ref: required for runtime admission.
+
+Invalid depth, concurrency or missing heartbeat is rejected before child dispatch.
+The controls are carried into the existing DelegatedWorkItem and runtime evidence.
+
+This is a runtime safety promotion, not production outcome proof. The child agent
+still receives no canonical authority, promotion authority or unrestricted tools.
+
+Production outcome remains pending actual operational executions through the real delegation runtime.
