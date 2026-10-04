@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from elo.agent_intake.deployment_environment_reality import DeploymentEnvironmentEvidence
 from elo.agent_intake.runtime_operational_evidence import (
     RepeatabilityEvidence,
     RuntimeProvenance,
@@ -24,6 +25,25 @@ class ProductionAdapter:
             "source_commit": "prod-runtime-001",
             "metric": "representation_footprint_chars",
         }
+
+
+def _deployment_reality(**overrides):
+    values = dict(
+        environment_id="elo-web-prod",
+        environment_kind="vercel-production",
+        deployment_id="dep-123",
+        commit_sha="prod-runtime-001",
+        artifact_ref="artifact:elo-web",
+        runtime_endpoint="https://example.invalid/health",
+        healthcheck_ref="healthcheck:123",
+        runtime_observed=True,
+        operational_observed=True,
+        production_outcome_observed=False,
+        governance_approved=False,
+        evidence_refs=("deployment:123", "runtime:123"),
+    )
+    values.update(overrides)
+    return DeploymentEnvironmentEvidence(**values)
 
 
 def _authorization(grant_id: str, *, resource_id: str = CANDIDATE):
@@ -86,16 +106,11 @@ def test_production_evidence_requires_external_authorization_and_real_execution(
     second = _execution("exec-prod-002", "grant-prod-002")
 
     result = to_production_outcome(
-        observations=(
-            _observation("exec-prod-001", 80.0),
-            _observation("exec-prod-002", 75.0),
-        ),
+        observations=(_observation("exec-prod-001", 80.0), _observation("exec-prod-002", 75.0)),
         execution_outcomes=(first, second),
-        authorizations=(
-            _authorization("grant-prod-001"),
-            _authorization("grant-prod-002"),
-        ),
+        authorizations=(_authorization("grant-prod-001"), _authorization("grant-prod-002")),
         candidate_id=CANDIDATE,
+        deployment_reality=_deployment_reality(),
     )
 
     assert first.status is ExecutionStatus.EXECUTED
@@ -104,6 +119,33 @@ def test_production_evidence_requires_external_authorization_and_real_execution(
     assert result.production_proven is True
     assert result.repeatable is True
     assert result.attribution == "CANDIDATE_ATTRIBUTED"
+
+
+def test_production_evidence_requires_independent_deployment_reality():
+    first = _execution("exec-prod-007", "grant-prod-007")
+    second = _execution("exec-prod-008", "grant-prod-008")
+
+    with pytest.raises(ValueError, match="independently verified operational deployment reality"):
+        to_production_outcome(
+            observations=(_observation("exec-prod-007", 80.0), _observation("exec-prod-008", 75.0)),
+            execution_outcomes=(first, second),
+            authorizations=(_authorization("grant-prod-007"), _authorization("grant-prod-008")),
+            candidate_id=CANDIDATE,
+        )
+
+
+def test_artifact_only_deployment_reality_cannot_prove_production():
+    first = _execution("exec-prod-009", "grant-prod-009")
+    second = _execution("exec-prod-010", "grant-prod-010")
+
+    with pytest.raises(ValueError, match="independently verified operational deployment reality"):
+        to_production_outcome(
+            observations=(_observation("exec-prod-009", 80.0), _observation("exec-prod-010", 75.0)),
+            execution_outcomes=(first, second),
+            authorizations=(_authorization("grant-prod-009"), _authorization("grant-prod-010")),
+            candidate_id=CANDIDATE,
+            deployment_reality=_deployment_reality(runtime_observed=False, runtime_endpoint="", healthcheck_ref=""),
+        )
 
 
 def test_controlled_runtime_cannot_be_reclassified_as_production():
@@ -134,6 +176,7 @@ def test_controlled_runtime_cannot_be_reclassified_as_production():
                 _authorization("grant-controlled-001"),
             ),
             candidate_id=CANDIDATE,
+            deployment_reality=_deployment_reality(),
         )
 
 
@@ -143,16 +186,17 @@ def test_invalid_or_mismatched_authorization_cannot_prove_production():
 
     with pytest.raises(ValueError, match="authorization resource"):
         to_production_outcome(
-            observations=(
-                _observation("exec-prod-003", 80.0),
-                _observation("exec-prod-004", 75.0),
+            observations=(_observation("exec-prod-003", 80.0), _observation("exec-prod-004", 75.0)),
+            execution_outcomes=(
+                first,
+                second,
             ),
-            execution_outcomes=(first, second),
             authorizations=(
                 _authorization("grant-prod-003", resource_id="OTHER-CANDIDATE"),
                 _authorization("grant-prod-004"),
             ),
             candidate_id=CANDIDATE,
+            deployment_reality=_deployment_reality(),
         )
 
 
@@ -165,6 +209,7 @@ def test_single_production_execution_is_not_enough_for_repeatable_proof():
             execution_outcomes=(outcome,),
             authorizations=(_authorization("grant-prod-005"),),
             candidate_id=CANDIDATE,
+            deployment_reality=_deployment_reality(),
         )
 
 
@@ -173,14 +218,9 @@ def test_duplicate_execution_identity_cannot_establish_production_repeatability(
 
     with pytest.raises(ValueError, match="distinct execution identities"):
         to_production_outcome(
-            observations=(
-                _observation("exec-prod-006", 80.0),
-                _observation("exec-prod-006", 75.0),
-            ),
+            observations=(_observation("exec-prod-006", 80.0), _observation("exec-prod-006", 75.0)),
             execution_outcomes=(outcome, outcome),
-            authorizations=(
-                _authorization("grant-prod-006"),
-                _authorization("grant-prod-006"),
-            ),
+            authorizations=(_authorization("grant-prod-006"), _authorization("grant-prod-006")),
             candidate_id=CANDIDATE,
+            deployment_reality=_deployment_reality(),
         )
