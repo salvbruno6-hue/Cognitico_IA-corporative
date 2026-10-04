@@ -61,18 +61,45 @@ class IntelligenceRouter:
         runtime_trace: str | None = None,
         execution_id: str | None = None,
     ) -> tuple[RoutingDecision, AIResponse]:
-        route_contract: RoutingPlanContract | None = None
-        if hermes_routing_signal is not None:
-            route_contract = adapt_routing(hermes_routing_signal)
-            if route_contract is None:
-                raise PermissionError("Hermes routing policy rejected execution")
-
+        """Preserve the legacy convenience path while keeping routing canonical."""
         decision = self.execution_router.route(
             request.capability,
             models=models,
             tools=tools,
             preferred_models=preferred_models,
         )
+        response = self.execute_routed(
+            request,
+            decision,
+            hermes_routing_signal=hermes_routing_signal,
+            runtime_commit=runtime_commit,
+            runtime_trace=runtime_trace,
+            execution_id=execution_id,
+        )
+        return decision, response
+
+    def execute_routed(
+        self,
+        request: IntelligenceRequest,
+        decision: RoutingDecision,
+        *,
+        hermes_routing_signal: RoutingSignal | None = None,
+        runtime_commit: str | None = None,
+        runtime_trace: str | None = None,
+        execution_id: str | None = None,
+    ) -> AIResponse:
+        """Execute an already-selected route without performing a second route.
+
+        ExecutionBoundary may call this method after governance checks. The
+        method resolves only the provider adapter; it does not authorize,
+        select, or mutate canonical routing policy.
+        """
+        route_contract: RoutingPlanContract | None = None
+        if hermes_routing_signal is not None:
+            route_contract = adapt_routing(hermes_routing_signal)
+            if route_contract is None:
+                raise PermissionError("Hermes routing policy rejected execution")
+
         if not decision.model_id:
             raise LookupError("selected route has no AI model")
 
@@ -101,7 +128,7 @@ class IntelligenceRouter:
                     execution_id=execution_id or create_execution_id("EXT-ROUTE-HERMES"),
                     candidate_id="EXT-ROUTE-HERMES",
                     owner="ELO Model/Tool Routing",
-                    runtime_entrypoint="IntelligenceRouter.route_and_execute",
+                    runtime_entrypoint="IntelligenceRouter.execute_routed",
                     action_observed=True,
                     metric="routing_plan_integrity_rate",
                     direction="maximize",
@@ -116,7 +143,7 @@ class IntelligenceRouter:
                     repeatability=RepeatabilityEvidence(1, 1, 1.0),
                 )
             )
-        return decision, response
+        return response
 
     @staticmethod
     def _resolve_provider_and_model(model_id: str) -> tuple[str, str]:
