@@ -52,6 +52,7 @@ def _execution(execution_id: str, grant_id: str):
             authorization_id=grant_id,
             evidence_ids=EVIDENCE,
             correlation_id=f"correlation-{execution_id}",
+            decision_pattern_candidate_ref="PATTERN-EXT-TOOL-SEARCH-HERMES",
         ),
         ProductionAdapter(),
     )
@@ -76,6 +77,7 @@ def _observation(execution_id: str, observed: float):
         regression=False,
         repeatability=RepeatabilityEvidence(executions=1, successful=1, rate=1.0),
         timestamp=OCCURRED,
+        decision_pattern_candidate_ref="PATTERN-EXT-TOOL-SEARCH-HERMES",
     )
 
 
@@ -118,6 +120,7 @@ def test_controlled_runtime_cannot_be_reclassified_as_production():
             authorization_id="grant-controlled-001",
             evidence_ids=EVIDENCE,
             correlation_id="correlation-controlled",
+            decision_pattern_candidate_ref="PATTERN-EXT-TOOL-SEARCH-HERMES",
         ),
         ControlledAdapter(),
     )
