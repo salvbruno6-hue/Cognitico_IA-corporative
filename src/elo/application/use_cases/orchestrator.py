@@ -120,6 +120,15 @@ class AuthorizationBoundary(Protocol):
 class Orchestrator(Protocol):
     """Application boundary for the closed ELO observation loop."""
 
+    def advise_capability(
+        self,
+        visibility: "GlobalCapabilityVisibility",
+        capability_id: str,
+        *,
+        authorized_actions: frozenset[str] = frozenset(),
+    ) -> CapabilityOrientation:
+        """Return bounded capability guidance from explicit Symbiont visibility."""
+
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         """Return EXECUTE only when canonical execution authority is present."""
 
