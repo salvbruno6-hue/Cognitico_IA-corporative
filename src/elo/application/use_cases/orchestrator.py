@@ -219,6 +219,10 @@ class GovernedOrchestrator:
 
         This method is composition only. It does not authorize, select a
         provider policy, or create a new execution authority.
+
+        The current IntelligenceRouter executes model/provider routes. A
+        tool-only route is therefore rejected explicitly rather than being
+        reported as a successful runtime connection.
         """
         from elo.core.execution_boundary import ExecutionRequest, execute_governed
 
@@ -240,9 +244,11 @@ class GovernedOrchestrator:
             preferred_models=preferred_models,
         )
 
-        action_id = route.model_id or route.tool_id
-        if not action_id:
-            raise LookupError(f"no executable route for capability: {selection.capability_name}")
+        if not route.model_id:
+            raise LookupError(
+                f"selected route has no executable model/provider path for capability: "
+                f"{selection.capability_name}"
+            )
 
         if not request.request_id or not request.correlation_id:
             raise ValueError("request_id and correlation_id are required for governed execution")
@@ -278,11 +284,10 @@ class GovernedOrchestrator:
             request_id=request.request_id,
             tenant_id=request.tenant_id,
             principal_id=request.principal_id,
-            action_id=action_id,
+            action_id=route.model_id,
             authorization_id=request.authorization.grant_id,
             evidence_ids=request.evidence_ids,
             correlation_id=request.correlation_id,
         )
         outcome = execute_governed(execution_request, RoutedExecutionAdapter())
         return selection, outcome
-
