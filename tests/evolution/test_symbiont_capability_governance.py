@@ -154,3 +154,45 @@ def test_global_visibility_copies_runtime_and_evolution_status_without_inference
     assert record.runtime_status == "INTEGRATED"
     assert record.evolution_status == "REQUIRED"
     assert record.evidence_refs == ("impl-view:1",)
+
+
+def test_global_visibility_exposes_explicit_consumer_route_and_execution_boundary():
+    registry = CapabilityRegistry((
+        CapabilityProbe(
+            "LOCAL_RUNTIME",
+            "EXT-TEST",
+            health_check=lambda: True,
+            metadata={"capabilities": "EXT-TEST"},
+        ),
+    ))
+    result = build_global_capability_visibility(
+        registry_snapshot=registry.snapshot(),
+        implementation_views=(_view(),),
+        consumers={"EXT-TEST": "CapabilitySelector"},
+        canonical_routes={"EXT-TEST": "ExecutionRouter"},
+        execution_boundaries={"EXT-TEST": "ExecutionBoundary"},
+    )
+    record = result.records[0]
+    assert record.consumer == "CapabilitySelector"
+    assert record.canonical_route == "ExecutionRouter"
+    assert record.execution_boundary == "ExecutionBoundary"
+    assert result.canonical_mutation is False
+
+
+def test_global_visibility_does_not_infer_consumer_route_or_boundary():
+    registry = CapabilityRegistry((
+        CapabilityProbe(
+            "LOCAL_RUNTIME",
+            "EXT-TEST",
+            health_check=lambda: True,
+            metadata={"capabilities": "EXT-TEST"},
+        ),
+    ))
+    result = build_global_capability_visibility(
+        registry_snapshot=registry.snapshot(),
+        implementation_views=(_view(),),
+    )
+    record = result.records[0]
+    assert record.consumer is None
+    assert record.canonical_route is None
+    assert record.execution_boundary is None
