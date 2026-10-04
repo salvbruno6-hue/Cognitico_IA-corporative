@@ -207,7 +207,6 @@ class GovernedOrchestrator:
         selector: "CapabilitySelector",
         execution_router: "ExecutionRouter",
         intelligence_router: "IntelligenceRouter",
-        execution_boundary,
         models=None,
         tools=None,
         preferred_models=None,
@@ -248,9 +247,15 @@ class GovernedOrchestrator:
         if not request.request_id or not request.correlation_id:
             raise ValueError("request_id and correlation_id are required for governed execution")
 
-        intelligence_request = intelligence_router_request = intelligence_router_request_factory(
-            request=request,
+        from elo.cognitive.routing.intelligence_router import IntelligenceRequest
+
+        intelligence_request = IntelligenceRequest(
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            specialist_id=selection.capability_name,
             capability=selection.capability_name,
+            instructions=request.objective,
+            metadata={"domain": request.domain, "principal_id": request.principal_id},
         )
 
         class RoutedExecutionAdapter:
@@ -281,15 +286,3 @@ class GovernedOrchestrator:
         outcome = execute_governed(execution_request, RoutedExecutionAdapter())
         return selection, outcome
 
-
-def intelligence_router_request_factory(*, request: OrchestrationRequest, capability: str):
-    from elo.cognitive.routing.intelligence_router import IntelligenceRequest
-
-    return IntelligenceRequest(
-        request_id=request.request_id,
-        tenant_id=request.tenant_id,
-        specialist_id=capability,
-        capability=capability,
-        instructions=request.objective,
-        metadata={"domain": request.domain, "principal_id": request.principal_id},
-    )
