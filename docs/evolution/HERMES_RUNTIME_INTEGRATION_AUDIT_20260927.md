@@ -1,14 +1,15 @@
 # ELO — Hermes Runtime Integration Audit
 
-**Date:** 2026-09-27  
-**Canonical baseline:** `main` @ `a68475c02f23a23d417f129aab1e148270093177`  
+**Date:** 2026-10-04
+**Reconciled by:** PR #913  
+**Canonical baseline:** `main` @ `2e491052c873bee98f6a5cac921fd19a67175587`  
 **Purpose:** distinguish governed handoff code from actual production/runtime integration.
 
 ## Result
 
 The repository contains controlled evaluation adapters, functional-value evaluators, tests, and governed implementation-loop handoffs for the original Hermes candidates.
 
-The audit found **no production proof for any of the 13 original candidates**. Three candidates have now crossed the canonical runtime-integration boundary: `EXT-CRON-HERMES` (#870), `EXT-PROFILE-HERMES` (#890), and `EXT-CONTEXT-PLUGIN-HERMES` (#891).
+The audit found **no production proof for any of the 13 original candidates**. Four candidates have now crossed the canonical runtime-integration boundary: `EXT-CRON-HERMES` (#870), `EXT-PROFILE-HERMES` (#890), `EXT-CONTEXT-PLUGIN-HERMES` (#891), and `EXT-MULTIAGENT-HERMES` (#913). #913 promotes bounded delegation controls over the existing `AgentOrchestrator`; it does not establish production proof.
 
 The existence of a module named `*_loop_integration.py`, a governed handoff, or a passing controlled evaluation is **not** treated as runtime deployment evidence.
 
@@ -21,7 +22,7 @@ The existence of a module named `*_loop_integration.py`, a governed handoff, or 
 | RUNTIME_INTEGRATION_REQUIRED | Candidate behavior is not yet proven on the real owner/runtime path. |
 | OPERATIONAL_OUTCOME | Real runtime/production observation proves the property over operational executions. |
 
-The 10 candidates without canonical runtime integration currently stop at **GOVERNED_HANDOFF + RUNTIME_INTEGRATION_REQUIRED**. `EXT-CRON-HERMES`, `EXT-PROFILE-HERMES`, and `EXT-CONTEXT-PLUGIN-HERMES` have crossed the runtime-integration boundary, while none has production proof.
+The 9 candidates without canonical runtime integration currently stop at **GOVERNED_HANDOFF + RUNTIME_INTEGRATION_REQUIRED**. `EXT-CRON-HERMES`, `EXT-PROFILE-HERMES`, `EXT-CONTEXT-PLUGIN-HERMES`, and `EXT-MULTIAGENT-HERMES` have crossed the runtime-integration boundary, while none has production proof.
 
 ## Candidate findings
 
@@ -29,7 +30,7 @@ The 10 candidates without canonical runtime integration currently stop at **GOVE
 |---|---|---|---|---|
 | EXT-CONTEXT-PLUGIN-HERMES | controlled task gain | canonical ExecutionBoundary | **integrated — #891; production not proven** | obtain repeated observations from actual production Context runtime |
 | EXT-WORKTREE-HERMES | collision-free task gain | governed Hermes handoff | not proven | connect isolation to real Forge workspace lifecycle |
-| EXT-MULTIAGENT-HERMES | context-isolation gain | HERMES-DELEGATION shared handoff | not proven | connect isolation to real delegated execution |
+| EXT-MULTIAGENT-HERMES | context-isolation gain | canonical AgentOrchestrator delegation | **integrated — #913; production not proven** | obtain repeated observations from actual delegated runtime |
 | EXT-CRON-HERMES | idempotency gain | canonical GovernedWorkflowRuntime | **integrated — #870; production not proven** | obtain repeated observations from actual production scheduler/runtime boundary |
 | EXT-MEMPROVIDER-HERMES | provider-identity gain | HERMES-MEMORY shared handoff | not proven | connect identity/provenance preservation to actual retrieval |
 | EXT-ROUTE-HERMES | unsafe-route blocking gain | dedicated governed handoff surface | not proven | enforce policy at actual routing boundary |
@@ -61,7 +62,7 @@ Therefore:
 
 ## Symbiont interpretation
 
-The Hermes loop remains an operational intake/experimentation path of the Symbiont. The three integrated candidates reuse canonical owner runtimes and existing evidence contracts; none introduces a parallel authority or evidence owner.
+The Hermes loop remains an operational intake/experimentation path of the Symbiont. The four integrated candidates reuse canonical owner runtimes and existing evidence contracts; none introduces a parallel authority or evidence owner.
 
 The correct composition is:
 
@@ -88,8 +89,8 @@ Only then may `IMPLEMENTATION_AUTHORIZED` be considered.
 
 - **13/13:** controlled functional evidence accepted.
 - **13/13:** governed handoff available.
-- **10/13:** runtime integration still requires proof.
-- **3/13:** canonical runtime integration established — Cron (#870), Profile (#890), Context Plugin (#891).
+- **9/13:** runtime integration still requires proof.
+- **4/13:** canonical runtime integration established — Cron (#870), Profile (#890), Context Plugin (#891), Multiagent (#913).
 - **0/13:** production outcome established by this audit.
 - **0:** new authority or parallel Evolution Gate introduced.
 - **0:** autonomous promotion performed.
