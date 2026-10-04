@@ -47,6 +47,9 @@ class CapabilityVisibilityRecord:
     evolution_status: str | None
     evidence_refs: tuple[str, ...]
     state: CapabilityVisibilityState
+    consumer: str | None = None
+    canonical_route: str | None = None
+    execution_boundary: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +86,9 @@ class GlobalCapabilityVisibility:
                     "available": item.available,
                     "implementation_visible": item.implementation_visible,
                     "owner": item.owner,
+                    "consumer": item.consumer,
+                    "canonical_route": item.canonical_route,
+                    "execution_boundary": item.execution_boundary,
                     "runtime_status": item.runtime_status,
                     "evolution_status": item.evolution_status,
                     "evidence_refs": list(item.evidence_refs),
@@ -100,13 +106,19 @@ def build_global_capability_visibility(
     registry_snapshot: Sequence[CapabilitySnapshot],
     implementation_views: Sequence[SymbiontImplementationView] = (),
     declared_capabilities: Sequence[str] = (),
+    consumers: Mapping[str, str] | None = None,
+    canonical_routes: Mapping[str, str] | None = None,
+    execution_boundaries: Mapping[str, str] | None = None,
 ) -> GlobalCapabilityVisibility:
     """Reconcile existing capability visibility without inferring runtime.
 
-    A capability is not considered runtime-connected merely because executable
-    code exists. Runtime/evolution states are copied from explicit
-    implementation views only.
+    Consumer, route and execution-boundary links are accepted only as explicit
+    evidence supplied by the caller. File existence or registry visibility does
+    not infer any of these relationships.
     """
+    consumers = consumers or {}
+    canonical_routes = canonical_routes or {}
+    execution_boundaries = execution_boundaries or {}
     snapshots = {item.name: item for item in registry_snapshot}
     views_by_capability: dict[str, SymbiontImplementationView] = {}
     for view in implementation_views:
@@ -140,6 +152,9 @@ def build_global_capability_visibility(
                 available=bool(snapshot and snapshot.status.value == "AVAILABLE"),
                 implementation_visible=implementation_visible,
                 owner=owner,
+                consumer=consumers.get(capability_id),
+                canonical_route=canonical_routes.get(capability_id),
+                execution_boundary=execution_boundaries.get(capability_id),
                 runtime_status=view.runtime_status if view else None,
                 evolution_status=view.evolution_gate_status if view else None,
                 evidence_refs=evidence_refs,

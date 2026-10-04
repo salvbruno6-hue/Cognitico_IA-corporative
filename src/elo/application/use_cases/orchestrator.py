@@ -11,7 +11,15 @@ roles, capabilities, sessions, scopes, or bearer credentials.
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from elo.cognitive.reasoning.capability_selection import CapabilityDecision, CapabilityRequirement, CapabilitySelector
+    from elo.cognitive.routing.execution_routing import ExecutionRouter, ModelCandidate, ToolCandidate
+    from elo.cognitive.routing.intelligence_router import IntelligenceRouter, IntelligenceRequest
+    from elo.core.capability_registry import CapabilityRegistry
+    from elo.core.execution_boundary import ExecutionOutcome, ExecutionRequest, ExecutionAdapter
+    from elo.cognitive.symbiont_capability_governance import GlobalCapabilityVisibility
 
 
 class OrchestrationStage(StrEnum):
@@ -30,12 +38,7 @@ class OrchestrationStage(StrEnum):
 
 @dataclass(frozen=True)
 class AuthorizationDecision:
-    """Immutable result supplied by the canonical ELO authorization authority.
-
-    This value carries provenance so a bare boolean cannot be mistaken for an
-    authorization result. Authorization policy remains exclusively owned by
-    ``elo-authz``; this type only transports its already-evaluated result.
-    """
+    """Immutable result supplied by the canonical ELO authorization authority."""
 
     authorized: bool
     authority: str
@@ -50,7 +53,6 @@ class AuthorizationDecision:
     expires_at: str = ""
 
     def is_canonical(self) -> bool:
-        """Preserve the base elo-authz transport contract."""
         return (
             self.authority == "elo-authz"
             and self.authorized
@@ -60,7 +62,6 @@ class AuthorizationDecision:
         )
 
     def is_transport_valid(self, *, now: datetime | None = None) -> bool:
-        """Validate the stronger provenance required for implementation execution."""
         if not self.is_canonical():
             return False
         if not self.session_id or not self.binding_id or not self.grant_id:
@@ -85,6 +86,9 @@ class OrchestrationRequest:
     objective: str
     evidence_ids: tuple[str, ...] = ()
     authorization: AuthorizationDecision | None = None
+    request_id: str = ""
+    correlation_id: str = ""
+    decision_pattern_candidate_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -96,11 +100,7 @@ class OrchestrationDecision:
 
 @dataclass(frozen=True)
 class CapabilityOrientation:
-    """Consultative intervention guidance derived from Symbiont visibility.
-
-    This is a recommendation contract only. It does not authorize or mutate
-    canonical state; authorization is supplied by the existing boundary.
-    """
+    """Consultative intervention guidance derived from Symbiont visibility."""
 
     capability_id: str
     state: str
@@ -111,15 +111,11 @@ class CapabilityOrientation:
 
 
 class AuthorizationBoundary(Protocol):
-    """Adapter to the canonical ELO authorization authority."""
-
     def authorize_execution(self, request: OrchestrationRequest) -> AuthorizationDecision:
         """Return the typed decision produced by the canonical authority."""
 
 
 class Orchestrator(Protocol):
-    """Application boundary for the closed ELO observation loop."""
-
     def advise_capability(
         self,
         visibility: "GlobalCapabilityVisibility",
@@ -134,12 +130,10 @@ class Orchestrator(Protocol):
 
 
 class GovernedOrchestrator:
-    """Minimal deterministic coordinator for the ELO application boundary.
+    """Deterministic coordinator over existing ELO authorities.
 
-    This class does not implement authorization. ``authorization`` must be the
-    typed result produced by the canonical authorization boundary before
-    execution can be selected. No role/capability/session/scope logic is
-    duplicated here.
+    Capability selection, routing, authorization and execution remain owned by
+    their canonical components. This class only composes those boundaries.
     """
 
     def advise_capability(
@@ -149,13 +143,6 @@ class GovernedOrchestrator:
         *,
         authorized_actions: frozenset[str] = frozenset(),
     ) -> CapabilityOrientation:
-        """Turn explicit Symbiont visibility into bounded guidance.
-
-        The Orchestrator does not infer runtime state and does not mutate
-        canonical ELO state. It maps an explicit visibility state to the
-        smallest known intervention and reports whether that action was
-        already authorized by the caller.
-        """
         from elo.cognitive.symbiont_capability_governance import CapabilityVisibilityState
 
         record = next(
@@ -196,43 +183,117 @@ class GovernedOrchestrator:
 
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         if not request.tenant_id or not request.principal_id:
-            return OrchestrationDecision(
-                OrchestrationStage.HANDOFF,
-                "BLOCKED",
-                "tenant_id and principal_id are required",
-            )
+            return OrchestrationDecision(OrchestrationStage.HANDOFF, "BLOCKED", "tenant_id and principal_id are required")
         if not request.domain or not request.objective:
-            return OrchestrationDecision(
-                OrchestrationStage.HANDOFF,
-                "BLOCKED",
-                "domain and objective are required",
-            )
+            return OrchestrationDecision(OrchestrationStage.HANDOFF, "BLOCKED", "domain and objective are required")
         if not request.evidence_ids:
-            return OrchestrationDecision(
-                OrchestrationStage.HANDOFF,
-                "INCONCLUSIVE",
-                "execution requires governed evidence",
-            )
+            return OrchestrationDecision(OrchestrationStage.HANDOFF, "INCONCLUSIVE", "execution requires governed evidence")
         if request.authorization is None:
-            return OrchestrationDecision(
-                OrchestrationStage.HANDOFF,
-                "RECOMMENDATION",
-                "canonical authorization decision is absent",
-            )
+            return OrchestrationDecision(OrchestrationStage.HANDOFF, "RECOMMENDATION", "canonical authorization decision is absent")
         if not request.authorization.is_canonical():
-            return OrchestrationDecision(
-                OrchestrationStage.HANDOFF,
-                "RECOMMENDATION",
-                "authorization provenance is not canonical",
-            )
+            return OrchestrationDecision(OrchestrationStage.HANDOFF, "RECOMMENDATION", "authorization provenance is not canonical")
         if not request.authorization.authorized:
-            return OrchestrationDecision(
-                OrchestrationStage.HANDOFF,
-                "RECOMMENDATION",
-                "canonical authorization decision was not granted",
-            )
+            return OrchestrationDecision(OrchestrationStage.HANDOFF, "RECOMMENDATION", "canonical authorization decision was not granted")
         return OrchestrationDecision(
             OrchestrationStage.EXECUTE,
             "AUTHORIZED",
             "canonical authorization decision and governed evidence are present",
         )
+
+    def execute_capability(
+        self,
+        request: OrchestrationRequest,
+        *,
+        requirement: "CapabilityRequirement",
+        selector: "CapabilitySelector",
+        execution_router: "ExecutionRouter",
+        intelligence_router: "IntelligenceRouter",
+        models=None,
+        tools=None,
+        preferred_models=None,
+        hermes_routing_signal=None,
+        runtime_commit: str | None = None,
+        runtime_trace: str | None = None,
+        execution_id: str | None = None,
+    ):
+        """Connect Registry/Selector → Router → ExecutionBoundary → runtime.
+
+        This method is composition only. It does not authorize, select a
+        provider policy, or create a new execution authority.
+
+        The current IntelligenceRouter executes model/provider routes. A
+        tool-only route is therefore rejected explicitly rather than being
+        reported as a successful runtime connection.
+        """
+        from elo.core.execution_boundary import ExecutionRequest, execute_governed
+
+        selection: CapabilityDecision = selector.select(requirement)
+        if selection.status != "SELECTED" or not selection.capability_name:
+            return selection, None
+
+        orchestration = self.decide_execution(request)
+        if orchestration.stage is not OrchestrationStage.EXECUTE:
+            return selection, None
+
+        if request.authorization is None or not request.authorization.is_transport_valid():
+            return selection, None
+
+        route = execution_router.route(
+            selection.capability_name,
+            models=models,
+            tools=tools,
+            preferred_models=preferred_models,
+        )
+
+        if not route.model_id:
+            raise LookupError(
+                f"selected route has no executable model/provider path for capability: "
+                f"{selection.capability_name}"
+            )
+
+        if not request.request_id or not request.correlation_id:
+            raise ValueError("request_id and correlation_id are required for governed execution")
+        resolved_execution_id = execution_id or request.request_id
+        if resolved_execution_id != request.request_id:
+            raise ValueError("execution_id must match request_id for governed execution provenance")
+
+        from elo.cognitive.routing.intelligence_router import IntelligenceRequest
+
+        intelligence_request = IntelligenceRequest(
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            specialist_id=selection.capability_name,
+            capability=selection.capability_name,
+            instructions=request.objective,
+            metadata={"domain": request.domain, "principal_id": request.principal_id},
+        )
+
+        class RoutedExecutionAdapter:
+            def execute(self, execution_request):
+                response = intelligence_router.execute_routed(
+                    intelligence_request,
+                    route,
+                    hermes_routing_signal=hermes_routing_signal,
+                    runtime_commit=runtime_commit,
+                    runtime_trace=runtime_trace,
+                    execution_id=resolved_execution_id,
+                    decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
+                )
+                return {
+                    "provider": response.provider,
+                    "model": response.model,
+                    "request_id": response.request_id,
+                }
+
+        execution_request = ExecutionRequest(
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            principal_id=request.principal_id,
+            action_id=route.model_id,
+            authorization_id=request.authorization.grant_id,
+            evidence_ids=request.evidence_ids,
+            correlation_id=request.correlation_id,
+            decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
+        )
+        outcome = execute_governed(execution_request, RoutedExecutionAdapter())
+        return selection, outcome

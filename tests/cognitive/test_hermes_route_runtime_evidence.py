@@ -79,7 +79,7 @@ def test_real_intelligence_router_records_route_runtime_observation() -> None:
     assert result[0].model_id == "openai:test-model"
     evidence = collector.observations()[0]
     assert evidence.candidate_id == "EXT-ROUTE-HERMES"
-    assert evidence.runtime_entrypoint == "IntelligenceRouter.route_and_execute"
+    assert evidence.runtime_entrypoint == "IntelligenceRouter.execute_routed"
     assert evidence.operational_outcome_proven is False
 
 
