@@ -51,6 +51,7 @@ def _signal(run: int) -> RoutingSignal:
         credential_pool_strategy="existing-pool",
         provenance_verified=True,
         explicit_policy=True,
+        max_fallbacks=2,
     )
 
 
@@ -103,3 +104,19 @@ def test_two_real_route_executions_become_operational_outcome() -> None:
     assert outcome.candidate_id == "EXT-ROUTE-HERMES"
     assert outcome.production_proven is False
     assert outcome.repeatable is True
+
+
+def test_route_boundary_rejects_excessive_fallbacks() -> None:
+    from elo.agent_intake.hermes_routing_boundary import RoutingDisposition, assess_routing
+    signal = _signal(1)
+    invalid = signal.__class__(**{**signal.__dict__, "fallback_providers": ("a","b","c"), "max_fallbacks": 2})
+    assessment = assess_routing(invalid)
+    assert assessment.disposition == RoutingDisposition.REJECTED
+
+
+def test_route_boundary_rejects_invalid_fallback_limit() -> None:
+    from elo.agent_intake.hermes_routing_boundary import RoutingDisposition, assess_routing
+    signal = _signal(1)
+    invalid = signal.__class__(**{**signal.__dict__, "max_fallbacks": 4})
+    assessment = assess_routing(invalid)
+    assert assessment.disposition == RoutingDisposition.REJECTED
