@@ -277,6 +277,7 @@ class GovernedOrchestrator:
                     runtime_commit=runtime_commit,
                     runtime_trace=runtime_trace,
                     execution_id=resolved_execution_id,
+                    decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
                 )
                 return {
                     "provider": response.provider,
