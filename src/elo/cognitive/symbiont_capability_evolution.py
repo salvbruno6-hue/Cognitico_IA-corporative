@@ -254,7 +254,197 @@ def review_capabilities(
     )
 
 
+class CapabilityConditionStatus(str, Enum):
+    ABSENT = "ABSENT"
+    PRESENT = "PRESENT"
+    VERIFIED = "VERIFIED"
+    BLOCKED = "BLOCKED"
+    NOT_EVIDENCED = "NOT_EVIDENCED"
+
+
+class CapabilityReadinessStatus(str, Enum):
+    NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
+    IMPLEMENTED_NOT_TESTED = "IMPLEMENTED_NOT_TESTED"
+    TESTED_NOT_EVIDENCED = "TESTED_NOT_EVIDENCED"
+    EVIDENCED_NOT_RUNTIME = "EVIDENCED_NOT_RUNTIME"
+    RUNTIME_INTEGRATED = "RUNTIME_INTEGRATED"
+    OPERATIONALLY_EVIDENCED = "OPERATIONALLY_EVIDENCED"
+    READY_FOR_EVOLUTION_GATE = "READY_FOR_EVOLUTION_GATE"
+    PRODUCTION_PROVEN = "PRODUCTION_PROVEN"
+    BLOCKED = "BLOCKED"
+
+
+@dataclass(frozen=True, slots=True)
+class CapabilityCondition:
+    name: str
+    status: CapabilityConditionStatus
+    evidence_refs: tuple[str, ...] = ()
+    detail: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class CapabilityStatusReport:
+    capability_id: str
+    capability_name: str
+    owner: str
+    authority: str
+    status: CapabilityReadinessStatus
+    conditions: tuple[CapabilityCondition, ...]
+    missing_conditions: tuple[str, ...]
+    blockers: tuple[str, ...]
+    evidence_refs: tuple[str, ...]
+    next_action: str
+    production_proven: bool
+    canonical_mutation: bool = False
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "capability_id": self.capability_id,
+            "capability_name": self.capability_name,
+            "owner": self.owner,
+            "authority": self.authority,
+            "status": self.status.value,
+            "conditions": [
+                {
+                    "name": condition.name,
+                    "status": condition.status.value,
+                    "evidence_refs": list(condition.evidence_refs),
+                    "detail": condition.detail,
+                }
+                for condition in self.conditions
+            ],
+            "missing_conditions": list(self.missing_conditions),
+            "blockers": list(self.blockers),
+            "evidence_refs": list(self.evidence_refs),
+            "next_action": self.next_action,
+            "production_proven": self.production_proven,
+            "canonical_mutation": self.canonical_mutation,
+        }
+
+
+def _condition(
+    name: str,
+    present: bool,
+    *,
+    verified: bool = False,
+    blocked: bool = False,
+    evidence_refs: Sequence[str] = (),
+    detail: str = "",
+) -> CapabilityCondition:
+    refs = tuple(dict.fromkeys(str(ref).strip() for ref in evidence_refs if str(ref).strip()))
+    if blocked:
+        state = CapabilityConditionStatus.BLOCKED
+    elif not present:
+        state = CapabilityConditionStatus.ABSENT
+    elif verified and refs:
+        state = CapabilityConditionStatus.VERIFIED
+    elif present and not refs:
+        state = CapabilityConditionStatus.NOT_EVIDENCED
+    else:
+        state = CapabilityConditionStatus.PRESENT
+    return CapabilityCondition(name=name, status=state, evidence_refs=refs, detail=detail)
+
+
+def diagnose_capability_status(
+    *,
+    capability_id: str,
+    capability_name: str,
+    owner: str,
+    authority: str,
+    contract_present: bool,
+    implementation_present: bool,
+    tests_present: bool,
+    evidence_present: bool,
+    runtime_integrated: bool,
+    operational_evidence: bool,
+    production_outcome: bool,
+    governance_approved: bool = False,
+    contract_refs: Sequence[str] = (),
+    implementation_refs: Sequence[str] = (),
+    test_refs: Sequence[str] = (),
+    evidence_refs: Sequence[str] = (),
+    runtime_refs: Sequence[str] = (),
+    operational_refs: Sequence[str] = (),
+    production_refs: Sequence[str] = (),
+    governance_refs: Sequence[str] = (),
+    blockers: Sequence[str] = (),
+) -> CapabilityStatusReport:
+    """Return a read-only status diagnosis for one capability.
+
+    This is a diagnostic read model for the Symbiont. It does not authorize
+    execution, promotion, deployment, learning, or canonical mutation.
+    A claimed state is considered verified only when explicit evidence
+    references accompany it. Production proof is never inferred from tests,
+    runtime integration, or operational evidence alone.
+    """
+    required = (
+        _condition("CONTRACT", contract_present, verified=contract_present, evidence_refs=contract_refs),
+        _condition("IMPLEMENTATION", implementation_present, verified=implementation_present, evidence_refs=implementation_refs),
+        _condition("TESTS", tests_present, verified=tests_present, evidence_refs=test_refs),
+        _condition("EVIDENCE", evidence_present, verified=evidence_present, evidence_refs=evidence_refs),
+        _condition("RUNTIME_INTEGRATION", runtime_integrated, verified=runtime_integrated, evidence_refs=runtime_refs),
+        _condition("OPERATIONAL_EVIDENCE", operational_evidence, verified=operational_evidence, evidence_refs=operational_refs),
+        _condition("PRODUCTION_OUTCOME", production_outcome, verified=production_outcome, evidence_refs=production_refs),
+        _condition("GOVERNANCE_APPROVAL", governance_approved, verified=governance_approved, evidence_refs=governance_refs),
+    )
+    normalized_blockers = tuple(dict.fromkeys(str(item).strip() for item in blockers if str(item).strip()))
+    refs = tuple(dict.fromkeys(
+        ref
+        for condition in required
+        for ref in condition.evidence_refs
+    ))
+
+    if normalized_blockers:
+        status = CapabilityReadinessStatus.BLOCKED
+        next_action = "Resolve the explicit blocker using the existing canonical owner; do not bypass the governance boundary."
+    elif not implementation_present:
+        status = CapabilityReadinessStatus.NOT_IMPLEMENTED
+        next_action = "Locate or implement the capability through its existing canonical owner."
+    elif not tests_present:
+        status = CapabilityReadinessStatus.IMPLEMENTED_NOT_TESTED
+        next_action = "Create or execute the relevant tests and retain their evidence."
+    elif not evidence_present:
+        status = CapabilityReadinessStatus.TESTED_NOT_EVIDENCED
+        next_action = "Collect explicit implementation/runtime evidence; do not infer operational status from test existence."
+    elif not runtime_integrated:
+        status = CapabilityReadinessStatus.EVIDENCED_NOT_RUNTIME
+        next_action = "Trace and connect the capability to its real canonical runtime entrypoint without creating a parallel authority."
+    elif not operational_evidence:
+        status = CapabilityReadinessStatus.RUNTIME_INTEGRATED
+        next_action = "Collect repeatable operational evidence from the real runtime path."
+    elif production_outcome and governance_approved:
+        status = CapabilityReadinessStatus.PRODUCTION_PROVEN
+        next_action = "Maintain observation and reassess against the next verified baseline."
+    elif production_outcome and not governance_approved:
+        status = CapabilityReadinessStatus.READY_FOR_EVOLUTION_GATE
+        next_action = "Use the existing Evolution Gate; production evidence does not self-authorize promotion."
+    else:
+        status = CapabilityReadinessStatus.OPERATIONALLY_EVIDENCED
+        next_action = "Continue governed observation until a verified production outcome or an explicit governance decision exists."
+
+    missing = tuple(
+        condition.name
+        for condition in required
+        if condition.status in {CapabilityConditionStatus.ABSENT, CapabilityConditionStatus.NOT_EVIDENCED}
+    )
+    return CapabilityStatusReport(
+        capability_id=capability_id,
+        capability_name=capability_name,
+        owner=owner,
+        authority=authority,
+        status=status,
+        conditions=required,
+        missing_conditions=missing,
+        blockers=normalized_blockers,
+        evidence_refs=refs,
+        next_action=next_action,
+        production_proven=status is CapabilityReadinessStatus.PRODUCTION_PROVEN,
+    )
+
+
 __all__ = [
-    "CapabilityAction", "CapabilityEvolutionReview", "CapabilityMetric",
-    "Curvature", "curvature", "review_capabilities",
+    "CapabilityAction", "CapabilityCondition", "CapabilityConditionStatus",
+    "CapabilityEvolutionReview", "CapabilityMetric", "CapabilityReadinessStatus",
+    "CapabilityStatusReport", "Curvature", "curvature", "diagnose_capability_status",
+    "review_capabilities",
 ]
