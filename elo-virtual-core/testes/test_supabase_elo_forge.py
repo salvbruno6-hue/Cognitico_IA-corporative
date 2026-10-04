@@ -54,10 +54,15 @@ def test_model_context_traverses_full_relationship_chain_with_bounded_calls(monk
         "taxonomia": "tax-01",
         "dimensao": "dim-01",
         "kit": "kit-01",
+        "kit2": "kit-02",
         "item": "item-01",
+        "item2": "item-02",
         "lista": "lista-01",
+        "lista2": "lista-02",
         "estrutura": "estrutura-01",
+        "estrutura2": "estrutura-02",
         "estrutura_item": "estrutura-item-01",
+        "estrutura_item2": "estrutura-item-02",
     }
     calls = []
 
@@ -70,22 +75,44 @@ def test_model_context_traverses_full_relationship_chain_with_bounded_calls(monk
         }],
         ("taxonomia", "id", ids["taxonomia"]): [{"id": ids["taxonomia"], "codigo": "MLT.M01"}],
         ("dimensoes", "id", ids["dimensao"]): [{"id": ids["dimensao"], "referencia": "20 pés"}],
-        ("kits", "modelo_id", ids["model"]): [{"id": ids["kit"], "codigo": "KIT-M01"}],
+        ("kits", "modelo_id", ids["model"]): [
+            {"id": ids["kit"], "codigo": "KIT-M01"},
+            {"id": ids["kit2"], "codigo": "KIT-M01-2"},
+        ],
         ("kit_itens", "kit_id", ids["kit"]): [{
             "id": ids["item"],
             "kit_id": ids["kit"],
             "lista_mae_id": ids["lista"],
             "quantidade": 1,
         }],
+        ("kit_itens", "kit_id", ids["kit2"]): [{
+            "id": ids["item2"],
+            "kit_id": ids["kit2"],
+            "lista_mae_id": ids["lista2"],
+            "quantidade": 2,
+        }],
         ("lista_mae", "id", ids["lista"]): [{
             "id": ids["lista"],
             "cod_item": "MAT-01",
             "descricao_oficial": "Material teste",
         }],
-        ("estrutura_modular", "modelo_id", ids["model"]): [{"id": ids["estrutura"], "modelo_id": ids["model"]}],
+        ("lista_mae", "id", ids["lista2"]): [{
+            "id": ids["lista2"],
+            "cod_item": "MAT-02",
+            "descricao_oficial": "Material teste 2",
+        }],
+        ("estrutura_modular", "modelo_id", ids["model"]): [
+            {"id": ids["estrutura"], "modelo_id": ids["model"]},
+            {"id": ids["estrutura2"], "modelo_id": ids["model"]},
+        ],
         ("estrutura_modular_itens", "estrutura_modular_id", ids["estrutura"]): [{
             "id": ids["estrutura_item"],
             "estrutura_modular_id": ids["estrutura"],
+            "modelo_id": ids["model"],
+        }],
+        ("estrutura_modular_itens", "estrutura_modular_id", ids["estrutura2"]): [{
+            "id": ids["estrutura_item2"],
+            "estrutura_modular_id": ids["estrutura2"],
             "modelo_id": ids["model"],
         }],
     }
@@ -93,9 +120,18 @@ def test_model_context_traverses_full_relationship_chain_with_bounded_calls(monk
     def fake_read_table(table, *, filters=None, limit=100, order_by=None):
         assert filters and len(filters) == 1
         column, expression = next(iter(filters.items()))
-        value = expression.removeprefix("eq.")
-        calls.append((table, column, value, limit))
-        return rows.get((table, column, value), [])
+        if expression.startswith("eq."):
+            values = {expression.removeprefix("eq.")}
+        elif expression.startswith("in.(") and expression.endswith(")"):
+            values = set(expression[4:-1].split(","))
+        else:
+            raise AssertionError(f"unexpected filter expression: {expression}")
+        calls.append((table, column, expression, limit))
+        result = []
+        for (row_table, row_column, row_value), table_rows in rows.items():
+            if row_table == table and row_column == column and row_value in values:
+                result.extend(table_rows)
+        return result
 
     monkeypatch.setattr(forge, "read_table", fake_read_table)
     result = forge.model_context("MLT.M01")
@@ -104,8 +140,10 @@ def test_model_context_traverses_full_relationship_chain_with_bounded_calls(monk
     assert relationships["taxonomia"][0]["codigo"] == "MLT.M01"
     assert relationships["dimensoes"][0]["referencia"] == "20 pés"
     assert relationships["kits"][0]["codigo"] == "KIT-M01"
-    assert relationships["kit_itens"][0]["lista_mae_id"] == ids["lista"]
-    assert relationships["lista_mae"][0]["cod_item"] == "MAT-01"
+    assert {item["id"] for item in relationships["kit_itens"]} == {ids["item"], ids["item2"]}
+    assert {item["cod_item"] for item in relationships["lista_mae"]} == {"MAT-01", "MAT-02"}
+    assert {item["codigo_item"] for item in result["kit_composition"]} == {None}
+
     assert relationships["estrutura_modular"][0]["id"] == ids["estrutura"]
     assert relationships["estrutura_modular_itens"][0]["id"] == ids["estrutura_item"]
     assert result["source"] == "supabase_elo_forge"
