@@ -21,7 +21,7 @@ class _Response:
         return self._payload
 
 
-def test_production_client_requires_https(monkeypatch):
+def test_production_client_requires_https():
     client = HermesHttpRuntimeClient("http://runtime.example", "secret")
     with pytest.raises(ValueError, match="HTTPS"):
         client.execute({"request_id": "req-1"})
@@ -72,14 +72,16 @@ def test_production_client_preserves_request_identity_and_returns_runtime_facts(
     assert result["runtime_trace"] == "trace-1"
 
 
-def test_production_client_does_not_treat_invalid_json_as_execution():
+def test_production_client_does_not_treat_invalid_json_as_execution(monkeypatch):
     class InvalidResponse(_Response):
         def __init__(self):
             self._payload = b"not-json"
 
-    import elo.agent_intake.hermes_http_runtime_client as module
+    monkeypatch.setattr(
+        "elo.agent_intake.hermes_http_runtime_client.urlopen",
+        lambda *args, **kwargs: InvalidResponse(),
+    )
 
-    module.urlopen = lambda *args, **kwargs: InvalidResponse()
     client = HermesHttpRuntimeClient("https://runtime.example", "secret")
     with pytest.raises(ValueError, match="invalid JSON"):
         client.execute({"request_id": "req-1"})
