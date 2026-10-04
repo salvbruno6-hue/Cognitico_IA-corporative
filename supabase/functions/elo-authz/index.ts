@@ -138,7 +138,7 @@ async function getScopes(identityId:string) {
   return {ok:true as const,scopes:(data??[]).map((r:any)=>r.elo_scopes).filter((s:any)=>s?.active===true)};
 }
 
-async function resolveAuthorizationGrant(identityId:string, sessionId:string, state:string, operation:string, repository:string) {
+async function resolveAuthorizationGrant(identityId:string, sessionId:string, state:string, operation:string, repository:string, resourceId:string) {
   const allowed = new Set([
     "elo-execution-authorized",
     "elo-commit-authorized",
@@ -147,7 +147,7 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   if(!allowed.has(state)) return {ok:false as const,reason:"authorization_state_not_supported"};
 
   const {data,error}=await supabase.from("elo_authorization_grants")
-    .select("grant_id,binding_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at")
+    .select("grant_id,binding_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
     .eq("identity_id",identityId)
     .eq("authorization_state",state)
     .eq("operation",operation)
@@ -211,9 +211,10 @@ Deno.serve(async(req:Request)=>{
   if(action==="check_authorization_state") {
     const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
     const operation=typeof body.operation==="string"?body.operation.trim():"";
-    if(!state||!operation||!repository)return json({authorized:false,reason:"authorization_state_operation_repository_required",request_id:requestId},400);
+    const resourceId=typeof body.resource_id==="string"?body.resource_id.trim():"";
+    if(!state||!operation||!repository||!resourceId)return json({authorized:false,reason:"authorization_state_operation_repository_resource_required",request_id:requestId},400);
 
-    const grant=await resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository);
+    const grant=await resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository,resourceId);
     if(!grant.ok){
       try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY",grant.reason,requestId);}catch{}
       return json({authorized:false,reason:grant.reason,authorization_state:state,operation,repository,request_id:requestId},403);
@@ -236,6 +237,8 @@ Deno.serve(async(req:Request)=>{
       operation_class:grant.binding.operation_class,
       grant_id:grant.grant.grant_id,
       expires_at:grant.grant.expires_at,
+      resource_id:resourceId,
+      evidence_ref:`elo-authz:${requestId}`,
       request_id:requestId,
       authorization_authority:"elo-authz"
     });
@@ -289,8 +292,9 @@ Deno.serve(async(req:Request)=>{
     const bindingId=typeof body.binding_id==="string"?body.binding_id.trim():"";
     const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
     const operation=typeof body.operation==="string"?body.operation.trim():"";
+    const resourceId=typeof body.resource_id==="string"?body.resource_id.trim():"";
     const expiresIn=Number(body.expires_in_seconds);
-    if(!bindingId||!state||!operation||!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>86400)
+    if(!bindingId||!state||!operation||!resourceId||!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>86400)
       return json({authorized:false,reason:"binding_state_operation_expiry_required",request_id:requestId},400);
 
     const allowedStates=new Set(["elo-execution-authorized","elo-commit-authorized","elo-merge-authorized"]);
@@ -308,13 +312,13 @@ Deno.serve(async(req:Request)=>{
       binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
       authorization_state:state,operation,repository_full_name:repository,
       issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
-      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:{issuer_role:"CANONICAL_ADMIN"}
+      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:{issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}
     }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at").single();
     if(error||!grant)return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
 
     try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_issued_authorization_state",requestId);}
     catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
-    return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding});
+    return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding,resource_id:resourceId,evidence_ref:`elo-authz:${requestId}`});
   }
 
   if(action==="portal_access") {
