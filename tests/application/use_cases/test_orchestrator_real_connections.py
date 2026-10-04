@@ -129,3 +129,42 @@ def test_orchestrator_does_not_execute_without_transport_valid_authorization():
 
     assert selection.status == "SELECTED"
     assert outcome is None
+
+
+def test_orchestrator_rejects_tool_only_route_without_claiming_runtime_execution():
+    registry = CapabilityRegistry(
+        (
+            CapabilityProbe(
+                "LOCAL_RUNTIME",
+                "EXT-TEST",
+                health_check=lambda: True,
+                metadata={"capabilities": "EXT-TEST"},
+            ),
+        )
+    )
+    router = ExecutionRouter(ModelSelector(), ToolSelector())
+    intelligence_router = IntelligenceRouter(router, {"fake": FakeProvider()})
+    request = OrchestrationRequest(
+        tenant_id="tenant-a",
+        principal_id="principal-1",
+        domain="cognitive",
+        objective="must not execute as a provider route",
+        evidence_ids=("evidence-1",),
+        authorization=_authorization(),
+        request_id="request-tool-only",
+        correlation_id="corr-tool-only",
+    )
+
+    try:
+        GovernedOrchestrator().execute_capability(
+            request,
+            requirement=CapabilityRequirement("EXT-TEST"),
+            selector=CapabilitySelector(registry),
+            execution_router=router,
+            intelligence_router=intelligence_router,
+            tools=[],
+        )
+    except LookupError as exc:
+        assert "no executable model/provider path" in str(exc)
+    else:
+        raise AssertionError("tool-only routing must fail closed before runtime execution")
