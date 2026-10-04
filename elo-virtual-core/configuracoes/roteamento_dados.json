@@ -18,7 +18,18 @@
         "kits",
         "kit_itens",
         "estrutura_modular",
-        "estrutura_modular_itens",
+        "estrutura_modular_itens"
+      ]
+    },
+    "supabase_elo_budget_memory": {
+      "type": "supabase",
+      "project_ref": "fxbpevjrkwhbicpmecow",
+      "canonical_layer": "budget_memory",
+      "authority": "supabase",
+      "architectural_parent": "ELO Cognitivo",
+      "purpose": "consulta persistida da memória quantitativa e governança de orçamento já existente; não representa autoridade arquitetural independente",
+      "tables": [
+        "elo_orcamentos",
         "elo_orcamento_memoria",
         "elo_orcamento_calculos_aprendidos",
         "elo_orcamento_calculo_evidencias",
@@ -30,17 +41,44 @@
   },
   "routing": {
     "supabase_when_related_to": [
-      "taxonomia", "MLT", "modulo", "módulo", "container", "contêiner",
-      "dimensao", "dimensão", "modelo", "M01", "M02", "kit",
-      "lista mae", "lista mãe", "material", "produto", "estrutura modular",
-      "estrutura_modular", "memória de cálculo", "cálculo aprendido",
-      "evidência de cálculo", "varredura de cálculo", "associação de orçamento",
-      "decisão arbitrada", "governança de orçamento"
+      "taxonomia",
+      "MLT",
+      "modulo",
+      "módulo",
+      "container",
+      "contêiner",
+      "dimensao",
+      "dimensão",
+      "modelo",
+      "M01",
+      "M02",
+      "kit",
+      "lista mae",
+      "lista mãe",
+      "material",
+      "produto",
+      "estrutura modular",
+      "estrutura_modular",
+      "memória de cálculo",
+      "cálculo aprendido",
+      "evidência de cálculo",
+      "varredura de cálculo",
+      "associação de orçamento",
+      "decisão arbitrada",
+      "governança de orçamento"
     ],
     "prefer_supabase_for": [
-      "dados atuais", "consulta de registros", "relacionamentos entre entidades",
-      "composição de modelos", "itens de kits", "dados da Lista Mãe", "estrutura modular",
-      "memória quantitativa", "evidências", "associações de orçamento", "decisões arbitradas"
+      "dados atuais",
+      "consulta de registros",
+      "relacionamentos entre entidades",
+      "composição de modelos",
+      "itens de kits",
+      "dados da Lista Mãe",
+      "estrutura modular",
+      "memória quantitativa",
+      "evidências",
+      "associações de orçamento",
+      "decisões arbitradas"
     ],
     "fallback": "local",
     "never_guess_data": true
