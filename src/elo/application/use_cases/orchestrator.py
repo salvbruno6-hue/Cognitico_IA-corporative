@@ -252,6 +252,9 @@ class GovernedOrchestrator:
 
         if not request.request_id or not request.correlation_id:
             raise ValueError("request_id and correlation_id are required for governed execution")
+        resolved_execution_id = execution_id or request.request_id
+        if resolved_execution_id != request.request_id:
+            raise ValueError("execution_id must match request_id for governed execution provenance")
 
         from elo.cognitive.routing.intelligence_router import IntelligenceRequest
 
@@ -272,7 +275,7 @@ class GovernedOrchestrator:
                     hermes_routing_signal=hermes_routing_signal,
                     runtime_commit=runtime_commit,
                     runtime_trace=runtime_trace,
-                    execution_id=execution_id,
+                    execution_id=resolved_execution_id,
                 )
                 return {
                     "provider": response.provider,
