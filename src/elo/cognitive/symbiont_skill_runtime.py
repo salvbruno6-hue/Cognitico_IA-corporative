@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from elo.core.capability_registry import CapabilityProbe, CapabilityRegistry, CapabilitySnapshot
 from elo.core.decision_outcome_loop import DecisionLifecycle
 from elo.agent_intake.hermes_functional_value_proof import FunctionalValueEvidence
 from elo.agent_intake.runtime_operational_evidence_collector import RuntimeEvidenceGroup
@@ -68,6 +69,23 @@ class SymbiontSkillRuntime:
         if not group.repeatable:
             raise ValueError("runtime evidence is not repeatable")
         return group.to_operational_outcome()
+
+    @staticmethod
+    def register_capability(
+        registry: CapabilityRegistry,
+        capability: CapabilityProbe,
+    ) -> CapabilitySnapshot:
+        """Make a newly registered Symbiont capability visible to the canonical selector.
+
+        The Symbiont writes only to the existing CapabilityRegistry. It does not
+        create a parallel registry or grant execution authority. The selector
+        and downstream canonical routers observe the same registry snapshot.
+        """
+        registry.register(capability)
+        return next(
+            item for item in registry.snapshot()
+            if item.name == capability.name
+        )
 
     def propose_capability(self, observation: SymbiontLabObservation) -> CapabilityCandidate:
         return self.absorption.propose(observation)
