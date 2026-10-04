@@ -12,6 +12,8 @@ from elo.cognitive.routing.intelligence_router import IntelligenceRouter
 from elo.cognitive.routing.model_selection import ModelCandidate, ModelSelector
 from elo.cognitive.routing.tool_selection import ToolCandidate, ToolSelector
 from elo.integrations.ai_provider import AIResponse
+from elo.agent_intake.hermes_routing_boundary import RoutingSignal
+from elo.agent_intake.runtime_operational_evidence_collector import RuntimeOperationalEvidenceCollector
 
 
 class FakeProvider:
@@ -168,3 +170,67 @@ def test_orchestrator_rejects_tool_only_route_without_claiming_runtime_execution
         assert "no executable model/provider path" in str(exc)
     else:
         raise AssertionError("tool-only routing must fail closed before runtime execution")
+
+def test_orchestrator_two_runtime_executions_produce_repeatable_runtime_evidence():
+    collector = RuntimeOperationalEvidenceCollector()
+    registry = CapabilityRegistry(
+        (
+            CapabilityProbe(
+                "LOCAL_RUNTIME",
+                "EXT-TEST",
+                health_check=lambda: True,
+                metadata={"capabilities": "EXT-TEST"},
+            ),
+        )
+    )
+    execution_router = ExecutionRouter(ModelSelector(), ToolSelector())
+    intelligence_router = IntelligenceRouter(
+        execution_router,
+        {"fake": FakeProvider()},
+        runtime_evidence_sink=collector,
+    )
+    signal = RoutingSignal(
+        route_id="route-ext-test",
+        tenant_scope="tenant-a",
+        source_refs=("route-source",),
+        primary_provider="fake",
+        fallback_providers=("backup",),
+        credential_pool_strategy="existing-pool",
+        provenance_verified=True,
+        explicit_policy=True,
+        max_fallbacks=2,
+    )
+
+    for run in (1, 2):
+        request = OrchestrationRequest(
+            tenant_id="tenant-a",
+            principal_id="principal-1",
+            domain="cognitive",
+            objective="execute governed runtime evidence test",
+            evidence_ids=("evidence-1",),
+            authorization=_authorization(),
+            request_id=f"request-runtime-{run}",
+            correlation_id=f"corr-runtime-{run}",
+        )
+        selection, outcome = GovernedOrchestrator().execute_capability(
+            request,
+            requirement=CapabilityRequirement("EXT-TEST", preferred_kinds=("LOCAL_RUNTIME",)),
+            selector=CapabilitySelector(registry),
+            execution_router=execution_router,
+            intelligence_router=intelligence_router,
+            models=[ModelCandidate("fake:test-model", frozenset({"EXT-TEST"}), 1.0)],
+            hermes_routing_signal=signal,
+            runtime_commit="218afab",
+            runtime_trace=f"orchestrator-runtime-trace-{run}",
+            execution_id=f"orchestrator-runtime-{run}",
+        )
+        assert selection.status == "SELECTED"
+        assert outcome is not None
+        assert outcome.executed is True
+
+    groups = collector.ready_groups()
+    assert len(groups) == 1
+    group = groups[0]
+    assert group.candidate_id == "EXT-ROUTE-HERMES"
+    assert group.repeatable is True
+    assert group.to_operational_outcome().production_proven is False
