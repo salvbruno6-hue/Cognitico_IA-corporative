@@ -1,3 +1,5 @@
+from elo.core.capability_registry import CapabilityProbe, CapabilityRegistry
+from elo.cognitive.reasoning.capability_selection import CapabilityRequirement, CapabilitySelector
 from elo.cognitive.symbiont_operational_contract import SymbiontRequestGuard, SymbiontOperation
 from elo.cognitive.symbiont_skill_runtime import SymbiontSkillRuntime
 
@@ -31,3 +33,23 @@ def test_runtime_exposes_all_four_skill_paths():
     assert callable(SymbiontSkillRuntime.handoff_decision)
     assert callable(SymbiontSkillRuntime.evaluate_lab)
     assert callable(SymbiontSkillRuntime.propose_capability)
+
+
+def test_symbiont_registration_is_visible_to_canonical_capability_selector():
+    registry = CapabilityRegistry()
+    capability = CapabilityProbe(
+        kind="LOCAL_RUNTIME",
+        name="new-symbiont-capability",
+        health_check=lambda: True,
+        metadata={"capabilities": "new-symbiont-capability"},
+    )
+
+    snapshot = SymbiontSkillRuntime.register_capability(registry, capability)
+    decision = CapabilitySelector(registry).select(
+        CapabilityRequirement(capability="new-symbiont-capability")
+    )
+
+    assert snapshot.name == "new-symbiont-capability"
+    assert snapshot.status.value == "AVAILABLE"
+    assert decision.status == "SELECTED"
+    assert decision.capability_name == "new-symbiont-capability"
