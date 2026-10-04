@@ -14,6 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from elo.application.use_cases.orchestrator import AuthorizationDecision
+from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
+
 from .runtime_operational_evidence import (
     RepeatabilityEvidence,
     RuntimeOperationalEvidence,
@@ -78,6 +81,46 @@ class ExternalRuntimeObservation:
             raise ValueError("external runtime observation requires a changed metric value")
 
 
+def validate_external_runtime_binding(
+    *,
+    observation: ExternalRuntimeObservation,
+    execution_outcome: ExecutionOutcome,
+    authorization: AuthorizationDecision,
+) -> tuple[bool, tuple[str, ...]]:
+    """Validate external observation against canonical execution and authorization.
+
+    Validation only: this function never authorizes, executes, persists,
+    promotes, or declares production. Production admission remains owned by
+    the existing runtime operational evidence adapter.
+    """
+
+    errors: list[str] = []
+    evidence = ingest_external_runtime_observation(observation)
+
+    if execution_outcome.status is not ExecutionStatus.EXECUTED or not execution_outcome.executed:
+        errors.append("EXECUTION_NOT_COMPLETED")
+    if execution_outcome.request_id != observation.execution_id:
+        errors.append("EXECUTION_ID_MISMATCH")
+    if execution_outcome.authorization_id != authorization.grant_id:
+        errors.append("AUTHORIZATION_GRANT_MISMATCH")
+    if authorization.resource_id != observation.candidate_id:
+        errors.append("AUTHORIZATION_RESOURCE_MISMATCH")
+    if authorization.evidence_ref != observation.authorization_evidence_ref:
+        errors.append("AUTHORIZATION_EVIDENCE_REF_MISMATCH")
+    if authorization.evidence_ref not in execution_outcome.evidence_ids:
+        errors.append("AUTHORIZATION_EVIDENCE_NOT_BOUND")
+    if execution_outcome.decision_pattern_candidate_ref != observation.decision_pattern_candidate_ref:
+        errors.append("DECISION_PATTERN_PROVENANCE_MISMATCH")
+    if execution_outcome.provenance.get("environment") != observation.environment:
+        errors.append("RUNTIME_ENVIRONMENT_MISMATCH")
+    if execution_outcome.provenance.get("source_commit") not in (None, observation.runtime_commit):
+        errors.append("RUNTIME_COMMIT_MISMATCH")
+    if evidence.execution_id != execution_outcome.request_id:
+        errors.append("INGESTED_EVIDENCE_EXECUTION_MISMATCH")
+
+    return not errors, tuple(errors)
+
+
 def ingest_external_runtime_observation(
     observation: ExternalRuntimeObservation,
 ) -> RuntimeOperationalEvidence:
@@ -117,4 +160,5 @@ def ingest_external_runtime_observation(
 __all__ = [
     "ExternalRuntimeObservation",
     "ingest_external_runtime_observation",
+    "validate_external_runtime_binding",
 ]
