@@ -206,41 +206,55 @@ class SupabaseEloForge:
         kits = self.read_table("kits", filters={"modelo_id": f"eq.{model_id}"})
         result["relationships"]["kits"] = kits
 
-        kit_items: list[dict[str, Any]] = []
-        lista_mae: list[dict[str, Any]] = []
-        kit_composition: list[dict[str, Any]] = []
-        for kit in kits:
-            items = self.read_table(
-                "kit_itens", filters={"kit_id": f"eq.{kit['id']}"}
+        kit_ids = [kit["id"] for kit in kits if kit.get("id")]
+        kit_items = (
+            self.read_table(
+                "kit_itens",
+                filters={"kit_id": f"in.({','.join(kit_ids)})"},
             )
-            kit_items.extend(items)
-            for item in items:
-                lista_id = item.get("lista_mae_id")
-                lista_item = None
-                if lista_id:
-                    rows = self.read_table(
-                        "lista_mae", filters={"id": f"eq.{lista_id}"}, limit=1
-                    )
-                    if rows:
-                        lista_item = rows[0]
-                        lista_mae.extend(rows)
-                kit_composition.append(self.present_kit_item(item, lista_item))
+            if kit_ids
+            else []
+        )
         result["relationships"]["kit_itens"] = kit_items
+
+        lista_ids = list(
+            dict.fromkeys(
+                item["lista_mae_id"]
+                for item in kit_items
+                if item.get("lista_mae_id")
+            )
+        )
+        lista_mae = (
+            self.read_table(
+                "lista_mae",
+                filters={"id": f"in.({','.join(lista_ids)})"},
+            )
+            if lista_ids
+            else []
+        )
+        lista_by_id = {row["id"]: row for row in lista_mae if row.get("id")}
+
         result["relationships"]["lista_mae"] = lista_mae
-        result["kit_composition"] = kit_composition
+        result["kit_composition"] = [
+            self.present_kit_item(item, lista_by_id.get(item.get("lista_mae_id")))
+            for item in kit_items
+        ]
 
         structures = self.read_table(
             "estrutura_modular", filters={"modelo_id": f"eq.{model_id}"}
         )
         result["relationships"]["estrutura_modular"] = structures
 
-        structure_items: list[dict[str, Any]] = []
-        for structure in structures:
-            structure_items.extend(
-                self.read_table(
-                    "estrutura_modular_itens",
-                    filters={"estrutura_modular_id": f"eq.{structure['id']}"},
-                )
+        structure_ids = [
+            structure["id"] for structure in structures if structure.get("id")
+        ]
+        structure_items = (
+            self.read_table(
+                "estrutura_modular_itens",
+                filters={"estrutura_modular_id": f"in.({','.join(structure_ids)})"},
             )
+            if structure_ids
+            else []
+        )
         result["relationships"]["estrutura_modular_itens"] = structure_items
         return result
