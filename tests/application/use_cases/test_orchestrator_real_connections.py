@@ -220,7 +220,7 @@ def test_orchestrator_two_runtime_executions_produce_repeatable_runtime_evidence
             intelligence_router=intelligence_router,
             models=[ModelCandidate("fake:test-model", frozenset({"EXT-TEST"}), 1.0)],
             hermes_routing_signal=signal,
-            runtime_commit="218afab",
+            runtime_commit="67c1ca9",
             runtime_trace=f"orchestrator-runtime-trace-{run}",
             execution_id=f"orchestrator-runtime-{run}",
         )
