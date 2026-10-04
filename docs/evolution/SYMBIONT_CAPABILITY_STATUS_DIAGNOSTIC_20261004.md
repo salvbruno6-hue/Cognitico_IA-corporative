@@ -1,68 +1,199 @@
-# Simbionte — Diagnóstico de Status de Capacidade
+# Simbionte — Diagnóstico, Organização e Orquestração de Capacidades
 
-**Status:** implementação de diagnóstico read-only  
+**Status:** read model governado, somente leitura  
 **Owner:** ELO Cognitive / Symbiont  
-**Autoridade:** nenhuma nova; reutiliza contratos, evidências, runtime owner e Evolution Gate existentes.
+**Autoridade:** nenhuma nova; reutiliza owners, contratos, evidências, Evolution Gate e runtime boundaries existentes.
 
 ## Objetivo
 
-Permitir que a Simbionte responda, para uma capability específica:
+Permitir que a Simbionte organize o estado de uma capability e conecte as habilidades já existentes em uma cadeia única de governança, sem transformar a composição em uma nova autoridade.
 
-- qual é o status atual;
-- quais condições estão satisfeitas;
-- quais condições estão ausentes ou sem evidência;
-- quais bloqueios existem;
-- quais evidências sustentam cada condição;
-- se existe integração no runtime real;
-- se existe evidência operacional;
-- se existe resultado de produção explicitamente comprovado;
-- qual é o próximo passo exato.
+A cadeia canônica é:
 
-## Condições avaliadas
+```text
+CAPABILITY REGISTRY
+      ↓
+CANONICAL OWNER
+      ↓
+SymbiontImplementationView
+      ↓
+LoopReadiness / ImplementationEvidence
+      ↓
+CapabilityEvolutionReview
+      ↓
+Evolution Gate
+      ↓
+Governance / Merge
+      ↓
+Canonical Runtime
+      ↓
+RuntimeOperationalEvidence
+      ↓
+EVOLUÇÃO_DE_CAPACIDADES
+```
 
-1. CONTRACT
-2. IMPLEMENTATION
-3. TESTS
-4. EVIDENCE
-5. RUNTIME_INTEGRATION
-6. OPERATIONAL_EVIDENCE
-7. PRODUCTION_OUTCOME
-8. GOVERNANCE_APPROVAL
+A Simbionte **orquestra a leitura e o encaminhamento**, mas não substitui nenhum desses owners.
 
-Uma condição só é **VERIFIED** quando possui referência explícita de evidência. A ausência de referência não é convertida em sucesso.
+## Relações de governança
 
-## Status possíveis
+O módulo `src/elo/cognitive/symbiont_capability_governance.py` materializa relações somente de leitura:
 
-| Status | Significado |
-|---|---|
-| NOT_IMPLEMENTED | implementação não comprovada |
-| IMPLEMENTED_NOT_TESTED | implementação presente, teste não comprovado |
-| TESTED_NOT_EVIDENCED | testes presentes, evidência não comprovada |
-| EVIDENCED_NOT_RUNTIME | evidência existe, mas runtime real não está conectado |
-| RUNTIME_INTEGRATED | runtime integrado, ainda sem evidência operacional |
-| OPERATIONALLY_EVIDENCED | há evidência operacional, mas produção ainda não está comprovada |
-| READY_FOR_EVOLUTION_GATE | resultado de produção explícito existe, mas governança ainda não autorizou |
-| PRODUCTION_PROVEN | resultado de produção e evidência de governança explicitamente comprovados |
-| BLOCKED | existe bloqueio explícito |
+| Origem | Relação | Destino | Autoridade |
+|---|---|---|---|
+| SIMBIONTE | DIAGNOSES | Capability | read model da Simbionte |
+| Capability | OWNED_BY | Canonical Owner | resolução de ownership |
+| Capability | DESCRIBED_BY | SymbiontImplementationView | contrato de implementação |
+| SymbiontImplementationView | FEEDS | LoopReadiness | readiness/evidence contract |
+| LoopReadiness | FEEDS | CapabilityEvolutionReview | implementation/evolution loop |
+| CapabilityEvolutionReview | OBSERVES | EVOLUÇÃO_DE_CAPACIDADES | capability evolution |
+| CapabilityEvolutionReview | HANDOFF_TO | Evolution Gate | Evolution Gate existente |
+| Evolution Gate | GOVERNS | promoção/merge | Evolution Gate existente |
+| Canonical Runtime | EMITS | RuntimeOperationalEvidence | boundary de evidência operacional |
 
-## Regras de segurança
+Essas relações não concedem autorização.
 
-- Não inferir produção a partir de testes.
-- Não inferir runtime a partir da existência de código.
-- Não inferir evidência a partir de documentação.
-- Não transformar COMPLETED em aprendizado.
-- Não autorizar promoção.
-- Não executar deploy.
-- Não alterar memória canônica.
-- Não criar outro Evolution Gate.
-- Não criar outro owner.
-- canonical_mutation permanece false.
+## Separação de responsabilidades
 
-## Execução
+### 1. Registry
 
-A interface executável é:
-scripts/run_symbiont_capability_status.py
+Responde:
 
-Ela recebe um JSON com os estados explicitamente observados e retorna um relatório determinístico.
+- que capability existe;
+- qual seu owner;
+- qual seu estado registrado;
+- quais gaps estão registrados.
 
-A saída pode alimentar o loop existente da Simbionte para decidir onde investigar ou intervir, sem substituir o owner responsável pela decisão final.
+### 2. SymbiontImplementationView
+
+Responde:
+
+- onde a implementação está;
+- a qual capability pertence;
+- quem é o owner;
+- qual é o ownership;
+- quais contratos/dependências/evidências estão ligados;
+- qual o estágio;
+- qual o estado de runtime/governança.
+
+### 3. LoopReadiness
+
+Responde:
+
+- se existem condições técnicas mínimas para entrar no Implementation Loop;
+- quais condições estão faltando.
+
+Não autoriza implementação.
+
+### 4. CapabilityEvolutionReview
+
+Responde:
+
+- como a capability está evoluindo;
+- se há ganho, estabilidade ou regressão;
+- qual intervenção deve ser considerada;
+- se existe necessidade de continuar o loop.
+
+Não promove a capability.
+
+### 5. Evolution Gate
+
+Continua sendo a autoridade para a decisão de evolução.
+
+### 6. RuntimeOperationalEvidence
+
+Continua sendo a fonte para evidência operacional real.
+
+### 7. Simbionte
+
+Faz a composição:
+
+```text
+observar
+→ relacionar
+→ diagnosticar
+→ localizar bloqueio
+→ apontar owner
+→ indicar próxima intervenção
+→ encaminhar ao gate apropriado
+```
+
+Ela não executa autorização implícita.
+
+## Estados de leitura
+
+Os estados do diagnóstico são uma **classificação de leitura**, não uma nova escala de maturidade:
+
+- `NOT_IMPLEMENTED`
+- `IMPLEMENTED_NOT_TESTED`
+- `TESTED_NOT_EVIDENCED`
+- `EVIDENCED_NOT_RUNTIME`
+- `RUNTIME_INTEGRATED`
+- `OPERATIONALLY_EVIDENCED`
+- `READY_FOR_EVOLUTION_GATE`
+- `PRODUCTION_PROVEN`
+- `BLOCKED`
+
+A maturidade oficial continua pertencendo ao Registry/Baseline e aos critérios canônicos existentes.
+
+## Regras de governança
+
+- Reutilizar owner existente.
+- Reutilizar contrato existente.
+- Reutilizar Evolution Gate existente.
+- Reutilizar Implementation Loop existente.
+- Reutilizar runtime owner existente.
+- Não criar segunda autoridade.
+- Não inferir runtime pela existência de código.
+- Não inferir produção por testes.
+- Não converter evidência de laboratório em produção.
+- Não transformar COMPLETED automaticamente em learning.
+- Não autorizar a si própria.
+- `canonical_mutation=false`.
+
+## Anti-duplicidade
+
+Antes de qualquer nova implementação:
+
+```text
+INSPECT
+  ↓
+REUSE
+  ↓
+EXTEND
+  ↓
+RELATE
+  ↓
+REFACTOR/MIGRATE
+  ↓
+CREATE ONLY IF INDISPENSABLE
+```
+
+Se o owner ou source of truth não puder ser resolvido, o estado é bloqueado/aguarda evidência.
+
+## Resultado esperado
+
+A Simbionte passa a conseguir responder de forma organizada:
+
+```text
+O QUE EXISTE?
+      ↓
+QUEM É O OWNER?
+      ↓
+ONDE ESTÁ IMPLEMENTADO?
+      ↓
+ESTÁ TESTADO?
+      ↓
+QUAL EVIDÊNCIA EXISTE?
+      ↓
+ESTÁ NO RUNTIME?
+      ↓
+HÁ EVIDÊNCIA OPERACIONAL?
+      ↓
+HÁ RESULTADO DE PRODUÇÃO?
+      ↓
+QUAL GATE É NECESSÁRIO?
+      ↓
+QUAL É A PRÓXIMA INTERVENÇÃO?
+```
+
+Sem criar uma nova skill concorrente.
