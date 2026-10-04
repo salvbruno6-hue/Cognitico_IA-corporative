@@ -236,4 +236,8 @@ def test_orchestrator_two_runtime_executions_produce_repeatable_runtime_evidence
     group = groups[0]
     assert group.candidate_id == "EXT-ROUTE-HERMES"
     assert group.repeatable is True
+    assert tuple(item.decision_pattern_candidate_ref for item in group.observations) == (
+        "PATTERN-EXT-ROUTE-HERMES",
+        "PATTERN-EXT-ROUTE-HERMES",
+    )
     assert group.to_operational_outcome().production_proven is False
