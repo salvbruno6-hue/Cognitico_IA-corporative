@@ -1,4 +1,6 @@
-from elo.agent_intake.hermes_batch_boundary import BatchSignal
+from dataclasses import replace
+
+from elo.agent_intake.hermes_batch_boundary import BatchDisposition, BatchSignal, assess_batch
 from elo.agent_intake.hermes_batch_runtime_adapter import evaluate_batch_with_runtime_evidence
 from elo.agent_intake.runtime_operational_evidence_collector import RuntimeOperationalEvidenceCollector
 from elo.cognitive.mlops_evaluation import NativeMLOpsEvaluation
@@ -16,6 +18,7 @@ def _signal(run: int) -> BatchSignal:
         result_schema_digest="schema-1",
         canonical_mutation=False,
         promotion_attempt=False,
+        max_items=100,
     )
 
 
@@ -74,3 +77,13 @@ def test_two_real_batch_evaluations_become_operational_outcome() -> None:
     assert outcome.candidate_id == "EXT-BATCH-HERMES"
     assert outcome.production_proven is False
     assert outcome.repeatable is True
+
+
+def test_batch_boundary_rejects_excessive_items() -> None:
+    assessment = assess_batch(replace(_signal(1), item_count=101, max_items=100))
+    assert assessment.disposition == BatchDisposition.REJECTED
+
+
+def test_batch_boundary_rejects_invalid_item_limit() -> None:
+    assessment = assess_batch(replace(_signal(1), max_items=1001))
+    assert assessment.disposition == BatchDisposition.REJECTED

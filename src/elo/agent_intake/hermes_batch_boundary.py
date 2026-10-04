@@ -25,6 +25,7 @@ class BatchSignal:
     result_schema_digest: str
     canonical_mutation: bool
     promotion_attempt: bool
+    max_items: int = 100
 
 @dataclass(frozen=True, slots=True)
 class BatchAssessment:
@@ -38,6 +39,8 @@ class BatchAssessment:
 def assess_batch(signal: BatchSignal) -> BatchAssessment:
     if (not signal.batch_id or not signal.tenant_scope or not signal.task_digest
         or signal.item_count <= 0 or not signal.result_schema_digest):
+        return BatchAssessment(signal.batch_id, BatchDisposition.REJECTED, signal.source_refs)
+    if signal.max_items <= 0 or signal.max_items > 1000 or signal.item_count > signal.max_items:
         return BatchAssessment(signal.batch_id, BatchDisposition.REJECTED, signal.source_refs)
     if not signal.source_refs or signal.canonical_mutation or signal.promotion_attempt:
         return BatchAssessment(signal.batch_id, BatchDisposition.REJECTED, signal.source_refs)
