@@ -67,28 +67,44 @@ def orchestrate_capability_governance(
     evolution_review: CapabilityEvolutionReview,
     status_report: CapabilityStatusReport,
 ) -> SymbiontGovernanceOrchestration:
-    """Compose existing authorities into one deterministic governance view.
+    """Expose the canonical resource-to-execution orchestration chain.
 
-    The orchestration order is:
-    Symbiont -> canonical capability/owner -> implementation view ->
-    readiness/evidence -> capability evolution -> existing Evolution Gate /
-    governance decision -> runtime observation.
+    The Symbiont sees and relates the existing resource authorities:
+    Capability Registry -> Capability Selector -> ExecutionRouter ->
+    AgentOrchestrator / ExecutionBoundary -> Runtime Evidence.
 
-    This function only describes relationships and next actions. It never
-    authorizes any downstream action.
+    It does not replace any of those authorities and never authorizes an
+    execution, promotion, deployment, learning action, or canonical mutation.
     """
     refs = tuple(dict.fromkeys(status_report.evidence_refs))
+    capability = implementation_view.capability
     relations: list[GovernanceRelation] = [
         GovernanceRelation(
             source="SIMBIONTE",
             relation="DIAGNOSES",
-            target=implementation_view.capability,
+            target=capability,
             authority="Symbiont read-model",
             evidence_refs=refs,
             condition=status_report.status.value,
         ),
         GovernanceRelation(
-            source=implementation_view.capability,
+            source="Capability Registry",
+            relation="EXPOSES",
+            target=capability,
+            authority="canonical capability discovery",
+            evidence_refs=refs,
+            condition="resource visibility",
+        ),
+        GovernanceRelation(
+            source="Capability Selector",
+            relation="SELECTS",
+            target=capability,
+            authority="canonical capability selection",
+            evidence_refs=refs,
+            condition="available/evidenced capability required",
+        ),
+        GovernanceRelation(
+            source=capability,
             relation="OWNED_BY",
             target=implementation_view.owner,
             authority="canonical owner resolution",
@@ -96,7 +112,7 @@ def orchestrate_capability_governance(
             condition=implementation_view.ownership.value,
         ),
         GovernanceRelation(
-            source=implementation_view.capability,
+            source=capability,
             relation="DESCRIBED_BY",
             target="SymbiontImplementationView",
             authority="implementation governance contract",
@@ -126,6 +142,30 @@ def orchestrate_capability_governance(
             authority="existing capability evolution review",
             evidence_refs=evolution_review.evidence_refs,
             condition=evolution_review.status,
+        ),
+        GovernanceRelation(
+            source="ExecutionRouter",
+            relation="ROUTES",
+            target=capability,
+            authority="canonical model/tool routing",
+            evidence_refs=refs,
+            condition="route only through existing routing authority",
+        ),
+        GovernanceRelation(
+            source="AgentOrchestrator",
+            relation="DELEGATES",
+            target=capability,
+            authority="canonical specialist delegation",
+            evidence_refs=refs,
+            condition="only for authorized agent task",
+        ),
+        GovernanceRelation(
+            source="ExecutionBoundary",
+            relation="GOVERNS_EXECUTION",
+            target=capability,
+            authority="canonical execution boundary",
+            evidence_refs=refs,
+            condition="authorization, correlation and evidence required",
         ),
         GovernanceRelation(
             source="CapabilityEvolutionReview",
