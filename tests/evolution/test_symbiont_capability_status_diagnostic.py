@@ -30,12 +30,16 @@ def _base(**overrides):
     return diagnose_capability_status(**values)
 
 
+def _condition(report, name):
+    return next(condition for condition in report.conditions if condition.name == name)
+
+
 def test_status_reports_runtime_without_fabricating_production():
     report = _base()
     assert report.status is CapabilityReadinessStatus.OPERATIONALLY_EVIDENCED
     assert report.production_proven is False
-    assert report.conditions[-2].status is CapabilityConditionStatus.VERIFIED
-    assert report.conditions[-3].status is CapabilityConditionStatus.VERIFIED
+    assert _condition(report, "OPERATIONAL_EVIDENCE").status is CapabilityConditionStatus.VERIFIED
+    assert _condition(report, "PRODUCTION_OUTCOME").status is CapabilityConditionStatus.ABSENT
     assert "PRODUCTION_OUTCOME" in report.missing_conditions
 
 
