@@ -67,54 +67,42 @@ def _review():
     )
 
 
-def test_orchestration_reuses_existing_authorities():
-    readiness = LoopReadiness(
-        candidate_id="EXT-TEST",
-        ready_for_loop=True,
-        missing=(),
-    )
-    result = orchestrate_capability_governance(
+def _result(*, ready=True):
+    return orchestrate_capability_governance(
         implementation_view=_view(),
-        readiness=readiness,
+        readiness=LoopReadiness(
+            candidate_id="EXT-TEST",
+            ready_for_loop=ready,
+            missing=() if ready else ("provenance", "repeatability"),
+        ),
         evolution_review=_review(),
         status_report=_status(),
     )
+
+
+def test_orchestration_reuses_existing_authorities():
+    result = _result()
     pairs = {(item.source, item.relation, item.target) for item in result.relations}
     assert ("SIMBIONTE", "DIAGNOSES", "EXT-TEST") in pairs
+    assert ("Capability Registry", "EXPOSES", "EXT-TEST") in pairs
+    assert ("Capability Selector", "SELECTS", "EXT-TEST") in pairs
     assert ("EXT-TEST", "OWNED_BY", "canonical-owner") in pairs
+    assert ("ExecutionRouter", "ROUTES", "EXT-TEST") in pairs
+    assert ("AgentOrchestrator", "DELEGATES", "EXT-TEST") in pairs
+    assert ("ExecutionBoundary", "GOVERNS_EXECUTION", "EXT-TEST") in pairs
     assert ("CapabilityEvolutionReview", "HANDOFF_TO", "Evolution Gate") in pairs
     assert result.canonical_mutation is False
 
 
 def test_orchestration_surfaces_readiness_blockers_without_authorizing():
-    readiness = LoopReadiness(
-        candidate_id="EXT-TEST",
-        ready_for_loop=False,
-        missing=("provenance", "repeatability"),
-    )
-    result = orchestrate_capability_governance(
-        implementation_view=_view(),
-        readiness=readiness,
-        evolution_review=_review(),
-        status_report=_status(),
-    )
+    result = _result(ready=False)
     assert "readiness:provenance" in result.blockers
     assert "readiness:repeatability" in result.blockers
     assert result.canonical_mutation is False
 
 
 def test_orchestration_never_converts_evolution_review_into_promotion():
-    readiness = LoopReadiness(
-        candidate_id="EXT-TEST",
-        ready_for_loop=True,
-        missing=(),
-    )
-    result = orchestrate_capability_governance(
-        implementation_view=_view(),
-        readiness=readiness,
-        evolution_review=_review(),
-        status_report=_status(),
-    )
+    result = _result()
     gate_edges = [item for item in result.relations if item.target == "canonical promotion/merge decision"]
     assert gate_edges
     assert all(item.condition == "explicit authorization required" for item in gate_edges)
