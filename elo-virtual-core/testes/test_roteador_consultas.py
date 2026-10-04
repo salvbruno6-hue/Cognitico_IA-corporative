@@ -11,8 +11,8 @@ def test_taxonomia_routes_to_supabase():
     assert result["architectural_parent"] == "ELO Cognitivo"
     assert result["must_query_source"] is True
     assert "taxonomia" in result["tables"]
-    assert "elo_orcamento_associacoes" in result["tables"]
-    assert "elo_orcamento_decisoes" in result["tables"]
+    assert "elo_orcamento_associacoes" not in result["tables"]
+    assert "elo_orcamento_decisoes" not in result["tables"]
     assert "project_ref" not in result
     assert "project_id" not in result
 
@@ -36,13 +36,24 @@ def test_structure_routes_to_supabase():
     assert "project_ref" not in result
 
 
-def test_budget_governance_routes_to_supabase():
+def test_budget_governance_routes_to_canonical_budget_memory_adapter():
     result = route_query("Consultar decisão arbitrada e associação de orçamento")
-    assert result["source"] == "supabase_elo_forge"
-    assert result["layer"] == "forge"
+    assert result["source"] == "supabase_elo_budget_memory"
+    assert result["layer"] == "budget_memory"
     assert "elo_orcamento_associacoes" in result["tables"]
     assert "elo_orcamento_decisoes" in result["tables"]
+    assert result["adapter"] == "agentic.supabase_memory_adapter"
     assert result["retrieval_contract"] == "read_only_relationship_aware"
+
+
+def test_budget_calculation_routes_to_canonical_budget_memory_adapter():
+    result = route_query("Consultar memória de cálculo e evidência de cálculo")
+    assert result["source"] == "supabase_elo_budget_memory"
+    assert result["layer"] == "budget_memory"
+    assert "elo_orcamento_memoria" in result["tables"]
+    assert "elo_orcamento_calculos_aprendidos" in result["tables"]
+    assert "elo_orcamento_calculo_evidencias" in result["tables"]
+    assert result["adapter"] == "agentic.supabase_memory_adapter"
 
 
 def test_unrelated_query_uses_local_fallback():
