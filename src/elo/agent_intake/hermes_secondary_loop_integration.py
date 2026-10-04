@@ -107,6 +107,9 @@ def run_multiagent_loop_probe() -> tuple[object, object]:
             resource_scope=("read-only", "scoped-context"),
             provenance_verified=True,
             isolated_context=True,
+            delegation_depth=1,
+            max_child_concurrency=2,
+            heartbeat_ref=f"controlled-eval:heartbeat:secondary-loop/{i}",
         )
         for i in range(1, 6)
     )
