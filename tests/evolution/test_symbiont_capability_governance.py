@@ -106,3 +106,51 @@ def test_orchestration_never_converts_evolution_review_into_promotion():
     gate_edges = [item for item in result.relations if item.target == "canonical promotion/merge decision"]
     assert gate_edges
     assert all(item.condition == "explicit authorization required" for item in gate_edges)
+
+
+from elo.core.capability_registry import CapabilityProbe, CapabilityRegistry
+from elo.cognitive.symbiont_capability_governance import (
+    CapabilityVisibilityState,
+    build_global_capability_visibility,
+)
+
+
+def test_global_visibility_reconciles_registry_and_implementation_views():
+    registry = CapabilityRegistry((
+        CapabilityProbe(
+            "LOCAL_RUNTIME",
+            "registered-capability",
+            health_check=lambda: True,
+            metadata={"capabilities": "registered-capability"},
+        ),
+    ))
+    result = build_global_capability_visibility(
+        registry_snapshot=registry.snapshot(),
+        implementation_views=(_view(),),
+        declared_capabilities=("declared-only",),
+    )
+    states = {item.capability_id: item.state for item in result.records}
+    assert states["registered-capability"] is CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW
+    assert states["EXT-TEST"] is CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED
+    assert states["declared-only"] is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
+    assert result.canonical_mutation is False
+
+
+def test_global_visibility_copies_runtime_and_evolution_status_without_inference():
+    registry = CapabilityRegistry((
+        CapabilityProbe(
+            "LOCAL_RUNTIME",
+            "EXT-TEST",
+            health_check=lambda: True,
+            metadata={"capabilities": "EXT-TEST"},
+        ),
+    ))
+    result = build_global_capability_visibility(
+        registry_snapshot=registry.snapshot(),
+        implementation_views=(_view(),),
+    )
+    record = result.records[0]
+    assert record.state is CapabilityVisibilityState.REGISTERED_VISIBLE
+    assert record.runtime_status == "INTEGRATED"
+    assert record.evolution_status == "REQUIRED"
+    assert record.evidence_refs == ("impl-view:1",)
