@@ -3,7 +3,8 @@ from src.elo.agent_intake.hermes_multiagent_boundary import DelegationSignal, De
 def _signal(**kw):
     base = dict(delegation_id="del-001", tenant_scope="multiteiner", parent_agent_id="elo",
                 child_agent_id="worker-1", goal_digest="abc", source_refs=("hermes:delegation:1",),
-                provenance_verified=True, isolated_context=True)
+                provenance_verified=True, isolated_context=True, delegation_depth=1,
+                max_child_concurrency=2, heartbeat_ref="controlled-eval:heartbeat:del-001")
     base.update(kw)
     return DelegationSignal(**base)
 
@@ -22,3 +23,6 @@ def test_missing_provenance_is_rejected():
 
 def test_missing_goal_is_rejected():
     assert assess_delegation(_signal(goal_digest="")).disposition is DelegationDisposition.REJECTED
+
+def test_missing_heartbeat_is_rejected():
+    assert assess_delegation(_signal(heartbeat_ref=None)).disposition is DelegationDisposition.REJECTED

@@ -53,6 +53,9 @@ def _signal(run: int) -> DelegationSignal:
         resource_scope=("context:child", "resource:bounded"),
         provenance_verified=True,
         isolated_context=True,
+        delegation_depth=1,
+        max_child_concurrency=2,
+        heartbeat_ref=f"heartbeat-{run}",
     )
 
 
@@ -119,3 +122,77 @@ def test_two_real_multiagent_dispatches_become_operational_outcome() -> None:
     assert outcome.candidate_id == "EXT-MULTIAGENT-HERMES"
     assert outcome.production_proven is False
     assert outcome.repeatable is True
+
+
+def test_delegation_controls_are_carried_into_runtime_contract() -> None:
+    result = dispatch_delegation_with_runtime_evidence(
+        _signal(3),
+        orchestrator=_runtime(),
+        parent_task=_parent_task(),
+        child_required_capability="execute_child",
+        executor=_executor,
+        source_commit="abc123",
+        runtime_trace="multiagent-trace-3",
+        execution_id="multiagent-exec-3",
+    )
+
+    assert result is not None
+    assert result.work_item.delegation_depth == 1
+    assert result.work_item.max_child_concurrency == 2
+    assert result.work_item.heartbeat_ref == "heartbeat-3"
+
+
+def test_delegation_without_heartbeat_is_fail_closed() -> None:
+    signal = DelegationSignal(
+        delegation_id="delegation-no-heartbeat",
+        tenant_scope="tenant-a",
+        parent_agent_id="parent-agent",
+        child_agent_id="child-agent",
+        goal_digest="goal-digest",
+        source_refs=("source-1",),
+        resource_scope=("context:child",),
+        provenance_verified=True,
+        isolated_context=True,
+        delegation_depth=1,
+        max_child_concurrency=1,
+        heartbeat_ref=None,
+    )
+    result = dispatch_delegation_with_runtime_evidence(
+        signal,
+        orchestrator=_runtime(),
+        parent_task=_parent_task(),
+        child_required_capability="execute_child",
+        executor=_executor,
+        source_commit="abc123",
+        runtime_trace="multiagent-trace-no-heartbeat",
+        execution_id="multiagent-exec-no-heartbeat",
+    )
+    assert result is None
+
+
+def test_delegation_depth_and_concurrency_limits_are_fail_closed() -> None:
+    for depth, concurrency in ((3, 1), (1, 5)):
+        signal = DelegationSignal(
+            delegation_id=f"delegation-invalid-{depth}-{concurrency}",
+            tenant_scope="tenant-a",
+            parent_agent_id="parent-agent",
+            child_agent_id="child-agent",
+            goal_digest="goal-digest",
+            source_refs=("source-1",),
+            resource_scope=("context:child",),
+            provenance_verified=True,
+            isolated_context=True,
+            delegation_depth=depth,
+            max_child_concurrency=concurrency,
+            heartbeat_ref="heartbeat-invalid",
+        )
+        assert dispatch_delegation_with_runtime_evidence(
+            signal,
+            orchestrator=_runtime(),
+            parent_task=_parent_task(),
+            child_required_capability="execute_child",
+            executor=_executor,
+            source_commit="abc123",
+            runtime_trace="multiagent-trace-invalid",
+            execution_id=f"multiagent-exec-invalid-{depth}-{concurrency}",
+        ) is None
