@@ -22,7 +22,9 @@ def _signals(prefix: str):
         parent_agent_id="elo", child_agent_id=f"worker-{i}",
         goal_digest=f"goal-{i}", source_refs=(f"hermes:delegation:{prefix.lower()}/{i}",),
         resource_scope=("read-only", "scoped-context"),
-        provenance_verified=True, isolated_context=True)
+        provenance_verified=True, isolated_context=True,
+        delegation_depth=1, max_child_concurrency=2,
+        heartbeat_ref=f"controlled-eval:heartbeat:{prefix.lower()}/{i}")
         for i in range(1, 6))
 
 def _contract_integrity(signals):
@@ -37,6 +39,9 @@ def _contract_integrity(signals):
             and item.goal_digest == signal.goal_digest
             and item.resource_scope == signal.resource_scope
             and item.isolated_context
+            and item.delegation_depth == signal.delegation_depth
+            and item.max_child_concurrency == signal.max_child_concurrency
+            and item.heartbeat_ref == signal.heartbeat_ref
             and not item.child_authority
             and not item.promotion_permitted
         )
