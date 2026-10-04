@@ -33,7 +33,20 @@ def route_query(query: str) -> dict:
     matches = [term for term in terms if term.casefold() in normalized]
 
     if matches:
-        source_key = "supabase_elo_forge"
+        budget_terms = {
+            "memória de cálculo",
+            "cálculo aprendido",
+            "evidência de cálculo",
+            "varredura de cálculo",
+            "associação de orçamento",
+            "decisão arbitrada",
+            "governança de orçamento",
+        }
+        source_key = (
+            "supabase_elo_budget_memory"
+            if any(term.casefold() in normalized for term in budget_terms)
+            else "supabase_elo_forge"
+        )
         source = policy["sources"][source_key]
         return {
             "source": source_key,
