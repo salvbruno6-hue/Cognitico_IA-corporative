@@ -88,6 +88,7 @@ def test_orchestrator_connects_registry_selector_router_boundary_and_runtime():
     assert outcome.status.value == "EXECUTED"
     assert outcome.authorization_id == "grant-1"
     assert outcome.correlation_id == "corr-1"
+    assert outcome.decision_pattern_candidate_ref is None
 
 
 def test_orchestrator_does_not_execute_without_transport_valid_authorization():
@@ -211,6 +212,7 @@ def test_orchestrator_two_runtime_executions_produce_repeatable_runtime_evidence
             authorization=_authorization(),
             request_id=f"request-runtime-{run}",
             correlation_id=f"corr-runtime-{run}",
+            decision_pattern_candidate_ref="PATTERN-EXT-ROUTE-HERMES",
         )
         selection, outcome = GovernedOrchestrator().execute_capability(
             request,
@@ -227,6 +229,7 @@ def test_orchestrator_two_runtime_executions_produce_repeatable_runtime_evidence
         assert selection.status == "SELECTED"
         assert outcome is not None
         assert outcome.executed is True
+        assert outcome.decision_pattern_candidate_ref == "PATTERN-EXT-ROUTE-HERMES"
 
     groups = collector.ready_groups()
     assert len(groups) == 1
