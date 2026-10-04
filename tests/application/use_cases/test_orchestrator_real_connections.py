@@ -10,7 +10,7 @@ from elo.cognitive.reasoning.capability_selection import CapabilityRequirement, 
 from elo.cognitive.routing.execution_routing import ExecutionRouter
 from elo.cognitive.routing.intelligence_router import IntelligenceRouter
 from elo.cognitive.routing.model_selection import ModelCandidate, ModelSelector
-from elo.cognitive.routing.tool_selection import ToolSelector
+from elo.cognitive.routing.tool_selection import ToolCandidate, ToolSelector
 from elo.integrations.ai_provider import AIResponse
 
 
@@ -162,7 +162,7 @@ def test_orchestrator_rejects_tool_only_route_without_claiming_runtime_execution
             selector=CapabilitySelector(registry),
             execution_router=router,
             intelligence_router=intelligence_router,
-            tools=[],
+            tools=[ToolCandidate("tool:test", frozenset({"EXT-TEST"}), reliability=1.0)],
         )
     except LookupError as exc:
         assert "no executable model/provider path" in str(exc)
