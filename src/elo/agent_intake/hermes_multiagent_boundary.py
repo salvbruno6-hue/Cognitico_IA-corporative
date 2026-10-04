@@ -24,6 +24,9 @@ class DelegationSignal:
     provenance_verified: bool = False
     isolated_context: bool = False
     child_authority: bool = False
+    delegation_depth: int = 1
+    max_child_concurrency: int = 1
+    heartbeat_ref: str | None = None
 
 @dataclass(frozen=True)
 class DelegationAssessment:
@@ -43,5 +46,11 @@ def assess_delegation(signal: DelegationSignal) -> DelegationAssessment:
     if not signal.isolated_context:
         return DelegationAssessment(signal.delegation_id, signal.child_agent_id, DelegationDisposition.OBSERVATION, tuple(signal.source_refs))
     if signal.child_authority:
+        return DelegationAssessment(signal.delegation_id, signal.child_agent_id, DelegationDisposition.REJECTED, tuple(signal.source_refs))
+    if signal.delegation_depth < 1 or signal.delegation_depth > 2:
+        return DelegationAssessment(signal.delegation_id, signal.child_agent_id, DelegationDisposition.REJECTED, tuple(signal.source_refs))
+    if signal.max_child_concurrency < 1 or signal.max_child_concurrency > 4:
+        return DelegationAssessment(signal.delegation_id, signal.child_agent_id, DelegationDisposition.REJECTED, tuple(signal.source_refs))
+    if not signal.heartbeat_ref:
         return DelegationAssessment(signal.delegation_id, signal.child_agent_id, DelegationDisposition.REJECTED, tuple(signal.source_refs))
     return DelegationAssessment(signal.delegation_id, signal.child_agent_id, DelegationDisposition.CANDIDATE, tuple(signal.source_refs))
