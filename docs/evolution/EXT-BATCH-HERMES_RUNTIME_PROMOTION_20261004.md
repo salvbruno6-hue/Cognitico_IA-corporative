@@ -23,3 +23,7 @@ evidence. It does not establish production outcome.
 
 `production_proven` remains false until an actual attributable operational
 environment supplies valid production evidence.
+
+## Validation note
+
+The initial Maintenance Coordinator run was cancelled. No functional conclusion is derived from that cancellation; the branch must obtain a fresh coordinator result before merge.
