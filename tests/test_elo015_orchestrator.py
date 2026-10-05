@@ -1,9 +1,14 @@
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
 from elo.application.use_cases.orchestrator import (
     AuthorizationDecision,
     GovernedOrchestrator,
     OrchestrationRequest,
     OrchestrationStage,
 )
+from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
+from elo.evidence import Evidence, EvidenceRepository
 from elo.cognitive.symbiont_capability_governance import (
     CapabilityVisibilityRecord,
     CapabilityVisibilityState,
@@ -154,3 +159,46 @@ def test_orchestrator_does_not_infer_unknown_capability() -> None:
     assert result.action == "INVESTIGATE"
     assert result.authorized is True
     assert result.state == "UNKNOWN"
+
+
+@dataclass(frozen=True)
+class ResponseSelection:
+    capability_name: str = "EXT-TEST"
+
+
+def test_compose_response_reuses_orchestrator_evidence_repository() -> None:
+    repository = EvidenceRepository()
+    repository.save(
+        Evidence(
+            evidence_id="ev-1",
+            tenant_id="tenant-a",
+            domain="cognitive",
+            source_type="test",
+            source_id="source-1",
+            claim="execution evidence is traceable",
+            content_ref="test://ev-1",
+            observed_at=datetime.now(timezone.utc),
+            provenance={"source": "orchestrator-test"},
+        )
+    )
+    outcome = ExecutionOutcome(
+        request_id="request-1",
+        status=ExecutionStatus.EXECUTED,
+        executed=True,
+        reason="authorized_execution_completed",
+        provenance={"execution": "executed"},
+        evidence_ids=("ev-1",),
+        correlation_id="corr-1",
+    )
+
+    result = GovernedOrchestrator(
+        evidence_repository=repository,
+    ).compose_response(
+        request(),
+        ResponseSelection(),
+        outcome,
+    )
+
+    assert result.orientation is not None
+    assert result.orientation.evidence_refs == ("ev-1",)
+    assert result.orientation.confidence.value == "aligned"
