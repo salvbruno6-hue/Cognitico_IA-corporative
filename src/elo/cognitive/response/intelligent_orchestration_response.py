@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from elo.cognitive.runtime.humanization.humanizer import Humanizer
+from elo.evidence import EvidenceRepository
 
 
 @dataclass(frozen=True)
@@ -32,8 +33,13 @@ class IntelligentOrchestrationResponse:
 class OrchestrationResponseComposer:
     """Compose a useful response from already-produced orchestration facts."""
 
-    def __init__(self, humanizer: Humanizer | None = None) -> None:
+    def __init__(
+        self,
+        humanizer: Humanizer | None = None,
+        evidence_repository: EvidenceRepository | None = None,
+    ) -> None:
         self._humanizer = humanizer or Humanizer()
+        self._evidence_repository = evidence_repository or EvidenceRepository()
 
     def compose(
         self,
@@ -143,19 +149,30 @@ class OrchestrationResponseComposer:
             f"- {next_step}"
         )
 
-    @staticmethod
-    def _derive_orientation(*, request: Any, selection: Any, outcome: Any) -> Any | None:
+    def _derive_orientation(self, *, request: Any, selection: Any, outcome: Any) -> Any | None:
         """Invoke the optional read-only orientation hook without affecting composition."""
         try:
             from elo.cognitive.response.orchestration_orientation_hook import (
                 derive_orientation,
             )
 
+            evidence_ids = tuple(getattr(outcome, "evidence_ids", ()) or ())
+            tenant_id = getattr(request, "tenant_id", "")
+            source_facts = (
+                tuple(
+                    self._evidence_repository.list_for_refs(
+                        evidence_ids,
+                        tenant_id=tenant_id,
+                    )
+                )
+                if evidence_ids and tenant_id
+                else ()
+            )
             return derive_orientation(
                 capability=getattr(selection, "capability_name", None),
                 context={},
                 execution_outcome=outcome,
-                source_facts=(),
+                source_facts=source_facts,
                 routing_decision=None,
                 capability_snapshot=None,
             )
