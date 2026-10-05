@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Protocol, TYPE_CHECKING
 
+from elo.evidence import EvidenceRepository
+
 if TYPE_CHECKING:
     from elo.cognitive.reasoning.capability_selection import CapabilityDecision, CapabilityRequirement, CapabilitySelector
     from elo.cognitive.routing.execution_routing import ExecutionRouter, ModelCandidate, ToolCandidate
@@ -142,7 +144,14 @@ class GovernedOrchestrator:
 
     Capability selection, routing, authorization and execution remain owned by
     their canonical components. This class only composes those boundaries.
+
+    Shared read-side dependencies are injected at this composition boundary so
+    downstream response layers cannot silently create isolated in-memory
+    repositories and lose canonical evidence continuity.
     """
+
+    def __init__(self, *, evidence_repository: EvidenceRepository | None = None) -> None:
+        self._evidence_repository = evidence_repository or EvidenceRepository()
 
     def advise_capability(
         self,
