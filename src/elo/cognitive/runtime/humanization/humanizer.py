@@ -328,6 +328,26 @@ class Humanizer:
             )
         else:
             lines.append("- Nenhum fluxo produtivo aplicável foi recuperado nesta consulta.")
+        external_orders = linked.get("mt_ordens_montagem_externa", [])
+        external_items = linked.get("mt_pedidos_venda_itens", [])
+        external_team = linked.get("mt_equipe_montagem_externa", [])
+        external_functions = linked.get("mt_funcoes_montagem", [])
+        repair_units = linked.get("mt_unidades_modulares", [])
+        repair_orders = linked.get("mt_ordens_reparo", [])
+        if external_orders or external_items:
+            lines.append(
+                f"- Operações externas relacionadas ao {code}: {len(external_orders)} ordem(ns), "
+                f"via {len(external_items)} item(ns) de pedido de venda."
+            )
+            if external_team:
+                lines.append(f"- Equipe de montagem externa recuperada: {len(external_team)} registro(s).")
+            if external_functions:
+                lines.append(f"- Funções de montagem externa relacionadas: {len(external_functions)}.")
+        if repair_units or repair_orders:
+            lines.append(
+                f"- Cobertura de reparos modulares relacionada ao {code}: "
+                f"{len(repair_units)} unidade(s) e {len(repair_orders)} ordem(ns) de reparo."
+            )
         if structures:
             lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
         else:
@@ -344,7 +364,21 @@ class Humanizer:
         if not_linked:
             names = ", ".join(str(item.get("table_name")) for item in not_linked[:8] if item.get("table_name"))
             lines.append("- Algumas fontes governadas foram descobertas, mas não foram relacionadas ao modelo sem uma chave segura: " + names + ".")
-        if not any([not structures, not specific_flows, not_linked]):
+        if not external_orders and not external_items:
+            lines.append(
+                f"- Nenhuma ordem de operação externa foi relacionada ao {code} no estado atual consultado."
+            )
+        if not repair_units and not repair_orders:
+            lines.append(
+                f"- Nenhuma unidade/ordem de reparo foi relacionada ao {code} no estado atual consultado."
+            )
+        if not any([
+            not structures,
+            not specific_flows,
+            not_linked,
+            not external_orders and not external_items,
+            not repair_units and not repair_orders,
+        ]):
             lines.append("- Nenhuma ausência adicional foi identificada nesta consulta.")
         lines.extend([
             "",

@@ -56,7 +56,17 @@
       "varredura de cálculo",
       "associação de orçamento",
       "decisão arbitrada",
-      "governança de orçamento"
+      "governança de orçamento",
+      "operação externa",
+      "operacao externa",
+      "operações externas",
+      "operacoes externas",
+      "montagem externa",
+      "reparo",
+      "reparos",
+      "reparo modular",
+      "reparos modulares",
+      "unidade modular"
     ],
     "prefer_supabase_for": [
       "dados atuais",
@@ -69,7 +79,15 @@
       "memória quantitativa",
       "evidências",
       "associações de orçamento",
-      "decisões arbitradas"
+      "decisões arbitradas",
+      "operações externas",
+      "montagem externa",
+      "ordens externas",
+      "equipe externa",
+      "reparos modulares",
+      "ordens de reparo",
+      "unidades modulares",
+      "cobertura por reparo"
     ],
     "fallback": "local",
     "never_guess_data": true

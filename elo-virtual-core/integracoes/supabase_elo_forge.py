@@ -42,6 +42,15 @@ CATALOG_MATCH_TERMS = {
     "demanda": {"planejamento_demanda", "planejamento_pcp"},
     "material": {"planejamento_demanda", "produtos", "compras"},
     "recurso": {"planejamento_pcp"},
+    "operação externa": {"operacoes_externas"},
+    "operacao externa": {"operacoes_externas"},
+    "operações externas": {"operacoes_externas"},
+    "operacoes externas": {"operacoes_externas"},
+    "montagem externa": {"operacoes_externas"},
+    "reparo": {"reparos_modulares"},
+    "reparos": {"reparos_modulares"},
+    "unidade modular": {"reparos_modulares"},
+    "unidade": {"reparos_modulares"},
     "fornecedor": {"compras"},
     "cotação": {"compras"},
     "cotacao": {"compras"},
@@ -240,11 +249,47 @@ class SupabaseEloForge:
 
         linked: dict[str, list[dict[str, Any]]] = {}
         not_linked: list[dict[str, Any]] = []
+
+        governed_table_names = {
+            str(source.get("table_name"))
+            for source in self.governed_sources()
+            if source.get("table_name")
+        }
+
+        def read_governed(table: str, **kwargs):
+            if table not in governed_table_names:
+                raise ForgeRetrievalError(f"table_not_governed: {table}")
+            return self._read_raw_table(table, **kwargs)
+
+        def ids_from(rows, key):
+            return self._ids([row.get(key) for row in rows])
+
+        external_order_items: list[dict[str, Any]] = []
+        repair_units: list[dict[str, Any]] = []
+
+        if any(s.get("table_name") == "mt_ordens_montagem_externa" for s in discovered):
+            if "mt_pedidos_venda_itens" in governed_table_names:
+                external_order_items = read_governed(
+                    "mt_pedidos_venda_itens",
+                    filters={"modelo_id": f"eq.{model_id}"},
+                    limit=100,
+                )
+                linked["mt_pedidos_venda_itens"] = external_order_items
+
+        if any(s.get("table_name") in {"mt_unidades_modulares", "mt_ordens_reparo"} for s in discovered):
+            if "mt_unidades_modulares" in governed_table_names:
+                repair_units = read_governed(
+                    "mt_unidades_modulares",
+                    filters={"modelo_id": f"eq.{model_id}"},
+                    limit=100,
+                )
+                linked["mt_unidades_modulares"] = repair_units
+
         for source in discovered:
             table = source["table_name"]
-            if table in relationships:
+            if table in relationships or table in linked:
                 continue
-            rows = self._read_raw_table(table, limit=25)
+            rows = read_governed(table, limit=25)
             if not rows:
                 linked[table] = []
                 continue
@@ -254,6 +299,34 @@ class SupabaseEloForge:
                 filters = {"modelo_id": f"eq.{model_id}"}
             elif "model_id" in keys:
                 filters = {"model_id": f"eq.{model_id}"}
+            elif table == "mt_ordens_montagem_externa":
+                pedido_ids = ids_from(external_order_items, "pedido_venda_id")
+                if pedido_ids:
+                    filters = {"pedido_venda_id": f"in.({','.join(pedido_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
+            elif table == "mt_equipe_montagem_externa":
+                order_ids = ids_from(linked.get("mt_ordens_montagem_externa", []), "id")
+                if order_ids:
+                    filters = {"ordem_montagem_externa_id": f"in.({','.join(order_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
+            elif table == "mt_funcoes_montagem":
+                function_ids = ids_from(linked.get("mt_equipe_montagem_externa", []), "funcao_montagem_id")
+                if function_ids:
+                    filters = {"id": f"in.({','.join(function_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
+            elif table == "mt_ordens_reparo":
+                unit_ids = ids_from(repair_units, "id")
+                if unit_ids:
+                    filters = {"unidade_modular_id": f"in.({','.join(unit_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
             elif "taxonomia_id" in keys and relationships.get("taxonomia"):
                 tax_id = relationships["taxonomia"][0].get("id")
                 if tax_id:
@@ -273,7 +346,7 @@ class SupabaseEloForge:
                 })
                 continue
 
-            selected = self._read_raw_table(table, filters=filters, limit=100)
+            selected = read_governed(table, filters=filters, limit=100)
             linked[table] = selected
 
             if table == "fluxo_produtivo_modular":
@@ -333,6 +406,14 @@ class SupabaseEloForge:
             "learning_performed": False,
             "applicability": {
                 "fluxo_produtivo_modular": linked.get("fluxo_produtivo_modular_scope", []),
+                "operacoes_externas": {
+                    "scope": "model_via_pedido_venda",
+                    "model_specific": bool(linked.get("mt_ordens_montagem_externa")),
+                },
+                "reparos_modulares": {
+                    "scope": "model_via_unidade_modular",
+                    "model_specific": bool(linked.get("mt_ordens_reparo") or linked.get("mt_unidades_modulares")),
+                },
             },
         }
         result["provenance"]["governed_catalog"] = CATALOG_TABLE
