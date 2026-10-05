@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+_UNSET = object()
+
 import pytest
 
 from elo.cognitive.orchestration_orientation import (
@@ -13,7 +15,7 @@ from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
 from elo.evidence import Evidence
 
 
-def evidence(*, evidence_id: str = "ev-1", source_id: str = "src-1", provenance=None):
+def evidence(*, evidence_id: str = "ev-1", source_id: str = "src-1", provenance=_UNSET):
     return Evidence(
         evidence_id=evidence_id,
         tenant_id="tenant-1",
@@ -23,7 +25,9 @@ def evidence(*, evidence_id: str = "ev-1", source_id: str = "src-1", provenance=
         claim="claim",
         content_ref="ref",
         observed_at=datetime.now(timezone.utc),
-        provenance={} if provenance is None else provenance,
+        quality="VERIFIED",
+        relevance=1.0,
+        provenance={"source": "test"} if provenance is _UNSET else provenance,
     )
 
 
