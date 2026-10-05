@@ -57,7 +57,7 @@ def test_composer_works_when_builder_is_unavailable(monkeypatch):
     result = OrchestrationResponseComposer().compose(
         request=_request(),
         selection=Selection(),
-        outcome=Outcome(),
+        outcome=_outcome(),
     )
 
     assert result.orientation is None
@@ -74,7 +74,7 @@ def test_composer_preserves_response_when_orientation_raises(monkeypatch):
     result = OrchestrationResponseComposer().compose(
         request=_request(),
         selection=Selection(),
-        outcome=Outcome(),
+        outcome=_outcome(),
     )
 
     assert result.status == "EXECUTED"
@@ -98,7 +98,7 @@ def test_composer_accepts_orientation_from_hook(monkeypatch):
     result = OrchestrationResponseComposer().compose(
         request=_request(),
         selection=Selection(),
-        outcome=Outcome(),
+        outcome=_outcome(),
     )
 
     assert result.orientation is not None
