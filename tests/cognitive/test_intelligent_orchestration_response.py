@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from elo.application.use_cases.orchestrator import OrchestrationRequest
+from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
 from elo.cognitive.response import orchestration_orientation_hook as hook
 from elo.cognitive.response.intelligent_orchestration_response import (
     OrchestrationResponseComposer,
@@ -12,12 +13,16 @@ class Selection:
     capability_name: str = "EXT-TEST"
 
 
-@dataclass
-class Outcome:
-    executed: bool = True
-    provider: str = "fake"
-    model: str = "test-model"
-    request_id: str = "request-1"
+def _outcome():
+    return ExecutionOutcome(
+        request_id="request-1",
+        status=ExecutionStatus.EXECUTED,
+        executed=True,
+        reason="authorized_execution_completed",
+        provenance={"execution": "executed"},
+        evidence_ids=("evidence-1",),
+        correlation_id="corr-1",
+    )
 
 
 def _request():
@@ -36,7 +41,7 @@ def test_composer_integrates_real_orientation_builder():
     result = OrchestrationResponseComposer().compose(
         request=_request(),
         selection=Selection(),
-        outcome=Outcome(),
+        outcome=_outcome(),
     )
 
     assert result.status == "EXECUTED"
