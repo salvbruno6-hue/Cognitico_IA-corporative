@@ -122,19 +122,19 @@ class OrchestrationOrientationBuilder:
                 refs.append(ref)
         return tuple(dict.fromkeys(refs))
 
-    @staticmethod
-    def _fact_identity(fact: OrientationFact) -> tuple[str, str]:
-        if isinstance(fact, Evidence):
-            return fact.source_id, fact.claim.strip()
-        return fact.source_id, fact.fact.strip()
-
     @classmethod
     def _assess_consistency(
         cls,
         request: OrientationRequest,
         facts: tuple[OrientationFact, ...],
     ) -> tuple[str, ...]:
-        """Return only conflicts observable from supplied canonical states."""
+        """Return only contradictions observable from supplied states.
+
+        Fact-level semantic contradiction is deliberately not inferred:
+        the canonical Evidence/ContextEvidence contracts do not define a
+        contradiction relation. Only explicit control-state mismatches are
+        treated as conflicts.
+        """
         conflicts: list[str] = []
 
         claims_by_source: dict[str, set[str]] = {}
@@ -209,7 +209,8 @@ class OrchestrationOrientationBuilder:
         if outcome is not None and outcome.executed:
             return (
                 f"Execução de '{request.capability}' foi observada como concluída; "
-                f"a orientação está sustentada pelos fatos rastreados."
+                f"a orientação usa {len(evidence_refs)} referência(s) factual(is) "
+                "rastreável(is)."
             )
         if facts:
             return (
@@ -245,7 +246,7 @@ class OrchestrationOrientationBuilder:
         if not basis:
             basis.append("nenhuma fonte factual ou execução disponível")
         if conflicts:
-            basis.append(f"{len(conflicts)} conflito(s) observável(is)")
+            basis.append(f"{len(conflicts)} inconsistência(s) observável(is)")
         if not facts:
             basis.append("sem source_facts")
         basis.append(f"estado de confiança={confidence.value}")
@@ -283,8 +284,9 @@ class OrchestrationOrientationBuilder:
             )
         if confidence is OrientationConfidence.PARTIAL:
             return (
-                "Completar os dados essenciais e reavaliar; a elevação para "
-                "ALIGNED depende de consistência, provenance e evidência suficiente."
+                "Completar os dados essenciais e reavaliar; ALIGNED somente "
+                "é permitido quando não houver inconsistência observável e "
+                "as evidências necessárias forem rastreáveis e suficientes."
             )
         return (
             "Prosseguir pelo fluxo canônico que possui a autoridade "
