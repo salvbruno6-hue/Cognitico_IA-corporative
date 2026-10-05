@@ -55,7 +55,8 @@ def test_composer_works_when_builder_is_unavailable(monkeypatch):
         outcome=Outcome(),
     )
 
-    assert result.orientation is not None
+    assert result.orientation is None
+    assert "O que funcionou" in result.response
 
 
 def test_composer_preserves_response_when_orientation_raises(monkeypatch):
