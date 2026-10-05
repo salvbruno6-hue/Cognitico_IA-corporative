@@ -168,3 +168,75 @@ def test_model_context_fails_closed_on_non_unique_identity(monkeypatch):
         assert "not_unique" in str(exc)
     else:
         raise AssertionError("duplicate model identity must fail closed")
+
+
+
+def test_governed_source_registry_is_the_only_expansion_path(monkeypatch):
+    forge = object.__new__(SupabaseEloForge)
+    forge.config = ForgeConfig("https://example.supabase.co", "test")
+    calls = []
+
+    def fake_read_table(table, *, filters=None, limit=100, order_by=None):
+        calls.append((table, filters))
+        if table == "elo_aprendizado_fontes":
+            return [
+                {
+                    "schema_name": "public",
+                    "table_name": "fornecedores",
+                    "enabled": True,
+                    "extracao_ativa": True,
+                    "dominio_codigo": "compras",
+                }
+            ]
+        if table == "fornecedores":
+            return [{"id": "f-1", "nome": "Fornecedor teste"}]
+        raise AssertionError(f"unexpected table: {table}")
+
+    monkeypatch.setattr(forge, "read_table", fake_read_table)
+
+    sources = forge.governed_sources(domain="compras")
+    assert sources[0]["table_name"] == "fornecedores"
+    assert forge.read_governed_source("fornecedores")[0]["nome"] == "Fornecedor teste"
+    assert calls[0][0] == "elo_aprendizado_fontes"
+    assert calls[1][0] == "elo_aprendizado_fontes"
+    assert calls[2][0] == "fornecedores"
+
+
+def test_governed_source_rejects_registered_but_disabled_table(monkeypatch):
+    forge = object.__new__(SupabaseEloForge)
+    forge.config = ForgeConfig("https://example.supabase.co", "test")
+
+    monkeypatch.setattr(
+        forge,
+        "read_table",
+        lambda table, **kwargs: (
+            [{
+                "schema_name": "public",
+                "table_name": "fornecedores",
+                "enabled": False,
+                "extracao_ativa": False,
+            }]
+            if table == "elo_aprendizado_fontes"
+            else []
+        ),
+    )
+
+    try:
+        forge.read_governed_source("fornecedores")
+    except ForgeRetrievalError as exc:
+        assert "source_not_governed" in str(exc)
+    else:
+        raise AssertionError("disabled source must fail closed")
+
+
+def test_arbitrary_table_remains_rejected_even_with_governed_reader():
+    forge = object.__new__(SupabaseEloForge)
+    forge.config = ForgeConfig("https://example.supabase.co", "test")
+    forge.governed_sources = lambda **kwargs: ()
+
+    try:
+        forge.read_governed_source("users")
+    except ForgeRetrievalError as exc:
+        assert "source_not_governed" in str(exc)
+    else:
+        raise AssertionError("arbitrary table must remain forbidden")
