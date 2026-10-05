@@ -37,6 +37,8 @@ def derive_orientation(
     if not isinstance(capability, str) or not capability.strip():
         return None
 
+    if not is_builder_available():
+        return None
     loaded = _load_builder()
     if loaded is None:
         return None
