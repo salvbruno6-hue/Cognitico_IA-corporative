@@ -177,3 +177,73 @@ def test_context_evidence_uses_source_id_as_reference():
     )
     assert result.evidence_refs == ("context-src-1",)
     assert result.confidence is OrientationConfidence.ALIGNED
+
+
+def test_executed_with_non_executed_status_is_partial():
+    """Invariante 15 — ALIGNED exige consistência."""
+    outcome_inconsistent = outcome(
+        status=ExecutionStatus.BLOCKED,
+        executed=True,
+        reason="inconsistent: executed=True with non-EXECUTED status",
+    )
+    request = OrientationRequest(
+        capability="test-capability",
+        source_facts=(evidence(),),
+        execution_outcome=outcome_inconsistent,
+    )
+    result = OrchestrationOrientationBuilder().build(request)
+    assert result.confidence is OrientationConfidence.PARTIAL
+    assert result.blocker is not None
+    assert "executed=True" in result.blocker
+    assert "non-EXECUTED status" in result.blocker
+
+
+def test_next_step_derives_from_observable_blocker():
+    """Invariante 12 — next_step deriva de fonte observável."""
+    outcome_inconsistent = outcome(
+        status=ExecutionStatus.BLOCKED,
+        executed=True,
+        reason="inconsistent: executed=True with non-EXECUTED status",
+    )
+    request = OrientationRequest(
+        capability="test-capability",
+        source_facts=(evidence(),),
+        execution_outcome=outcome_inconsistent,
+    )
+    result = OrchestrationOrientationBuilder().build(request)
+    assert isinstance(result.next_step, str)
+    assert result.next_step.strip() != ""
+    assert "Resolver os bloqueios ou conflitos observáveis" in result.next_step
+
+
+def test_orientation_has_no_attributed_or_production_proven_fields():
+    """Invariante 19 — Builder não declara ATTRIBUTED / PRODUCTION_PROVEN."""
+    import dataclasses
+
+    fields = {f.name for f in dataclasses.fields(result_type := type(
+        OrchestrationOrientationBuilder().build(
+            OrientationRequest(capability="test-capability")
+        )
+    ))}
+    forbidden = {
+        "attributed",
+        "attribution",
+        "attributed_state",
+        "production_proven",
+        "production_status",
+        "production_state",
+    }
+    assert fields.isdisjoint(forbidden), (
+        f"Orientation não pode expor campos de estado de produção/"
+        f"atribuição: {fields & forbidden}"
+    )
+    result = OrchestrationOrientationBuilder().build(
+        OrientationRequest(
+            capability="test-capability",
+            source_facts=(evidence(),),
+        )
+    )
+    for name in forbidden:
+        assert not hasattr(result, name), (
+            f"Orientation não deve ter atributo '{name}'"
+        )
