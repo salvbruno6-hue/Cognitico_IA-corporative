@@ -23,8 +23,14 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 
+# Static safety boundary for the registry itself. Operational sources are
+# discovered only when the Forge's governed source registry explicitly enables
+# them; arbitrary PostgREST table access remains forbidden.
+SOURCE_REGISTRY_TABLE = "elo_aprendizado_fontes"
+
 ALLOWED_TABLES = frozenset(
     {
+        SOURCE_REGISTRY_TABLE,
         "taxonomia",
         "dimensoes",
         "modelos",
@@ -120,6 +126,46 @@ class SupabaseEloForge:
         if not isinstance(payload, list):
             raise ForgeRetrievalError(f"forge_invalid_response: {table}")
         return payload
+
+    def governed_sources(self, *, domain: str | None = None) -> tuple[dict[str, Any], ...]:
+        """Return only Forge sources explicitly enabled by its own source registry.
+
+        The registry is data, not authority: it only constrains which tables this
+        adapter may read. No learning, promotion, authorization or writes occur.
+        """
+        rows = self.read_table(
+            SOURCE_REGISTRY_TABLE,
+            filters={"enabled": "eq.true", "extracao_ativa": "eq.true"},
+            limit=100,
+        )
+        if domain:
+            rows = [row for row in rows if row.get("dominio_codigo") == domain]
+        return tuple(rows)
+
+    def read_governed_source(
+        self,
+        table: str,
+        *,
+        filters: dict[str, str] | None = None,
+        limit: int = 100,
+        order_by: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Read a source only after it is enabled in the Forge source registry."""
+        if table == SOURCE_REGISTRY_TABLE:
+            return self.read_table(
+                table, filters=filters, limit=limit, order_by=order_by
+            )
+
+        registered = {
+            str(row.get("table_name"))
+            for row in self.governed_sources()
+            if row.get("schema_name", "public") == "public"
+        }
+        if table not in registered:
+            raise ForgeRetrievalError(f"source_not_governed: {table}")
+        return self.read_table(
+            table, filters=filters, limit=limit, order_by=order_by
+        )
 
     def resolve_model(self, reference: str) -> dict[str, Any]:
         """Resolve aliases to canonical model identity without duplicating data."""
