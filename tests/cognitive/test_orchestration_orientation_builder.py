@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import dataclasses
 
 import pytest
 
@@ -6,6 +7,7 @@ _UNSET = object()
 
 from elo.cognitive.orchestration_orientation import (
     OrchestrationOrientationBuilder,
+    Orientation,
     OrientationConfidence,
     OrientationRequest,
 )
@@ -218,13 +220,7 @@ def test_next_step_derives_from_observable_blocker():
 
 def test_orientation_has_no_attributed_or_production_proven_fields():
     """Invariante 19 — Builder não declara ATTRIBUTED / PRODUCTION_PROVEN."""
-    import dataclasses
-
-    fields = {f.name for f in dataclasses.fields(result_type := type(
-        OrchestrationOrientationBuilder().build(
-            OrientationRequest(capability="test-capability")
-        )
-    ))}
+    fields = {f.name for f in dataclasses.fields(Orientation)}
     forbidden = {
         "attributed",
         "attribution",
