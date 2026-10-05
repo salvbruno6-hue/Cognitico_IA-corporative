@@ -67,8 +67,8 @@ def test_provenance_and_observed_execution_can_be_aligned():
         )
     )
     assert result.confidence is OrientationConfidence.ALIGNED
-    assert "ev-1" in result.diagnosis
-    assert "1 referência" in result.diagnosis or "1 referência" in result.rationale
+    assert "1 referência" in result.diagnosis
+    assert "estado de confiança=aligned" in result.rationale
 
 
 def test_missing_provenance_cannot_support_aligned():
