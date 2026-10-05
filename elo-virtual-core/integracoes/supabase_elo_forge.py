@@ -84,7 +84,7 @@ class SupabaseEloForge:
         normalized = reference.strip().upper()
         return MODEL_ALIASES.get(normalized, normalized)
 
-    def read_table(
+    def _read_table_raw(
         self,
         table: str,
         *,
@@ -92,8 +92,6 @@ class SupabaseEloForge:
         limit: int = 100,
         order_by: str | None = None,
     ) -> list[dict[str, Any]]:
-        if table not in ALLOWED_TABLES:
-            raise ForgeRetrievalError(f"table_not_allowed: {table}")
         if not 1 <= limit <= 100:
             raise ForgeRetrievalError("limit_out_of_range")
 
@@ -126,6 +124,24 @@ class SupabaseEloForge:
         if not isinstance(payload, list):
             raise ForgeRetrievalError(f"forge_invalid_response: {table}")
         return payload
+
+    def read_table(
+        self,
+        table: str,
+        *,
+        filters: dict[str, str] | None = None,
+        limit: int = 100,
+        order_by: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Read one of the adapter's statically safe tables."""
+        if table not in ALLOWED_TABLES:
+            raise ForgeRetrievalError(f"table_not_allowed: {table}")
+        return self._read_table_raw(
+            table,
+            filters=filters,
+            limit=limit,
+            order_by=order_by,
+        )
 
     def governed_sources(self, *, domain: str | None = None) -> tuple[dict[str, Any], ...]:
         """Return only Forge sources explicitly enabled by its own source registry.
@@ -163,7 +179,7 @@ class SupabaseEloForge:
         }
         if table not in registered:
             raise ForgeRetrievalError(f"source_not_governed: {table}")
-        return self.read_table(
+        return self._read_table_raw(
             table, filters=filters, limit=limit, order_by=order_by
         )
 
