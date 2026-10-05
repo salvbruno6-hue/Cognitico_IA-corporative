@@ -168,3 +168,70 @@ def test_model_context_fails_closed_on_non_unique_identity(monkeypatch):
         assert "not_unique" in str(exc)
     else:
         raise AssertionError("duplicate model identity must fail closed")
+
+
+def test_governed_source_catalog_controls_table_access(monkeypatch):
+    forge = object.__new__(SupabaseEloForge)
+    forge.config = ForgeConfig("https://example.supabase.co", "test")
+    forge.timeout = 15.0
+    monkeypatch.setattr(
+        forge,
+        "governed_sources",
+        lambda: [{"schema_name": "public", "table_name": "fornecedores", "enabled": True, "extracao_ativa": True}],
+    )
+    assert forge._is_governed_table("fornecedores") is True
+    assert forge._is_governed_table("users") is False
+
+
+def test_discovery_uses_catalog_domains_not_static_table_allow_list():
+    forge = object.__new__(SupabaseEloForge)
+    monkeypatch_sources = [
+        {"schema_name": "public", "table_name": "fluxo_produtivo_modular", "dominio_codigo": "producao_fluxo_modular", "prioridade": 60, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "fornecedores", "dominio_codigo": "compras", "prioridade": 80, "enabled": True, "extracao_ativa": True},
+    ]
+    forge.governed_sources = lambda: monkeypatch_sources
+    found = forge.discover_sources("O que temos para produção do M01 e quais fornecedores podem ser consultados?")
+    names = [item["table_name"] for item in found]
+    assert "fluxo_produtivo_modular" in names
+    assert "fornecedores" in names
+
+
+def test_governed_model_context_preserves_family_wide_modular_flow_boundary(monkeypatch):
+    forge = object.__new__(SupabaseEloForge)
+    context = {
+        "source": "supabase_elo_forge",
+        "entity": {"requested_reference": "M01", "canonical_code": "M01", "model_id": "model-01"},
+        "model": {"id": "model-01", "codigo": "M01", "nome": "Habitacional Amplo 20 pés", "ativo": True},
+        "relationships": {
+            "taxonomia": [{"id": "tax-01", "codigo": "MLT.M01"}],
+            "dimensoes": [{"id": "dim-01", "referencia": "20 pés"}],
+            "kits": [{"id": "kit-01"}],
+            "kit_itens": [{"id": "item-01", "lista_mae_id": "lista-01", "cod_item": "MAT-01"}],
+            "lista_mae": [{"id": "lista-01", "cod_item": "MAT-01"}],
+            "estrutura_modular": [],
+            "estrutura_modular_itens": [],
+        },
+        "provenance": {"read_only": True, "guessed": False},
+    }
+    forge.model_context = lambda reference: context
+    forge.governed_sources = lambda: [
+        {"schema_name": "public", "table_name": "fluxo_produtivo_modular", "dominio_codigo": "producao_fluxo_modular", "prioridade": 60, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "fluxo_produtivo_modular_etapas", "dominio_codigo": "producao_fluxo_modular", "prioridade": 61, "enabled": True, "extracao_ativa": True},
+    ]
+    rows = {
+        "fluxo_produtivo_modular": [
+            {"id": "flow-01", "modelo_id": None, "ativo": True, "nome": "Fluxo modular de referência"}
+        ],
+        "fluxo_produtivo_modular_etapas": [
+            {"id": f"stage-{i}", "fluxo_id": "flow-01", "ordem": i}
+            for i in range(1, 18)
+        ],
+    }
+    forge._read_raw_table = lambda table, **kwargs: rows.get(table, [])
+    result = forge.governed_model_context("M01", "Explique o M01 e o que temos para produção")
+    linked = result["governed_discovery"]["linked_records"]
+    assert linked["fluxo_produtivo_modular"][0]["modelo_id"] is None
+    assert len(linked["fluxo_produtivo_modular_etapas"]) == 17
+    assert result["governed_discovery"]["applicability"]["fluxo_produtivo_modular"][0]["scope"] == "family_wide_modular"
+    assert result["governed_discovery"]["applicability"]["fluxo_produtivo_modular"][0]["model_specific"] is False
+    assert result["provenance"]["guessed"] is False

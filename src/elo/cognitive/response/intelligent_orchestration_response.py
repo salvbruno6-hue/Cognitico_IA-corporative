@@ -135,6 +135,35 @@ class OrchestrationResponseComposer:
             orientation=orientation,
         )
 
+    def compose_forge(
+        self,
+        *,
+        request: Any,
+        forge_context: dict[str, Any],
+        evidence_ids: tuple[str, ...] = (),
+    ) -> IntelligentOrchestrationResponse:
+        """Compose a read-only Forge consultation through the existing Humanizer."""
+        response = self._humanizer.humanize({
+            "intent": "forge_consulta",
+            "forge_context": forge_context,
+        })
+        entity = forge_context.get("entity") or {}
+        model = forge_context.get("model") or {}
+        return IntelligentOrchestrationResponse(
+            status="CONSULTED",
+            stage="ANALYZE",
+            headline=f"Consulta governada do Forge para {model.get('codigo') or entity.get('requested_reference') or 'modelo'}.",
+            response=response,
+            capability="forge_operational_knowledge",
+            provider="supabase_elo_forge",
+            model=model.get("codigo"),
+            execution_id=None,
+            correlation_id=getattr(request, "correlation_id", ""),
+            evidence_state="OBSERVED" if evidence_ids else "INSUFFICIENT",
+            next_action="avaliar lacunas ou fornecer uma chave segura para aprofundar as fontes não vinculadas.",
+            orientation=None,
+        )
+
     @staticmethod
     def _append_orientation(response: str, orientation: Any) -> str:
         diagnosis = getattr(orientation, "diagnosis", "")

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Protocol, TYPE_CHECKING
 
-from elo.evidence import EvidenceRepository
+from elo.evidence import Evidence, EvidenceRepository
 
 if TYPE_CHECKING:
     from elo.cognitive.reasoning.capability_selection import CapabilityDecision, CapabilityRequirement, CapabilitySelector
@@ -129,6 +129,13 @@ class Orchestrator(Protocol):
 
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         """Return EXECUTE only when canonical execution authority is present."""
+
+    def consult_forge(
+        self,
+        request: OrchestrationRequest,
+        forge,
+    ):
+        """Consult catalog-governed Forge knowledge without learning or execution."""
 
     def compose_response(
         self,
@@ -315,6 +322,51 @@ class GovernedOrchestrator:
         outcome = execute_governed(execution_request, RoutedExecutionAdapter())
         return selection, outcome
 
+    def consult_forge(self, request: OrchestrationRequest, forge):
+        """Consult catalog-governed Forge knowledge without learning or execution."""
+        import re
+        from elo.cognitive.response.intelligent_orchestration_response import OrchestrationResponseComposer
+
+        if not request.tenant_id or not request.objective:
+            raise ValueError("tenant_id and objective are required")
+        match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
+        if not match:
+            raise ValueError("a canonical model reference is required for Forge consultation")
+        reference = match.group(0).upper()
+        context = forge.governed_model_context(reference, request.objective)
+        evidence_ids = []
+        entity = context.get("entity") or {}
+        model = context.get("model") or {}
+        evidence_ids.append(self._evidence_repository.save(Evidence.create(
+            tenant_id=request.tenant_id, domain=request.domain or "forge",
+            source_type="supabase_elo_forge", source_id=str(entity.get("model_id") or reference),
+            claim=f"Forge confirmou o modelo {model.get('codigo') or reference}",
+            content_ref=f"supabase_elo_forge:modelos:{entity.get('model_id') or reference}",
+            quality="OBSERVED", relevance=1.0,
+            provenance={"catalog":"elo_aprendizado_fontes", "read_only":True, "learning_performed":False},
+        )).evidence_id)
+        discovery = context.get("governed_discovery") or {}
+        for table, rows in (discovery.get("linked_records") or {}).items():
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id=table,
+                claim=f"Forge recuperou {len(rows)} registro(s) da fonte governada {table}.",
+                content_ref=f"supabase_elo_forge:{table}", quality="OBSERVED", relevance=0.8,
+                provenance={"catalog":"elo_aprendizado_fontes", "table_name":table, "read_only":True, "learning_performed":False},
+            )).evidence_id)
+        for item in discovery.get("not_linked") or []:
+            table = str(item.get("table_name") or "")
+            if not table: continue
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id=table,
+                claim=f"Forge não estabeleceu relação segura entre {table} e {reference}.",
+                content_ref=f"supabase_elo_forge:{table}:unlinked", quality="OBSERVED", relevance=0.5,
+                provenance={"catalog":"elo_aprendizado_fontes", "table_name":table, "read_only":True, "absence_of_safe_link":True, "learning_performed":False},
+            )).evidence_id)
+        return OrchestrationResponseComposer(evidence_repository=self._evidence_repository).compose_forge(
+            request=request, forge_context=context, evidence_ids=tuple(evidence_ids)
+        )
     def compose_response(self, request: OrchestrationRequest, selection, outcome):
         """Return rich human-facing output without changing execution authority."""
         from elo.cognitive.response.intelligent_orchestration_response import (

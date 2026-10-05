@@ -23,19 +23,35 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 
-ALLOWED_TABLES = frozenset(
-    {
-        "taxonomia",
-        "dimensoes",
-        "modelos",
-        "modelo_apresentacao",
-        "kits",
-        "kit_itens",
-        "lista_mae",
-        "estrutura_modular",
-        "estrutura_modular_itens",
-    }
-)
+CATALOG_TABLE = "elo_aprendizado_fontes"
+
+# The catalog is the sole runtime allow-list.  Concrete tables are never
+# admitted by a second static list.
+CATALOG_MATCH_TERMS = {
+    "produto": {"produtos"},
+    "modelo": {"produtos"},
+    "módulo": {"produtos"},
+    "modulo": {"produtos"},
+    "kit": {"produtos"},
+    "composição": {"produtos"},
+    "composicao": {"produtos"},
+    "lista": {"produtos"},
+    "produção": {"producao_fluxo_modular"},
+    "producao": {"producao_fluxo_modular"},
+    "fluxo": {"producao_fluxo_modular"},
+    "demanda": {"planejamento_demanda", "planejamento_pcp"},
+    "material": {"planejamento_demanda", "produtos", "compras"},
+    "recurso": {"planejamento_pcp"},
+    "fornecedor": {"compras"},
+    "cotação": {"compras"},
+    "cotacao": {"compras"},
+    "custo": {"rh", "compras"},
+    "regra": {"gestao"},
+    "exceção": {"gestao"},
+    "excecao": {"gestao"},
+    "proveniência": {"dados_banco"},
+    "proveniencia": {"dados_banco"},
+}
 
 MODEL_ALIASES = {
     "MLT.M01": "M01",
@@ -86,8 +102,8 @@ class SupabaseEloForge:
         limit: int = 100,
         order_by: str | None = None,
     ) -> list[dict[str, Any]]:
-        if table not in ALLOWED_TABLES:
-            raise ForgeRetrievalError(f"table_not_allowed: {table}")
+        if table != CATALOG_TABLE and not self._is_governed_table(table):
+            raise ForgeRetrievalError(f"table_not_governed: {table}")
         if not 1 <= limit <= 100:
             raise ForgeRetrievalError("limit_out_of_range")
 
@@ -120,6 +136,209 @@ class SupabaseEloForge:
         if not isinstance(payload, list):
             raise ForgeRetrievalError(f"forge_invalid_response: {table}")
         return payload
+
+    def _read_raw_table(
+        self,
+        table: str,
+        *,
+        filters: dict[str, str] | None = None,
+        limit: int = 100,
+        order_by: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Read a table without applying the governed-source guard."""
+        if not 1 <= limit <= 100:
+            raise ForgeRetrievalError("limit_out_of_range")
+        params: list[tuple[str, str]] = [("select", "*")]
+        for column, expression in (filters or {}).items():
+            if not column.replace("_", "").isalnum() or not column[0].isalpha():
+                raise ForgeRetrievalError(f"invalid_filter_column: {column}")
+            params.append((column, expression))
+        if order_by:
+            if not order_by.replace("_", "").isalnum() or not order_by[0].isalpha():
+                raise ForgeRetrievalError("invalid_order_column")
+            params.append(("order", f"{order_by}.asc"))
+        params.append(("limit", str(limit)))
+        endpoint = f"{self.config.url}/rest/v1/{quote(table, safe='')}"
+        request = Request(
+            f"{endpoint}?{urlencode(params)}",
+            headers={
+                "apikey": self.config.service_role_key,
+                "Authorization": f"Bearer {self.config.service_role_key}",
+                "Accept": "application/json",
+            },
+            method="GET",
+        )
+        try:
+            with urlopen(request, timeout=self.timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+            raise ForgeRetrievalError(f"forge_read_failed: {table}") from exc
+        if not isinstance(payload, list):
+            raise ForgeRetrievalError(f"forge_invalid_response: {table}")
+        return payload
+
+    def governed_sources(self) -> list[dict[str, Any]]:
+        """Return the active Forge sources from the canonical source catalog."""
+        rows = self._read_raw_table(
+            CATALOG_TABLE,
+            filters={"enabled": "eq.true", "extracao_ativa": "eq.true"},
+            limit=100,
+            order_by="prioridade",
+        )
+        sources = []
+        for row in rows:
+            table = row.get("table_name")
+            schema = row.get("schema_name")
+            if schema != "public" or not isinstance(table, str) or not table:
+                continue
+            sources.append(row)
+        return sources
+
+    def _is_governed_table(self, table: str) -> bool:
+        return any(source.get("table_name") == table for source in self.governed_sources())
+
+    def discover_sources(self, query: str) -> list[dict[str, Any]]:
+        """Select governed sources from catalog metadata; never invents a source."""
+        normalized = query.casefold()
+        sources = self.governed_sources()
+        scored: list[tuple[int, int, dict[str, Any]]] = []
+        for source in sources:
+            domain = str(source.get("dominio_codigo") or "").casefold()
+            table = str(source.get("table_name") or "").casefold()
+            rule = json.dumps(source.get("regra_extracao") or {}, ensure_ascii=False).casefold()
+            score = 0
+            for term, domains in CATALOG_MATCH_TERMS.items():
+                if term in normalized and any(domain == candidate.casefold() for candidate in domains):
+                    score += 4
+            if any(token in normalized for token in table.replace("_", " ").split()):
+                score += 2
+            if domain and domain.replace("_", " ") in normalized:
+                score += 2
+            if score:
+                scored.append((score, int(source.get("prioridade") or 999999), source))
+        scored.sort(key=lambda item: (-item[0], item[1], str(item[2].get("table_name"))))
+        return [item[2] for item in scored]
+
+    @staticmethod
+    def _ids(values: list[Any]) -> list[str]:
+        return list(dict.fromkeys(str(value) for value in values if value is not None))
+
+    def governed_model_context(self, reference: str, query: str) -> dict[str, Any]:
+        """Retrieve a model and safely extend it through catalog-governed sources."""
+        result = self.model_context(reference)
+        discovered = self.discover_sources(query)
+
+        model_id = result["entity"]["model_id"]
+        relationships = result["relationships"]
+        kit_ids = self._ids([row.get("id") for row in relationships.get("kits", [])])
+        lista_ids = self._ids([row.get("id") for row in relationships.get("lista_mae", [])])
+        item_codes = self._ids([
+            row.get("cod_item") or row.get("cod_produt")
+            for row in result.get("kit_composition", [])
+        ])
+        model_code = result["entity"]["canonical_code"]
+
+        linked: dict[str, list[dict[str, Any]]] = {}
+        not_linked: list[dict[str, Any]] = []
+        for source in discovered:
+            table = source["table_name"]
+            if table in relationships:
+                continue
+            rows = self._read_raw_table(table, limit=25)
+            if not rows:
+                linked[table] = []
+                continue
+            keys = set(rows[0].keys())
+            filters: dict[str, str] | None = None
+            if "modelo_id" in keys:
+                filters = {"modelo_id": f"eq.{model_id}"}
+            elif "model_id" in keys:
+                filters = {"model_id": f"eq.{model_id}"}
+            elif "taxonomia_id" in keys and relationships.get("taxonomia"):
+                tax_id = relationships["taxonomia"][0].get("id")
+                if tax_id:
+                    filters = {"taxonomia_id": f"eq.{tax_id}"}
+            elif "lista_mae_id" in keys and lista_ids:
+                filters = {"lista_mae_id": f"in.({','.join(lista_ids)})"}
+            elif "codigo_item" in keys and item_codes:
+                filters = {"codigo_item": f"in.({','.join(item_codes)})"}
+            elif table == "fluxo_produtivo_modular" and "ativo" in keys:
+                # A flow without modelo_id is a generic reference flow, not an M01 flow.
+                filters = {"ativo": "eq.true"}
+            else:
+                not_linked.append({
+                    "table_name": table,
+                    "dominio_codigo": source.get("dominio_codigo"),
+                    "reason": "no_safe_relationship_to_model",
+                })
+                continue
+
+            selected = self._read_raw_table(table, filters=filters, limit=100)
+            linked[table] = selected
+
+            if table == "fluxo_produtivo_modular":
+                flow_ids = self._ids([row.get("id") for row in selected])
+                if flow_ids:
+                    stages_source = next(
+                        (s for s in self.governed_sources()
+                         if s.get("table_name") == "fluxo_produtivo_modular_etapas"),
+                        None,
+                    )
+                    if stages_source:
+                        stages = self._read_raw_table(
+                            "fluxo_produtivo_modular_etapas",
+                            filters={"fluxo_id": f"in.({','.join(flow_ids)})"},
+                            limit=100,
+                        )
+                        linked["fluxo_produtivo_modular_etapas"] = stages
+
+                # A row with no modelo_id/taxonomia_id is not "unrelated":
+                # the canonical PCP/production flow defines a modular family-wide
+                # reference. Preserve that scope without attributing the flow
+                # exclusively to the requested model.
+                scope = []
+                for row in selected:
+                    if row.get("modelo_id") == model_id:
+                        scope.append({
+                            "flow_id": row.get("id"),
+                            "scope": "model_specific",
+                            "model_specific": True,
+                        })
+                    elif (
+                        row.get("modelo_id") is None
+                        and row.get("taxonomia_id") is None
+                        and row.get("ativo") is True
+                    ):
+                        scope.append({
+                            "flow_id": row.get("id"),
+                            "scope": "family_wide_modular",
+                            "model_specific": False,
+                            "reason": "active_modular_reference_flow",
+                        })
+                linked["fluxo_produtivo_modular_scope"] = scope
+
+        result["governed_discovery"] = {
+            "query": query,
+            "sources_considered": [
+                {
+                    "table_name": source.get("table_name"),
+                    "dominio_codigo": source.get("dominio_codigo"),
+                    "prioridade": source.get("prioridade"),
+                }
+                for source in discovered
+            ],
+            "linked_records": linked,
+            "not_linked": not_linked,
+            "catalog_authority": CATALOG_TABLE,
+            "learning_performed": False,
+            "applicability": {
+                "fluxo_produtivo_modular": linked.get("fluxo_produtivo_modular_scope", []),
+            },
+        }
+        result["provenance"]["governed_catalog"] = CATALOG_TABLE
+        result["provenance"]["guessed"] = False
+        result["provenance"]["model_code"] = model_code
+        return result
 
     def resolve_model(self, reference: str) -> dict[str, Any]:
         """Resolve aliases to canonical model identity without duplicating data."""
