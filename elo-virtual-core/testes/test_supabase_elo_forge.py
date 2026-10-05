@@ -235,3 +235,50 @@ def test_governed_model_context_preserves_family_wide_modular_flow_boundary(monk
     assert result["governed_discovery"]["applicability"]["fluxo_produtivo_modular"][0]["scope"] == "family_wide_modular"
     assert result["governed_discovery"]["applicability"]["fluxo_produtivo_modular"][0]["model_specific"] is False
     assert result["provenance"]["guessed"] is False
+
+
+def test_governed_model_context_traverses_external_orders_and_modular_repairs(monkeypatch):
+    forge = object.__new__(SupabaseEloForge)
+    base = {
+        "source": "supabase_elo_forge",
+        "entity": {"requested_reference": "M01", "canonical_code": "M01", "model_id": "model-01"},
+        "model": {"id": "model-01", "codigo": "M01", "ativo": True},
+        "relationships": {
+            "taxonomia": [{"id": "tax-01", "codigo": "MLT.M01"}],
+            "kits": [],
+            "kit_itens": [],
+            "lista_mae": [],
+            "estrutura_modular": [],
+        },
+        "provenance": {"read_only": True, "guessed": False},
+    }
+    forge.model_context = lambda reference: base
+    forge.governed_sources = lambda: [
+        {"schema_name": "public", "table_name": "mt_pedidos_venda_itens", "dominio_codigo": "operacoes_externas", "prioridade": 82, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "mt_ordens_montagem_externa", "dominio_codigo": "operacoes_externas", "prioridade": 83, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "mt_equipe_montagem_externa", "dominio_codigo": "operacoes_externas", "prioridade": 84, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "mt_funcoes_montagem", "dominio_codigo": "operacoes_externas", "prioridade": 85, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "mt_unidades_modulares", "dominio_codigo": "reparos_modulares", "prioridade": 103, "enabled": True, "extracao_ativa": True},
+        {"schema_name": "public", "table_name": "mt_ordens_reparo", "dominio_codigo": "reparos_modulares", "prioridade": 104, "enabled": True, "extracao_ativa": True},
+    ]
+    rows = {
+        "mt_pedidos_venda_itens": [{"id": "pvi-01", "pedido_venda_id": "pedido-01", "modelo_id": "model-01"}],
+        "mt_ordens_montagem_externa": [{"id": "ext-01", "pedido_venda_id": "pedido-01", "status": "PLANEJADO"}],
+        "mt_equipe_montagem_externa": [{"id": "team-01", "ordem_montagem_externa_id": "ext-01", "funcao_montagem_id": "func-01"}],
+        "mt_funcoes_montagem": [{"id": "func-01", "codigo": "MONT-01", "nome": "Montador"}],
+        "mt_unidades_modulares": [{"id": "unit-01", "modelo_id": "model-01", "codigo_unidade": "UM-01"}],
+        "mt_ordens_reparo": [{"id": "rep-01", "unidade_modular_id": "unit-01", "status": "EM_REPARO"}],
+    }
+    forge._read_raw_table = lambda table, **kwargs: rows.get(table, [])
+    result = forge.governed_model_context("M01", "Quais operações externas e reparos modulares existem para o M01?")
+    linked = result["governed_discovery"]["linked_records"]
+    assert linked["mt_pedidos_venda_itens"][0]["modelo_id"] == "model-01"
+    assert linked["mt_ordens_montagem_externa"][0]["id"] == "ext-01"
+    assert linked["mt_equipe_montagem_externa"][0]["id"] == "team-01"
+    assert linked["mt_funcoes_montagem"][0]["id"] == "func-01"
+    assert linked["mt_unidades_modulares"][0]["id"] == "unit-01"
+    assert linked["mt_ordens_reparo"][0]["id"] == "rep-01"
+    assert result["governed_discovery"]["applicability"]["operacoes_externas"]["model_specific"] is True
+    assert result["governed_discovery"]["applicability"]["reparos_modulares"]["model_specific"] is True
+    assert result["provenance"]["read_only"] is True
+    assert result["provenance"]["guessed"] is False
