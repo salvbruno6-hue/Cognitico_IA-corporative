@@ -321,7 +321,9 @@ class GovernedOrchestrator:
             OrchestrationResponseComposer,
         )
 
-        return OrchestrationResponseComposer().compose(
+        return OrchestrationResponseComposer(
+            evidence_repository=self._evidence_repository,
+        ).compose(
             request=request,
             selection=selection,
             outcome=outcome,
