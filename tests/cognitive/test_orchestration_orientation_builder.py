@@ -23,7 +23,7 @@ def evidence(*, evidence_id: str = "ev-1", source_id: str = "src-1", provenance=
         claim="claim",
         content_ref="ref",
         observed_at=datetime.now(timezone.utc),
-        provenance=provenance or {"source": "test"},
+        provenance={} if provenance is None else provenance,
     )
 
 
