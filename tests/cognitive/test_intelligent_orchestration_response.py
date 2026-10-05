@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from elo.application.use_cases.orchestrator import OrchestrationRequest
 from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
+from elo.evidence import Evidence, EvidenceRepository
 from elo.cognitive.response import orchestration_orientation_hook as hook
 from elo.cognitive.response.intelligent_orchestration_response import (
     OrchestrationResponseComposer,
@@ -114,3 +115,31 @@ def test_hook_fails_soft_for_missing_capability():
 def test_hook_fails_soft_when_builder_is_unavailable(monkeypatch):
     monkeypatch.setattr(hook, "_load_builder", lambda: None)
     assert hook.derive_orientation(capability="EXT-TEST") is None
+
+
+def test_composer_resolves_execution_evidence_into_orientation():
+    repository = EvidenceRepository()
+    evidence = Evidence(
+        evidence_id="evidence-1",
+        tenant_id="tenant-a",
+        domain="cognitive",
+        source_type="test",
+        source_id="source-1",
+        claim="execution evidence is traceable",
+        content_ref="test://evidence-1",
+        observed_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+        provenance={"source": "test-suite"},
+    )
+    repository.save(evidence)
+
+    result = OrchestrationResponseComposer(
+        evidence_repository=repository,
+    ).compose(
+        request=_request(),
+        selection=Selection(),
+        outcome=_outcome(),
+    )
+
+    assert result.orientation is not None
+    assert result.orientation.evidence_refs == ("evidence-1",)
+    assert result.orientation.confidence.value == "aligned"
