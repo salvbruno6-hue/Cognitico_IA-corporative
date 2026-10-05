@@ -196,7 +196,7 @@ def test_discovery_uses_catalog_domains_not_static_table_allow_list():
     assert "fornecedores" in names
 
 
-def test_governed_model_context_preserves_generic_flow_boundary(monkeypatch):
+def test_governed_model_context_preserves_family_wide_modular_flow_boundary(monkeypatch):
     forge = object.__new__(SupabaseEloForge)
     context = {
         "source": "supabase_elo_forge",
@@ -232,4 +232,6 @@ def test_governed_model_context_preserves_generic_flow_boundary(monkeypatch):
     linked = result["governed_discovery"]["linked_records"]
     assert linked["fluxo_produtivo_modular"][0]["modelo_id"] is None
     assert len(linked["fluxo_produtivo_modular_etapas"]) == 17
+    assert result["governed_discovery"]["applicability"]["fluxo_produtivo_modular"][0]["scope"] == "family_wide_modular"
+    assert result["governed_discovery"]["applicability"]["fluxo_produtivo_modular"][0]["model_specific"] is False
     assert result["provenance"]["guessed"] is False
