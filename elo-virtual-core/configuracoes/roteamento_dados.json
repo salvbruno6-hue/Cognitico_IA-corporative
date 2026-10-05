@@ -87,7 +87,12 @@
       "reparos modulares",
       "ordens de reparo",
       "unidades modulares",
-      "cobertura por reparo"
+      "cobertura por reparo",
+      "cobertura de demanda",
+      "decisão externa",
+      "decisao externa",
+      "resumo PCP",
+      "dados pendentes de PCP"
     ],
     "fallback": "local",
     "never_guess_data": true
