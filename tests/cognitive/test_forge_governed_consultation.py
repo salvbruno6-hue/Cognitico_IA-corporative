@@ -18,7 +18,12 @@ class FakeForge:
             "governed_discovery": {
                 "query": query,
                 "linked_records": {
-                    "fluxo_produtivo_modular": [{"id": "flow-01", "modelo_id": None}],
+                    "fluxo_produtivo_modular": [{
+                    "id": "flow-01",
+                    "modelo_id": None,
+                    "ativo": True,
+                    "descricao": "Fluxo de referência para produção modular",
+                }],
                     "fluxo_produtivo_modular_etapas": [{"id": f"stage-{i}", "fluxo_id": "flow-01"} for i in range(17)],
                 },
                 "not_linked": [
@@ -27,6 +32,13 @@ class FakeForge:
                 ],
                 "catalog_authority": "elo_aprendizado_fontes",
                 "learning_performed": False,
+                "applicability": {
+                    "fluxo_produtivo_modular": [{
+                        "flow_id": "flow-01",
+                        "scope": "family_wide_modular",
+                        "model_specific": False,
+                    }]
+                },
             },
             "provenance": {"read_only": True, "guessed": False},
         }
@@ -49,7 +61,8 @@ def test_orchestrator_consult_forge_returns_human_response_and_evidence():
     assert response.evidence_state == "OBSERVED"
     assert "M01" in response.response
     assert "17 etapa" in response.response
-    assert "não há fluxo produtivo específico" in response.response.lower()
+    assert "aplicável à família de módulos" in response.response.lower()
+    assert "não significa que as 17 etapas sejam exclusivas" in response.response.lower()
     assert "elo_sim_demanda" in response.response
     assert "fornecedores" in response.response
     assert "aprendizado ou promoção" in response.response.lower()
