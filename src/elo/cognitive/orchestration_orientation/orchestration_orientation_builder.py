@@ -136,18 +136,6 @@ class OrchestrationOrientationBuilder:
         treated as conflicts.
         """
         conflicts: list[str] = []
-
-        claims_by_source: dict[str, set[str]] = {}
-        for fact in facts:
-            source_id, claim = cls._fact_identity(fact)
-            claims_by_source.setdefault(source_id, set()).add(claim)
-
-        for source_id, claims in claims_by_source.items():
-            if len(claims) > 1:
-                conflicts.append(
-                    f"conflicting factual claims for source_id={source_id}"
-                )
-
         route = request.routing_decision
         if route is not None and route.capability != request.capability:
             conflicts.append(
