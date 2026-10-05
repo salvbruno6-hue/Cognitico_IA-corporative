@@ -305,27 +305,42 @@ class Humanizer:
         lines.append(f"- Itens de kit recuperados: {len(kit_items)}.")
         lines.append(f"- Correspondências recuperadas na Lista-Mãe: {len(lista)}.")
         model_id = context.get("entity", {}).get("model_id")
-        specific_flows = [row for row in linked.get("fluxo_produtivo_modular", []) if row.get("modelo_id") == model_id]
-        generic_flows = [row for row in linked.get("fluxo_produtivo_modular", []) if row.get("modelo_id") != model_id]
+        specific_flows = [
+            row for row in linked.get("fluxo_produtivo_modular", [])
+            if row.get("modelo_id") == model_id
+        ]
+        flow_scope = discovery.get("applicability", {}).get("fluxo_produtivo_modular", [])
+        family_flows = [
+            item for item in flow_scope if item.get("scope") == "family_wide_modular"
+        ]
         stages = linked.get("fluxo_produtivo_modular_etapas", [])
         if specific_flows:
             lines.append(f"- Fluxo produtivo específico encontrado: {len(specific_flows)}.")
             lines.append(f"- Etapas vinculadas a esse fluxo: {len(stages)}.")
-        elif generic_flows:
-            lines.append(f"- Não há fluxo produtivo específico vinculado ao {code}.")
-            lines.append(f"- Existe fluxo produtivo modular de referência com {len(stages)} etapa(s); ele não foi tratado como fluxo específico do modelo.")
+        elif family_flows:
+            lines.append(
+                f"- Fluxo produtivo modular de referência aplicável à família de módulos: "
+                f"{len(family_flows)} fluxo(s), com {len(stages)} etapa(s)."
+            )
+            lines.append(
+                f"- O fluxo é compartilhado pela fabricação modular; isso não significa "
+                f"que as {len(stages)} etapas sejam exclusivas do {code}."
+            )
         else:
-            lines.append("- Nenhum fluxo produtivo específico foi encontrado.")
-            lines.append("- Nenhum fluxo produtivo de referência foi recuperado nesta consulta.")
+            lines.append("- Nenhum fluxo produtivo aplicável foi recuperado nesta consulta.")
         if structures:
             lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
         else:
-            lines.append("- Nenhuma estrutura modular específica foi encontrada.")
+            lines.append("- Nenhum registro de estrutura modular foi recuperado no estado atual consultado.")
         lines.extend(["", "**O que não está comprovado:**"])
         if not structures:
-            lines.append(f"- Não há estrutura modular específica vinculada ao {code}.")
-        if not specific_flows:
-            lines.append(f"- Não há vínculo comprovado entre o {code} e um fluxo produtivo específico.")
+            lines.append(
+                f"- O estado atual consultado não contém registro de estrutura modular "
+                f"recuperável para o {code}; isso não autoriza concluir que a estrutura "
+                f"conceitual do processo não exista."
+            )
+        if not specific_flows and not family_flows:
+            lines.append(f"- Não foi localizado fluxo aplicável ao {code} nesta consulta.")
         if not_linked:
             names = ", ".join(str(item.get("table_name")) for item in not_linked[:8] if item.get("table_name"))
             lines.append("- Algumas fontes governadas foram descobertas, mas não foram relacionadas ao modelo sem uma chave segura: " + names + ".")
