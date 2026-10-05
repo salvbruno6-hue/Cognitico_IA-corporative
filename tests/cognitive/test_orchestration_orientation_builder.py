@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 
-_UNSET = object()
-
 import pytest
+
+_UNSET = object()
 
 from elo.cognitive.orchestration_orientation import (
     OrchestrationOrientationBuilder,
