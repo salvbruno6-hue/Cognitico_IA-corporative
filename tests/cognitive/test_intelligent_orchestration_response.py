@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from elo.application.use_cases.orchestrator import OrchestrationRequest
 from elo.core.execution_boundary import ExecutionOutcome, ExecutionStatus
@@ -127,7 +128,7 @@ def test_composer_resolves_execution_evidence_into_orientation():
         source_id="source-1",
         claim="execution evidence is traceable",
         content_ref="test://evidence-1",
-        observed_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+        observed_at=datetime.now(timezone.utc),
         provenance={"source": "test-suite"},
     )
     repository.save(evidence)
