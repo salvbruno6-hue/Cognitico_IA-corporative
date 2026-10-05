@@ -128,6 +128,14 @@ class Orchestrator(Protocol):
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         """Return EXECUTE only when canonical execution authority is present."""
 
+    def compose_response(
+        self,
+        request: OrchestrationRequest,
+        selection,
+        outcome,
+    ):
+        """Compose a rich human-facing response from already-produced facts."""
+
 
 class GovernedOrchestrator:
     """Deterministic coordinator over existing ELO authorities.
@@ -297,3 +305,15 @@ class GovernedOrchestrator:
         )
         outcome = execute_governed(execution_request, RoutedExecutionAdapter())
         return selection, outcome
+
+    def compose_response(self, request: OrchestrationRequest, selection, outcome):
+        """Return rich human-facing output without changing execution authority."""
+        from elo.cognitive.response.intelligent_orchestration_response import (
+            OrchestrationResponseComposer,
+        )
+
+        return OrchestrationResponseComposer().compose(
+            request=request,
+            selection=selection,
+            outcome=outcome,
+        )
