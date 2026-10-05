@@ -32,6 +32,7 @@ class Humanizer:
             "status_decisao": self._humanize_status_decisao,
             "guarda_aprendizado": self._humanize_guarda_aprendizado,
             "busca_precedente": self._humanize_busca_precedente,
+            "forge_consulta": self._humanize_forge_consulta,
         }
 
         handler = handlers.get(intent)
@@ -274,6 +275,71 @@ class Humanizer:
             "**Próximo passo:** se você identificar uma decisão "
             "anterior relacionada, posso associá-la."
         )
+
+    def _humanize_forge_consulta(self, result: dict) -> str:
+        context = result.get("forge_context") or {}
+        model = context.get("model") or {}
+        relationships = context.get("relationships") or {}
+        discovery = context.get("governed_discovery") or {}
+        linked = discovery.get("linked_records") or {}
+        not_linked = discovery.get("not_linked") or []
+        code = model.get("codigo") or "modelo consultado"
+        name = model.get("nome") or "nome não informado"
+        lines = [
+            f"O Forge confirmou o **{code} — {name}** com base em fontes governadas.",
+            "",
+            "**O que o Forge confirma:**",
+            f"- Modelo ativo: {'sim' if model.get('ativo') is True else 'não informado' if model.get('ativo') is None else 'não'}.",
+        ]
+        taxonomy = relationships.get("taxonomia") or []
+        dimensions = relationships.get("dimensoes") or []
+        kits = relationships.get("kits") or []
+        kit_items = relationships.get("kit_itens") or []
+        lista = relationships.get("lista_mae") or []
+        structures = relationships.get("estrutura_modular") or []
+        if taxonomy:
+            lines.append(f"- Taxonomia: {taxonomy[0].get('codigo') or taxonomy[0].get('nome_amplo') or 'registrada'}.")
+        if dimensions:
+            lines.append(f"- Dimensão: {dimensions[0].get('referencia') or 'registrada'}.")
+        lines.append(f"- Kits vinculados: {len(kits)}.")
+        lines.append(f"- Itens de kit recuperados: {len(kit_items)}.")
+        lines.append(f"- Correspondências recuperadas na Lista-Mãe: {len(lista)}.")
+        model_id = context.get("entity", {}).get("model_id")
+        specific_flows = [row for row in linked.get("fluxo_produtivo_modular", []) if row.get("modelo_id") == model_id]
+        generic_flows = [row for row in linked.get("fluxo_produtivo_modular", []) if row.get("modelo_id") != model_id]
+        stages = linked.get("fluxo_produtivo_modular_etapas", [])
+        if specific_flows:
+            lines.append(f"- Fluxo produtivo específico encontrado: {len(specific_flows)}.")
+            lines.append(f"- Etapas vinculadas a esse fluxo: {len(stages)}.")
+        elif generic_flows:
+            lines.append(f"- Não há fluxo produtivo específico vinculado ao {code}.")
+            lines.append(f"- Existe fluxo produtivo modular de referência com {len(stages)} etapa(s); ele não foi tratado como fluxo específico do modelo.")
+        else:
+            lines.append("- Nenhum fluxo produtivo específico foi encontrado.")
+            lines.append("- Nenhum fluxo produtivo de referência foi recuperado nesta consulta.")
+        if structures:
+            lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
+        else:
+            lines.append("- Nenhuma estrutura modular específica foi encontrada.")
+        lines.extend(["", "**O que não está comprovado:**"])
+        if not structures:
+            lines.append(f"- Não há estrutura modular específica vinculada ao {code}.")
+        if not specific_flows:
+            lines.append(f"- Não há vínculo comprovado entre o {code} e um fluxo produtivo específico.")
+        if not_linked:
+            names = ", ".join(str(item.get("table_name")) for item in not_linked[:8] if item.get("table_name"))
+            lines.append("- Algumas fontes governadas foram descobertas, mas não foram relacionadas ao modelo sem uma chave segura: " + names + ".")
+        if not any([not structures, not specific_flows, not_linked]):
+            lines.append("- Nenhuma ausência adicional foi identificada nesta consulta.")
+        lines.extend([
+            "",
+            "**Limite da evidência:**",
+            "- Relações sem chave segura não foram inferidas.",
+            "- A consulta é somente leitura e não gera aprendizado ou promoção.",
+            "",
+            "**Próximo passo:** as fontes descobertas sem vínculo podem ser consultadas quando houver uma chave operacional que permita relacioná-las ao modelo.",
+        ])
+        return "\n".join(lines)
 
     def _humanize_error(self, result: dict) -> str:
         error = result.get("error", "desconhecido")
