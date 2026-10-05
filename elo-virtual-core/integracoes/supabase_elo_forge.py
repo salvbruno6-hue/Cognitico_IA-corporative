@@ -292,6 +292,31 @@ class SupabaseEloForge:
                         )
                         linked["fluxo_produtivo_modular_etapas"] = stages
 
+                # A row with no modelo_id/taxonomia_id is not "unrelated":
+                # the canonical PCP/production flow defines a modular family-wide
+                # reference. Preserve that scope without attributing the flow
+                # exclusively to the requested model.
+                scope = []
+                for row in selected:
+                    if row.get("modelo_id") == model_id:
+                        scope.append({
+                            "flow_id": row.get("id"),
+                            "scope": "model_specific",
+                            "model_specific": True,
+                        })
+                    elif (
+                        row.get("modelo_id") is None
+                        and row.get("taxonomia_id") is None
+                        and row.get("ativo") is True
+                    ):
+                        scope.append({
+                            "flow_id": row.get("id"),
+                            "scope": "family_wide_modular",
+                            "model_specific": False,
+                            "reason": "active_modular_reference_flow",
+                        })
+                linked["fluxo_produtivo_modular_scope"] = scope
+
         result["governed_discovery"] = {
             "query": query,
             "sources_considered": [
@@ -306,6 +331,9 @@ class SupabaseEloForge:
             "not_linked": not_linked,
             "catalog_authority": CATALOG_TABLE,
             "learning_performed": False,
+            "applicability": {
+                "fluxo_produtivo_modular": linked.get("fluxo_produtivo_modular_scope", []),
+            },
         }
         result["provenance"]["governed_catalog"] = CATALOG_TABLE
         result["provenance"]["guessed"] = False
