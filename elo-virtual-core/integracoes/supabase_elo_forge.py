@@ -42,6 +42,11 @@ CATALOG_MATCH_TERMS = {
     "demanda": {"planejamento_demanda", "planejamento_pcp"},
     "material": {"planejamento_demanda", "produtos", "compras"},
     "recurso": {"planejamento_pcp"},
+    "cobertura": {"planejamento_pcp", "operacoes_externas", "reparos_modulares"},
+    "decisão externa": {"operacoes_externas"},
+    "decisao externa": {"operacoes_externas"},
+    "resumo pcp": {"planejamento_pcp", "operacoes_externas"},
+    "dados pendentes": {"planejamento_pcp"},
     "operação externa": {"operacoes_externas"},
     "operacao externa": {"operacoes_externas"},
     "operações externas": {"operacoes_externas"},
@@ -299,6 +304,8 @@ class SupabaseEloForge:
                 filters = {"modelo_id": f"eq.{model_id}"}
             elif "model_id" in keys:
                 filters = {"model_id": f"eq.{model_id}"}
+            elif table in {"v_elo_pcp_decisao_externa_resumo", "v_elo_pcp_dialogo_regras"}:
+                filters = None
             elif table == "mt_ordens_montagem_externa":
                 pedido_ids = ids_from(external_order_items, "pedido_venda_id")
                 if pedido_ids:
