@@ -130,6 +130,13 @@ class Orchestrator(Protocol):
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         """Return EXECUTE only when canonical execution authority is present."""
 
+    def consult_forge(
+        self,
+        request: OrchestrationRequest,
+        forge,
+    ):
+        """Consult catalog-governed Forge knowledge without learning or execution."""
+
     def compose_response(
         self,
         request: OrchestrationRequest,
@@ -322,7 +329,7 @@ class GovernedOrchestrator:
 
         if not request.tenant_id or not request.objective:
             raise ValueError("tenant_id and objective are required")
-        match = re.search(r"\\b(?:MLT\\.)?M\\d{2}\\b", request.objective, flags=re.IGNORECASE)
+        match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
         if not match:
             raise ValueError("a canonical model reference is required for Forge consultation")
         reference = match.group(0).upper()
