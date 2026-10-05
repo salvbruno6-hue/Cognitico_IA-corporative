@@ -299,6 +299,34 @@ class SupabaseEloForge:
                 filters = {"modelo_id": f"eq.{model_id}"}
             elif "model_id" in keys:
                 filters = {"model_id": f"eq.{model_id}"}
+            elif table == "mt_ordens_montagem_externa":
+                pedido_ids = ids_from(external_order_items, "pedido_venda_id")
+                if pedido_ids:
+                    filters = {"pedido_venda_id": f"in.({','.join(pedido_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
+            elif table == "mt_equipe_montagem_externa":
+                order_ids = ids_from(linked.get("mt_ordens_montagem_externa", []), "id")
+                if order_ids:
+                    filters = {"ordem_montagem_externa_id": f"in.({','.join(order_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
+            elif table == "mt_funcoes_montagem":
+                function_ids = ids_from(linked.get("mt_equipe_montagem_externa", []), "funcao_montagem_id")
+                if function_ids:
+                    filters = {"id": f"in.({','.join(function_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
+            elif table == "mt_ordens_reparo":
+                unit_ids = ids_from(repair_units, "id")
+                if unit_ids:
+                    filters = {"unidade_modular_id": f"in.({','.join(unit_ids)})"}
+                else:
+                    linked[table] = []
+                    continue
             elif "taxonomia_id" in keys and relationships.get("taxonomia"):
                 tax_id = relationships["taxonomia"][0].get("id")
                 if tax_id:
@@ -318,7 +346,7 @@ class SupabaseEloForge:
                 })
                 continue
 
-            selected = self._read_raw_table(table, filters=filters, limit=100)
+            selected = read_governed(table, filters=filters, limit=100)
             linked[table] = selected
 
             if table == "fluxo_produtivo_modular":
@@ -378,6 +406,14 @@ class SupabaseEloForge:
             "learning_performed": False,
             "applicability": {
                 "fluxo_produtivo_modular": linked.get("fluxo_produtivo_modular_scope", []),
+                "operacoes_externas": {
+                    "scope": "model_via_pedido_venda",
+                    "model_specific": bool(linked.get("mt_ordens_montagem_externa")),
+                },
+                "reparos_modulares": {
+                    "scope": "model_via_unidade_modular",
+                    "model_specific": bool(linked.get("mt_ordens_reparo") or linked.get("mt_unidades_modulares")),
+                },
             },
         }
         result["provenance"]["governed_catalog"] = CATALOG_TABLE
