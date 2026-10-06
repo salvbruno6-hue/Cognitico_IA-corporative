@@ -301,7 +301,7 @@ class Humanizer:
                 "- Ausência de registro não é interpretada como inexistência da demanda.",
                 "- Fontes específicas por pedido, unidade, modelo ou ordem exigem uma chave segura para atribuição.",
             ])
-            return "\\n".join(lines)
+            return "\n".join(lines)
         linked = discovery.get("linked_records") or {}
         not_linked = discovery.get("not_linked") or []
         code = model.get("codigo") or "modelo consultado"
