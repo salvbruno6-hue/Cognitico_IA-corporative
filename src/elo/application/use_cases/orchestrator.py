@@ -315,6 +315,63 @@ class GovernedOrchestrator:
         outcome = execute_governed(execution_request, RoutedExecutionAdapter())
         return selection, outcome
 
+    def converse(self, request: OrchestrationRequest, *, forge_adapter=None) -> dict:
+        """Run a read-only Forge-backed conversational cycle through canonical authorities.
+
+        This path does not authorize execution and does not learn from the query.
+        It only discovers governed sources, reads observations, stores evidence in
+        the injected canonical repository, and delegates wording to Humanizer.
+        """
+        if not request.tenant_id or not request.objective:
+            raise ValueError("tenant_id and objective are required")
+
+        if forge_adapter is None:
+            from elo.infrastructure.forge_runtime import load_forge_adapter
+
+            forge_adapter = load_forge_adapter()
+
+        import re
+        entity_match = re.search(r"\\b(?:MLT\\.)?M\\d{2}\\b", request.objective, re.IGNORECASE)
+        entity_code = entity_match.group(0) if entity_match else None
+        gathered = forge_adapter.gather_evidence(
+            question=request.objective,
+            tenant_id=request.tenant_id,
+            repository=self._evidence_repository,
+            entity_code=entity_code,
+        )
+
+        from elo.cognitive.runtime.humanization.humanizer import Humanizer
+
+        result = {
+            "intent": "forge_consulta",
+            "question": request.objective,
+            "entity_code": gathered.get("entity_code"),
+            "selected_sources": gathered.get("selected_sources", []),
+            "source_results": gathered.get("source_results", []),
+            "evidence": gathered.get("evidence", []),
+            "absences": gathered.get("absences", []),
+            "conflicts": gathered.get("conflicts", []),
+            "evidence_ids": gathered.get("evidence_ids", ()),
+        }
+        response = Humanizer().humanize(result)
+        return {
+            "response": {"type": "forge_grounded_analysis", "content": response},
+            "confidence": 1.0 if result["evidence"] else 0.0,
+            "domain": request.domain,
+            "forge": result,
+            "provenance": {
+                "request_id": request.request_id,
+                "correlation_id": request.correlation_id,
+                "tenant_id": request.tenant_id,
+                "domain": request.domain,
+                "principal_id": request.principal_id,
+                "provider": "elo-forge-read-only",
+                "evidence_refs": list(result["evidence_ids"]),
+                "policy_decision": "READ_ONLY_GOVERNED_SOURCE_SELECTION",
+                "validation_status": "evidence_observed",
+            },
+        }
+
     def compose_response(self, request: OrchestrationRequest, selection, outcome):
         """Return rich human-facing output without changing execution authority."""
         from elo.cognitive.response.intelligent_orchestration_response import (
