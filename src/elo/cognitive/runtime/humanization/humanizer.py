@@ -281,6 +281,7 @@ class Humanizer:
         model = context.get("model") or {}
         if not model:
             discovery = context.get("governed_discovery") or {}
+        evidence_by_source = context.get("evidence_by_source") or {}
             sources = discovery.get("sources_considered") or []
             records = (context.get("generic_query") or {}).get("records_by_source") or {}
             lines = [
@@ -385,6 +386,12 @@ class Humanizer:
             lines.append(f"- Nenhuma unidade/ordem de reparo foi relacionada ao {code} no estado atual consultado.")
         if not any([not structures, not specific_flows, not_linked, not external_orders and not external_items, not repair_units and not repair_orders]):
             lines.append("- Nenhuma ausência adicional foi identificada nesta consulta.")
+        lines.extend(["", "**Rastreabilidade:**"])
+        if evidence_by_source:
+            for table, refs in list(evidence_by_source.items())[:12]:
+                lines.append(f"- {table}: " + ", ".join(f"[evidence:{ref}]" for ref in refs[:8]))
+        else:
+            lines.append("- Nenhuma referência de evidência foi produzida.")
         lines.extend([
             "",
             "**Limite da evidência:**",
