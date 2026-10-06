@@ -65,6 +65,10 @@ def test_orchestrator_consults_cross_domain_demand_without_model_reference():
     assert "DEM-001" in response.response
     assert "132" in response.response
     assert "65" in response.response
+    assert "MEMÓRIA NARRADA DO ORQUESTRADOR" in response.response
+    assert "CLARIVIDÊNCIA OPERACIONAL" in response.response
+    assert "condicional" in response.response.lower()
+    assert "não é uma previsão" in response.response.lower()
     assert "somente leitura" in response.response.lower()
     assert "não é interpretada como inexistência" in response.response.lower()
 
