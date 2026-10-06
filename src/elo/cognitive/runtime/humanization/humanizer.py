@@ -292,7 +292,7 @@ class Humanizer:
             coverage_rows = linked.get("v_elo_pcp_cobertura_demanda_externa") or []
 
             lines = [
-                "O Forge consultou fontes governadas para responder à demanda transversal. "
+                "O Forge realizou uma consulta somente leitura em fontes governadas para responder à demanda transversal. "
                 "A síntese abaixo separa fatos observados, impactos operacionais e limites da evidência.",
                 "",
                 "**1. COMEÇO — o que foi consultado**",
