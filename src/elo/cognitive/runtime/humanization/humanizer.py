@@ -311,6 +311,7 @@ class Humanizer:
         discovery = context.get("governed_discovery") or {}
         linked = discovery.get("linked_records") or {}
         not_linked = discovery.get("not_linked") or []
+        conflicts = discovery.get("conflicts") or []
         code = model.get("codigo") or "modelo consultado"
         name = model.get("nome") or "nome não informado"
         lines = [
@@ -366,6 +367,10 @@ class Humanizer:
             lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
         else:
             lines.append("- Nenhum registro de estrutura modular foi recuperado no estado atual consultado.")
+        if conflicts:
+            lines.extend(["", "**Conflitos preservados:**"])
+            for conflict in conflicts[:8]:
+                lines.append(f"- {conflict}")
         lines.extend(["", "**O que não está comprovado:**"])
         if not structures:
             lines.append(f"- O estado atual consultado não contém registro de estrutura modular recuperável para o {code}; isso não autoriza concluir que a estrutura conceitual do processo não exista.")
