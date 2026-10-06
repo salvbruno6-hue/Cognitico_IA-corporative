@@ -401,12 +401,55 @@ class Humanizer:
 
             lines.extend([
                 "",
-                "**6. FIM — conclusão executiva**",
-                "- A consulta comprova que existem registros governados de demanda, materiais e recursos no estado consultado.",
-                "- Os dados também mostram que a avaliação de impacto do PCP depende de cobertura, histórico comparável e vínculos operacionais seguros.",
-                "- Portanto, a resposta pode descrever o estado observado, mas não deve transformar esses dados em decisão de fabricação, contratação ou priorização sem a etapa de validação correspondente.",
+                "**5A. MEMÓRIA NARRADA DO ORQUESTRADOR — como a visão foi construída**",
+                "- O orquestrador parte da pergunta, identifica o domínio de demanda/impacto e consulta somente fontes autorizadas pelo catálogo.",
+                "- Depois, mantém separados três níveis: **fato observado**, **padrão/sinal observado** e **projeção condicional**.",
+                "- O padrão não é promovido a conhecimento aprendido nesta consulta; ele permanece uma leitura explicável dos dados recuperados.",
+            ])
+            if demand_rows:
+                ranked = sorted(
+                    demand_rows,
+                    key=lambda row: (
+                        -(float(row.get("prioridade")) if row.get("prioridade") is not None else -1),
+                        float(row.get("prazo_dias")) if row.get("prazo_dias") is not None else float("inf"),
+                    ),
+                )
+                lead = ranked[0]
+                lead_id = lead.get("demanda_id") or "demanda sem ID"
+                lead_priority = lead.get("prioridade", "não informada")
+                lead_deadline = lead.get("prazo_dias", "não informado")
+                lead_hours = next(
+                    (
+                        row.get("horas_demanda_h")
+                        for row in resource_rows
+                        if row.get("demanda_id") == lead.get("demanda_id")
+                    ),
+                    None,
+                )
+                lines.extend([
+                    f"- **Sinal comportamental observado:** {lead_id} combina a maior prioridade disponível ({lead_priority}) com prazo de {lead_deadline} dia(s).",
+                ])
+                if lead_hours is not None:
+                    lines.append(
+                        f"- O mesmo item possui {lead_hours} hora(s) de demanda de recurso registradas; isso caracteriza pressão operacional observada, não uma previsão."
+                    )
+                lines.extend([
+                    "",
+                    "**5B. CLARIVIDÊNCIA OPERACIONAL — futuro condicionado aos padrões**",
+                    "- Se esse comportamento permanecer e a cobertura continuar sem histórico comparável, a tendência esperada é de maior pressão sobre planejamento e necessidade de validação antes de ampliar fabricação ou recursos.",
+                    "- Se o histórico comparável e a cobertura forem confirmados, a projeção deve ser recalculada; o orquestrador não congela uma previsão baseada apenas neste retrato.",
+                    "- Se surgirem dados de estoque, reparo, produção programada ou operações externas com chaves seguras, a visão futura deve ser atualizada pela nova evidência.",
+                    "- Portanto, a clarividência do ELO é **condicional, rastreável e revisável**: comportamento → padrão observado → condição futura → resultado esperado → nova evidência.",
+                ])
+
+            lines.extend([
                 "",
-                "**Próximo passo:** aprofundar a demanda ou impacto específico usando a chave operacional disponível; a consulta permanece somente leitura e não realiza aprendizado ou promoção.",
+                "**6. FIM — conclusão executiva**",
+                "- A memória desta consulta não é apenas uma lista de registros: ela registra como o orquestrador chegou à leitura, quais comportamentos observou e sob quais condições um resultado futuro pode ser esperado.",
+                "- A previsão não é tratada como certeza. Ela depende da persistência dos sinais observados e pode ser alterada quando novas evidências entrarem no ciclo.",
+                "- A consulta comprova registros governados de demanda, materiais e recursos, mas a decisão operacional continua dependente de cobertura, histórico comparável e vínculos seguros.",
+                "",
+                "**Próximo passo:** acompanhar o resultado real contra essa projeção condicionada; somente evidência posterior validada pode transformar o padrão observado em aprendizado governado.",
             ])
             return "\n".join(lines)
         linked = discovery.get("linked_records") or {}
