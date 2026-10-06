@@ -437,6 +437,18 @@ class SupabaseEloForge:
                             )
                         )
                 else:
+                    if scanned:
+                        evidence.append(
+                            Evidence.from_forge(
+                                tenant_id=tenant_id,
+                                source_table=table,
+                                source_domain=str(source.get("dominio_codigo") or ""),
+                                source_fields=(),
+                                claim=f"A consulta somente leitura retornou {scanned} registro(s) em {table}; nenhum foi relacionado a {entity} no escopo pesquisado.",
+                                value={"records_scanned": scanned},
+                                query_scope={"entity_code": entity},
+                            )
+                        )
                     absence = Evidence.from_forge(
                         tenant_id=tenant_id,
                         source_table=table,
