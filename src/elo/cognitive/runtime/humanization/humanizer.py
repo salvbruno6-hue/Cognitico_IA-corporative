@@ -281,7 +281,7 @@ class Humanizer:
         model = context.get("model") or {}
         if not model:
             discovery = context.get("governed_discovery") or {}
-        evidence_by_source = context.get("evidence_by_source") or {}
+            evidence_by_source = context.get("evidence_by_source") or {}
             sources = discovery.get("sources_considered") or []
             records = (context.get("generic_query") or {}).get("records_by_source") or {}
             lines = [
