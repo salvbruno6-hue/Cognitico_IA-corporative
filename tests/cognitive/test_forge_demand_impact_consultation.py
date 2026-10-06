@@ -59,6 +59,12 @@ def test_orchestrator_consults_cross_domain_demand_without_model_reference():
     assert "v_elo_pcp_cobertura_demanda_externa" in response.response
     assert "elo_orcamento_decisoes" in response.response
     assert "mt_ordens_reparo" in response.response
+    assert "COMEÇO" in response.response
+    assert "MEIO" in response.response
+    assert "FIM" in response.response
+    assert "DEM-001" in response.response
+    assert "132" in response.response
+    assert "65" in response.response
     assert "somente leitura" in response.response.lower()
     assert "não é interpretada como inexistência" in response.response.lower()
 
