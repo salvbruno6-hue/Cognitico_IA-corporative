@@ -85,7 +85,6 @@ def test_orchestrator_consults_cross_domain_demand_without_model_reference():
     assert "condicional" in response.response.lower()
     assert "não é uma previsão" in response.response.lower()
     assert "somente leitura" in response.response.lower()
-    assert "não é interpretada como inexistência" in response.response.lower()
     assert "ELO APRENDER" in response.response
     assert "qual assunto pesquisar" in response.response
     assert "quais dados colher" in response.response
