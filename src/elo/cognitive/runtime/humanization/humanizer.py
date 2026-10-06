@@ -296,8 +296,9 @@ class Humanizer:
                 "A síntese abaixo separa fatos observados, impactos operacionais e limites da evidência.",
                 "",
                 "**1. COMEÇO — o que foi consultado**",
-                f"- Escopo: demanda e impactos entre domínios, sem exigir M01 ou outra entidade.",
+                "- Escopo: demanda e impactos entre domínios, sem exigir uma entidade de modelo.",
                 f"- Fontes com registros recuperados: {sum(1 for rows in linked.values() if rows)}.",
+                f"- Fontes identificadas pelo catálogo: {', '.join(str(item.get('table_name')) for item in discovery.get('sources_considered', []) if item.get('table_name'))}.",
                 f"- Registros recuperados nas fontes consultadas: {sum(len(rows) for rows in linked.values())}.",
             ]
 
