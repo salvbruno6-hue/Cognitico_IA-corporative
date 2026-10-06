@@ -20,6 +20,7 @@ class DemandForge:
                 },
                 "not_scoped": [
                     {"table_name": "mt_ordens_reparo", "reason": "model_or_entity_scope_required"},
+                    {"table_name": "elo_orcamento_decisoes", "dominio_codigo": "comercial_licitacoes", "prioridade": 11},
                 ],
                 "catalog_authority": "elo_aprendizado_fontes",
                 "learning_performed": False,
@@ -56,6 +57,7 @@ def test_orchestrator_consults_cross_domain_demand_without_model_reference():
     assert response.evidence_state == "OBSERVED"
     assert "demanda e impactos entre domínios" in response.response.lower()
     assert "v_elo_pcp_cobertura_demanda_externa" in response.response
+    assert "elo_orcamento_decisoes" in response.response
     assert "mt_ordens_reparo" in response.response
     assert "somente leitura" in response.response.lower()
     assert "não é interpretada como inexistência" in response.response.lower()
