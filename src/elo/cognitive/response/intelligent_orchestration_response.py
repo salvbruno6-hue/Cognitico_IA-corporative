@@ -28,6 +28,7 @@ class IntelligentOrchestrationResponse:
     evidence_state: str
     next_action: str
     orientation: Any | None = None
+    evidence_refs: tuple[str, ...] = ()
 
 
 class OrchestrationResponseComposer:
@@ -162,6 +163,7 @@ class OrchestrationResponseComposer:
             evidence_state="OBSERVED" if evidence_ids else "INSUFFICIENT",
             next_action="avaliar lacunas ou fornecer uma chave segura para aprofundar as fontes não vinculadas.",
             orientation=None,
+            evidence_refs=tuple(evidence_ids),
         )
 
     @staticmethod
