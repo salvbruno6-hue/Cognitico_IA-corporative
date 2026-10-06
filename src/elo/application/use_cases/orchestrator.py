@@ -332,6 +332,7 @@ class GovernedOrchestrator:
 
         match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
         evidence_ids: list[str] = []
+        evidence_by_source: dict[str, list[str]] = {}
 
         def save_forge_evidence(
             *,
@@ -357,6 +358,7 @@ class GovernedOrchestrator:
             )
             self._evidence_repository.save(evidence)
             evidence_ids.append(evidence.evidence_id)
+            evidence_by_source.setdefault(table, []).append(evidence.evidence_id)
 
         if match:
             reference = match.group(0).upper()
@@ -424,7 +426,7 @@ class GovernedOrchestrator:
                 evidence_repository=self._evidence_repository
             ).compose_forge(
                 request=request,
-                forge_context=context,
+                forge_context={**context, "evidence_by_source": evidence_by_source},
                 evidence_ids=tuple(evidence_ids),
             )
 
@@ -459,7 +461,7 @@ class GovernedOrchestrator:
             evidence_repository=self._evidence_repository
         ).compose_forge(
             request=request,
-            forge_context=context,
+            forge_context={**context, "evidence_by_source": evidence_by_source},
             evidence_ids=tuple(evidence_ids),
         )
 
