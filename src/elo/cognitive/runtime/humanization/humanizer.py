@@ -32,6 +32,7 @@ class Humanizer:
             "status_decisao": self._humanize_status_decisao,
             "guarda_aprendizado": self._humanize_guarda_aprendizado,
             "busca_precedente": self._humanize_busca_precedente,
+            "forge_consulta": self._humanize_forge_consulta,
         }
 
         handler = handlers.get(intent)
@@ -274,6 +275,64 @@ class Humanizer:
             "**Próximo passo:** se você identificar uma decisão "
             "anterior relacionada, posso associá-la."
         )
+
+
+    def _humanize_forge_consulta(self, result: dict) -> str:
+        """Render only observations supplied by the governed Forge evidence set."""
+        entity = result.get("entity_code")
+        evidence = list(result.get("evidence") or [])
+        absences = list(result.get("absences") or [])
+        conflicts = list(result.get("conflicts") or [])
+        selected = list(result.get("selected_sources") or [])
+
+        headline = (
+            f"O Forge encontrou evidências governadas para {entity}."
+            if entity and evidence
+            else "O Forge retornou evidências governadas para esta consulta."
+            if evidence
+            else "O Forge não retornou evidência observada suficiente para esta consulta."
+        )
+
+        lines = [headline, "", "**O que foi confirmado:**"]
+        if evidence:
+            for item in evidence[:12]:
+                claim = getattr(item, "claim", "")
+                table = getattr(item, "source_table", "")
+                evidence_id = getattr(item, "evidence_id", "")
+                if claim:
+                    lines.append(f"- {claim} [evidence:{evidence_id}; fonte:{table}]")
+        else:
+            lines.append("- Nenhuma observação factual foi produzida no escopo consultado.")
+
+        if absences:
+            lines.extend(["", "**O que não foi encontrado no escopo consultado:**"])
+            for item in absences[:12]:
+                claim = getattr(item, "claim", "")
+                evidence_id = getattr(item, "evidence_id", "")
+                if claim:
+                    lines.append(f"- {claim} [evidence:{evidence_id}]")
+
+        if conflicts:
+            lines.extend(["", "**Conflitos preservados:**"])
+            for conflict in conflicts[:8]:
+                lines.append(f"- {conflict}")
+
+        lines.extend(["", "**Fontes governadas consultadas:**"])
+        if selected:
+            for source in selected[:12]:
+                lines.append(f"- {source.get('table_name', '')} ({source.get('dominio_codigo', '')})")
+        else:
+            lines.append("- Nenhuma fonte governada foi selecionada.")
+
+        lines.extend([
+            "",
+            "**Limite da resposta:**",
+            "- Ausência de correspondência é tratada como ausência no escopo consultado, não como inexistência absoluta.",
+            "- A consulta ao Forge é somente leitura e não gera aprendizado automaticamente.",
+            "",
+            "**Próximo passo:** aprofundar a fonte ou o domínio que permanecer como lacuna.",
+        ])
+        return "\n".join(lines)
 
     def _humanize_error(self, result: dict) -> str:
         error = result.get("error", "desconhecido")
