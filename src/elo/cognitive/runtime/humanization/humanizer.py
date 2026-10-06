@@ -440,6 +440,21 @@ class Humanizer:
                     "- Se o histórico comparável e a cobertura forem confirmados, a projeção deve ser recalculada; o orquestrador não congela uma previsão baseada apenas neste retrato.",
                     "- Se surgirem dados de estoque, reparo, produção programada ou operações externas com chaves seguras, a visão futura deve ser atualizada pela nova evidência.",
                     "- Portanto, a clarividência do ELO é **condicional, rastreável e revisável**: comportamento → padrão observado → condição futura → resultado esperado → nova evidência.",
+            ])
+            lines.extend([
+                "",
+                "**5C. ELO APRENDER — como transformar incerteza em aprendizado**",
+                "- Quando o sinal ainda não é suficiente para validar um padrão, o ELO Aprender não inventa uma conclusão: identifica a lacuna e orienta a investigação.",
+                "- A orientação deve ser específica: **qual assunto pesquisar, quais dados colher e por que esses dados são necessários**.",
+                "- Em seguida, o ELO explicita o ganho esperado: **quais indicadores poderão ser calculados ou quais relações poderão ser validadas** com os novos dados.",
+                "- Os novos dados retornam ao ciclo para confrontar o padrão inicial. Se confirmarem o comportamento nas condições comparáveis, a evidência pode avançar para validação; se contradisserem, a hipótese deve ser recalculada ou descartada.",
+                "- O aprendizado somente ocorre depois da validação governada e do confronto entre expectativa e resultado posterior. A observação isolada permanece observação.",
+                "",
+                "**Como o ELO deve ensinar a próxima investigação:**",
+                "> “Ainda não posso afirmar isso. Vamos pesquisar especificamente X e colher Y. Com esses dados poderemos validar Z e obter indicadores que hoje ainda não estão validados.”",
+                "",
+                "**Ciclo de aprendizado:** comportamento observado → lacuna → pesquisa orientada → novos dados → indicadores → validação → projeção condicional → resultado real → comparação → aprendizado governado.",
+            ])
                 ])
 
             lines.extend([
