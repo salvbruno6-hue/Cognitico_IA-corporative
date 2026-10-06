@@ -27,45 +27,6 @@ CATALOG_TABLE = "elo_aprendizado_fontes"
 
 # The catalog is the sole runtime allow-list.  Concrete tables are never
 # admitted by a second static list.
-CATALOG_MATCH_TERMS = {
-    "produto": {"produtos"},
-    "modelo": {"produtos"},
-    "módulo": {"produtos"},
-    "modulo": {"produtos"},
-    "kit": {"produtos"},
-    "composição": {"produtos"},
-    "composicao": {"produtos"},
-    "lista": {"produtos"},
-    "produção": {"producao_fluxo_modular"},
-    "producao": {"producao_fluxo_modular"},
-    "fluxo": {"producao_fluxo_modular"},
-    "demanda": {"planejamento_demanda", "planejamento_pcp"},
-    "material": {"planejamento_demanda", "produtos", "compras"},
-    "recurso": {"planejamento_pcp"},
-    "cobertura": {"planejamento_pcp", "operacoes_externas", "reparos_modulares"},
-    "decisão externa": {"operacoes_externas"},
-    "decisao externa": {"operacoes_externas"},
-    "resumo pcp": {"planejamento_pcp", "operacoes_externas"},
-    "dados pendentes": {"planejamento_pcp"},
-    "operação externa": {"operacoes_externas"},
-    "operacao externa": {"operacoes_externas"},
-    "operações externas": {"operacoes_externas"},
-    "operacoes externas": {"operacoes_externas"},
-    "montagem externa": {"operacoes_externas"},
-    "reparo": {"reparos_modulares"},
-    "reparos": {"reparos_modulares"},
-    "unidade modular": {"reparos_modulares"},
-    "unidade": {"reparos_modulares"},
-    "fornecedor": {"compras"},
-    "cotação": {"compras"},
-    "cotacao": {"compras"},
-    "custo": {"rh", "compras"},
-    "regra": {"gestao"},
-    "exceção": {"gestao"},
-    "excecao": {"gestao"},
-    "proveniência": {"dados_banco"},
-    "proveniencia": {"dados_banco"},
-}
 
 MODEL_ALIASES = {
     "MLT.M01": "M01",
@@ -214,20 +175,35 @@ class SupabaseEloForge:
     def discover_sources(self, query: str) -> list[dict[str, Any]]:
         """Select governed sources from catalog metadata; never invents a source."""
         normalized = query.casefold()
+        query_tokens = {
+            token for token in normalized.replace("-", " ").replace("_", " ").split()
+            if len(token) >= 4
+        }
         sources = self.governed_sources()
         scored: list[tuple[int, int, dict[str, Any]]] = []
         for source in sources:
             domain = str(source.get("dominio_codigo") or "").casefold()
             table = str(source.get("table_name") or "").casefold()
-            rule = json.dumps(source.get("regra_extracao") or {}, ensure_ascii=False).casefold()
+            rule = json.dumps(
+                source.get("regra_extracao") or {}, ensure_ascii=False
+            ).casefold()
+            metadata = " ".join(
+                [domain.replace("_", " "), table.replace("_", " "), rule.replace("_", " ")]
+            )
+            metadata_tokens = {
+                token for token in metadata.split() if len(token) >= 4
+            }
             score = 0
-            for term, domains in CATALOG_MATCH_TERMS.items():
-                if term in normalized and any(domain == candidate.casefold() for candidate in domains):
+            for token in query_tokens:
+                if token in metadata_tokens:
                     score += 4
-            if any(token in normalized for token in table.replace("_", " ").split()):
-                score += 2
-            if domain and domain.replace("_", " ") in normalized:
-                score += 2
+                    continue
+                if any(
+                    candidate.startswith(token[:5]) or token.startswith(candidate[:5])
+                    for candidate in metadata_tokens
+                    if len(candidate) >= 5
+                ):
+                    score += 2
             if score:
                 scored.append((score, int(source.get("prioridade") or 999999), source))
         scored.sort(key=lambda item: (-item[0], item[1], str(item[2].get("table_name"))))
