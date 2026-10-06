@@ -284,22 +284,129 @@ class Humanizer:
         if discovery.get("scope") == "cross_domain_demand_and_impacts":
             linked = discovery.get("linked_records") or {}
             not_scoped = discovery.get("not_scoped") or []
+            demand_rows = linked.get("elo_sim_demanda") or []
+            material_rows = linked.get("elo_sim_demanda_materiais") or []
+            resource_rows = linked.get("elo_sim_demanda_recursos") or []
+            decision_rows = linked.get("v_elo_pcp_decisao_externa_resumo") or []
+            rule_rows = linked.get("v_elo_pcp_dialogo_regras") or []
+            coverage_rows = linked.get("v_elo_pcp_cobertura_demanda_externa") or []
+
             lines = [
-                "O Forge consultou fontes governadas para analisar **demanda e impactos entre domínios**.",
+                "O Forge consultou fontes governadas para responder à demanda transversal. "
+                "A síntese abaixo separa fatos observados, impactos operacionais e limites da evidência.",
                 "",
-                "**Fontes efetivamente consultadas:**",
+                "**1. COMEÇO — o que foi consultado**",
+                f"- Escopo: demanda e impactos entre domínios, sem exigir M01 ou outra entidade.",
+                f"- Fontes com registros recuperados: {sum(1 for rows in linked.values() if rows)}.",
+                f"- Registros recuperados nas fontes consultadas: {sum(len(rows) for rows in linked.values())}.",
             ]
-            for table, rows in linked.items():
-                lines.append(f"- {table}: {len(rows)} registro(s) recuperado(s).")
+
+            if demand_rows:
+                total_qty = sum(float(row.get("quantidade") or 0) for row in demand_rows)
+                priorities = [row.get("prioridade") for row in demand_rows if row.get("prioridade") is not None]
+                deadlines = [row.get("prazo_dias") for row in demand_rows if row.get("prazo_dias") is not None]
+                lines.extend([
+                    "",
+                    "**2. MEIO — fatos detalhados encontrados**",
+                    f"- Demanda registrada na fonte de simulação: {len(demand_rows)} item(ns), totalizando {total_qty:g} unidade(s).",
+                ])
+                if deadlines:
+                    lines.append(f"- Prazos registrados: de {min(deadlines)} a {max(deadlines)} dia(s).")
+                if priorities:
+                    lines.append(f"- Prioridades registradas: de {min(priorities)} a {max(priorities)}.")
+                lines.append("- Detalhamento por demanda:")
+                for row in demand_rows[:10]:
+                    lines.append(
+                        f"  - {row.get('demanda_id') or 'ID não informado'}: "
+                        f"{row.get('descricao') or 'sem descrição'}; "
+                        f"quantidade={row.get('quantidade', 'não informada')}; "
+                        f"prazo={row.get('prazo_dias', 'não informado')} dia(s); "
+                        f"prioridade={row.get('prioridade', 'não informada')}; "
+                        f"status={row.get('status', 'não informado')}."
+                    )
+            else:
+                lines.extend(["", "**2. MEIO — fatos detalhados encontrados**",
+                              "- Não foram recuperados registros na fonte de demanda de simulação."])
+
+            if material_rows:
+                total_material = sum(float(row.get("quantidade_necessaria") or 0) for row in material_rows)
+                lines.append(
+                    f"- Materiais: {len(material_rows)} linha(s), com {total_material:g} unidade(s) de quantidade necessária registrada."
+                )
+                for row in material_rows[:10]:
+                    lines.append(
+                        f"  - {row.get('demanda_id') or 'demanda não informada'} → "
+                        f"{row.get('material_id') or 'material não informado'}: "
+                        f"{row.get('quantidade_necessaria', 'não informada')} unidade(s)."
+                    )
+
+            if resource_rows:
+                total_hours = sum(float(row.get("horas_demanda_h") or 0) for row in resource_rows)
+                lines.append(
+                    f"- Recursos: {len(resource_rows)} linha(s), totalizando {total_hours:g} hora(s) de demanda registradas."
+                )
+                for row in resource_rows[:10]:
+                    lines.append(
+                        f"  - {row.get('demanda_id') or 'demanda não informada'} → "
+                        f"{row.get('recurso_id') or 'recurso não informado'}: "
+                        f"{row.get('horas_demanda_h', 'não informadas')} h."
+                    )
+
+            if decision_rows:
+                decision = decision_rows[0]
+                lines.extend([
+                    "",
+                    "**3. IMPACTOS — o que os dados permitem afirmar**",
+                    f"- Estado da decisão externa: {decision.get('estado_decisao', 'não informado')}.",
+                    f"- Estado de cobertura global: {decision.get('estado_cobertura_global', 'não informado')}.",
+                    f"- Previsão de unidades: {decision.get('demanda_prevista_modelos', 'não informada')}.",
+                    f"- Produção programada registrada: {decision.get('producao_programada_modelos', 'não informada')}.",
+                    f"- Necessidade adicional de fabricação registrada: {decision.get('necessidade_adicional_fabricacao_modelos', 'não informada')}.",
+                    f"- Horas planejadas de operações externas: {decision.get('horas_planejadas_externas', 'não informadas')}.",
+                ])
+            else:
+                lines.extend(["", "**3. IMPACTOS — o que os dados permitem afirmar**",
+                              "- Não há registro de resumo de decisão externa recuperado."])
+
+            if rule_rows:
+                rule = rule_rows[0]
+                lines.extend([
+                    "",
+                    "**4. BLOQUEIOS E GAPS — o que impede uma conclusão mais forte**",
+                    f"- Gate: {rule.get('gate', 'não informado')}.",
+                    f"- Gap: {rule.get('gap_codigo', 'não informado')}.",
+                    f"- Motivo: {rule.get('motivo', 'não informado')}.",
+                    f"- Prioridade: {rule.get('prioridade', 'não informada')}.",
+                    f"- Bloqueia execução: {'sim' if rule.get('bloqueia_execucao') is True else 'não' if rule.get('bloqueia_execucao') is False else 'não informado'}.",
+                ])
+            if not coverage_rows:
+                lines.append("- A cobertura de demanda externa não apresentou registros nesta consulta.")
+
             if not_scoped:
-                lines.extend(["", "**Fontes que exigem uma entidade/chave para aprofundamento:**"])
+                lines.extend([
+                    "",
+                    "**5. LIMITES — o que não deve ser inferido**",
+                    "- Fontes específicas por pedido, unidade, modelo ou ordem continuam sem atribuição quando falta uma chave segura.",
+                ])
                 for item in not_scoped[:10]:
-                    lines.append(f"- {item.get('table_name')}: {item.get('reason')}.")
+                    lines.append(
+                        f"- {item.get('table_name')}: aprofundamento requer {item.get('reason', 'escopo seguro')}."
+                    )
+            else:
+                lines.extend([
+                    "",
+                    "**5. LIMITES — o que não deve ser inferido**",
+                    "- Nenhuma fonte específica ficou fora por falta de chave nesta consulta.",
+                ])
+
             lines.extend([
-                "", "**Limite da conclusão:**",
-                "- A consulta é somente leitura; nenhuma decisão, aprendizado ou promoção foi realizada.",
-                "- Ausência de registro não é interpretada como inexistência da demanda.",
-                "- Fontes específicas por pedido, unidade, modelo ou ordem exigem uma chave segura para atribuição.",
+                "",
+                "**6. FIM — conclusão executiva**",
+                "- A consulta comprova que existem registros governados de demanda, materiais e recursos no estado consultado.",
+                "- Os dados também mostram que a avaliação de impacto do PCP depende de cobertura, histórico comparável e vínculos operacionais seguros.",
+                "- Portanto, a resposta pode descrever o estado observado, mas não deve transformar esses dados em decisão de fabricação, contratação ou priorização sem a etapa de validação correspondente.",
+                "",
+                "**Próximo passo:** aprofundar a demanda ou impacto específico usando a chave operacional disponível; a consulta permanece somente leitura e não realiza aprendizado ou promoção.",
             ])
             return "\n".join(lines)
         linked = discovery.get("linked_records") or {}
