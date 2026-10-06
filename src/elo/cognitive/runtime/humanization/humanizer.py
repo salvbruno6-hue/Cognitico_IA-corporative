@@ -461,7 +461,7 @@ class Humanizer:
                 "",
                 "**6. FIM — conclusão executiva**",
                 "- A memória desta consulta não é apenas uma lista de registros: ela registra como o orquestrador chegou à leitura, quais comportamentos observou e sob quais condições um resultado futuro pode ser esperado.",
-                "- A previsão não é tratada como certeza. Ela depende da persistência dos sinais observados e pode ser alterada quando novas evidências entrarem no ciclo.",
+                "- Isto não é uma previsão: é uma projeção condicional baseada nos sinais observados. Ela pode ser alterada quando novas evidências entrarem no ciclo.",
                 "- A consulta comprova registros governados de demanda, materiais e recursos, mas a decisão operacional continua dependente de cobertura, histórico comparável e vínculos seguros.",
                 "",
                 "**Próximo passo:** acompanhar o resultado real contra essa projeção condicionada; somente evidência posterior validada pode transformar o padrão observado em aprendizado governado.",
