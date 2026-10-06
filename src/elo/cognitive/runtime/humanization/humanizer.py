@@ -281,6 +281,27 @@ class Humanizer:
         model = context.get("model") or {}
         relationships = context.get("relationships") or {}
         discovery = context.get("governed_discovery") or {}
+        if discovery.get("scope") == "cross_domain_demand_and_impacts":
+            linked = discovery.get("linked_records") or {}
+            not_scoped = discovery.get("not_scoped") or []
+            lines = [
+                "O Forge consultou fontes governadas para analisar **demanda e impactos entre domínios**.",
+                "",
+                "**Fontes efetivamente consultadas:**",
+            ]
+            for table, rows in linked.items():
+                lines.append(f"- {table}: {len(rows)} registro(s) recuperado(s).")
+            if not_scoped:
+                lines.extend(["", "**Fontes que exigem uma entidade/chave para aprofundamento:**"])
+                for item in not_scoped[:10]:
+                    lines.append(f"- {item.get('table_name')}: {item.get('reason')}.")
+            lines.extend([
+                "", "**Limite da conclusão:**",
+                "- A consulta é somente leitura; nenhuma decisão, aprendizado ou promoção foi realizada.",
+                "- Ausência de registro não é interpretada como inexistência da demanda.",
+                "- Fontes específicas por pedido, unidade, modelo ou ordem exigem uma chave segura para atribuição.",
+            ])
+            return "\\n".join(lines)
         linked = discovery.get("linked_records") or {}
         not_linked = discovery.get("not_linked") or []
         code = model.get("codigo") or "modelo consultado"
