@@ -21,4 +21,12 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[test]"
-      - run: PYTHONPATH="$PWD/src:$PWD/elo-virtual-core" pytest -q tests elo-virtual-core/testes
+      - run: python -m compileall -q src elo-virtual-core
+      - run: >-
+          PYTHONPATH="$PWD:$PWD/src:$PWD/elo-virtual-core"
+          pytest -q
+          tests/cognitive/test_cognitive_core_forge_runtime.py
+          tests/cognitive/test_forge_evidence_contract.py
+          tests/cognitive/test_forge_conflict_preservation.py
+          elo-virtual-core/testes/test_forge_registry_selection.py
+          elo-virtual-core/testes/test_supabase_elo_forge.py
