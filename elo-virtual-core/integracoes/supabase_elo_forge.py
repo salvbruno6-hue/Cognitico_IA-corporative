@@ -428,6 +428,54 @@ class SupabaseEloForge:
         result["provenance"]["model_code"] = model_code
         return result
 
+    def governed_query_context(self, query: str) -> dict[str, Any]:
+        """Read bounded records from sources selected by the canonical catalog."""
+        discovered = self.discover_sources(query)
+        records: dict[str, list[dict[str, Any]]] = {}
+        not_read: list[dict[str, Any]] = []
+
+        for source in discovered:
+            table = str(source.get("table_name") or "")
+            if not table:
+                continue
+            try:
+                rows = self._read_raw_table(table, limit=25)
+            except ForgeRetrievalError as exc:
+                not_read.append({
+                    "table_name": table,
+                    "reason": "read_failed",
+                    "error": str(exc),
+                })
+                continue
+            records[table] = rows
+
+        return {
+            "query": query,
+            "governed_discovery": {
+                "sources_considered": [
+                    {
+                        "table_name": source.get("table_name"),
+                        "dominio_codigo": source.get("dominio_codigo"),
+                        "prioridade": source.get("prioridade"),
+                    }
+                    for source in discovered
+                ],
+                "catalog_authority": CATALOG_TABLE,
+                "learning_performed": False,
+                "not_read": not_read,
+            },
+            "generic_query": {
+                "records_by_source": records,
+                "read_only": True,
+            },
+            "provenance": {
+                "source": "Supabase Elo-forge",
+                "read_only": True,
+                "guessed": False,
+                "governed_catalog": CATALOG_TABLE,
+            },
+        }
+
     def resolve_model(self, reference: str) -> dict[str, Any]:
         """Resolve aliases to canonical model identity without duplicating data."""
         code = self.canonical_model_code(reference)
