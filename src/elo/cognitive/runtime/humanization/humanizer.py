@@ -455,7 +455,6 @@ class Humanizer:
                 "",
                 "**Ciclo de aprendizado:** comportamento observado → lacuna → pesquisa orientada → novos dados → indicadores → validação → projeção condicional → resultado real → comparação → aprendizado governado.",
             ])
-                ])
 
             lines.extend([
                 "",
