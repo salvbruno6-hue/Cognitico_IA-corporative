@@ -82,10 +82,37 @@ class CognitiveCore:
                 request_id=request.request_id,
                 correlation_id=request.correlation_id or request.request_id,
             )
-            return self._orchestrator.consult_forge(
+            consultation = self._orchestrator.consult_forge(
                 orchestration_request,
                 forge,
             )
+            return {
+                "response": {
+                    "type": "forge_grounded_analysis",
+                    "content": consultation.response,
+                    "status": consultation.status,
+                },
+                "confidence": 1.0 if consultation.evidence_state == "OBSERVED" else 0.0,
+                "domain": request.domain,
+                "forge": {
+                    "capability": consultation.capability,
+                    "stage": consultation.stage,
+                    "evidence_state": consultation.evidence_state,
+                    "evidence_ids": list(consultation.evidence_refs),
+                    "next_action": consultation.next_action,
+                },
+                "provenance": {
+                    "request_id": request.request_id,
+                    "correlation_id": request.correlation_id,
+                    "tenant_id": request.tenant_id,
+                    "domain": request.domain,
+                    "principal_id": request.principal_id,
+                    "provider": "supabase_elo_forge",
+                    "evidence_refs": list(consultation.evidence_refs),
+                    "policy_decision": "READ_ONLY_GOVERNED_SOURCE_SELECTION",
+                    "validation_status": "evidence_observed",
+                },
+            }
 
         context = dict(request.context)
         context.setdefault("session_id", request.session_id)
