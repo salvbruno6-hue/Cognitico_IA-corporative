@@ -37,6 +37,8 @@ class CognitiveCore:
         if not request.tenant_id:
             raise ValueError("tenant_id is required")
 
+        context = request.context or {}
+
         hermes_result = self._maybe_execute_hermes(request)
         if hermes_result is not None:
             return {
