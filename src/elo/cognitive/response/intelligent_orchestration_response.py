@@ -152,7 +152,11 @@ class OrchestrationResponseComposer:
         return IntelligentOrchestrationResponse(
             status="CONSULTED",
             stage="ANALYZE",
-            headline=f"Consulta governada do Forge para {model.get('codigo') or entity.get('requested_reference') or 'modelo'}.",
+            headline=(
+                f"Consulta governada do Forge para {model.get('codigo') or entity.get('requested_reference')}."
+                if model or entity
+                else "Consulta governada do Forge sobre demanda e impactos."
+            ),
             response=response,
             capability="forge_operational_knowledge",
             provider="supabase_elo_forge",
