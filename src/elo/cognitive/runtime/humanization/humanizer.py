@@ -279,9 +279,9 @@ class Humanizer:
     def _humanize_forge_consulta(self, result: dict) -> str:
         context = result.get("forge_context") or {}
         model = context.get("model") or {}
+        discovery = context.get("governed_discovery") or {}
+        evidence_by_source = context.get("evidence_by_source") or {}
         if not model:
-            discovery = context.get("governed_discovery") or {}
-            evidence_by_source = context.get("evidence_by_source") or {}
             sources = discovery.get("sources_considered") or []
             records = (context.get("generic_query") or {}).get("records_by_source") or {}
             lines = [
