@@ -330,21 +330,32 @@ class GovernedOrchestrator:
         if not request.tenant_id or not request.objective:
             raise ValueError("tenant_id and objective are required")
         match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
-        if not match:
-            raise ValueError("a canonical model reference is required for Forge consultation")
-        reference = match.group(0).upper()
-        context = forge.governed_model_context(reference, request.objective)
+        if match:
+            reference = match.group(0).upper()
+            context = forge.governed_model_context(reference, request.objective)
+        else:
+            context = forge.governed_demand_context(request.objective)
         evidence_ids = []
         entity = context.get("entity") or {}
         model = context.get("model") or {}
-        evidence_ids.append(self._evidence_repository.save(Evidence.create(
-            tenant_id=request.tenant_id, domain=request.domain or "forge",
-            source_type="supabase_elo_forge", source_id=str(entity.get("model_id") or reference),
-            claim=f"Forge confirmou o modelo {model.get('codigo') or reference}",
-            content_ref=f"supabase_elo_forge:modelos:{entity.get('model_id') or reference}",
-            quality="OBSERVED", relevance=1.0,
-            provenance={"catalog":"elo_aprendizado_fontes", "read_only":True, "learning_performed":False},
-        )).evidence_id)
+        if entity:
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id=str(entity.get("model_id") or entity.get("requested_reference")),
+                claim=f"Forge confirmou o modelo {model.get('codigo') or entity.get('requested_reference')}",
+                content_ref=f"supabase_elo_forge:modelos:{entity.get('model_id') or entity.get('requested_reference')}",
+                quality="OBSERVED", relevance=1.0,
+                provenance={"catalog":"elo_aprendizado_fontes", "read_only":True, "learning_performed":False},
+            )).evidence_id)
+        else:
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id="cross_domain_demand_and_impacts",
+                claim="Forge consultou fontes governadas para demanda e impactos entre domínios.",
+                content_ref="supabase_elo_forge:cross_domain_demand_and_impacts",
+                quality="OBSERVED", relevance=1.0,
+                provenance={"catalog":"elo_aprendizado_fontes", "read_only":True, "learning_performed":False, "scope":"cross_domain_demand_and_impacts"},
+            )).evidence_id)
         discovery = context.get("governed_discovery") or {}
         for table, rows in (discovery.get("linked_records") or {}).items():
             evidence_ids.append(self._evidence_repository.save(Evidence.create(
