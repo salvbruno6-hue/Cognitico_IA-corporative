@@ -40,6 +40,14 @@ CATALOG_MATCH_TERMS = {
     "producao": {"producao_fluxo_modular"},
     "fluxo": {"producao_fluxo_modular"},
     "demanda": {"planejamento_demanda", "planejamento_pcp"},
+    "demanda comercial": {"comercial_licitacoes", "planejamento_demanda"},
+    "demanda de fabricação": {"planejamento_pcp", "producao_fluxo_modular"},
+    "demanda fabricação": {"planejamento_pcp", "producao_fluxo_modular"},
+    "demanda de reparos": {"reparos_modulares", "planejamento_pcp"},
+    "demanda de operações externas": {"operacoes_externas", "planejamento_pcp"},
+    "demanda de operacoes externas": {"operacoes_externas", "planejamento_pcp"},
+    "impacto": {"planejamento_pcp", "operacoes_externas", "reparos_modulares", "compras"},
+    "impactos": {"planejamento_pcp", "operacoes_externas", "reparos_modulares", "compras"},
     "material": {"planejamento_demanda", "produtos", "compras"},
     "recurso": {"planejamento_pcp"},
     "cobertura": {"planejamento_pcp", "operacoes_externas", "reparos_modulares"},
@@ -236,6 +244,68 @@ class SupabaseEloForge:
     @staticmethod
     def _ids(values: list[Any]) -> list[str]:
         return list(dict.fromkeys(str(value) for value in values if value is not None))
+
+    def governed_demand_context(self, query: str) -> dict[str, Any]:
+        """Consult demand and impact sources without requiring a model entity.
+
+        This is a read-only cross-domain view. Model-specific operational tables
+        are not queried without a safe relationship; global PCP read-models and
+        explicit simulation sources may be consulted with their scope preserved.
+        """
+        discovered = self.discover_sources(query)
+        global_tables = {
+            "v_elo_pcp_cobertura_demanda_externa",
+            "v_elo_pcp_decisao_externa_detalhe",
+            "v_elo_pcp_decisao_externa_resumo",
+            "v_elo_pcp_dialogo_regras",
+            "fluxo_produtivo_modular",
+            "elo_sim_cenarios",
+            "elo_sim_demanda",
+            "elo_sim_demanda_materiais",
+            "elo_sim_demanda_recursos",
+        }
+        linked: dict[str, list[dict[str, Any]]] = {}
+        not_scoped: list[dict[str, Any]] = []
+        for source in discovered:
+            table = str(source.get("table_name") or "")
+            if table not in global_tables:
+                not_scoped.append({
+                    "table_name": table,
+                    "dominio_codigo": source.get("dominio_codigo"),
+                    "reason": "model_or_entity_scope_required",
+                })
+                continue
+            if table == "fluxo_produtivo_modular":
+                rows = self._read_raw_table(table, filters={"ativo": "eq.true"}, limit=100)
+            else:
+                rows = self._read_raw_table(table, limit=100)
+            linked[table] = rows
+        return {
+            "source": "supabase_elo_forge",
+            "query": query,
+            "governed_discovery": {
+                "sources_considered": [
+                    {
+                        "table_name": source.get("table_name"),
+                        "dominio_codigo": source.get("dominio_codigo"),
+                        "prioridade": source.get("prioridade"),
+                    }
+                    for source in discovered
+                ],
+                "linked_records": linked,
+                "not_scoped": not_scoped,
+                "catalog_authority": CATALOG_TABLE,
+                "learning_performed": False,
+                "scope": "cross_domain_demand_and_impacts",
+            },
+            "provenance": {
+                "source": "Supabase Elo-forge",
+                "governed_catalog": CATALOG_TABLE,
+                "read_only": True,
+                "guessed": False,
+                "learning_performed": False,
+            },
+        }
 
     def governed_model_context(self, reference: str, query: str) -> dict[str, Any]:
         """Retrieve a model and safely extend it through catalog-governed sources."""
