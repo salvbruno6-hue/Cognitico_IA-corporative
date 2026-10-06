@@ -279,10 +279,40 @@ class Humanizer:
     def _humanize_forge_consulta(self, result: dict) -> str:
         context = result.get("forge_context") or {}
         model = context.get("model") or {}
+        discovery = context.get("governed_discovery") or {}
+        evidence_by_source = context.get("evidence_by_source") or {}
+        if not model:
+            sources = discovery.get("sources_considered") or []
+            records = (context.get("generic_query") or {}).get("records_by_source") or {}
+            lines = [
+                "O Forge respondeu pela camada de fontes governadas, sem inventar uma entidade específica.",
+                "",
+                "**O que foi consultado:**",
+            ]
+            if sources:
+                for source in sources[:12]:
+                    table = source.get("table_name", "")
+                    domain = source.get("dominio_codigo", "")
+                    count = len(records.get(table, []))
+                    lines.append(f"- {table} ({domain}): {count} registro(s) recuperado(s) no escopo delimitado.")
+            else:
+                lines.append("- Nenhuma fonte governada foi selecionada para a pergunta.")
+            lines.extend([
+                "",
+                "**Limite da evidência:**",
+                "- A consulta é somente leitura.",
+                "- Uma contagem ou ausência em um escopo delimitado não representa inexistência absoluta.",
+                "- Nenhum aprendizado ou promoção foi realizado.",
+                "",
+                "**Próximo passo:** fornecer uma chave operacional adicional quando for necessário relacionar os dados a uma entidade específica.",
+            ])
+            return "\n".join(lines)
+
         relationships = context.get("relationships") or {}
         discovery = context.get("governed_discovery") or {}
         linked = discovery.get("linked_records") or {}
         not_linked = discovery.get("not_linked") or []
+        conflicts = discovery.get("conflicts") or []
         code = model.get("codigo") or "modelo consultado"
         name = model.get("nome") or "nome não informado"
         lines = [
@@ -310,22 +340,14 @@ class Humanizer:
             if row.get("modelo_id") == model_id
         ]
         flow_scope = discovery.get("applicability", {}).get("fluxo_produtivo_modular", [])
-        family_flows = [
-            item for item in flow_scope if item.get("scope") == "family_wide_modular"
-        ]
+        family_flows = [item for item in flow_scope if item.get("scope") == "family_wide_modular"]
         stages = linked.get("fluxo_produtivo_modular_etapas", [])
         if specific_flows:
             lines.append(f"- Fluxo produtivo específico encontrado: {len(specific_flows)}.")
             lines.append(f"- Etapas vinculadas a esse fluxo: {len(stages)}.")
         elif family_flows:
-            lines.append(
-                f"- Fluxo produtivo modular de referência aplicável à família de módulos: "
-                f"{len(family_flows)} fluxo(s), com {len(stages)} etapa(s)."
-            )
-            lines.append(
-                f"- O fluxo é compartilhado pela fabricação modular; isso não significa "
-                f"que as {len(stages)} etapas sejam exclusivas do {code}."
-            )
+            lines.append(f"- Fluxo produtivo modular de referência aplicável à família de módulos: {len(family_flows)} fluxo(s), com {len(stages)} etapa(s).")
+            lines.append(f"- O fluxo é compartilhado pela fabricação modular; isso não significa que as {len(stages)} etapas sejam exclusivas do {code}.")
         else:
             lines.append("- Nenhum fluxo produtivo aplicável foi recuperado nesta consulta.")
         external_orders = linked.get("mt_ordens_montagem_externa", [])
@@ -335,51 +357,41 @@ class Humanizer:
         repair_units = linked.get("mt_unidades_modulares", [])
         repair_orders = linked.get("mt_ordens_reparo", [])
         if external_orders or external_items:
-            lines.append(
-                f"- Operações externas relacionadas ao {code}: {len(external_orders)} ordem(ns), "
-                f"via {len(external_items)} item(ns) de pedido de venda."
-            )
+            lines.append(f"- Operações externas relacionadas ao {code}: {len(external_orders)} ordem(ns), via {len(external_items)} item(ns) de pedido de venda.")
             if external_team:
                 lines.append(f"- Equipe de montagem externa recuperada: {len(external_team)} registro(s).")
             if external_functions:
                 lines.append(f"- Funções de montagem externa relacionadas: {len(external_functions)}.")
         if repair_units or repair_orders:
-            lines.append(
-                f"- Cobertura de reparos modulares relacionada ao {code}: "
-                f"{len(repair_units)} unidade(s) e {len(repair_orders)} ordem(ns) de reparo."
-            )
+            lines.append(f"- Cobertura de reparos modulares relacionada ao {code}: {len(repair_units)} unidade(s) e {len(repair_orders)} ordem(ns) de reparo.")
         if structures:
             lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
         else:
             lines.append("- Nenhum registro de estrutura modular foi recuperado no estado atual consultado.")
+        if conflicts:
+            lines.extend(["", "**Conflitos preservados:**"])
+            for conflict in conflicts[:8]:
+                lines.append(f"- {conflict}")
         lines.extend(["", "**O que não está comprovado:**"])
         if not structures:
-            lines.append(
-                f"- O estado atual consultado não contém registro de estrutura modular "
-                f"recuperável para o {code}; isso não autoriza concluir que a estrutura "
-                f"conceitual do processo não exista."
-            )
+            lines.append(f"- O estado atual consultado não contém registro de estrutura modular recuperável para o {code}; isso não autoriza concluir que a estrutura conceitual do processo não exista.")
         if not specific_flows and not family_flows:
             lines.append(f"- Não foi localizado fluxo aplicável ao {code} nesta consulta.")
         if not_linked:
             names = ", ".join(str(item.get("table_name")) for item in not_linked[:8] if item.get("table_name"))
             lines.append("- Algumas fontes governadas foram descobertas, mas não foram relacionadas ao modelo sem uma chave segura: " + names + ".")
         if not external_orders and not external_items:
-            lines.append(
-                f"- Nenhuma ordem de operação externa foi relacionada ao {code} no estado atual consultado."
-            )
+            lines.append(f"- Nenhuma ordem de operação externa foi relacionada ao {code} no estado atual consultado.")
         if not repair_units and not repair_orders:
-            lines.append(
-                f"- Nenhuma unidade/ordem de reparo foi relacionada ao {code} no estado atual consultado."
-            )
-        if not any([
-            not structures,
-            not specific_flows,
-            not_linked,
-            not external_orders and not external_items,
-            not repair_units and not repair_orders,
-        ]):
+            lines.append(f"- Nenhuma unidade/ordem de reparo foi relacionada ao {code} no estado atual consultado.")
+        if not any([not structures, not specific_flows, not_linked, not external_orders and not external_items, not repair_units and not repair_orders]):
             lines.append("- Nenhuma ausência adicional foi identificada nesta consulta.")
+        lines.extend(["", "**Rastreabilidade:**"])
+        if evidence_by_source:
+            for table, refs in list(evidence_by_source.items())[:12]:
+                lines.append(f"- {table}: " + ", ".join(f"[evidence:{ref}]" for ref in refs[:8]))
+        else:
+            lines.append("- Nenhuma referência de evidência foi produzida.")
         lines.extend([
             "",
             "**Limite da evidência:**",

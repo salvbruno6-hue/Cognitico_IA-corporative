@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from threading import RLock
-from typing import Iterable
+from typing import Any, Iterable
 from uuid import uuid4
 
 
@@ -30,6 +30,16 @@ class Evidence:
     quality: str = "UNVERIFIED"
     relevance: float = 0.0
     provenance: dict[str, object] = field(default_factory=dict)
+    source_system: str = ""
+    source_schema: str = ""
+    source_table: str = ""
+    source_record_id: str = ""
+    source_domain: str = ""
+    source_fields: tuple[str, ...] = ()
+    value: Any = None
+    confidence: str = "unverified"
+    absence_type: str | None = None
+    query_scope: dict[str, object] = field(default_factory=dict)
 
     @classmethod
     def create(
@@ -45,6 +55,16 @@ class Evidence:
         quality: str = "UNVERIFIED",
         relevance: float = 0.0,
         provenance: dict[str, object] | None = None,
+        source_system: str = "",
+        source_schema: str = "",
+        source_table: str = "",
+        source_record_id: str = "",
+        source_domain: str = "",
+        source_fields: Iterable[str] = (),
+        value: Any = None,
+        confidence: str = "unverified",
+        absence_type: str | None = None,
+        query_scope: dict[str, object] | None = None,
     ) -> "Evidence":
         if not tenant_id.strip():
             raise ValueError("tenant_id is required")
@@ -64,6 +84,57 @@ class Evidence:
             quality=quality,
             relevance=max(0.0, min(1.0, float(relevance))),
             provenance=dict(provenance or {}),
+            source_system=source_system.strip(),
+            source_schema=source_schema.strip(),
+            source_table=source_table.strip(),
+            source_record_id=source_record_id.strip(),
+            source_domain=source_domain.strip(),
+            source_fields=tuple(str(item) for item in source_fields),
+            value=value,
+            confidence=confidence.strip() or "unverified",
+            absence_type=absence_type,
+            query_scope=dict(query_scope or {}),
+        )
+
+    @classmethod
+    def from_forge(
+        cls,
+        *,
+        tenant_id: str,
+        source_table: str,
+        source_domain: str,
+        claim: str,
+        source_record_id: str = "",
+        source_fields: Iterable[str] = (),
+        value: Any = None,
+        confidence: str = "observed",
+        absence_type: str | None = None,
+        query_scope: dict[str, object] | None = None,
+    ) -> "Evidence":
+        return cls.create(
+            tenant_id=tenant_id,
+            domain=source_domain,
+            source_type="ELO Forge",
+            source_id=source_record_id or source_table,
+            claim=claim,
+            content_ref=f"forge://public/{source_table}/{source_record_id}".rstrip("/"),
+            quality="OBSERVED" if confidence == "observed" else "UNVERIFIED",
+            relevance=1.0,
+            provenance={
+                "source": "Supabase Elo-forge",
+                "read_only": True,
+                "guessed": False,
+            },
+            source_system="ELO Forge",
+            source_schema="public",
+            source_table=source_table,
+            source_record_id=source_record_id,
+            source_domain=source_domain,
+            source_fields=source_fields,
+            value=value,
+            confidence=confidence,
+            absence_type=absence_type,
+            query_scope=query_scope,
         )
 
 
