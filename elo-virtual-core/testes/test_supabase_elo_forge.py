@@ -29,7 +29,7 @@ def test_read_table_rejects_non_allowlisted_table():
     try:
         forge.read_table("users")
     except ForgeRetrievalError as exc:
-        assert "table_not_allowed" in str(exc)
+        assert "table_not_governed" in str(exc)
     else:
         raise AssertionError("non-allowlisted table must be rejected")
 
