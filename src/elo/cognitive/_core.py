@@ -10,6 +10,8 @@ from elo.interface.contracts import CognitiveRequest
 from .agents.hermes_contract import HermesExecutionRequest
 from elo.core.interaction_runtime import build_interaction
 from elo.core.temporal_memory import TemporalConversationMemory
+from elo.application.use_cases.orchestrator import GovernedOrchestrator, OrchestrationRequest
+from elo.evidence import EvidenceRepository
 from .symbiont_hermes_bridge import SymbiontHermesBridge
 
 
@@ -28,10 +30,31 @@ class CognitiveCore:
     ) -> None:
         self._hermes_bridge = hermes_bridge or SymbiontHermesBridge()
         self._temporal_memory = temporal_memory or TemporalConversationMemory()
+        self._evidence_repository = EvidenceRepository()
+        self._orchestrator = GovernedOrchestrator(evidence_repository=self._evidence_repository)
 
     def process(self, request: CognitiveRequest) -> dict[str, Any]:
         if not request.tenant_id:
             raise ValueError("tenant_id is required")
+
+        forge_enabled = bool(
+            request.context.get(
+                "forge_enabled",
+                bool(
+                    os.getenv("ELO_FORGE_SUPABASE_URL") or os.getenv("SUPABASE_URL")
+                ),
+            )
+        )
+        if forge_enabled:
+            orchestration_request = OrchestrationRequest(
+                tenant_id=request.tenant_id,
+                principal_id=request.principal_id or request.user_id or "",
+                domain=request.domain or "conversational",
+                objective=request.message,
+                request_id=request.request_id,
+                correlation_id=request.correlation_id or request.request_id,
+            )
+            return self._orchestrator.converse(orchestration_request)
 
         hermes_result = self._maybe_execute_hermes(request)
         if hermes_result is not None:
