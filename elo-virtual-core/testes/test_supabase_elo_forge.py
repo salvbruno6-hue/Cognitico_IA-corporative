@@ -23,9 +23,10 @@ def test_config_requires_server_side_credentials(monkeypatch):
         raise AssertionError("missing credentials must fail closed")
 
 
-def test_read_table_rejects_non_allowlisted_table():
+def test_read_table_rejects_non_allowlisted_table(monkeypatch):
     forge = object.__new__(SupabaseEloForge)
     forge.config = ForgeConfig("https://example.supabase.co", "test")
+    monkeypatch.setattr(forge, "governed_sources", lambda: [])
     try:
         forge.read_table("users")
     except ForgeRetrievalError as exc:
