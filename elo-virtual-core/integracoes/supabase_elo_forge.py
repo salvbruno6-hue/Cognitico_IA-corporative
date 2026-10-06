@@ -263,6 +263,8 @@ class SupabaseEloForge:
             "elo_sim_demanda",
             "elo_sim_demanda_materiais",
             "elo_sim_demanda_recursos",
+            "elo_orcamento_decisoes",
+            "elo_orcamento_associacoes",
         }
         linked: dict[str, list[dict[str, Any]]] = {}
         not_scoped: list[dict[str, Any]] = []
