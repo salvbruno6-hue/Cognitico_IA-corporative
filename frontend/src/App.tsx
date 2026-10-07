@@ -47,5 +47,5 @@ function ELOCore() {
     </main>
   );
 }
-function Login() { return <ELOGoogleLogin><ELOCore /></ELOGoogleLogin>; }
+function Login() { return <ELOGoogleLogin />; }
 export default function App() { return <Routes><Route path="/" element={<Login />} /><Route path="/login" element={<Login />} /><Route path="/auth/callback" element={<ELOAuthCallback />} /><Route path="/oauth/consent" element={<ELOOAuthConsent />} /><Route path="/app/*" element={<Login />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes>; }
