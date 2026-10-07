@@ -35,6 +35,7 @@ export function ELOWebAuthBoundary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -48,7 +49,10 @@ export function ELOWebAuthBoundary() {
     const { data: authState } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
-      if (!nextSession) setAuthorized(false);
+      if (!nextSession) {
+        setAuthorized(false);
+        setWorkspaceOpen(false);
+      }
     });
 
     const initialize = async () => {
@@ -64,6 +68,7 @@ export function ELOWebAuthBoundary() {
       if (!data.session) {
         setSession(null);
         setAuthorized(false);
+        setWorkspaceOpen(false);
         setLoading(false);
         return;
       }
@@ -75,6 +80,7 @@ export function ELOWebAuthBoundary() {
         if (active) {
           setError(null);
           setAuthorized(true);
+          setWorkspaceOpen(false);
         }
       } catch (authorizationError) {
         if (active) {
@@ -146,6 +152,7 @@ export function ELOWebAuthBoundary() {
       return;
     }
     setAuthorized(false);
+    setWorkspaceOpen(false);
     setSession(null);
     window.location.assign("/");
   }
@@ -181,6 +188,20 @@ export function ELOWebAuthBoundary() {
             <div><span className="font-semibold text-slate-500">3.</span> ELO Authorization valida identidade e permissões.</div>
             <div><span className="font-semibold text-slate-500">4.</span> Usuários autorizados seguem para o Portal Operacional.</div>
           </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!workspaceOpen) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] p-6 text-[var(--elo-ink)]">
+        <section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div>
+          <div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-slate-400">WORKSPACE OPERACIONAL</div>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Acesso autorizado</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-500">Autenticação Google, sessão Supabase e autorização ELO concluídas. Abra o Workspace Operacional para entrar na tela de operação.</p>
+          <button type="button" onClick={() => setWorkspaceOpen(true)} className="mt-6 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">Abrir Workspace Operacional</button>
         </section>
       </main>
     );
