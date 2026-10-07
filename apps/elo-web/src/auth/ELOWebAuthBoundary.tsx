@@ -45,6 +45,26 @@ export function ELOWebAuthBoundary() {
       return () => { active = false; };
     }
 
+    const workspaceHandoff = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("elo_session");
+    if (workspaceHandoff) {
+      try {
+        const handoff = JSON.parse(atob(decodeURIComponent(workspaceHandoff))) as {
+          access_token?: string;
+          refresh_token?: string;
+        };
+        if (handoff.access_token && handoff.refresh_token) {
+          await supabase.auth.setSession({
+            access_token: handoff.access_token,
+            refresh_token: handoff.refresh_token,
+          });
+        }
+      } catch {
+        setError("Não foi possível transferir a sessão autenticada para o workspace operacional.");
+      } finally {
+        window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      }
+    }
+
     void supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
       if (!active) return;
       if (sessionError) {
