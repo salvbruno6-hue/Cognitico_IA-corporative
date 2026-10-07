@@ -46,7 +46,7 @@ The parser does not read files, execute git, fetch URLs, or mutate memory.
 
 - No Hermes source is modified.
 - No business operation is executed.
-- No SO 001.26 is used as architectural evidence.
+- No SO NNN.AA is used as architectural evidence.
 - No file, git repository or URL is accessed by the candidate implementation.
 - The parser does not create or promote knowledge.
 - Source resolution remains governed by existing ELO contracts.

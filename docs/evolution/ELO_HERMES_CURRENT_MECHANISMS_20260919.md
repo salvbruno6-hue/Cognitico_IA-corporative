@@ -58,7 +58,7 @@ Registration in this file is not validation and does not activate a runtime capa
 
 - No Hermes source is modified.
 - No business operation is executed.
-- No SO 001.26 is used as architectural evidence.
+- No SO NNN.AA is used as architectural evidence.
 - No candidate creates a second Core, Memory authority, Context authority, Tool registry, Scheduler authority, or Forge authority.
 - External memory providers remain adapters; Supabase remains the cognitive persistence member.
 - Git worktrees remain Forge isolation mechanisms and do not become an independent merge authority.

@@ -21,33 +21,32 @@ def carregar_json(path: Path) -> dict:
 
 
 def resolver_so_do_contexto(dados: dict) -> dict:
-    """Resolve a SO do projeto ativo sem exigir redigitação pelo orçamentista."""
+    """Consume a SO já atribuída pela autoridade e valida sua identidade.
+
+    Este renderer não atribui, gera, incrementa, reinicia ou corrige SO.
+    A autoridade pela atribuição do número é o Analista de Orçamento.
+    """
     identificacao = dict(dados.get("identificacao") or {})
     contexto = dict(dados.get("contexto_projeto") or {})
 
-    if identificacao.get("so_resolvida"):
-        identificacao["so_resolvida"] = str(identificacao["so_resolvida"]).strip()
-        dados["identificacao"] = identificacao
-        return dados
+    so = (
+        identificacao.get("so_resolvida")
+        or contexto.get("so")
+        or identificacao.get("so")
+    )
+    if not so:
+        raise ValueError(
+            "PTS Técnica exige a SO atribuída pelo Analista de Orçamento."
+        )
 
-    so = contexto.get("so") or identificacao.get("so")
-    numero = contexto.get("numero_so") or identificacao.get("numero_so")
-    ano = contexto.get("ano") or identificacao.get("ano")
+    so = str(so).strip()
+    match = re.fullmatch(r"SO\s+(\d{3})\.(\d{2})", so, re.IGNORECASE)
+    if not match:
+        raise ValueError(
+            "SO inválida. Informe a SO atribuída no formato canônico SO NNN.AA."
+        )
 
-    if numero is not None and ano is not None:
-        digits = re.sub(r"\D", "", str(numero))
-        year_digits = re.sub(r"\D", "", str(ano))
-        if digits and year_digits:
-            identificacao["so_resolvida"] = f"SO {int(digits):04d}.{year_digits[-2:]}"
-    elif so:
-        match = re.fullmatch(r"SO[\s_-]*(\d{1,4})[\s_.-]*(\d{2,4})", str(so).strip(), re.IGNORECASE)
-        if match:
-            identificacao["so_resolvida"] = f"SO {int(match.group(1)):04d}.{match.group(2)[-2:]}"
-        else:
-            identificacao["so_resolvida"] = str(so).strip()
-    else:
-        raise ValueError("PTS Técnica exige SO resolvida pelo contexto do projeto ativo.")
-
+    identificacao["so_resolvida"] = f"SO {match.group(1)}.{match.group(2)}"
     dados["identificacao"] = identificacao
     return dados
 

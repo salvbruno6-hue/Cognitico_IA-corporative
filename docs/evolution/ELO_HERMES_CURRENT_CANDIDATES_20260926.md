@@ -37,7 +37,7 @@ source-level interface evidence → native implementation → controlled fixture
 ## Explicit exclusions
 
 - Hermes is not modified.
-- SO 001.26 is not used as architectural evidence.
+- SO NNN.AA is not used as architectural evidence.
 - No candidate is promoted to Core or canonical memory.
 - No business operation is executed.
 - No production deployment is authorized by this candidate package.

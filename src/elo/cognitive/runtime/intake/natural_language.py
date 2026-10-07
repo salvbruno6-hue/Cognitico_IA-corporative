@@ -123,12 +123,12 @@ def parse_natural_request(text: str) -> dict[str, Any]:
             "error": "intent_not_recognized",
             "text": text[:500],
             "suggestions": [
-                "ELO, confere essa análise da SO X: <texto>",
-                "ELO, o que você sabe sobre a SO X",
-                "ELO, guarda isso da SO X: <texto>",
+                "ELO, confere essa análise da SO NNN.AA: <texto>",
+                "ELO, o que você sabe sobre a SO NNN.AA",
+                "ELO, guarda isso da SO NNN.AA: <texto>",
                 "ELO, como está a decisão DEC_X",
                 "ELO, o que está aberto",
-                "ELO, já vimos algo parecido com a SO X",
+                "ELO, já vimos algo parecido com a SO NNN.AA",
             ],
         }
 

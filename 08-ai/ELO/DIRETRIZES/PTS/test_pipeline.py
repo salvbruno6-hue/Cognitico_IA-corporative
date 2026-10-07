@@ -143,32 +143,32 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
-    def test_renderer_resolves_so_from_active_project_context(self):
+    def test_renderer_consumes_assigned_canonical_so(self):
         tecnica = json.loads(json.dumps(TECHNICA))
-        tecnica["identificacao"] = {
-            "numero_so": 155,
-            "ano": 2026,
-            "cliente": "teste"
-        }
-        tecnica["contexto_projeto"] = {
-            "numero_so": 155,
-            "ano": 2026
-        }
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27", "cliente": "teste"}
+        tecnica["contexto_projeto"] = {"so": "SO 001.27"}
         rendered = render(tecnica)
-        self.assertIn("# PTS TÉCNICA — SO 0155.26", rendered)
+        self.assertIn("# PTS TÉCNICA — SO 001.27", rendered)
 
-    def test_renderer_does_not_require_manual_so_when_project_context_exists(self):
+    def test_renderer_rejects_noncanonical_so_instead_of_correcting_identity(self):
         tecnica = json.loads(json.dumps(TECHNICA))
         tecnica["identificacao"] = {"cliente": "teste"}
         tecnica["contexto_projeto"] = {"so": "SO 1.26"}
-        rendered = render(tecnica)
-        self.assertIn("# PTS TÉCNICA — SO 0001.26", rendered)
+        with self.assertRaisesRegex(ValueError, "SO inválida"):
+            render(tecnica)
 
-    def test_renderer_rejects_missing_active_project_so(self):
+    def test_renderer_does_not_generate_so_from_number_and_year(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["identificacao"] = {"cliente": "teste", "numero_so": 1, "ano": 2027}
+        tecnica["contexto_projeto"] = {"numero_so": 1, "ano": 2027}
+        with self.assertRaisesRegex(ValueError, "SO atribuída"):
+            render(tecnica)
+
+    def test_renderer_rejects_missing_assigned_so(self):
         tecnica = json.loads(json.dumps(TECHNICA))
         tecnica["identificacao"] = {"cliente": "teste"}
         tecnica.pop("contexto_projeto", None)
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "SO atribuída"):
             render(tecnica)
 
 if __name__ == "__main__":
