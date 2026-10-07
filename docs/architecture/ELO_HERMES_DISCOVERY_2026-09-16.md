@@ -4,7 +4,7 @@
 
 This audit inspects the current Hermes reference surface without modifying Hermes and without executing business operations. The architectural reference snapshot is Hermes commit `45ac26a217cc93603d19db8e4b9b064ca57d6806`, plus the current Hermes `main` state at the audit date.
 
-`SO 001.26` is not used as an architectural reference.
+`SO NNN.AA` is not used as an architectural reference.
 
 ## Discovery results
 
