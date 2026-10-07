@@ -78,15 +78,15 @@ function ELOLogo() {
   return <div className="elo-login-logo" aria-label="ELO"><span className="elo-login-wordmark" aria-hidden="true">EL</span><span className="elo-login-orbit" aria-hidden="true"><i /><b /></span></div>;
 }
 
-function getPublicOrigin() {
-  const configuredOrigin = import.meta.env.VITE_ELO_PUBLIC_URL as string | undefined;
-  return (configuredOrigin || window.location.origin).replace(/\/$/, '');
+function getOperationalWorkspaceUrl() {
+  const configuredUrl = import.meta.env.VITE_ELO_OPERATIONAL_URL as string | undefined;
+  if (!configuredUrl) throw new Error('ELO operational workspace URL is not configured.');
+  return configuredUrl.replace(/\/$/, '');
 }
 
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authorizationReady, setAuthorizationReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,18 +102,15 @@ export function ELOGoogleLogin({ children }: Props) {
 
       setSession(data.session);
       if (!data.session) {
-        setAuthorizationReady(false);
         setLoading(false);
         return;
       }
 
       try {
         await establishELOAuthorizationSession(data.session);
-        if (active) setAuthorizationReady(true);
       } catch (authorizationError) {
         if (active) {
-          setAuthorizationReady(false);
-          setError(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
+            setError(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
         }
       } finally {
         if (active) setLoading(false);
@@ -133,10 +130,13 @@ export function ELOGoogleLogin({ children }: Props) {
     setError(null);
     startELOAmbient();
     playELOSound('click');
-    const base = import.meta.env.BASE_URL || '/';
-    const callbackPath = `${base.replace(/\/$/, '')}/auth/callback`;
-    const redirectTo = new URL(callbackPath, `${getPublicOrigin()}/`).toString();
-    const { error: authError } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+
+    const redirectTo = getOperationalWorkspaceUrl();
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    });
+
     if (authError) setError(authError.message);
   }
 
@@ -151,36 +151,8 @@ export function ELOGoogleLogin({ children }: Props) {
 
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) setError(signOutError.message);
-    else {
-      setAuthorizationReady(false);
-      setSession(null);
-    }
+    else setSession(null);
   }
-
-  function getOperationalWorkspaceUrl() {
-    const configuredUrl = import.meta.env.VITE_ELO_OPERATIONAL_URL as string | undefined;
-    if (!configuredUrl) {
-      throw new Error('ELO operational workspace URL is not configured.');
-    }
-    return configuredUrl.replace(/\/$/, '');
-  }
-
-  function openOperationalWorkspace(nextSession: Session) {
-    playELOSound('success');
-    const workspaceUrl = new URL(getOperationalWorkspaceUrl());
-    const handoff = btoa(JSON.stringify({
-      access_token: nextSession.access_token,
-      refresh_token: nextSession.refresh_token,
-    }));
-    workspaceUrl.hash = `elo_session=${encodeURIComponent(handoff)}`;
-    window.location.replace(workspaceUrl.toString());
-  }
-
-  useEffect(() => {
-    if (!loading && session && authorizationReady) {
-      openOperationalWorkspace(session);
-    }
-  }, [loading, session, authorizationReady]);
 
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
 
