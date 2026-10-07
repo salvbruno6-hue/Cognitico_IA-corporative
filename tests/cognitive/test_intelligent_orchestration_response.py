@@ -144,3 +144,18 @@ def test_composer_resolves_execution_evidence_into_orientation():
     assert result.orientation is not None
     assert result.orientation.evidence_refs == ("evidence-1",)
     assert result.orientation.confidence.value == "aligned"
+
+
+def test_composer_degrades_when_execution_evidence_is_really_absent():
+    result = OrchestrationResponseComposer(
+        evidence_repository=EvidenceRepository(),
+    ).compose(
+        request=_request(),
+        selection=Selection(),
+        outcome=_outcome(),
+    )
+
+    assert result.orientation is not None
+    assert result.orientation.evidence_refs == ()
+    assert result.orientation.confidence.value == "insufficient"
+    assert "sem fatos rastreáveis" in result.orientation.diagnosis
