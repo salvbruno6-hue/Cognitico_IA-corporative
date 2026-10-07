@@ -133,7 +133,7 @@ export function ELOGoogleLogin({ children }: Props) {
 
   useEffect(() => {
     if (!loading && session && authorizationReady) {
-      window.location.replace(getOperationalWorkspaceUrl());
+      window.location.replace(`${getOperationalWorkspaceUrl()}?start=google`);
     }
   }, [loading, session, authorizationReady]);
 
