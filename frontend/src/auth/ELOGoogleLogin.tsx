@@ -84,6 +84,10 @@ function getOperationalWorkspaceUrl() {
   return configuredUrl.replace(/\/$/, '');
 }
 
+function getOperationalWorkspaceCallbackUrl() {
+  return `${getOperationalWorkspaceUrl()}/auth/callback`;
+}
+
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,7 +145,7 @@ export function ELOGoogleLogin({ children }: Props) {
     startELOAmbient();
     playELOSound('click');
 
-    const redirectTo = getOperationalWorkspaceUrl();
+    const redirectTo = getOperationalWorkspaceCallbackUrl();
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
