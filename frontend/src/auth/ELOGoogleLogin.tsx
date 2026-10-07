@@ -14,7 +14,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
 });
 
-type Props = { children: React.ReactNode };
+type Props = { children?: React.ReactNode };
 
 type AuthzResponse = {
   authorized?: boolean;
@@ -88,7 +88,6 @@ export function ELOGoogleLogin({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [authorizationReady, setAuthorizationReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [setup, setSetup] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -158,9 +157,17 @@ export function ELOGoogleLogin({ children }: Props) {
     }
   }
 
-  function continueToChatGPT() {
+  function getOperationalWorkspaceUrl() {
+    const configuredUrl = import.meta.env.VITE_ELO_OPERATIONAL_URL as string | undefined;
+    if (!configuredUrl) {
+      throw new Error('ELO operational workspace URL is not configured.');
+    }
+    return configuredUrl.replace(/\/$/, '');
+  }
+
+  function openOperationalWorkspace() {
     playELOSound('success');
-    window.open('https://chatgpt.com/', '_blank', 'noopener,noreferrer');
+    window.location.assign(getOperationalWorkspaceUrl());
   }
 
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
@@ -183,7 +190,7 @@ export function ELOGoogleLogin({ children }: Props) {
     );
   }
 
-  if (session && !setup) {
+  if (session) {
     return (
       <main data-elo-auth="setup" className="elo-setup-page">
         <section className="elo-login-panel elo-setup-panel">
@@ -191,24 +198,19 @@ export function ELOGoogleLogin({ children }: Props) {
             <ELOLogo />
             <span className="elo-setup-kicker">CONFIGURAÇÃO INICIAL</span>
             <h1>Preparar acesso ao ELO</h1>
-            <p className="elo-setup-lead">Sua identidade administrativa já foi autenticada. Agora escolha como deseja entrar na camada conversacional do ELO.</p>
+            <p className="elo-setup-lead">Sua identidade administrativa já foi autenticada. O GitHub Pages encerra aqui a camada de acesso e configuração; o workspace operacional do ELO roda no Vercel.</p>
             <div className="elo-setup-status" aria-label="Status da configuração">
               <div><span className="elo-status-dot" /> <strong>Google</strong><small>Identidade autenticada</small></div>
-              <div><span className="elo-status-dot" /> <strong>Supabase</strong><small>Sessão ELO ativa</small></div>
-              <div><span className="elo-status-pending" /> <strong>ChatGPT</strong><small>Conexão ainda não autorizada</small></div>
+              <div><span className="elo-status-dot" /> <strong>Supabase</strong><small>Sessão ELO autorizada</small></div>
+              <div><span className="elo-status-dot" /> <strong>Vercel</strong><small>Workspace operacional</small></div>
             </div>
-            <button className="elo-google-button elo-chatgpt-button" type="button" onClick={continueToChatGPT}>Continuar para o ChatGPT</button>
-            <p className="elo-setup-note">A abertura do ChatGPT não concede, por si só, acesso ao ELO. A autorização entre ChatGPT e ELO será concluída por uma integração OAuth/MCP compatível.</p>
-            <button className="elo-setup-secondary" type="button" onClick={() => setSetup(true)}>Entrar no Núcleo ELO agora</button>
+            <button className="elo-google-button elo-chatgpt-button" type="button" onClick={openOperationalWorkspace}>Abrir Workspace Operacional</button>
+            <p className="elo-setup-note">GitHub Pages = autenticação + setup. Vercel = aplicação operacional, orquestração, evidência e interação cognitiva. Nenhuma autoridade operacional é criada nesta camada estática.</p>
             <button className="elo-setup-signout" type="button" onClick={signOut}>Sair da sessão administrativa</button>
           </div>
         </section>
       </main>
     );
-  }
-
-  if (session && setup) {
-    return <div data-elo-auth="authenticated">{children}<button type="button" onClick={signOut}>Sair</button>{error && <p role="alert">{error}</p>}</div>;
   }
 
   return (

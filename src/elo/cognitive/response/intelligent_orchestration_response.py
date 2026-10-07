@@ -143,17 +143,49 @@ class OrchestrationResponseComposer:
         forge_context: dict[str, Any],
         evidence_ids: tuple[str, ...] = (),
     ) -> IntelligentOrchestrationResponse:
-        """Compose a read-only Forge consultation through the existing Humanizer."""
+        """Compose a read-only Forge consultation through canonical orientation."""
         response = self._humanizer.humanize({
             "intent": "forge_consulta",
             "forge_context": forge_context,
         })
         entity = forge_context.get("entity") or {}
         model = forge_context.get("model") or {}
+        orientation = None
+        try:
+            from elo.cognitive.response.orchestration_orientation_hook import derive_orientation
+
+            tenant_id = getattr(request, "tenant_id", "")
+            source_facts = (
+                tuple(
+                    self._evidence_repository.list_for_refs(
+                        evidence_ids,
+                        tenant_id=tenant_id,
+                    )
+                )
+                if evidence_ids and tenant_id
+                else ()
+            )
+            orientation = derive_orientation(
+                capability="forge_operational_knowledge",
+                context=forge_context,
+                execution_outcome=None,
+                source_facts=source_facts,
+                routing_decision=None,
+                capability_snapshot=None,
+            )
+            if orientation is not None:
+                response = self._append_orientation(response, orientation)
+        except Exception:
+            orientation = None
+
         return IntelligentOrchestrationResponse(
             status="CONSULTED",
             stage="ANALYZE",
-            headline=f"Consulta governada do Forge para {model.get('codigo') or entity.get('requested_reference') or 'a pergunta recebida'}.",
+            headline=(
+                f"Consulta governada do Forge para {model.get('codigo') or entity.get('requested_reference')}."
+                if model or entity
+                else "Consulta governada do Forge sobre demanda e impactos."
+            ),
             response=response,
             capability="forge_operational_knowledge",
             provider="supabase_elo_forge",
@@ -162,7 +194,7 @@ class OrchestrationResponseComposer:
             correlation_id=getattr(request, "correlation_id", ""),
             evidence_state="OBSERVED" if evidence_ids else "INSUFFICIENT",
             next_action="avaliar lacunas ou fornecer uma chave segura para aprofundar as fontes não vinculadas.",
-            orientation=None,
+            orientation=orientation,
             evidence_refs=tuple(evidence_ids),
         )
 

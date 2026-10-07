@@ -279,40 +279,196 @@ class Humanizer:
     def _humanize_forge_consulta(self, result: dict) -> str:
         context = result.get("forge_context") or {}
         model = context.get("model") or {}
-        discovery = context.get("governed_discovery") or {}
-        evidence_by_source = context.get("evidence_by_source") or {}
-        if not model:
-            sources = discovery.get("sources_considered") or []
-            records = (context.get("generic_query") or {}).get("records_by_source") or {}
-            lines = [
-                "O Forge respondeu pela camada de fontes governadas, sem inventar uma entidade específica.",
-                "",
-                "**O que foi consultado:**",
-            ]
-            if sources:
-                for source in sources[:12]:
-                    table = source.get("table_name", "")
-                    domain = source.get("dominio_codigo", "")
-                    count = len(records.get(table, []))
-                    lines.append(f"- {table} ({domain}): {count} registro(s) recuperado(s) no escopo delimitado.")
-            else:
-                lines.append("- Nenhuma fonte governada foi selecionada para a pergunta.")
-            lines.extend([
-                "",
-                "**Limite da evidência:**",
-                "- A consulta é somente leitura.",
-                "- Uma contagem ou ausência em um escopo delimitado não representa inexistência absoluta.",
-                "- Nenhum aprendizado ou promoção foi realizado.",
-                "",
-                "**Próximo passo:** fornecer uma chave operacional adicional quando for necessário relacionar os dados a uma entidade específica.",
-            ])
-            return "\n".join(lines)
-
         relationships = context.get("relationships") or {}
         discovery = context.get("governed_discovery") or {}
+        if discovery.get("scope") == "cross_domain_demand_and_impacts":
+            linked = discovery.get("linked_records") or {}
+            not_scoped = discovery.get("not_scoped") or []
+            demand_rows = linked.get("elo_sim_demanda") or []
+            material_rows = linked.get("elo_sim_demanda_materiais") or []
+            resource_rows = linked.get("elo_sim_demanda_recursos") or []
+            decision_rows = linked.get("v_elo_pcp_decisao_externa_resumo") or []
+            rule_rows = linked.get("v_elo_pcp_dialogo_regras") or []
+            coverage_rows = linked.get("v_elo_pcp_cobertura_demanda_externa") or []
+
+            lines = [
+                "O Forge realizou uma consulta somente leitura em fontes governadas para responder à demanda transversal. "
+                "A síntese abaixo separa fatos observados, impactos operacionais e limites da evidência.",
+                "",
+                "**1. COMEÇO — o que foi consultado**",
+                "- Escopo: demanda e impactos entre domínios, sem exigir uma entidade de modelo.",
+                f"- Fontes com registros recuperados: {sum(1 for rows in linked.values() if rows)}.",
+                f"- Fontes identificadas pelo catálogo: {', '.join(str(item.get('table_name')) for item in discovery.get('sources_considered', []) if item.get('table_name'))}.",
+                f"- Registros recuperados nas fontes consultadas: {sum(len(rows) for rows in linked.values())}.",
+            ]
+
+            if demand_rows:
+                total_qty = sum(float(row.get("quantidade") or 0) for row in demand_rows)
+                priorities = [row.get("prioridade") for row in demand_rows if row.get("prioridade") is not None]
+                deadlines = [row.get("prazo_dias") for row in demand_rows if row.get("prazo_dias") is not None]
+                lines.extend([
+                    "",
+                    "**2. MEIO — fatos detalhados encontrados**",
+                    f"- Demanda registrada na fonte de simulação: {len(demand_rows)} item(ns), totalizando {total_qty:g} unidade(s).",
+                ])
+                if deadlines:
+                    lines.append(f"- Prazos registrados: de {min(deadlines)} a {max(deadlines)} dia(s).")
+                if priorities:
+                    lines.append(f"- Prioridades registradas: de {min(priorities)} a {max(priorities)}.")
+                lines.append("- Detalhamento por demanda:")
+                for row in demand_rows[:10]:
+                    lines.append(
+                        f"  - {row.get('demanda_id') or 'ID não informado'}: "
+                        f"{row.get('descricao') or 'sem descrição'}; "
+                        f"quantidade={row.get('quantidade', 'não informada')}; "
+                        f"prazo={row.get('prazo_dias', 'não informado')} dia(s); "
+                        f"prioridade={row.get('prioridade', 'não informada')}; "
+                        f"status={row.get('status', 'não informado')}."
+                    )
+            else:
+                lines.extend(["", "**2. MEIO — fatos detalhados encontrados**",
+                              "- Não foram recuperados registros na fonte de demanda de simulação."])
+
+            if material_rows:
+                total_material = sum(float(row.get("quantidade_necessaria") or 0) for row in material_rows)
+                lines.append(
+                    f"- Materiais: {len(material_rows)} linha(s), com {total_material:g} unidade(s) de quantidade necessária registrada."
+                )
+                for row in material_rows[:10]:
+                    lines.append(
+                        f"  - {row.get('demanda_id') or 'demanda não informada'} → "
+                        f"{row.get('material_id') or 'material não informado'}: "
+                        f"{row.get('quantidade_necessaria', 'não informada')} unidade(s)."
+                    )
+
+            if resource_rows:
+                total_hours = sum(float(row.get("horas_demanda_h") or 0) for row in resource_rows)
+                lines.append(
+                    f"- Recursos: {len(resource_rows)} linha(s), totalizando {total_hours:g} hora(s) de demanda registradas."
+                )
+                for row in resource_rows[:10]:
+                    lines.append(
+                        f"  - {row.get('demanda_id') or 'demanda não informada'} → "
+                        f"{row.get('recurso_id') or 'recurso não informado'}: "
+                        f"{row.get('horas_demanda_h', 'não informadas')} h."
+                    )
+
+            if decision_rows:
+                decision = decision_rows[0]
+                lines.extend([
+                    "",
+                    "**3. IMPACTOS — o que os dados permitem afirmar**",
+                    f"- Estado da decisão externa: {decision.get('estado_decisao', 'não informado')}.",
+                    f"- Estado de cobertura global: {decision.get('estado_cobertura_global', 'não informado')}.",
+                    f"- Previsão de unidades: {decision.get('demanda_prevista_modelos', 'não informada')}.",
+                    f"- Produção programada registrada: {decision.get('producao_programada_modelos', 'não informada')}.",
+                    f"- Necessidade adicional de fabricação registrada: {decision.get('necessidade_adicional_fabricacao_modelos', 'não informada')}.",
+                    f"- Horas planejadas de operações externas: {decision.get('horas_planejadas_externas', 'não informadas')}.",
+                ])
+            else:
+                lines.extend(["", "**3. IMPACTOS — o que os dados permitem afirmar**",
+                              "- Não há registro de resumo de decisão externa recuperado."])
+
+            if rule_rows:
+                rule = rule_rows[0]
+                lines.extend([
+                    "",
+                    "**4. BLOQUEIOS E GAPS — o que impede uma conclusão mais forte**",
+                    f"- Gate: {rule.get('gate', 'não informado')}.",
+                    f"- Gap: {rule.get('gap_codigo', 'não informado')}.",
+                    f"- Motivo: {rule.get('motivo', 'não informado')}.",
+                    f"- Prioridade: {rule.get('prioridade', 'não informada')}.",
+                    f"- Bloqueia execução: {'sim' if rule.get('bloqueia_execucao') is True else 'não' if rule.get('bloqueia_execucao') is False else 'não informado'}.",
+                ])
+            if not coverage_rows:
+                lines.append("- A cobertura de demanda externa não apresentou registros nesta consulta.")
+
+            if not_scoped:
+                lines.extend([
+                    "",
+                    "**5. LIMITES — o que não deve ser inferido**",
+                    "- Fontes específicas por pedido, unidade, modelo ou ordem continuam sem atribuição quando falta uma chave segura.",
+                ])
+                for item in not_scoped[:10]:
+                    lines.append(
+                        f"- {item.get('table_name')}: aprofundamento requer {item.get('reason', 'escopo seguro')}."
+                    )
+            else:
+                lines.extend([
+                    "",
+                    "**5. LIMITES — o que não deve ser inferido**",
+                    "- Nenhuma fonte específica ficou fora por falta de chave nesta consulta.",
+                ])
+
+            lines.extend([
+                "",
+                "**5A. MEMÓRIA NARRADA DO ORQUESTRADOR — como a visão foi construída**",
+                "- O orquestrador parte da pergunta, identifica o domínio de demanda/impacto e consulta somente fontes autorizadas pelo catálogo.",
+                "- Depois, mantém separados três níveis: **fato observado**, **padrão/sinal observado** e **projeção condicional**.",
+                "- O padrão não é promovido a conhecimento aprendido nesta consulta; ele permanece uma leitura explicável dos dados recuperados.",
+            ])
+            if demand_rows:
+                ranked = sorted(
+                    demand_rows,
+                    key=lambda row: (
+                        -(float(row.get("prioridade")) if row.get("prioridade") is not None else -1),
+                        float(row.get("prazo_dias")) if row.get("prazo_dias") is not None else float("inf"),
+                    ),
+                )
+                lead = ranked[0]
+                lead_id = lead.get("demanda_id") or "demanda sem ID"
+                lead_priority = lead.get("prioridade", "não informada")
+                lead_deadline = lead.get("prazo_dias", "não informado")
+                lead_hours = next(
+                    (
+                        row.get("horas_demanda_h")
+                        for row in resource_rows
+                        if row.get("demanda_id") == lead.get("demanda_id")
+                    ),
+                    None,
+                )
+                lines.extend([
+                    f"- **Sinal comportamental observado:** {lead_id} combina a maior prioridade disponível ({lead_priority}) com prazo de {lead_deadline} dia(s).",
+                ])
+                if lead_hours is not None:
+                    lines.append(
+                        f"- O mesmo item possui {lead_hours} hora(s) de demanda de recurso registradas; isso caracteriza pressão operacional observada, não uma previsão."
+                    )
+                lines.extend([
+                    "",
+                    "**5B. CLARIVIDÊNCIA OPERACIONAL — futuro condicionado aos padrões**",
+                    "- Se esse comportamento permanecer e a cobertura continuar sem histórico comparável, a tendência esperada é de maior pressão sobre planejamento e necessidade de validação antes de ampliar fabricação ou recursos.",
+                    "- Se o histórico comparável e a cobertura forem confirmados, a projeção deve ser recalculada; o orquestrador não congela uma previsão baseada apenas neste retrato.",
+                    "- Se surgirem dados de estoque, reparo, produção programada ou operações externas com chaves seguras, a visão futura deve ser atualizada pela nova evidência.",
+                    "- Portanto, a clarividência do ELO é **condicional, rastreável e revisável**: comportamento → padrão observado → condição futura → resultado esperado → nova evidência.",
+            ])
+            lines.extend([
+                "",
+                "**5C. ELO APRENDER — como transformar incerteza em aprendizado**",
+                "- Quando o sinal ainda não é suficiente para validar um padrão, o ELO Aprender não inventa uma conclusão: identifica a lacuna e orienta a investigação.",
+                "- A orientação deve ser específica: **qual assunto pesquisar, quais dados colher e por que esses dados são necessários**.",
+                "- Em seguida, o ELO explicita o ganho esperado: **quais indicadores poderão ser calculados ou quais relações poderão ser validadas** com os novos dados.",
+                "- Os novos dados retornam ao ciclo para confrontar o padrão inicial. Se confirmarem o comportamento nas condições comparáveis, a evidência pode avançar para validação; se contradisserem, a hipótese deve ser recalculada ou descartada.",
+                "- O aprendizado somente ocorre depois da validação governada e do confronto entre expectativa e resultado posterior. A observação isolada permanece observação.",
+                "",
+                "**Como o ELO deve ensinar a próxima investigação:**",
+                "> “Ainda não posso afirmar isso. Vamos pesquisar especificamente X e colher Y. Com esses dados poderemos validar Z e obter indicadores que hoje ainda não estão validados.”",
+                "",
+                "**Ciclo de aprendizado:** comportamento observado → lacuna → pesquisa orientada → novos dados → indicadores → validação → projeção condicional → resultado real → comparação → aprendizado governado.",
+            ])
+
+            lines.extend([
+                "",
+                "**6. FIM — conclusão executiva**",
+                "- A memória desta consulta não é apenas uma lista de registros: ela registra como o orquestrador chegou à leitura, quais comportamentos observou e sob quais condições um resultado futuro pode ser esperado.",
+                "- Isto não é uma previsão: é uma projeção condicional baseada nos sinais observados. Ela pode ser alterada quando novas evidências entrarem no ciclo.",
+                "- A consulta comprova registros governados de demanda, materiais e recursos, mas a decisão operacional continua dependente de cobertura, histórico comparável e vínculos seguros.",
+                "",
+                "**Próximo passo:** acompanhar o resultado real contra essa projeção condicionada; somente evidência posterior validada pode transformar o padrão observado em aprendizado governado.",
+            ])
+            return "\n".join(lines)
         linked = discovery.get("linked_records") or {}
         not_linked = discovery.get("not_linked") or []
-        conflicts = discovery.get("conflicts") or []
         code = model.get("codigo") or "modelo consultado"
         name = model.get("nome") or "nome não informado"
         lines = [
@@ -340,14 +496,22 @@ class Humanizer:
             if row.get("modelo_id") == model_id
         ]
         flow_scope = discovery.get("applicability", {}).get("fluxo_produtivo_modular", [])
-        family_flows = [item for item in flow_scope if item.get("scope") == "family_wide_modular"]
+        family_flows = [
+            item for item in flow_scope if item.get("scope") == "family_wide_modular"
+        ]
         stages = linked.get("fluxo_produtivo_modular_etapas", [])
         if specific_flows:
             lines.append(f"- Fluxo produtivo específico encontrado: {len(specific_flows)}.")
             lines.append(f"- Etapas vinculadas a esse fluxo: {len(stages)}.")
         elif family_flows:
-            lines.append(f"- Fluxo produtivo modular de referência aplicável à família de módulos: {len(family_flows)} fluxo(s), com {len(stages)} etapa(s).")
-            lines.append(f"- O fluxo é compartilhado pela fabricação modular; isso não significa que as {len(stages)} etapas sejam exclusivas do {code}.")
+            lines.append(
+                f"- Fluxo produtivo modular de referência aplicável à família de módulos: "
+                f"{len(family_flows)} fluxo(s), com {len(stages)} etapa(s)."
+            )
+            lines.append(
+                f"- O fluxo é compartilhado pela fabricação modular; isso não significa "
+                f"que as {len(stages)} etapas sejam exclusivas do {code}."
+            )
         else:
             lines.append("- Nenhum fluxo produtivo aplicável foi recuperado nesta consulta.")
         external_orders = linked.get("mt_ordens_montagem_externa", [])
@@ -357,41 +521,56 @@ class Humanizer:
         repair_units = linked.get("mt_unidades_modulares", [])
         repair_orders = linked.get("mt_ordens_reparo", [])
         if external_orders or external_items:
-            lines.append(f"- Operações externas relacionadas ao {code}: {len(external_orders)} ordem(ns), via {len(external_items)} item(ns) de pedido de venda.")
+            lines.append(
+                f"- Operações externas relacionadas ao {code}: {len(external_orders)} ordem(ns), "
+                f"via {len(external_items)} item(ns) de pedido de venda."
+            )
             if external_team:
                 lines.append(f"- Equipe de montagem externa recuperada: {len(external_team)} registro(s).")
             if external_functions:
                 lines.append(f"- Funções de montagem externa relacionadas: {len(external_functions)}.")
         if repair_units or repair_orders:
-            lines.append(f"- Cobertura de reparos modulares relacionada ao {code}: {len(repair_units)} unidade(s) e {len(repair_orders)} ordem(ns) de reparo.")
+            lines.append(
+                f"- Cobertura de reparos modulares relacionada ao {code}: "
+                f"{len(repair_units)} unidade(s) e {len(repair_orders)} ordem(ns) de reparo."
+            )
         if structures:
             lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
         else:
             lines.append("- Nenhum registro de estrutura modular foi recuperado no estado atual consultado.")
+        conflicts = discovery.get("conflicts") or []
         if conflicts:
             lines.extend(["", "**Conflitos preservados:**"])
             for conflict in conflicts[:8]:
                 lines.append(f"- {conflict}")
         lines.extend(["", "**O que não está comprovado:**"])
         if not structures:
-            lines.append(f"- O estado atual consultado não contém registro de estrutura modular recuperável para o {code}; isso não autoriza concluir que a estrutura conceitual do processo não exista.")
+            lines.append(
+                f"- O estado atual consultado não contém registro de estrutura modular "
+                f"recuperável para o {code}; isso não autoriza concluir que a estrutura "
+                f"conceitual do processo não exista."
+            )
         if not specific_flows and not family_flows:
             lines.append(f"- Não foi localizado fluxo aplicável ao {code} nesta consulta.")
         if not_linked:
             names = ", ".join(str(item.get("table_name")) for item in not_linked[:8] if item.get("table_name"))
             lines.append("- Algumas fontes governadas foram descobertas, mas não foram relacionadas ao modelo sem uma chave segura: " + names + ".")
         if not external_orders and not external_items:
-            lines.append(f"- Nenhuma ordem de operação externa foi relacionada ao {code} no estado atual consultado.")
+            lines.append(
+                f"- Nenhuma ordem de operação externa foi relacionada ao {code} no estado atual consultado."
+            )
         if not repair_units and not repair_orders:
-            lines.append(f"- Nenhuma unidade/ordem de reparo foi relacionada ao {code} no estado atual consultado.")
-        if not any([not structures, not specific_flows, not_linked, not external_orders and not external_items, not repair_units and not repair_orders]):
+            lines.append(
+                f"- Nenhuma unidade/ordem de reparo foi relacionada ao {code} no estado atual consultado."
+            )
+        if not any([
+            not structures,
+            not specific_flows,
+            not_linked,
+            not external_orders and not external_items,
+            not repair_units and not repair_orders,
+        ]):
             lines.append("- Nenhuma ausência adicional foi identificada nesta consulta.")
-        lines.extend(["", "**Rastreabilidade:**"])
-        if evidence_by_source:
-            for table, refs in list(evidence_by_source.items())[:12]:
-                lines.append(f"- {table}: " + ", ".join(f"[evidence:{ref}]" for ref in refs[:8]))
-        else:
-            lines.append("- Nenhuma referência de evidência foi produzida.")
         lines.extend([
             "",
             "**Limite da evidência:**",

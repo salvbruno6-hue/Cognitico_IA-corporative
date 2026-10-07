@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
-import { EloWebOperationalPortal } from "@/components/elo-web-operational-portal";
+import { EloDashboard } from "@/components/elo-dashboard";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 type AuthClient = SupabaseClient<any>;
@@ -162,5 +162,5 @@ export function ELOWebAuthBoundary() {
     );
   }
 
-  return <EloWebOperationalPortal accessToken={session.access_token} displayName={session.user.user_metadata?.full_name ?? session.user.user_metadata?.name} email={session.user.email} onSignOut={() => void signOut()} />;
+  return <EloDashboard accessToken={session.access_token} onSignOut={() => void signOut()} />;
 }

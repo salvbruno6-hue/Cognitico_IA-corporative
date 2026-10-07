@@ -20,6 +20,7 @@ env:
   VITE_SUPABASE_URL: https://fxbpevjrkwhbicpmecow.supabase.co
   VITE_SUPABASE_ANON_KEY: sb_publishable_oVTd0WpYAxTQeLCLha2AkQ_XIZt9WKk
   VITE_ELO_PUBLIC_URL: https://salvbruno6-hue.github.io
+  VITE_ELO_OPERATIONAL_URL: https://elo-web-delta.vercel.app
 
 jobs:
   build:
@@ -46,6 +47,7 @@ jobs:
           test -n "$VITE_SUPABASE_URL"
           test -n "$VITE_SUPABASE_ANON_KEY"
           test "$VITE_ELO_PUBLIC_URL" = "https://salvbruno6-hue.github.io"
+          test -n "$VITE_ELO_OPERATIONAL_URL"
 
       - name: Build React frontend
         run: npm run build
@@ -88,6 +90,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ env.VITE_SUPABASE_ANON_KEY }}
           VITE_ELO_PUBLIC_URL: ${{ env.VITE_ELO_PUBLIC_URL }}
+          VITE_ELO_OPERATIONAL_URL: ${{ env.VITE_ELO_OPERATIONAL_URL }}
 
       - name: Create SPA fallback
         working-directory: frontend

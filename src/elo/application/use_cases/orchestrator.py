@@ -130,12 +130,127 @@ class Orchestrator(Protocol):
     def decide_execution(self, request: OrchestrationRequest) -> OrchestrationDecision:
         """Return EXECUTE only when canonical execution authority is present."""
 
-    def consult_forge(
-        self,
-        request: OrchestrationRequest,
-        forge,
-    ):
+    def consult_forge(self, request: OrchestrationRequest, forge):
         """Consult catalog-governed Forge knowledge without learning or execution."""
+        import re
+        from elo.cognitive.response.intelligent_orchestration_response import OrchestrationResponseComposer
+
+        if not request.tenant_id or not request.objective:
+            raise ValueError("tenant_id and objective are required")
+
+        match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
+        evidence_ids: list[str] = []
+        evidence_by_source: dict[str, list[str]] = {}
+
+        def save_forge_evidence(
+            *,
+            table: str,
+            domain: str,
+            claim: str,
+            record_id: str = "",
+            fields=(),
+            value=None,
+            absence_type=None,
+            query_scope=None,
+        ) -> None:
+            evidence = Evidence.from_forge(
+                tenant_id=request.tenant_id,
+                source_table=table,
+                source_domain=domain,
+                source_record_id=record_id,
+                source_fields=fields,
+                claim=claim,
+                value=value,
+                absence_type=absence_type,
+                query_scope={
+                    "request_id": request.request_id,
+                    "correlation_id": request.correlation_id,
+                    **dict(query_scope or {}),
+                },
+            )
+            self._evidence_repository.save(evidence)
+            evidence_ids.append(evidence.evidence_id)
+            evidence_by_source.setdefault(table, []).append(evidence.evidence_id)
+
+        if match:
+            reference = match.group(0).upper()
+            context = forge.governed_model_context(reference, request.objective)
+            entity = context.get("entity") or {}
+            model = context.get("model") or {}
+            save_forge_evidence(
+                table="modelos",
+                domain="produtos",
+                record_id=str(entity.get("model_id") or reference),
+                fields=("codigo", "nome", "ativo"),
+                claim=f"Forge confirmou o modelo {model.get('codigo') or reference}.",
+                value={key: model.get(key) for key in ("codigo", "nome", "ativo")},
+            )
+        else:
+            context = forge.governed_demand_context(request.objective)
+
+        discovery = context.get("governed_discovery") or {}
+        linked = discovery.get("linked_records") or {}
+
+        if not match:
+            save_forge_evidence(
+                table="cross_domain_demand_and_impacts",
+                domain=request.domain or "forge",
+                claim="Forge consultou fontes governadas para demanda e impactos entre domínios.",
+                value={
+                    "scope": discovery.get("scope"),
+                    "source_count": len(discovery.get("sources_considered") or []),
+                    "linked_record_count": sum(len(rows) for rows in linked.values()),
+                },
+                query_scope={"scope": "cross_domain_demand_and_impacts"},
+            )
+
+        for table, rows in linked.items():
+            domain = request.domain or "forge"
+            if isinstance(rows, list) and rows:
+                for row in rows[:25]:
+                    save_forge_evidence(
+                        table=str(table),
+                        domain=domain,
+                        record_id=str(row.get("id") or row.get("demanda_id") or ""),
+                        fields=tuple(row.keys()),
+                        claim=f"Registro observado em {table} no escopo da consulta governada.",
+                        value=row,
+                    )
+            else:
+                save_forge_evidence(
+                    table=str(table),
+                    domain=domain,
+                    claim=f"Nenhum registro foi recuperado em {table} no escopo consultado.",
+                    absence_type="no_matching_record_found",
+                    query_scope={"scope": "governed_consultation"},
+                )
+
+        for item in discovery.get("not_linked") or discovery.get("not_scoped") or []:
+            table = str(item.get("table_name") or "")
+            if not table:
+                continue
+            save_forge_evidence(
+                table=table,
+                domain=str(item.get("dominio_codigo") or request.domain or "forge"),
+                claim=(
+                    f"Forge não estabeleceu relação segura entre {table} "
+                    f"e {match.group(0).upper() if match else 'a consulta recebida'}."
+                ),
+                absence_type="no_safe_relationship",
+                query_scope={"reason": item.get("reason")},
+            )
+
+        context = {
+            **context,
+            "evidence_by_source": evidence_by_source,
+        }
+        return OrchestrationResponseComposer(
+            evidence_repository=self._evidence_repository
+        ).compose_forge(
+            request=request,
+            forge_context=context,
+            evidence_ids=tuple(evidence_ids),
+        )
 
     def compose_response(
         self,
@@ -329,142 +444,55 @@ class GovernedOrchestrator:
 
         if not request.tenant_id or not request.objective:
             raise ValueError("tenant_id and objective are required")
-
         match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
-        evidence_ids: list[str] = []
-        evidence_by_source: dict[str, list[str]] = {}
-
-        def save_forge_evidence(
-            *,
-            table: str,
-            domain: str,
-            claim: str,
-            record_id: str = "",
-            fields=(),
-            value=None,
-            absence_type=None,
-            query_scope=None,
-        ) -> None:
-            evidence = Evidence.from_forge(
-                tenant_id=request.tenant_id,
-                source_table=table,
-                source_domain=domain,
-                source_record_id=record_id,
-                source_fields=fields,
-                claim=claim,
-                value=value,
-                absence_type=absence_type,
-                query_scope=query_scope,
-            )
-            self._evidence_repository.save(evidence)
-            evidence_ids.append(evidence.evidence_id)
-            evidence_by_source.setdefault(table, []).append(evidence.evidence_id)
-
         if match:
             reference = match.group(0).upper()
             context = forge.governed_model_context(reference, request.objective)
-            entity = context.get("entity") or {}
-            model = context.get("model") or {}
-            save_forge_evidence(
-                table="modelos",
-                domain="produtos",
-                record_id=str(entity.get("model_id") or reference),
-                fields=("codigo", "nome", "ativo"),
-                claim=f"Forge confirmou o modelo {model.get('codigo') or reference}.",
-                value={key: model.get(key) for key in ("codigo", "nome", "ativo")},
-            )
-
-            relationships = context.get("relationships") or {}
-            for table, rows in relationships.items():
-                domain = "produtos"
-                if table in {"fluxo_produtivo_modular", "fluxo_produtivo_modular_etapas"}:
-                    domain = "producao_fluxo_modular"
-                if rows:
-                    for row in rows[:25]:
-                        save_forge_evidence(
-                            table=table,
-                            domain=domain,
-                            record_id=str(row.get("id") or ""),
-                            fields=tuple(row.keys()),
-                            claim=f"Registro observado em {table} para o contexto consultado.",
-                            value=row,
-                        )
-                else:
-                    save_forge_evidence(
-                        table=table,
-                        domain=domain,
-                        claim=f"Nenhum registro foi recuperado em {table} no escopo consultado.",
-                        absence_type="no_matching_record_found",
-                        query_scope={"model_reference": reference},
-                    )
-
-            discovery = context.get("governed_discovery") or {}
-            linked = discovery.get("linked_records") or {}
-            for table, rows in linked.items():
-                if table == "fluxo_produtivo_modular_scope":
-                    continue
-                if rows:
-                    save_forge_evidence(
-                        table=table.split("_scope")[0],
-                        domain="producao_fluxo_modular" if "fluxo_produtivo" in table else "forge",
-                        fields=tuple(rows[0].keys()),
-                        claim=f"A fonte governada {table} retornou {len(rows)} registro(s) no escopo da consulta.",
-                        value={"count": len(rows)},
-                    )
-            for item in discovery.get("not_linked") or []:
-                table = str(item.get("table_name") or "")
-                if table:
-                    save_forge_evidence(
-                        table=table,
-                        domain=str(item.get("dominio_codigo") or "forge"),
-                        claim=f"Nenhuma relação segura entre {table} e {reference} foi estabelecida.",
-                        absence_type="no_matching_record_found",
-                        query_scope={"model_reference": reference, "reason": item.get("reason")},
-                    )
-
-            return OrchestrationResponseComposer(
-                evidence_repository=self._evidence_repository
-            ).compose_forge(
-                request=request,
-                forge_context={**context, "evidence_by_source": evidence_by_source},
-                evidence_ids=tuple(evidence_ids),
-            )
-
-        context = forge.governed_query_context(request.objective)
-        generic = context.get("generic_query") or {}
-        records_by_source = generic.get("records_by_source") or {}
-        sources = (context.get("governed_discovery") or {}).get("sources_considered") or []
-        for source in sources:
-            table = str(source.get("table_name") or "")
-            if not table:
-                continue
-            rows = records_by_source.get(table, [])
-            domain = str(source.get("dominio_codigo") or "forge")
-            if rows:
-                save_forge_evidence(
-                    table=table,
-                    domain=domain,
-                    fields=tuple(rows[0].keys()),
-                    claim=f"A fonte governada {table} retornou {len(rows)} registro(s) na consulta delimitada.",
-                    value={"count": len(rows)},
-                )
-            else:
-                save_forge_evidence(
-                    table=table,
-                    domain=domain,
-                    claim=f"Nenhum registro foi retornado por {table} na consulta delimitada.",
-                    absence_type="no_matching_record_found",
-                    query_scope={"query": request.objective},
-                )
-
-        return OrchestrationResponseComposer(
-            evidence_repository=self._evidence_repository
-        ).compose_forge(
-            request=request,
-            forge_context={**context, "evidence_by_source": evidence_by_source},
-            evidence_ids=tuple(evidence_ids),
+        else:
+            context = forge.governed_demand_context(request.objective)
+        evidence_ids = []
+        entity = context.get("entity") or {}
+        model = context.get("model") or {}
+        if entity:
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id=str(entity.get("model_id") or entity.get("requested_reference")),
+                claim=f"Forge confirmou o modelo {model.get('codigo') or entity.get('requested_reference')}",
+                content_ref=f"supabase_elo_forge:modelos:{entity.get('model_id') or entity.get('requested_reference')}",
+                quality="OBSERVED", relevance=1.0,
+                provenance={"catalog":"elo_aprendizado_fontes", "read_only":True, "learning_performed":False},
+            )).evidence_id)
+        else:
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id="cross_domain_demand_and_impacts",
+                claim="Forge consultou fontes governadas para demanda e impactos entre domínios.",
+                content_ref="supabase_elo_forge:cross_domain_demand_and_impacts",
+                quality="OBSERVED", relevance=1.0,
+                provenance={"catalog":"elo_aprendizado_fontes", "read_only":True, "learning_performed":False, "scope":"cross_domain_demand_and_impacts"},
+            )).evidence_id)
+        discovery = context.get("governed_discovery") or {}
+        for table, rows in (discovery.get("linked_records") or {}).items():
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id=table,
+                claim=f"Forge recuperou {len(rows)} registro(s) da fonte governada {table}.",
+                content_ref=f"supabase_elo_forge:{table}", quality="OBSERVED", relevance=0.8,
+                provenance={"catalog":"elo_aprendizado_fontes", "table_name":table, "read_only":True, "learning_performed":False},
+            )).evidence_id)
+        for item in discovery.get("not_linked") or discovery.get("not_scoped") or []:
+            table = str(item.get("table_name") or "")
+            if not table: continue
+            evidence_ids.append(self._evidence_repository.save(Evidence.create(
+                tenant_id=request.tenant_id, domain=request.domain or "forge",
+                source_type="supabase_elo_forge", source_id=table,
+                claim=f"Forge não estabeleceu relação segura entre {table} e a consulta recebida.",
+                content_ref=f"supabase_elo_forge:{table}:unlinked", quality="OBSERVED", relevance=0.5,
+                provenance={"catalog":"elo_aprendizado_fontes", "table_name":table, "read_only":True, "absence_of_safe_link":True, "learning_performed":False},
+            )).evidence_id)
+        return OrchestrationResponseComposer(evidence_repository=self._evidence_repository).compose_forge(
+            request=request, forge_context=context, evidence_ids=tuple(evidence_ids)
         )
-
     def compose_response(self, request: OrchestrationRequest, selection, outcome):
         """Return rich human-facing output without changing execution authority."""
         from elo.cognitive.response.intelligent_orchestration_response import (
