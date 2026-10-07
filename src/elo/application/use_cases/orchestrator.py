@@ -480,13 +480,13 @@ class GovernedOrchestrator:
                 content_ref=f"supabase_elo_forge:{table}", quality="OBSERVED", relevance=0.8,
                 provenance={"catalog":"elo_aprendizado_fontes", "table_name":table, "read_only":True, "learning_performed":False},
             )).evidence_id)
-        for item in discovery.get("not_linked") or []:
+        for item in discovery.get("not_linked") or discovery.get("not_scoped") or []:
             table = str(item.get("table_name") or "")
             if not table: continue
             evidence_ids.append(self._evidence_repository.save(Evidence.create(
                 tenant_id=request.tenant_id, domain=request.domain or "forge",
                 source_type="supabase_elo_forge", source_id=table,
-                claim=f"Forge não estabeleceu relação segura entre {table} e {reference}.",
+                claim=f"Forge não estabeleceu relação segura entre {table} e a consulta recebida.",
                 content_ref=f"supabase_elo_forge:{table}:unlinked", quality="OBSERVED", relevance=0.5,
                 provenance={"catalog":"elo_aprendizado_fontes", "table_name":table, "read_only":True, "absence_of_safe_link":True, "learning_performed":False},
             )).evidence_id)
