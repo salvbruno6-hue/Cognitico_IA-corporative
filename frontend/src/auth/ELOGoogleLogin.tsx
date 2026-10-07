@@ -145,13 +145,7 @@ export function ELOGoogleLogin({ children }: Props) {
     startELOAmbient();
     playELOSound('click');
 
-    const redirectTo = getOperationalWorkspaceCallbackUrl();
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
-
-    if (authError) setError(authError.message);
+    window.location.replace(`${getOperationalWorkspaceUrl()}?start=google`);
   }
 
   async function signOut() {
