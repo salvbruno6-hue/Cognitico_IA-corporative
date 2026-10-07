@@ -1,6 +1,6 @@
 """Resolver de contexto por SO.
 
-Dada uma SO (ex: 'SO 155.26'), retorna referências para:
+Dada uma SO (ex: 'SO NNN.AA'), retorna referências para:
 - aprendizado persistido;
 - documentos do handbook relevantes;
 - precedentes similares;
