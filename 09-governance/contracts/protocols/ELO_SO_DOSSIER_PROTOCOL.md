@@ -77,11 +77,25 @@ Exemplo:
 
 | Forma | Exemplo |
 |---|---|
-| Máscara humana | `SO 155.26` |
-| ID canônico do resolver | `SO-155.26` |
-| Chave de armazenamento | `SO_155_26` |
+| Máscara humana | `SO NNN.AA` |
+| ID canônico do resolver | `SO-NNN.AA` |
+| Chave de armazenamento | `SO_NNN_AA` |
 
 Representações equivalentes devem ser normalizadas antes da resolução.
+
+### 4.1.1 Autoridade de atribuição
+
+O número da SO é atribuído pelo **Analista de Orçamento** antes de sua entrada no ciclo do ELO.
+
+O ELO recebe uma identidade já atribuída e somente:
+- valida o formato canônico;
+- normaliza a representação textual;
+- resolve referências;
+- preserva a identidade e sua proveniência.
+
+O ELO não gera, escolhe, incrementa, reserva, reinicia ou substitui o número da SO. O reinício anual de NNN é uma regra da atribuição externa, não um mecanismo do ELO.
+
+Se a identidade recebida for ausente ou inválida, a operação deve ser bloqueada até que a SO atribuída seja fornecida/corrigida pela autoridade responsável.
 
 ### 4.2 Identidade
 
@@ -108,13 +122,13 @@ O Dossiê não altera a identidade das fontes referenciadas.
 O índice deve conter, no mínimo:
 
 ```yaml
-so_id: SO-155.26
-canonical_key: SO_155_26
+so_id: SO-NNN.AA
+canonical_key: SO_NNN_AA
 mask: "SO NNN.AA"
 maturation_state: REFERENCED
 source_refs:
   - source_type: solicitations_learning
-    path: memory/solicitations_learning/SO-155.26.md
+    path: memory/solicitations_learning/SO-NNN.AA.md
   - source_type: budget_learning
     path: 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/...
   - source_type: knowledge_handbook
@@ -122,7 +136,7 @@ source_refs:
   - source_type: supabase_experience
     table: elo_aprendizado_experiencias
   - source_type: operational_memory
-    path: memory/solicitations/SO_155_26/index.json
+    path: memory/solicitations/SO_NNN_AA/index.json
 provenance:
   resolver: ELO SOResolver
 ```
