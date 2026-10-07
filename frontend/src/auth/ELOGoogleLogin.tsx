@@ -165,9 +165,15 @@ export function ELOGoogleLogin({ children }: Props) {
     return configuredUrl.replace(/\/$/, '');
   }
 
-  function openOperationalWorkspace() {
+  function openOperationalWorkspace(nextSession: Session) {
     playELOSound('success');
-    window.location.assign(getOperationalWorkspaceUrl());
+    const workspaceUrl = new URL(getOperationalWorkspaceUrl());
+    const handoff = btoa(JSON.stringify({
+      access_token: nextSession.access_token,
+      refresh_token: nextSession.refresh_token,
+    }));
+    workspaceUrl.hash = `elo_session=${encodeURIComponent(handoff)}`;
+    window.location.replace(workspaceUrl.toString());
   }
 
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
@@ -191,22 +197,15 @@ export function ELOGoogleLogin({ children }: Props) {
   }
 
   if (session) {
+    openOperationalWorkspace(session);
     return (
-      <main data-elo-auth="setup" className="elo-setup-page">
+      <main data-elo-auth="handoff" className="elo-setup-page">
         <section className="elo-login-panel elo-setup-panel">
           <div className="elo-login-content">
             <ELOLogo />
-            <span className="elo-setup-kicker">CONFIGURAÇÃO INICIAL</span>
-            <h1>Preparar acesso ao ELO</h1>
-            <p className="elo-setup-lead">Sua identidade administrativa já foi autenticada. O GitHub Pages encerra aqui a camada de acesso e configuração; o workspace operacional do ELO roda no Vercel.</p>
-            <div className="elo-setup-status" aria-label="Status da configuração">
-              <div><span className="elo-status-dot" /> <strong>Google</strong><small>Identidade autenticada</small></div>
-              <div><span className="elo-status-dot" /> <strong>Supabase</strong><small>Sessão ELO autorizada</small></div>
-              <div><span className="elo-status-dot" /> <strong>Vercel</strong><small>Workspace operacional</small></div>
-            </div>
-            <button className="elo-google-button elo-chatgpt-button" type="button" onClick={openOperationalWorkspace}>Abrir Workspace Operacional</button>
-            <p className="elo-setup-note">GitHub Pages = autenticação + setup. Vercel = aplicação operacional, orquestração, evidência e interação cognitiva. Nenhuma autoridade operacional é criada nesta camada estática.</p>
-            <button className="elo-setup-signout" type="button" onClick={signOut}>Sair da sessão administrativa</button>
+            <span className="elo-setup-kicker">WORKSPACE OPERACIONAL</span>
+            <h1>Abrindo o ELO…</h1>
+            <p className="elo-setup-lead">Autenticação Google e autorização ELO concluídas. Transferindo a sessão para o workspace operacional.</p>
           </div>
         </section>
       </main>
