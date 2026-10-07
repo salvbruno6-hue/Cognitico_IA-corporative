@@ -28,6 +28,7 @@ class IntelligentOrchestrationResponse:
     evidence_state: str
     next_action: str
     orientation: Any | None = None
+    evidence_refs: tuple[str, ...] = ()
 
 
 class OrchestrationResponseComposer:
