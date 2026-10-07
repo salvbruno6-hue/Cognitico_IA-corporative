@@ -158,4 +158,4 @@ def test_composer_degrades_when_execution_evidence_is_really_absent():
     assert result.orientation is not None
     assert result.orientation.evidence_refs == ()
     assert result.orientation.confidence.value == "insufficient"
-    assert "sem fatos rastreáveis" in result.orientation.diagnosis
+    assert "0 referência(s) factual(is) rastreável(is)" in result.orientation.diagnosis
