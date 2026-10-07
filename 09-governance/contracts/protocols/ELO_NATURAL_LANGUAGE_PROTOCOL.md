@@ -27,15 +27,15 @@ O ELO aceita comandos em português natural. O parser (src/elo/cognitive/runtime
 
 **Nome canônico:** confere_analise
 **Variações aceitas:**
-- "ELO, confere essa análise da SO X"
-- "ELO, revisa isso da SO X"
-- "ELO, olha essa análise da SO X"
-- "ELO, valida a análise da SO X"
+- "ELO, confere essa análise da SO NNN.AA"
+- "ELO, revisa isso da SO NNN.AA"
+- "ELO, olha essa análise da SO NNN.AA"
+- "ELO, valida a análise da SO NNN.AA"
 
 **Payload gerado:**
 {
   "intent": "confere_analise",
-  "so_id": "SO-X",
+  "so_id": "SO NNN.AA",
   "chatgpt_analysis": "<texto seguinte ao comando>"
 }
 
@@ -45,14 +45,14 @@ O ELO aceita comandos em português natural. O parser (src/elo/cognitive/runtime
 
 **Nome canônico:** o_que_sabe
 **Variações:**
-- "ELO, o que você sabe sobre a SO X"
-- "ELO, me conta sobre a SO X"
-- "ELO, analisa a SO X"
+- "ELO, o que você sabe sobre a SO NNN.AA"
+- "ELO, me conta sobre a SO NNN.AA"
+- "ELO, analisa a SO NNN.AA"
 
 **Payload:**
 {
   "intent": "o_que_sabe",
-  "so_id": "SO-X"
+  "so_id": "SO NNN.AA"
 }
 
 **O que o ELO faz:** consulta SO resolver, retorna aprendizado + handbook + precedentes.
@@ -61,15 +61,15 @@ O ELO aceita comandos em português natural. O parser (src/elo/cognitive/runtime
 
 **Nome canônico:** guarda_aprendizado
 **Variações:**
-- "ELO, guarda isso da SO X"
-- "ELO, anota o aprendizado da SO X"
+- "ELO, guarda isso da SO NNN.AA"
+- "ELO, anota o aprendizado da SO NNN.AA"
 - "ELO, registra isso"
-- "ELO, aprende com a SO X"
+- "ELO, aprende com a SO NNN.AA"
 
 **Payload:**
 {
   "intent": "guarda_aprendizado",
-  "so_id": "SO-X",
+  "so_id": "SO NNN.AA",
   "learning": "<texto seguinte ao comando>"
 }
 
@@ -106,7 +106,7 @@ O ELO aceita comandos em português natural. O parser (src/elo/cognitive/runtime
 
 **Nome canônico:** busca_precedente
 **Variações:**
-- "ELO, já vimos algo parecido com a SO X"
+- "ELO, já vimos algo parecido com a SO NNN.AA"
 - "ELO, tem precedente para X"
 - "ELO, compara com outras SOs"
 
@@ -123,6 +123,31 @@ O ELO aceita comandos em português natural. O parser (src/elo/cognitive/runtime
 3. Se ambos falharem, retorna erro estruturado com sugestões.
 4. A linguagem canônica é registrada em auditoria (intent).
 5. Novos comandos exigem ADR.
+
+### 3.1 Autoridade da SO
+
+A atribuição do número da SO é responsabilidade do **Analista de Orçamento**.
+
+O ELO pode:
+- receber a SO já atribuída;
+- validar seu formato;
+- normalizar sua representação textual;
+- resolver referências pelo identificador;
+- transportar e preservar a SO durante o ciclo de vida.
+
+O ELO não pode:
+- gerar uma SO;
+- escolher uma SO;
+- incrementar ou reservar a sequência;
+- reiniciar a sequência anual;
+- substituir uma SO recebida por outra;
+- corrigir silenciosamente uma SO inválida para outra identidade.
+
+A regra anual de NNN (001–999) e AA não cria responsabilidade de numeração para o ELO. O reinício da sequência é uma convenção da atribuição externa.
+
+Se a SO estiver ausente, o ELO deve solicitar a SO atribuída. Se estiver inválida, deve bloquear a operação e solicitar correção da identidade original.
+
+**Regra de identidade:** o ELO pode normalizar a representação de uma SO; não pode normalizar a identidade para outra SO.
 
 ## 4. Compatibilidade
 
