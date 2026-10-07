@@ -125,7 +125,7 @@ export function ELOWebAuthBoundary() {
 
     window.history.replaceState({}, "", window.location.pathname);
     void signInWithGoogle();
-  }, [loading, session, signingIn]);
+  }, [loading, session, signingIn, signInWithGoogle]);
 
   async function signOut() {
     setError(null);
