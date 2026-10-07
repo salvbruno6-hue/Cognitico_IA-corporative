@@ -538,6 +538,11 @@ class Humanizer:
             lines.append(f"- Estrutura modular específica encontrada: {len(structures)}.")
         else:
             lines.append("- Nenhum registro de estrutura modular foi recuperado no estado atual consultado.")
+        conflicts = discovery.get("conflicts") or []
+        if conflicts:
+            lines.extend(["", "**Conflitos preservados:**"])
+            for conflict in conflicts[:8]:
+                lines.append(f"- {conflict}")
         lines.extend(["", "**O que não está comprovado:**"])
         if not structures:
             lines.append(
