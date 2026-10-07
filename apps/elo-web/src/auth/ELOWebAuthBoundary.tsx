@@ -117,6 +117,16 @@ export function ELOWebAuthBoundary() {
     }
   }
 
+  useEffect(() => {
+    if (loading || session || signingIn) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("start") !== "google") return;
+
+    window.history.replaceState({}, "", window.location.pathname);
+    void signInWithGoogle();
+  }, [loading, session, signingIn]);
+
   async function signOut() {
     setError(null);
     const supabase = getSupabaseClient();
