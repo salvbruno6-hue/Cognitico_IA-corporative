@@ -78,10 +78,12 @@ function ELOLogo() {
   return <div className="elo-login-logo" aria-label="ELO"><span className="elo-login-wordmark" aria-hidden="true">EL</span><span className="elo-login-orbit" aria-hidden="true"><i /><b /></span></div>;
 }
 
-function getPublicOrigin() {
-  const configuredOrigin = import.meta.env.VITE_ELO_PUBLIC_URL as string | undefined;
-  return (configuredOrigin || window.location.origin).replace(/\/$/, '');
+function getOperationalWorkspaceUrl() {
+  const configuredUrl = import.meta.env.VITE_ELO_OPERATIONAL_URL as string | undefined;
+  if (!configuredUrl) throw new Error('ELO operational workspace URL is not configured.');
+  return configuredUrl.replace(/\/$/, '');
 }
+
 
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
@@ -129,15 +131,18 @@ export function ELOGoogleLogin({ children }: Props) {
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
 
+  useEffect(() => {
+    if (!loading && session && authorizationReady) {
+      window.location.replace(`${getOperationalWorkspaceUrl()}?start=google`);
+    }
+  }, [loading, session, authorizationReady]);
+
   async function signInWithGoogle() {
     setError(null);
     startELOAmbient();
     playELOSound('click');
-    const base = import.meta.env.BASE_URL || '/';
-    const callbackPath = `${base.replace(/\/$/, '')}/auth/callback`;
-    const redirectTo = new URL(callbackPath, `${getPublicOrigin()}/`).toString();
-    const { error: authError } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
-    if (authError) setError(authError.message);
+
+    window.location.replace(`${getOperationalWorkspaceUrl()}?start=google`);
   }
 
   async function signOut() {
@@ -155,19 +160,6 @@ export function ELOGoogleLogin({ children }: Props) {
       setAuthorizationReady(false);
       setSession(null);
     }
-  }
-
-  function getOperationalWorkspaceUrl() {
-    const configuredUrl = import.meta.env.VITE_ELO_OPERATIONAL_URL as string | undefined;
-    if (!configuredUrl) {
-      throw new Error('ELO operational workspace URL is not configured.');
-    }
-    return configuredUrl.replace(/\/$/, '');
-  }
-
-  function openOperationalWorkspace() {
-    playELOSound('success');
-    window.location.assign(getOperationalWorkspaceUrl());
   }
 
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
@@ -190,23 +182,15 @@ export function ELOGoogleLogin({ children }: Props) {
     );
   }
 
-  if (session) {
+  if (session && authorizationReady) {
     return (
-      <main data-elo-auth="setup" className="elo-setup-page">
+      <main data-elo-auth="handoff" className="elo-setup-page">
         <section className="elo-login-panel elo-setup-panel">
           <div className="elo-login-content">
             <ELOLogo />
-            <span className="elo-setup-kicker">CONFIGURAÇÃO INICIAL</span>
-            <h1>Preparar acesso ao ELO</h1>
-            <p className="elo-setup-lead">Sua identidade administrativa já foi autenticada. O GitHub Pages encerra aqui a camada de acesso e configuração; o workspace operacional do ELO roda no Vercel.</p>
-            <div className="elo-setup-status" aria-label="Status da configuração">
-              <div><span className="elo-status-dot" /> <strong>Google</strong><small>Identidade autenticada</small></div>
-              <div><span className="elo-status-dot" /> <strong>Supabase</strong><small>Sessão ELO autorizada</small></div>
-              <div><span className="elo-status-dot" /> <strong>Vercel</strong><small>Workspace operacional</small></div>
-            </div>
-            <button className="elo-google-button elo-chatgpt-button" type="button" onClick={openOperationalWorkspace}>Abrir Workspace Operacional</button>
-            <p className="elo-setup-note">GitHub Pages = autenticação + setup. Vercel = aplicação operacional, orquestração, evidência e interação cognitiva. Nenhuma autoridade operacional é criada nesta camada estática.</p>
-            <button className="elo-setup-signout" type="button" onClick={signOut}>Sair da sessão administrativa</button>
+            <span className="elo-setup-kicker">WORKSPACE OPERACIONAL</span>
+            <h1>Abrindo o ELO…</h1>
+            <p className="elo-setup-lead">Autenticação Google e autorização ELO concluídas. Transferindo a sessão para o workspace operacional.</p>
           </div>
         </section>
       </main>
