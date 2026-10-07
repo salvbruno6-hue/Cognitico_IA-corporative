@@ -246,11 +246,11 @@ class SupabaseEloForge:
         return list(dict.fromkeys(str(value) for value in values if value is not None))
 
     def governed_demand_context(self, query: str) -> dict[str, Any]:
-        """Consult demand and impact sources without requiring a model entity.
+        """Consult demand and impact sources selected by the canonical catalog.
 
-        This is a read-only cross-domain view. Model-specific operational tables
-        are not queried without a safe relationship; global PCP read-models and
-        explicit simulation sources may be consulted with their scope preserved.
+        This is a read-only cross-domain view. Source selection is dynamic from
+        the canonical source catalog; the bounded table set is only a safety
+        boundary for globally scoped sources.
         """
         discovered = self.discover_sources(query)
         global_tables = {
@@ -277,23 +277,49 @@ class SupabaseEloForge:
                     "reason": "model_or_entity_scope_required",
                 })
                 continue
-            if table == "fluxo_produtivo_modular":
-                rows = self._read_raw_table(table, filters={"ativo": "eq.true"}, limit=100)
-            else:
-                rows = self._read_raw_table(table, limit=100)
-            linked[table] = rows
+            filters = {"ativo": "eq.true"} if table == "fluxo_produtivo_modular" else None
+            linked[table] = self._read_raw_table(table, filters=filters, limit=100)
+
+        demand_rows = linked.get("elo_sim_demanda") or []
+        resource_rows = linked.get("elo_sim_demanda_recursos") or []
+        decision_rows = linked.get("v_elo_pcp_decisao_externa_resumo") or []
+        rule_rows = linked.get("v_elo_pcp_dialogo_regras") or []
+        coverage_rows = linked.get("v_elo_pcp_cobertura_demanda_externa") or []
+
+        decision = {}
+        if decision_rows:
+            row = decision_rows[0]
+            decision = {
+                "estado_decisao": row.get("estado_decisao"),
+                "estado_cobertura_global": row.get("estado_cobertura_global"),
+            }
+
+        gap = {}
+        if rule_rows:
+            row = rule_rows[0]
+            gap = {
+                "gate": row.get("gate"),
+                "gap_codigo": row.get("gap_codigo"),
+                "bloqueia_execucao": row.get("bloqueia_execucao"),
+                "motivo": row.get("motivo"),
+                "authorized_source": row.get("fonte_autorizada"),
+            }
+
+        demand_total = sum(float(row.get("quantidade") or 0) for row in demand_rows if row.get("quantidade") is not None)
+        resource_hours = sum(float(row.get("horas_demanda_h") or 0) for row in resource_rows if row.get("horas_demanda_h") is not None)
+
         return {
             "source": "supabase_elo_forge",
             "query": query,
+            "scope": "cross_domain_demand_and_impacts",
+            "linked_counts": {table: len(rows) for table, rows in linked.items()},
+            "demand_total": demand_total,
+            "resource_hours": resource_hours,
+            "decision": decision,
+            "gap": gap,
+            "coverage_records": len(coverage_rows),
             "governed_discovery": {
-                "sources_considered": [
-                    {
-                        "table_name": source.get("table_name"),
-                        "dominio_codigo": source.get("dominio_codigo"),
-                        "prioridade": source.get("prioridade"),
-                    }
-                    for source in discovered
-                ],
+                "sources_considered": [{"table_name": source.get("table_name"), "dominio_codigo": source.get("dominio_codigo"), "prioridade": source.get("prioridade")} for source in discovered],
                 "linked_records": linked,
                 "not_scoped": not_scoped,
                 "catalog_authority": CATALOG_TABLE,
@@ -308,7 +334,6 @@ class SupabaseEloForge:
                 "learning_performed": False,
             },
         }
-
     def governed_model_context(self, reference: str, query: str) -> dict[str, Any]:
         """Retrieve a model and safely extend it through catalog-governed sources."""
         result = self.model_context(reference)
