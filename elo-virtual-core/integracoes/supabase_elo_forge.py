@@ -27,6 +27,53 @@ CATALOG_TABLE = "elo_aprendizado_fontes"
 
 # The catalog is the sole runtime allow-list.  Concrete tables are never
 # admitted by a second static list.
+CATALOG_MATCH_TERMS = {
+    "produto": {"produtos"},
+    "modelo": {"produtos"},
+    "módulo": {"produtos"},
+    "modulo": {"produtos"},
+    "kit": {"produtos"},
+    "composição": {"produtos"},
+    "composicao": {"produtos"},
+    "lista": {"produtos"},
+    "produção": {"producao_fluxo_modular"},
+    "producao": {"producao_fluxo_modular"},
+    "fluxo": {"producao_fluxo_modular"},
+    "demanda": {"planejamento_demanda", "planejamento_pcp"},
+    "demanda comercial": {"comercial_licitacoes", "planejamento_demanda"},
+    "demanda de fabricação": {"planejamento_pcp", "producao_fluxo_modular"},
+    "demanda fabricação": {"planejamento_pcp", "producao_fluxo_modular"},
+    "demanda de reparos": {"reparos_modulares", "planejamento_pcp"},
+    "demanda de operações externas": {"operacoes_externas", "planejamento_pcp"},
+    "demanda de operacoes externas": {"operacoes_externas", "planejamento_pcp"},
+    "impacto": {"planejamento_pcp", "operacoes_externas", "reparos_modulares", "compras"},
+    "impactos": {"planejamento_pcp", "operacoes_externas", "reparos_modulares", "compras"},
+    "material": {"planejamento_demanda", "produtos", "compras"},
+    "recurso": {"planejamento_pcp"},
+    "cobertura": {"planejamento_pcp", "operacoes_externas", "reparos_modulares"},
+    "decisão externa": {"operacoes_externas"},
+    "decisao externa": {"operacoes_externas"},
+    "resumo pcp": {"planejamento_pcp", "operacoes_externas"},
+    "dados pendentes": {"planejamento_pcp"},
+    "operação externa": {"operacoes_externas"},
+    "operacao externa": {"operacoes_externas"},
+    "operações externas": {"operacoes_externas"},
+    "operacoes externas": {"operacoes_externas"},
+    "montagem externa": {"operacoes_externas"},
+    "reparo": {"reparos_modulares"},
+    "reparos": {"reparos_modulares"},
+    "unidade modular": {"reparos_modulares"},
+    "unidade": {"reparos_modulares"},
+    "fornecedor": {"compras"},
+    "cotação": {"compras"},
+    "cotacao": {"compras"},
+    "custo": {"rh", "compras"},
+    "regra": {"gestao"},
+    "exceção": {"gestao"},
+    "excecao": {"gestao"},
+    "proveniência": {"dados_banco"},
+    "proveniencia": {"dados_banco"},
+}
 
 MODEL_ALIASES = {
     "MLT.M01": "M01",
@@ -175,35 +222,20 @@ class SupabaseEloForge:
     def discover_sources(self, query: str) -> list[dict[str, Any]]:
         """Select governed sources from catalog metadata; never invents a source."""
         normalized = query.casefold()
-        query_tokens = {
-            token for token in normalized.replace("-", " ").replace("_", " ").split()
-            if len(token) >= 4
-        }
         sources = self.governed_sources()
         scored: list[tuple[int, int, dict[str, Any]]] = []
         for source in sources:
             domain = str(source.get("dominio_codigo") or "").casefold()
             table = str(source.get("table_name") or "").casefold()
-            rule = json.dumps(
-                source.get("regra_extracao") or {}, ensure_ascii=False
-            ).casefold()
-            metadata = " ".join(
-                [domain.replace("_", " "), table.replace("_", " "), rule.replace("_", " ")]
-            )
-            metadata_tokens = {
-                token for token in metadata.split() if len(token) >= 4
-            }
+            rule = json.dumps(source.get("regra_extracao") or {}, ensure_ascii=False).casefold()
             score = 0
-            for token in query_tokens:
-                if token in metadata_tokens:
+            for term, domains in CATALOG_MATCH_TERMS.items():
+                if term in normalized and any(domain == candidate.casefold() for candidate in domains):
                     score += 4
-                    continue
-                if any(
-                    candidate.startswith(token[:5]) or token.startswith(candidate[:5])
-                    for candidate in metadata_tokens
-                    if len(candidate) >= 5
-                ):
-                    score += 2
+            if any(token in normalized for token in table.replace("_", " ").split()):
+                score += 2
+            if domain and domain.replace("_", " ") in normalized:
+                score += 2
             if score:
                 scored.append((score, int(source.get("prioridade") or 999999), source))
         scored.sort(key=lambda item: (-item[0], item[1], str(item[2].get("table_name"))))
@@ -212,6 +244,70 @@ class SupabaseEloForge:
     @staticmethod
     def _ids(values: list[Any]) -> list[str]:
         return list(dict.fromkeys(str(value) for value in values if value is not None))
+
+    def governed_demand_context(self, query: str) -> dict[str, Any]:
+        """Consult demand and impact sources without requiring a model entity.
+
+        This is a read-only cross-domain view. Model-specific operational tables
+        are not queried without a safe relationship; global PCP read-models and
+        explicit simulation sources may be consulted with their scope preserved.
+        """
+        discovered = self.discover_sources(query)
+        global_tables = {
+            "v_elo_pcp_cobertura_demanda_externa",
+            "v_elo_pcp_decisao_externa_detalhe",
+            "v_elo_pcp_decisao_externa_resumo",
+            "v_elo_pcp_dialogo_regras",
+            "fluxo_produtivo_modular",
+            "elo_sim_cenarios",
+            "elo_sim_demanda",
+            "elo_sim_demanda_materiais",
+            "elo_sim_demanda_recursos",
+            "elo_orcamento_decisoes",
+            "elo_orcamento_associacoes",
+        }
+        linked: dict[str, list[dict[str, Any]]] = {}
+        not_scoped: list[dict[str, Any]] = []
+        for source in discovered:
+            table = str(source.get("table_name") or "")
+            if table not in global_tables:
+                not_scoped.append({
+                    "table_name": table,
+                    "dominio_codigo": source.get("dominio_codigo"),
+                    "reason": "model_or_entity_scope_required",
+                })
+                continue
+            if table == "fluxo_produtivo_modular":
+                rows = self._read_raw_table(table, filters={"ativo": "eq.true"}, limit=100)
+            else:
+                rows = self._read_raw_table(table, limit=100)
+            linked[table] = rows
+        return {
+            "source": "supabase_elo_forge",
+            "query": query,
+            "governed_discovery": {
+                "sources_considered": [
+                    {
+                        "table_name": source.get("table_name"),
+                        "dominio_codigo": source.get("dominio_codigo"),
+                        "prioridade": source.get("prioridade"),
+                    }
+                    for source in discovered
+                ],
+                "linked_records": linked,
+                "not_scoped": not_scoped,
+                "catalog_authority": CATALOG_TABLE,
+                "learning_performed": False,
+                "scope": "cross_domain_demand_and_impacts",
+            },
+            "provenance": {
+                "source": "Supabase Elo-forge",
+                "governed_catalog": CATALOG_TABLE,
+                "read_only": True,
+                "guessed": False,
+                "learning_performed": False,
+            },
+        }
 
     def governed_model_context(self, reference: str, query: str) -> dict[str, Any]:
         """Retrieve a model and safely extend it through catalog-governed sources."""
@@ -403,54 +499,6 @@ class SupabaseEloForge:
         result["provenance"]["guessed"] = False
         result["provenance"]["model_code"] = model_code
         return result
-
-    def governed_query_context(self, query: str) -> dict[str, Any]:
-        """Read bounded records from sources selected by the canonical catalog."""
-        discovered = self.discover_sources(query)
-        records: dict[str, list[dict[str, Any]]] = {}
-        not_read: list[dict[str, Any]] = []
-
-        for source in discovered:
-            table = str(source.get("table_name") or "")
-            if not table:
-                continue
-            try:
-                rows = self._read_raw_table(table, limit=25)
-            except ForgeRetrievalError as exc:
-                not_read.append({
-                    "table_name": table,
-                    "reason": "read_failed",
-                    "error": str(exc),
-                })
-                continue
-            records[table] = rows
-
-        return {
-            "query": query,
-            "governed_discovery": {
-                "sources_considered": [
-                    {
-                        "table_name": source.get("table_name"),
-                        "dominio_codigo": source.get("dominio_codigo"),
-                        "prioridade": source.get("prioridade"),
-                    }
-                    for source in discovered
-                ],
-                "catalog_authority": CATALOG_TABLE,
-                "learning_performed": False,
-                "not_read": not_read,
-            },
-            "generic_query": {
-                "records_by_source": records,
-                "read_only": True,
-            },
-            "provenance": {
-                "source": "Supabase Elo-forge",
-                "read_only": True,
-                "guessed": False,
-                "governed_catalog": CATALOG_TABLE,
-            },
-        }
 
     def resolve_model(self, reference: str) -> dict[str, Any]:
         """Resolve aliases to canonical model identity without duplicating data."""
