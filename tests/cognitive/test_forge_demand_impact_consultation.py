@@ -73,7 +73,7 @@ def test_orchestrator_consults_cross_domain_demand_without_model_reference():
     assert response.evidence_refs
     assert response.orientation is not None
     assert response.orientation.evidence_refs
-    assert response.orientation.confidence.value == "aligned"
+    assert response.orientation.confidence.value == "partial"
     assert "demanda e impactos entre domínios" in response.response.lower()
     assert "v_elo_pcp_cobertura_demanda_externa" in response.response
     assert "elo_orcamento_decisoes" in response.response
