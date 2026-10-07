@@ -84,9 +84,6 @@ function getOperationalWorkspaceUrl() {
   return configuredUrl.replace(/\/$/, '');
 }
 
-function getOperationalWorkspaceCallbackUrl() {
-  return `${getOperationalWorkspaceUrl()}/auth/callback`;
-}
 
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
