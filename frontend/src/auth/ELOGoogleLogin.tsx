@@ -176,6 +176,12 @@ export function ELOGoogleLogin({ children }: Props) {
     window.location.replace(workspaceUrl.toString());
   }
 
+  useEffect(() => {
+    if (!loading && session && authorizationReady) {
+      openOperationalWorkspace(session);
+    }
+  }, [loading, session, authorizationReady]);
+
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
 
   if (session && !authorizationReady) {
@@ -196,8 +202,7 @@ export function ELOGoogleLogin({ children }: Props) {
     );
   }
 
-  if (session) {
-    openOperationalWorkspace(session);
+  if (session && authorizationReady) {
     return (
       <main data-elo-auth="handoff" className="elo-setup-page">
         <section className="elo-login-panel elo-setup-panel">
