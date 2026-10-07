@@ -42,7 +42,7 @@ export function ELOAuthCallback() {
       }
 
       try {
-        await establishELOAuthorizationSession();
+        await establishELOAuthorizationSession(data.session);
       } catch (authorizationError) {
         setMessage(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
         return;
