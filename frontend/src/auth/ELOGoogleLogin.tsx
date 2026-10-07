@@ -87,6 +87,7 @@ function getOperationalWorkspaceUrl() {
 export function ELOGoogleLogin({ children }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authorizationReady, setAuthorizationReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,15 +103,18 @@ export function ELOGoogleLogin({ children }: Props) {
 
       setSession(data.session);
       if (!data.session) {
+        setAuthorizationReady(false);
         setLoading(false);
         return;
       }
 
       try {
         await establishELOAuthorizationSession(data.session);
+        if (active) setAuthorizationReady(true);
       } catch (authorizationError) {
         if (active) {
-            setError(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
+          setAuthorizationReady(false);
+          setError(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
         }
       } finally {
         if (active) setLoading(false);
@@ -125,6 +129,12 @@ export function ELOGoogleLogin({ children }: Props) {
 
     return () => { active = false; data.subscription.unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    if (!loading && session && authorizationReady) {
+      window.location.replace(getOperationalWorkspaceUrl());
+    }
+  }, [loading, session, authorizationReady]);
 
   async function signInWithGoogle() {
     setError(null);
@@ -151,7 +161,10 @@ export function ELOGoogleLogin({ children }: Props) {
 
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) setError(signOutError.message);
-    else setSession(null);
+    else {
+      setAuthorizationReady(false);
+      setSession(null);
+    }
   }
 
   if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
