@@ -41,7 +41,7 @@ Somente após a composição técnica: validar quantidade e unidade; validar pro
 ## Gatilho operacional
 Quando o usuário solicitar **ORÇAR**, o GPT especialista deve executar este fluxo integralmente, consultando TR, taxonomia, conhecimento de produtos/modelos e memórias de cálculo antes de montar o orçamento.
 
-## Caso de teste SO 001.26
+## Caso de teste — identificação SO NNN.AA
 O teste estabeleceu como comportamento esperado: identificar solução modular; consultar a taxonomia; comparar modelos candidatos, incluindo MLT.M01, MLT.M02, MLT.M16 e MLT.M20 quando tecnicamente pertinentes; selecionar por equivalência; usar o modelo-base como referência; e então calcular adaptações/excedentes sem dupla contagem.
 
 A conclusão de um modelo-base permanece condicionada à evidência da TR e do layout. Inconsistências documentais devem ser apontadas, não silenciosamente corrigidas.
