@@ -1,9 +1,10 @@
 import ast
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
 CANDIDATE_FILES = (
-    Path("src/elo/agent_intake/hermes_model_capability_metadata.py"),
-    Path("src/elo/agent_intake/hermes_session_writer_registry.py"),
+    REPO_ROOT / "src/elo/agent_intake/hermes_model_capability_metadata.py",
+    REPO_ROOT / "src/elo/agent_intake/hermes_session_writer_registry.py",
 )
 
 FORBIDDEN_IMPORT_ROOTS = {
