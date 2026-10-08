@@ -1,0 +1,1168 @@
+{
+  "observed_at": "2026-10-08",
+  "base_main_sha": "46cfd427d2c0b40230c17145ad09f9e9a6205394",
+  "project_id": "fxbpevjrkwhbicpmecow",
+  "scope": [
+    "public",
+    "elo_core"
+  ],
+  "stage_status": "EM_EXECUCAO",
+  "tables": [
+    {
+      "table": "elo_core.avaliacoes",
+      "classification": "A — DENY_ALL_INTENCIONAL",
+      "source": [
+        "docs/evolution/AUDIT_SOLIDIFICATION_GATE_2026-09-07.md",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": null,
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO Core internal learning",
+      "consumer": "Internal-only Core; no service_role SELECT grant",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "elo_core.baselines",
+      "classification": "A — DENY_ALL_INTENCIONAL",
+      "source": [
+        "docs/evolution/AUDIT_SOLIDIFICATION_GATE_2026-09-07.md",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": null,
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO Core internal learning",
+      "consumer": "Internal-only Core; no service_role SELECT grant",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "elo_core.correcoes",
+      "classification": "A — DENY_ALL_INTENCIONAL",
+      "source": [
+        "docs/evolution/AUDIT_SOLIDIFICATION_GATE_2026-09-07.md",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": null,
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO Core internal learning",
+      "consumer": "Internal-only Core; no service_role SELECT grant",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "elo_core.execucoes",
+      "classification": "A — DENY_ALL_INTENCIONAL",
+      "source": [
+        "docs/evolution/AUDIT_SOLIDIFICATION_GATE_2026-09-07.md",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": null,
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO Core internal learning",
+      "consumer": "Internal-only Core; no service_role SELECT grant",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "elo_core.regras",
+      "classification": "A — DENY_ALL_INTENCIONAL",
+      "source": [
+        "docs/evolution/AUDIT_SOLIDIFICATION_GATE_2026-09-07.md",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": null,
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO Core internal learning",
+      "consumer": "Internal-only Core; no service_role SELECT grant",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_automacao_execucoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_automacoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_comercial_licitacoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_compras",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_conceitos",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=arw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_demanda",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_dominios",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=r/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_especializacoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=arw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_estoque",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_execucoes_manualmente",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=aw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_experiencias",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=arw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_extracoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=arw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_fontes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=r/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_gestao",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_padroes_raciocinio",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=arw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_pcp_planejamento",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_producao_fluxo_modular",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_produtos",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_relacoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,elo_learning_writer=arw/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_rh",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_aprendizado_tipos_relacao",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_authorization_grants",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase/migrations/20260919220335_elo_operator_github_binding_runtime.sql",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO authorization / elo-authz",
+      "consumer": "elo-authz service_role",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_experiencia_niveis",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_experiencia_transicoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260913231901,20260913232015,20260913233333,20260913233538,20260913235129",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO governed learning",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.elo_operator_github_bindings",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase/migrations/20260919220335_elo_operator_github_binding_runtime.sql",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO authorization / elo-authz",
+      "consumer": "elo-authz service_role",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.fornecedor_cotacoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase/migrations/20260928000000_enable_rls_fornecedor_cotacoes.sql",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO supplier quotation boundary",
+      "consumer": "registrar_cotacao_fornecedor service_role",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.legenda_obrigatoriedade",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20261005181521",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO PCP reference catalog",
+      "consumer": "PCP reference catalog; runtime consumer pending trace",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.lista_mae_alteracoes",
+      "classification": "B — BACKEND_SERVICE_ROLE",
+      "source": [
+        "supabase_migrations:20260917175729,20260928200819",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "tenant_id": false
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "No missing client policy demonstrated.",
+      "confidence": "high for access boundary; structural classification only",
+      "canonical_owner": "ELO Lista-Mãe audit",
+      "consumer": "lista_mae_guard owner-executed trigger",
+      "risk": "Missing policies are not permission to auto-promote learning or to bypass administrative governance.",
+      "proposed_action": "REUSE: preserve fail-closed boundary; do not add a policy to silence Advisor.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    },
+    {
+      "table": "public.mt_gates",
+      "classification": "A — DENY_ALL_INTENCIONAL",
+      "source": [
+        "supabase_migrations:20260913010826,20260913011100",
+        "live pg_class/pg_policy/pg_attribute/pg_roles"
+      ],
+      "source_type": [
+        "repository_or_persisted_migration",
+        "live_database_catalog"
+      ],
+      "source_fields": [
+        "relrowsecurity",
+        "relacl",
+        "polrelid",
+        "rolbypassrls",
+        "attname"
+      ],
+      "observed_state": {
+        "rls_enabled": true,
+        "policy_count": 0,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=arw/postgres}",
+        "tenant_id": true
+      },
+      "expected_state": "No direct privileged access for anon or ordinary authenticated; server or database-admin access remains governed.",
+      "gap": "Unmatched authenticated SELECT/INSERT/UPDATE from wildcard MT grant; no canonical consumer or authorized client policy.",
+      "confidence": "high for effective denial and grant provenance; purpose/creator identity not proven",
+      "canonical_owner": "ELO governed operational gates / Supabase persistence",
+      "consumer": "Governed server learning/memory; dedicated writer has grants but no RLS bypass",
+      "risk": "No current direct cross-tenant access; latent grant could become exposure if a permissive policy is introduced.",
+      "proposed_action": "CORRECT: revoke PUBLIC/anon/authenticated table grants; preserve existing service_role/owner grants, schema and RLS.",
+      "validation": "Live catalog inspection 2026-10-08; runtime and learning semantics are separate outstanding criteria."
+    }
+  ]
+}
