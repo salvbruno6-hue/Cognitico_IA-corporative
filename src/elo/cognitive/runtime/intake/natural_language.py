@@ -18,7 +18,7 @@ SO_PATTERN = re.compile(
     r"\bSO[\s\-_]?(\d{3})[\s\-_.]?(\d{2})\b",
     re.IGNORECASE,
 )
-SO_REFERENCE_PATTERN = re.compile(r"\bSO\b", re.IGNORECASE)
+SO_REFERENCE_PATTERN = re.compile(r"\bSO(?=$|[\s_-])", re.IGNORECASE)
 DECISION_PATTERN = re.compile(r"\bDEC[\s\-_]?(\w+)\b", re.IGNORECASE)
 JSON_BLOCK_PATTERN = re.compile(
     r"<!--\s*elo-request-payload\s*(.*?)\s*-->",

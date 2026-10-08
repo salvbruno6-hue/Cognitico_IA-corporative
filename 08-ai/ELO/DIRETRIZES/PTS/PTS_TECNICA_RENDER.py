@@ -7,8 +7,13 @@ A PTS Técnica organiza o TR antes do orçamento. Não audita orçamento pronto.
 import argparse
 import json
 from pathlib import Path
+import sys
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+REPOSITORY_SRC = Path(__file__).resolve().parents[4] / "src"
+if REPOSITORY_SRC.is_dir() and str(REPOSITORY_SRC) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_SRC))
 
 from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
 

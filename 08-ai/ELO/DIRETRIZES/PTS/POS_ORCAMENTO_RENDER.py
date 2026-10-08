@@ -18,6 +18,10 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+REPOSITORY_SRC = Path(__file__).resolve().parents[4] / "src"
+if REPOSITORY_SRC.is_dir() and str(REPOSITORY_SRC) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_SRC))
+
 from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
 from POS_ORCAMENTO_INTEGRATION import integrate
 
@@ -112,6 +116,7 @@ def preparar_documento(dados: dict) -> dict:
         raise ValueError(
             "campo 'so' deve conter a SO atribuída no formato canônico SO NNN.AA."
         ) from None
+    documento["so"] = so_atual.replace("SO-", "SO ", 1)
     for chave in ("fontes_consultivas", "acervo_historico", "historico_consultivo"):
         documento.pop(chave, None)
     filtrado = _filtrar_registro(documento, so_atual)
