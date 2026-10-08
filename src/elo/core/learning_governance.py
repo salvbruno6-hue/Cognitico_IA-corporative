@@ -55,6 +55,30 @@ class PromotionPackage:
     payload: Mapping[str, Any]
 
 
+@dataclass(frozen=True)
+class ExternalMechanismCandidate:
+    """Evidence-backed intake record for a mechanism found outside ELO.
+
+    This is deliberately a candidate, not a registry or authority. Source
+    material remains external; only the mechanism's generalized value is
+    evaluated through ELO's existing learning/evolution governance.
+    """
+
+    candidate_id: str
+    source_name: str
+    source_kind: str
+    source_ref: str
+    mechanism_id: str
+    mechanism: str
+    proposed_capability: str
+    existing_owner: str
+    disposition: str
+    evidence_refs: tuple[str, ...]
+    scope: str
+    generalized: bool
+    state: str = "CANDIDATE"
+
+
 class LearningGovernanceError(ValueError):
     """Raised when a learning lifecycle transition violates governance."""
 
@@ -118,6 +142,66 @@ class GovernedLearningService:
             candidate_id=candidate.candidate_id, experience_id=candidate.experience_id,
             tenant_id=candidate.tenant_id, domain=candidate.domain, hypothesis=candidate.hypothesis,
             dataset_version=candidate.dataset_version, provenance=dict(candidate.provenance), state="APPROVED",
+        )
+
+    @staticmethod
+    def ingest_external_mechanism(
+        *,
+        source_name: str,
+        source_kind: str,
+        source_ref: str,
+        mechanism_id: str,
+        mechanism: str,
+        proposed_capability: str,
+        existing_owner: str,
+        disposition: str,
+        evidence_refs: tuple[str, ...] | list[str],
+        scope: str,
+        generalized: bool,
+    ) -> ExternalMechanismCandidate:
+        """Register an external mechanism as a governed candidate only.
+
+        Allowed dispositions are the canonical reuse-first decisions. This
+        method performs intake/normalization and never promotes, writes Core,
+        mutates Forge, creates a capability, or creates a second authority.
+        """
+        required = {
+            "source_name": source_name,
+            "source_kind": source_kind,
+            "source_ref": source_ref,
+            "mechanism_id": mechanism_id,
+            "mechanism": mechanism,
+            "proposed_capability": proposed_capability,
+            "existing_owner": existing_owner,
+            "disposition": disposition,
+            "scope": scope,
+        }
+        for name, value in required.items():
+            if not value or not value.strip():
+                raise LearningGovernanceError(f"{name} is required")
+        allowed = {"REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE"}
+        normalized_disposition = disposition.strip().upper()
+        if normalized_disposition not in allowed:
+            raise LearningGovernanceError("invalid external mechanism disposition")
+        if not evidence_refs:
+            raise LearningGovernanceError("evidence_refs are required")
+        if normalized_disposition == "CREATE" and existing_owner.strip().upper() not in {"NONE", "ABSENT", "PROVEN_ABSENT"}:
+            raise LearningGovernanceError("CREATE requires proven absence of an existing owner")
+        if normalized_disposition == "CREATE" and not generalized:
+            raise LearningGovernanceError("CREATE requires a generalized mechanism")
+        return ExternalMechanismCandidate(
+            candidate_id=str(uuid.uuid4()),
+            source_name=source_name.strip(),
+            source_kind=source_kind.strip().lower(),
+            source_ref=source_ref.strip(),
+            mechanism_id=mechanism_id.strip(),
+            mechanism=mechanism.strip(),
+            proposed_capability=proposed_capability.strip(),
+            existing_owner=existing_owner.strip(),
+            disposition=normalized_disposition,
+            evidence_refs=tuple(evidence_refs),
+            scope=scope.strip(),
+            generalized=generalized,
         )
 
     @staticmethod
