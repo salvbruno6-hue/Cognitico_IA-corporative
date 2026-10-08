@@ -39,9 +39,7 @@ Build command: default (`next build`).
 
 Install command: default package-manager detection.
 
-Required server-side environment variable:
-
-O ELO Web não depende de `ELO_COGNITIVE_API_URL`. O endpoint `/api/cognitive` está nesta aplicação; a implementação local comum ainda devolve o texto de entrada sem consultar evidências. Sua existência não comprova execução do Core canônico.
+O endpoint `/api/cognitive` está nesta aplicação; a implementação local comum ainda devolve o texto de entrada sem consultar evidências. Sua existência não comprova execução do Core canônico.
 
 Optional public tenant identifier:
 

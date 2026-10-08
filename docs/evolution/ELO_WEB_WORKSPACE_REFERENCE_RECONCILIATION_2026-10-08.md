@@ -50,6 +50,16 @@ The experience mapping in `src/lib/workspace.ts` grants no permissions. It recor
 - Live desktop/mobile browser verification was not completed: cloud browser could not reach the local dev server; local Playwright browser download failed in this environment. The temporary local verification route is removed and must never be committed or deployed.
 - No real dialogue reply, operational insert/update/delete, grant or schema modification was performed by verification.
 
+## Follow-up evidence: canonical application reconciliation
+
+Maintenance run `37775327439` passed technically but left PR #955 in `WAITING_FOR_EVIDENCE`: the reconciler recognized the historical `frontend/` case, not the official application registry. The existing `docs/governance/AUTHORIZED_VERCEL_PROJECTS.json` declares `apps/elo-web` under ELO-VRC-001 and explicitly deprecates `frontend/`.
+
+The existing reconciler now consumes that unchanged registry for application ownership. It preserves executable candidates in the audit; they must resolve to the registered application, the independently mapped Core or the explicitly deprecated frontend. An unclassified executable or explicit parallel owner remains unresolved/blocked. Changes to the registry itself, mixed application/Core/backend changes, malformed registries and other app targets cannot use this evidence. This is GOVERNANCE + TEST supporting the workspace implementation, not a new approval authority; CI, specialist/acceptance, review and merge authorization gates remain in force.
+
+31 targeted governance tests passed, including eight additional application-boundary regressions. Local reconciliation of the full PR resolves `apps/elo-web`, source of truth = existing Vercel registry, decision = REUSE. The ELO Web legacy dependency guard also runs; obsolete variable-name prose in the README was removed rather than weakening the guard.
+
+The public preview loaded its Google sign-in screen. A login started at the commit preview returned to the different legacy project domain; a fresh tab at the original preview still showed login. This is an observed callback-domain mismatch, not proof of a successful session or a restored production loop. Preview redirect admission/configuration needs investigation before authenticated browser acceptance. No authorization code is recorded in this evidence.
+
 # Remaining governance/runtime work
 
 Full functional equivalence is NOT claimed. Prioritize canonical reasoning/evidence integration (RUN-01), authorized scoped operational readers, safe joins and current empty-table states, then existing write contracts/approval gates. Team messaging, notification receipts and directory integration require an architecture decision when no canonical owner/contract exists; do not create a parallel store. The canonical grant inventory contains only expired execution/commit/merge records (expiry 2026-09-19). No self-authorization is issued and this PR cannot be reported as merged or production-complete on technical validation alone.
