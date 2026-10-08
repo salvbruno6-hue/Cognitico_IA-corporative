@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-const tables = [
+export const catalogTables = [
   { key: "lista_mae", label: "Lista-Mãe", columns: [["cod_item", "Código"], ["descricao_oficial", "Descrição"], ["un", "Unidade"], ["valor_unitario", "Valor unitário"], ["modelos_aplicaveis", "Modelos aplicáveis"]] },
   { key: "modelos", label: "Modelos", columns: [["codigo", "Código"], ["nome", "Modelo"], ["familia", "Família"], ["area_util_m2", "Área útil (m²)"]] },
   { key: "kits", label: "Kits", columns: [["codigo", "Código"], ["nome", "Kit"], ["descricao", "Descrição"], ["versao", "Versão"]] },
+  { key: "taxonomia", label: "Taxonomia", columns: [["codigo", "Código"], ["familia", "Família"], ["nome_amplo", "Nome"], ["tipo", "Tipo"], ["uso_principal", "Uso"]] },
+  { key: "dimensoes", label: "Dimensões", columns: [["referencia", "Referência"], ["comprimento_mm", "Comprimento (mm)"], ["largura_mm", "Largura (mm)"], ["altura_mm", "Altura (mm)"], ["area_m2", "Área dimensional (m²)"]] },
+  { key: "modelo_apresentacao", label: "Fichas técnicas", columns: [["modelo_id", "Modelo (referência)"], ["estrutura", "Estrutura"], ["cobertura", "Cobertura"], ["paredes", "Paredes"], ["piso", "Piso"], ["eletrica", "Elétrica"]] },
+  { key: "kit_itens", label: "Itens de kit", columns: [["kit_id", "Kit (referência)"], ["cod_item", "Código"], ["descricao_oficial", "Descrição"], ["quantidade", "Quantidade"], ["un", "Unidade"], ["valor_unitario", "Valor unitário"], ["vinculo_status", "Vínculo"]] },
+  { key: "estrutura_modular", label: "Estrutura modular", columns: [["codigo", "Código"], ["nome", "Nome"], ["tipo", "Tipo"], ["quantidade_modulos", "Módulos"], ["configuracao", "Configuração"]] },
+  { key: "estrutura_modular_itens", label: "Itens de estrutura", columns: [["estrutura_modular_id", "Estrutura (referência)"], ["quantidade", "Quantidade"], ["posicao", "Posição"], ["funcao", "Função"], ["observacao", "Observação"]] },
 ];
 type Row = Record<string, unknown>;
 function value(raw: unknown, key: string) {
@@ -14,8 +20,8 @@ function value(raw: unknown, key: string) {
   return typeof raw === "object" ? JSON.stringify(raw) : String(raw);
 }
 
-export function EloOperationalData({ accessToken }: { accessToken: string }) {
-  const [table, setTable] = useState(tables[0]);
+export function EloOperationalData({ accessToken, compact = false }: { accessToken: string; compact?: boolean }) {
+  const [table, setTable] = useState(catalogTables[0]);
   const [rows, setRows] = useState<Row[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -45,9 +51,9 @@ export function EloOperationalData({ accessToken }: { accessToken: string }) {
   }, [accessToken, table, revision]);
   const filtered = rows.filter(row => table.columns.some(([key]) => value(row[key], key).toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR"))));
   return <section aria-labelledby="data-title">
-    <h2 id="data-title" className="text-2xl font-semibold">Base de trabalho</h2>
+    <h2 id="data-title" className="text-2xl font-semibold">{compact ? "Cadastros compartilhados" : "Catálogo corporativo"}</h2>
     <p className="mt-2 text-sm text-slate-600">Cadastros compartilhados para apoiar orçamento e planejamento.</p>
-    <nav aria-label="Cadastros" className="mt-5 flex flex-wrap gap-2">{tables.map(item => <button key={item.key} type="button" aria-pressed={table.key === item.key} onClick={() => { setTable(item); setSearch(""); }} className={`rounded-lg px-4 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 ${table.key === item.key ? "bg-slate-900 font-semibold text-white" : "border border-slate-300 hover:bg-slate-100"}`}>{item.label}</button>)}</nav>
+    <nav aria-label="Cadastros" className="mt-5 flex flex-wrap gap-2">{catalogTables.map(item => <button key={item.key} type="button" aria-pressed={table.key === item.key} onClick={() => { setTable(item); setSearch(""); setRows([]); setError(null); setLoading(true); }} className={`rounded-lg px-4 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 ${table.key === item.key ? "bg-slate-900 font-semibold text-white" : "border border-slate-300 hover:bg-slate-100"}`}>{item.label}</button>)}</nav>
     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label className="text-sm font-medium">Buscar em {table.label}<input type="search" value={search} onChange={event => setSearch(event.target.value)} disabled={loading || !!error} className="mt-1 block w-full rounded-lg border border-slate-300 bg-[var(--elo-panel)] px-3 py-2 sm:w-80 focus-visible:outline-2 focus-visible:outline-offset-2" /></label><button type="button" disabled={loading} onClick={() => setRevision(current => current + 1)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2">Atualizar dados</button></div>
     <div className="mt-4" aria-live="polite">{loading ? <p className="py-8 text-sm text-slate-600">Consultando {table.label}…</p> : error ? <p role="alert" className="py-6 text-sm text-red-700">{error}</p> : <>
       <p className="mb-3 text-sm text-slate-600">{filtered.length} de {rows.length} registros carregados{rows.length === 500 ? " · limite de 500 registros; a consulta pode estar incompleta" : ""}.</p>
