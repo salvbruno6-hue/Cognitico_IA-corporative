@@ -15,7 +15,7 @@ from ..knowledge.so_resolver import normalize_so_id
 from .intents import Intent
 
 SO_PATTERN = re.compile(
-    r"\bSO[\s\-_]?((?!000)\d{3})[\s\-_.]?(\d{2})\b",
+    r"\bSO[\s\-_]?(\d{3})[\s\-_.]?(\d{2})\b",
     re.IGNORECASE,
 )
 SO_REFERENCE_PATTERN = re.compile(r"\bSO\b", re.IGNORECASE)

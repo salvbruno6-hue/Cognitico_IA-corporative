@@ -94,7 +94,8 @@ O contrato de maturidade é uma extensão aditiva da PTS Técnica canônica. A l
 A PTS Técnica pertence à Solicitação de Orçamento (SO) do projeto ativo. O orçamentista não deve redigitar ou escolher outra SO quando o contexto do projeto já estiver resolvido.
 
 - A SO é atribuída pelo Analista de Orçamento e herdada do contexto do projeto ativo.
-- A apresentação da PTS usa o formato `SO NNN.AA`, em que `NNN` é a sequência de 001 a 999 reiniciada no início de cada ano e `AA` são os dois últimos dígitos do ano (ex.: primeira SO de 2027 = `SO 001.27`).
+- A apresentação da PTS usa o formato canônico `SO 000.AA`: `000` representa a posição numérica de três dígitos informada pelo Analista de Orçamento e `AA` representa os dois últimos dígitos do ano. Exemplo de instância atribuída: `SO 001.27`.
+- O ELO preserva `SO 000.AA` como máscara canônica e não substitui automaticamente `000` por uma numeração criada pelo sistema.
 - `contexto_projeto.so` pode transportar a identificação já atribuída; `numero_so + ano` não gera nem resolve uma identidade.
 - `identificacao.so_resolvida` tem prioridade quando já estiver determinada pelo contexto.
 - Ausência de SO resolvida bloqueia a renderização da PTS, evitando PTS sem vínculo ou vinculada à solicitação errada.

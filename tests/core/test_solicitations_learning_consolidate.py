@@ -4,7 +4,7 @@ from scripts.solicitations_learning_consolidate import _extract_so
 def test_extract_so_requires_complete_canonical_identity():
     assert _extract_so("Aprendizado da SO 001.27") == "SO 001.27"
     assert _extract_so("Aprendizado da SO 001") == ""
-    assert _extract_so("Aprendizado da SO 000.27") == ""
+    assert _extract_so("Aprendizado da SO 000.27") == "SO 000.27"
     assert _extract_so("Aprendizado da SO 001.2027") == ""
 
 

@@ -10,6 +10,7 @@ from elo.cognitive.runtime.knowledge.so_resolver import (
 
 
 def test_normalize_so_id():
+    assert normalize_so_id("SO 000.27") == "SO-000.27"
     assert normalize_so_id("SO 155.26") == "SO-155.26"
     assert normalize_so_id("so_155_26") == "SO-155.26"
     assert normalize_so_id("SO-155.26") == "SO-155.26"
@@ -18,7 +19,7 @@ def test_normalize_so_id():
 
 @pytest.mark.parametrize(
     "value",
-    ["SO 000.27", "SO 15.26", "SO 155.2", "SO-X", "155.26"],
+    ["SO 15.26", "SO 155.2", "SO-X", "155.26"],
 )
 def test_normalize_so_id_rejects_non_canonical_masks(value):
     with pytest.raises(ValueError):

@@ -2,6 +2,7 @@ from scripts.solicitation_memory_project import build_projection, canonical_so, 
 
 
 def test_canonical_so_accepts_variants():
+    assert canonical_so("SO 000.27") == "000.27"
     assert canonical_so("SO 120.26 - FUNBIO") == "120.26"
     assert canonical_so("SO: 120.26") == "120.26"
     assert canonical_so("Solicitação 120.26") == "120.26"
@@ -9,7 +10,6 @@ def test_canonical_so_accepts_variants():
 
 
 def test_canonical_so_rejects_invalid_identity_without_rewriting_it():
-    assert canonical_so("SO 000.27") is None
     assert canonical_so("SO 1.27") is None
     assert canonical_so("SO 001.2027") is None
 
@@ -46,3 +46,11 @@ def test_projection_preserves_leading_zero_in_storage_key():
         "001.27",
     )
     assert projection["canonical_key"] == "SO_001_27"
+
+
+def test_projection_preserves_canonical_zero_mask():
+    projection = build_projection(
+        [{"source_id": "chat-mask", "content": "SO 000.27"}],
+        "000.27",
+    )
+    assert projection["canonical_key"] == "SO_000_27"

@@ -71,7 +71,7 @@ def _read_text(path: Path) -> str:
 def _extract_so(text: str, fallback: str = "") -> str:
     for candidate in (text, fallback):
         match = re.search(
-            r"\bSO[\s_-]*((?!000)\d{3})[\s_.-]*(\d{2})\b",
+            r"\bSO[\s_-]*(\d{3})[\s_.-]*(\d{2})\b",
             candidate,
             re.I,
         )

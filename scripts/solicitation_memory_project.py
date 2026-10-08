@@ -33,8 +33,8 @@ LOCALITIES = OrderedDict(
 )
 
 SO_PATTERNS = (
-    re.compile(r"\bSO\s*[-.:]?\s*((?!000)\d{3})\s*\.\s*(\d{2})\b", re.I),
-    re.compile(r"\bsolicita(?:c|ç)[aã]o\s+((?!000)\d{3})\s*\.\s*(\d{2})\b", re.I),
+    re.compile(r"\bSO\s*[-.:]?\s*(\d{3})\s*\.\s*(\d{2})\b", re.I),
+    re.compile(r"\bsolicita(?:c|ç)[aã]o\s+(\d{3})\s*\.\s*(\d{2})\b", re.I),
 )
 
 

@@ -58,11 +58,14 @@ class TestFronteiraDocumental(unittest.TestCase):
         saida = preparar_documento(dados)
         self.assertEqual([m["id_mc"] for m in saida["memorias_calculo"]], ["MC-ATUAL"])
 
-    def test_rejeita_so_atual_com_sequencia_zero(self):
+    def test_preserva_mascara_canonica_com_sequencia_zero(self):
         dados = _base_document()
         dados["so"] = "SO 000.27"
-        with self.assertRaisesRegex(ValueError, "formato canônico"):
-            preparar_documento(dados)
+        dados["memorias_calculo"] = [
+            {"id_mc": "MC-MASCARA", "origem_so": "SO-000.27"},
+        ]
+        saida = preparar_documento(dados)
+        self.assertEqual(saida["memorias_calculo"][0]["id_mc"], "MC-MASCARA")
 
     def test_bloqueia_flag_document_safe_false(self):
         dados = _base_document()

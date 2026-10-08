@@ -28,7 +28,7 @@ def test_o_que_sabe():
 
 
 def test_explicit_invalid_so_is_blocked_instead_of_becoming_generic_context():
-    result = parse_natural_request("ELO, o que você sabe sobre a SO 000.27")
+    result = parse_natural_request("ELO, o que você sabe sobre a SO 001.2027")
     assert result["error"] == "invalid_so_id"
     assert result["so_id"] is None
 
@@ -37,6 +37,11 @@ def test_noncanonical_width_is_not_silently_corrected():
     result = parse_natural_request("ELO, confere essa análise da SO 1.27")
     assert result["error"] == "invalid_so_id"
     assert result["so_id"] is None
+
+
+def test_canonical_zero_mask_is_preserved():
+    result = parse_natural_request("ELO, o que você sabe sobre a SO 000.27")
+    assert result["so_id"] == "SO-000.27"
 
 
 def test_guarda_aprendizado():
