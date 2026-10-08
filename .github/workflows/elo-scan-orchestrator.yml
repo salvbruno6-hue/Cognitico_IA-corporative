@@ -29,6 +29,46 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Checkout canonical ELO code
+        uses: actions/checkout@v4
+
+      - name: Investigation-first gate
+        id: investigation
+        shell: bash
+        env:
+          FORCE_WEEKLY: ${{ inputs.force_weekly || 'false' }}
+          SCHEDULE_EXPR: ${{ github.event.schedule || 'manual' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, str(Path.cwd() / "src"))
+          from elo.agent_intake.scan_investigation_gate import build_investigation_gate
+          weekly = os.environ.get("FORCE_WEEKLY") == "true" or os.environ.get("SCHEDULE_EXPR") == "15 5 * * 1"
+          missions = ["SCAN-001-source-inventory","SCAN-002-new-experiences","SCAN-003-errors-corrections","SCAN-004-arbitrated-decisions","SCAN-005-budget"]
+          if weekly: missions += ["SCAN-006-repeated-patterns","SCAN-007-specializations","SCAN-008-evolution-gate","SCAN-009-unprocessed-sources"]
+          result = build_investigation_gate({
+              "objective": "Investigate registered ELO learning sources and their cross-domain relationships before deciding scan actions or learning candidates.",
+              "scope": missions + ["registered learning sources","existing learning structures","budget learning structures"],
+              "success_criteria": ["establish the evidence plan before source interpretation","investigate relevant cross-domain relationships before isolated conclusions","produce a bounded objective result without promoting learning"],
+              "expected_output": "structured investigation report and bounded next action",
+              "relevant_source_domains": ["planejamento_demanda","planejamento_pcp","producao_fluxo_modular","compras","orcamento"],
+              "hypotheses": [{"id":"H1","statement":"registered sources contain evidence requiring cross-domain investigation","probability":0.7},{"id":"H2","statement":"current source state is insufficient for a learning conclusion","probability":0.3}],
+              "prohibited_actions": ["canonical mutation","automatic learning promotion","causal inference from structural relationships alone"],
+          })
+          payload = {"status":result.status,"action":result.action,"objective":result.objective,"scope":result.scope,"success_criteria":result.success_criteria,"hypotheses":result.hypotheses,"relevant_source_domains":result.relevant_source_domains,"relation_plan":result.relation_plan,"evidence_requirements":result.evidence_requirements,"concept_outcome":result.concept_outcome,"evidence":result.evidence,"learning_candidate":result.learning_candidate}
+          Path("scan-investigation.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+          print(json.dumps(payload, indent=2))
+          if result.action == "BLOCKED":
+              Path(os.environ["GITHUB_ENV"]).write_text("ELO_INVESTIGATION_ACTION=BLOCKED\n", encoding="utf-8")
+              raise SystemExit("ELO scan blocked: investigation gate requirements not satisfied")
+          Path(os.environ["GITHUB_ENV"]).write_text("ELO_INVESTIGATION_ACTION=INVESTIGATE\n", encoding="utf-8")
+          PY
+          cat scan-investigation.json >> "$GITHUB_STEP_SUMMARY"
+
       - name: Run governed scan
         shell: bash
         env:
@@ -137,6 +177,9 @@ jobs:
           [[ "${stale_sources}" -gt 0 ]] && corrections+=(stale_source)
           [[ "${observed_total}" -gt 0 ]] && corrections+=(extraction_gap)
           if ((${#corrections[@]} > 0)); then action='CORRECT'; else action='CONTINUE'; fi
+
+          # Investigation is the first decision gate; source counters cannot bypass it.
+          [[ "${ELO_INVESTIGATION_ACTION}" == "INVESTIGATE" ]] || action='BLOCKED'
 
           final_details="$(jq -n --argjson report "${report}" --arg action "${action}" --argjson corrections "$(printf '%s\n' "${corrections[@]:-}" | jq -R 'select(length>0)' | jq -s .)" '{orchestrator:"ELO-SCAN-ORCHESTRATOR",report:$report,next_action:$action,corrections:$corrections,learning_promotion:false,canonical_mutation:false}')"
 
