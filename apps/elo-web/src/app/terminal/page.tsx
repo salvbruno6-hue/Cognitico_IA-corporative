@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient, type Session } from "@supabase/supabase-js";
+import { type Session } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import { GovernedHermesTerminal } from "@/components/governed-hermes-terminal";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  try { return createClient(); } catch { return null; }
 }
 
 export default function HermesTerminalPage() {

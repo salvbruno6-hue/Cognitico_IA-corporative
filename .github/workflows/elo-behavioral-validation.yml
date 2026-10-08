@@ -13,6 +13,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: ELO Web OAuth regression
+        run: node --test apps/elo-web/tests/oauthFlow.test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
