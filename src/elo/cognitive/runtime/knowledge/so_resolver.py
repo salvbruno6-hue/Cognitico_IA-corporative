@@ -24,7 +24,7 @@ from .so_dossier import SODossier
 
 HANDBOOK_INDEX = Path("04-knowledge-handbook/INDEX.json")
 LEARNING_INDEX = Path("memory/solicitations_learning/INDEX.json")
-SO_PATTERN = re.compile(r"^SO[\s_-]*(\d{3})[\s_.-]*(\d{2})$")
+SO_PATTERN = re.compile(r"^SO[\s_-]*((?!000)\d{3})[\s_.-]*(\d{2})$")
 
 
 def normalize_so_id(so_id: str) -> str:

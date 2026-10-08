@@ -18,6 +18,8 @@ import os
 import re
 from pathlib import Path
 
+from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
+
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS"
 EVOLUTION = ROOT / "memory/evolution"
@@ -67,12 +69,18 @@ def _read_text(path: Path) -> str:
 
 
 def _extract_so(text: str, fallback: str = "") -> str:
-    match = re.search(r"\bSO\s*[-_/]?(\d{1,4})(?:[./_-](\d{2,4}))?\b", text, re.I)
-    if not match:
-        match = re.search(r"\b(\d{1,4})[./](?:26|2026)\b", text, re.I)
-    if not match:
-        return fallback
-    return f"SO {match.group(1)}.{match.group(2) or '26'}"
+    for candidate in (text, fallback):
+        match = re.search(
+            r"\bSO[\s_-]*((?!000)\d{3})[\s_.-]*(\d{2})\b",
+            candidate,
+            re.I,
+        )
+        if match:
+            normalized = normalize_so_id(
+                f"SO {match.group(1)}.{match.group(2)}"
+            )
+            return normalized.replace("SO-", "SO ", 1)
+    return ""
 
 
 def _calculation_candidates(text: str) -> list[dict]:

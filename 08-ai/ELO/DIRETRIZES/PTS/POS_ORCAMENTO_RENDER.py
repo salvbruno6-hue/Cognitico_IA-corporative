@@ -18,6 +18,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
 from POS_ORCAMENTO_INTEGRATION import integrate
 
 ROOT = Path(__file__).parent
@@ -39,7 +40,7 @@ def carregar_json(caminho: Path) -> dict:
 def _normalizar_so(valor: Any) -> str:
     if valor is None:
         return ""
-    return " ".join(str(valor).strip().upper().split())
+    return normalize_so_id(str(valor))
 
 
 def _eh_so_atual(item: Any, so_atual: str) -> bool:
@@ -51,7 +52,10 @@ def _eh_so_atual(item: Any, so_atual: str) -> bool:
             return False
     for field in SOURCE_SO_FIELDS:
         if field in item and item[field] not in (None, ""):
-            origem = _normalizar_so(item[field])
+            try:
+                origem = _normalizar_so(item[field])
+            except ValueError:
+                return False
             if origem and origem != so:
                 return False
     tipo = str(item.get("fonte_tipo", item.get("tipo_fonte", ""))).strip().lower()
@@ -102,9 +106,15 @@ def preparar_documento(dados: dict) -> dict:
     so_atual = documento.get("so")
     if not so_atual:
         raise ValueError("campo 'so' é obrigatório para aplicar a fronteira documental.")
+    try:
+        so_atual = _normalizar_so(so_atual)
+    except ValueError:
+        raise ValueError(
+            "campo 'so' deve conter a SO atribuída no formato canônico SO NNN.AA."
+        ) from None
     for chave in ("fontes_consultivas", "acervo_historico", "historico_consultivo"):
         documento.pop(chave, None)
-    filtrado = _filtrar_registro(documento, str(so_atual))
+    filtrado = _filtrar_registro(documento, so_atual)
     if not isinstance(filtrado, dict):
         raise ValueError("os dados fornecidos não são seguros para gerar a PTS Pós.")
     resultado, responsavel, justificativa = _arbitragem_explicitada(filtrado)

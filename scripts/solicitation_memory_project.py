@@ -16,6 +16,8 @@ import re
 from collections import OrderedDict
 from pathlib import Path
 
+from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
+
 INBOX = Path("events/conversations/inbox")
 ROOT = Path("memory/solicitations")
 INDEX = ROOT / "index.json"
@@ -31,8 +33,8 @@ LOCALITIES = OrderedDict(
 )
 
 SO_PATTERNS = (
-    re.compile(r"\bSO\s*[-.:]?\s*(\d{1,4})\s*\.\s*(\d{2,4})\b", re.I),
-    re.compile(r"\bsolicita(?:c|ç)[aã]o\s+(\d{1,4})\s*\.\s*(\d{2,4})\b", re.I),
+    re.compile(r"\bSO\s*[-.:]?\s*((?!000)\d{3})\s*\.\s*(\d{2})\b", re.I),
+    re.compile(r"\bsolicita(?:c|ç)[aã]o\s+((?!000)\d{3})\s*\.\s*(\d{2})\b", re.I),
 )
 
 
@@ -40,7 +42,8 @@ def canonical_so(text: str) -> str | None:
     for pattern in SO_PATTERNS:
         match = pattern.search(text)
         if match:
-            return f"{int(match.group(1))}.{match.group(2)}"
+            normalized = normalize_so_id(f"SO {match.group(1)}.{match.group(2)}")
+            return normalized.removeprefix("SO-")
     return None
 
 

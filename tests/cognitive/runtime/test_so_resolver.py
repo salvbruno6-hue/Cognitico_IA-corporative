@@ -16,7 +16,10 @@ def test_normalize_so_id():
     assert normalize_so_id(" SO  155.26 ") == "SO-155.26"
 
 
-@pytest.mark.parametrize("value", ["SO 15.26", "SO 155.2", "SO-X", "155.26"])
+@pytest.mark.parametrize(
+    "value",
+    ["SO 000.27", "SO 15.26", "SO 155.2", "SO-X", "155.26"],
+)
 def test_normalize_so_id_rejects_non_canonical_masks(value):
     with pytest.raises(ValueError):
         normalize_so_id(value)
