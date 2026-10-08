@@ -87,3 +87,30 @@ class CapabilityRegistry:
     def safe_metadata(metadata: Mapping[str, str]) -> Mapping[str, str]:
         """Allow only non-secret capability metadata; reject secret-like keys."""
         return _safe_metadata(metadata)
+
+
+_OPERATIONAL_REGISTRY: CapabilityRegistry | None = None
+
+
+def get_operational_registry() -> CapabilityRegistry:
+    """Return ELO's shared operational capability registry.
+
+    Activation is lazy so importing Core remains side-effect free. The first
+    normal runtime request establishes the already-gated native capabilities
+    in the existing registry; no canonical knowledge is mutated.
+    """
+    global _OPERATIONAL_REGISTRY
+    if _OPERATIONAL_REGISTRY is None:
+        from elo.agent_intake.capability_promotion import activate_operational_capabilities
+
+        _OPERATIONAL_REGISTRY = activate_operational_capabilities(CapabilityRegistry())
+    return _OPERATIONAL_REGISTRY
+
+
+__all__ = [
+    "CapabilityProbe",
+    "CapabilityRegistry",
+    "CapabilitySnapshot",
+    "CapabilityStatus",
+    "get_operational_registry",
+]
