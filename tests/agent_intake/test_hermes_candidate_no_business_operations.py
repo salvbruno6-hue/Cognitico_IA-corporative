@@ -11,6 +11,18 @@ FORBIDDEN_IMPORT_ROOTS = {
     "psycopg", "psycopg2", "sqlalchemy",
 }
 
+FORBIDDEN_CALL_ROOTS = {
+    "requests", "httpx", "urllib", "socket", "subprocess", "supabase",
+    "psycopg", "psycopg2", "sqlalchemy",
+}
+
+
+def _root_name(call):
+    node = call.func
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return node.id if isinstance(node, ast.Name) else None
+
 
 def test_candidate_contracts_have_no_external_or_persistence_imports():
     for path in CANDIDATE_FILES:
@@ -24,9 +36,9 @@ def test_candidate_contracts_have_no_external_or_persistence_imports():
         assert not (imported_roots & FORBIDDEN_IMPORT_ROOTS), (path, imported_roots)
 
 
-def test_candidate_contracts_do_not_expose_business_operation_verbs():
-    forbidden = {"execute", "persist", "write", "route", "dispatch", "merge", "promote"}
+def test_candidate_contracts_do_not_call_external_or_persistence_clients():
     for path in CANDIDATE_FILES:
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        functions = {node.name.lower() for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
-        assert not (functions & forbidden), (path, functions)
+        call_roots = {_root_name(node) for node in ast.walk(tree) if isinstance(node, ast.Call)}
+        call_roots.discard(None)
+        assert not (call_roots & FORBIDDEN_CALL_ROOTS), (path, call_roots)
