@@ -157,6 +157,12 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SO inválida"):
             render(tecnica)
 
+    def test_renderer_preserves_canonical_zero_mask(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["identificacao"] = {"so_resolvida": "SO 000.27"}
+        rendered = render(tecnica)
+        self.assertIn("# PTS TÉCNICA — SO 000.27", rendered)
+
     def test_renderer_does_not_generate_so_from_number_and_year(self):
         tecnica = json.loads(json.dumps(TECHNICA))
         tecnica["identificacao"] = {"cliente": "teste", "numero_so": 1, "ano": 2027}

@@ -15,9 +15,10 @@ from ..knowledge.so_resolver import normalize_so_id
 from .intents import Intent
 
 SO_PATTERN = re.compile(
-    r"\bSO[\s\-_]?(\d{2,4})[\s\-_.]?(\d{1,3})\b",
+    r"\bSO[\s\-_]?(\d{3})[\s\-_.]?(\d{2})\b",
     re.IGNORECASE,
 )
+SO_REFERENCE_PATTERN = re.compile(r"\bSO(?=$|[\s_-])", re.IGNORECASE)
 DECISION_PATTERN = re.compile(r"\bDEC[\s\-_]?(\w+)\b", re.IGNORECASE)
 JSON_BLOCK_PATTERN = re.compile(
     r"<!--\s*elo-request-payload\s*(.*?)\s*-->",
@@ -135,13 +136,28 @@ def parse_natural_request(text: str) -> dict[str, Any]:
     payload: dict[str, Any] = {"intent": intent.value}
     payload["question"] = text.strip()
 
+    so_id = _extract_so_id(text)
+    so_intents = {
+        Intent.CONFERE_ANALISE,
+        Intent.O_QUE_SABE,
+        Intent.GUARDA_APRENDIZADO,
+        Intent.BUSCA_PRECEDENTE,
+    }
+    if intent in so_intents and SO_REFERENCE_PATTERN.search(text) and so_id is None:
+        return {
+            **payload,
+            "error": "invalid_so_id",
+            "so_id": None,
+            "message": "Informe a SO atribuída no formato canônico SO NNN.AA.",
+        }
+
     if intent == Intent.CONFERE_ANALISE:
-        payload["so_id"] = _extract_so_id(text)
+        payload["so_id"] = so_id
         payload["chatgpt_analysis"] = _extract_body_after_command(text)
     elif intent == Intent.O_QUE_SABE:
-        payload["so_id"] = _extract_so_id(text)
+        payload["so_id"] = so_id
     elif intent == Intent.GUARDA_APRENDIZADO:
-        payload["so_id"] = _extract_so_id(text)
+        payload["so_id"] = so_id
         payload["learning"] = _extract_body_after_command(text)
     elif intent == Intent.STATUS_DECISAO:
         payload["decision_id"] = _extract_decision_id(text)
@@ -152,6 +168,6 @@ def parse_natural_request(text: str) -> dict[str, Any]:
         ]
     elif intent == Intent.BUSCA_PRECEDENTE:
         payload["query"] = _extract_body_after_command(text)
-        payload["so_id"] = _extract_so_id(text)
+        payload["so_id"] = so_id
 
     return payload

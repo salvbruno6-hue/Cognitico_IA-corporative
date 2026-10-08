@@ -50,6 +50,29 @@ class TestFronteiraDocumental(unittest.TestCase):
         saida = preparar_documento(dados)
         self.assertEqual([m["id_mc"] for m in saida["memorias_calculo"]], ["MC-ATUAL"])
 
+    def test_aceita_representacoes_equivalentes_da_mesma_so(self):
+        dados = _base_document()
+        dados["memorias_calculo"] = [
+            {"id_mc": "MC-ATUAL", "origem_so": "SO-001.26"},
+        ]
+        saida = preparar_documento(dados)
+        self.assertEqual([m["id_mc"] for m in saida["memorias_calculo"]], ["MC-ATUAL"])
+
+    def test_persiste_apresentacao_humana_normalizada(self):
+        dados = _base_document()
+        dados["so"] = "SO_001_26"
+        saida = preparar_documento(dados)
+        self.assertEqual(saida["so"], "SO 001.26")
+
+    def test_preserva_mascara_canonica_com_sequencia_zero(self):
+        dados = _base_document()
+        dados["so"] = "SO 000.27"
+        dados["memorias_calculo"] = [
+            {"id_mc": "MC-MASCARA", "origem_so": "SO-000.27"},
+        ]
+        saida = preparar_documento(dados)
+        self.assertEqual(saida["memorias_calculo"][0]["id_mc"], "MC-MASCARA")
+
     def test_bloqueia_flag_document_safe_false(self):
         dados = _base_document()
         dados["divergencias"] = [

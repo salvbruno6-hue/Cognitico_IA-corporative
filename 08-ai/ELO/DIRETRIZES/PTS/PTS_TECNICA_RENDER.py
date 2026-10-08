@@ -7,9 +7,15 @@ A PTS Técnica organiza o TR antes do orçamento. Não audita orçamento pronto.
 import argparse
 import json
 from pathlib import Path
-import re
+import sys
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+REPOSITORY_SRC = Path(__file__).resolve().parents[4] / "src"
+if REPOSITORY_SRC.is_dir() and str(REPOSITORY_SRC) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_SRC))
+
+from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
 
 ROOT = Path(__file__).parent
 TEMPLATE_NAME = "PTS_TECNICA_TEMPLATE.md.j2"
@@ -39,14 +45,14 @@ def resolver_so_do_contexto(dados: dict) -> dict:
             "PTS Técnica exige a SO atribuída pelo Analista de Orçamento."
         )
 
-    so = str(so).strip()
-    match = re.fullmatch(r"SO\s+(\d{3})\.(\d{2})", so, re.IGNORECASE)
-    if not match:
+    try:
+        so_normalizada = normalize_so_id(str(so))
+    except ValueError:
         raise ValueError(
             "SO inválida. Informe a SO atribuída no formato canônico SO NNN.AA."
-        )
+        ) from None
 
-    identificacao["so_resolvida"] = f"SO {match.group(1)}.{match.group(2)}"
+    identificacao["so_resolvida"] = so_normalizada.replace("SO-", "SO ", 1)
     dados["identificacao"] = identificacao
     return dados
 
