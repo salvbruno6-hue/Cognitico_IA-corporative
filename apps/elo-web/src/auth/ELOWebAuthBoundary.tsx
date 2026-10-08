@@ -1,25 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type Session } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { createOAuthFlow } from "@/auth/oauthFlow";
 import { EloDashboard } from "@/components/elo-dashboard";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
 
-type AuthClient = SupabaseClient<any>;
-let authClient: AuthClient | null | undefined;
-
-function getSupabaseClient(): AuthClient | null {
-  if (authClient !== undefined) return authClient;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
-  if (!url || !key) {
-    authClient = null;
-    return null;
-  }
-  authClient = createClient(url, key, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-  });
-  return authClient;
+function getSupabaseClient() {
+  try { return createClient(); } catch { return null; }
 }
 
 function friendlyAuthError(message: string): string {
@@ -42,6 +31,7 @@ export function ELOWebAuthBoundary() {
   const [signingIn, setSigningIn] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const autoStartConsumed = useRef(false);
+  const oauthFlow = useRef<ReturnType<typeof createOAuthFlow> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -98,7 +88,7 @@ export function ELOWebAuthBoundary() {
     };
   }, []);
 
-  async function beginGoogleOAuth() {
+  const beginGoogleOAuth = useCallback(async () => {
     if (signingIn) return;
     setError(null);
     setSigningIn(true);
@@ -108,18 +98,16 @@ export function ELOWebAuthBoundary() {
       setSigningIn(false);
       return;
     }
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (authError) {
-      setError(friendlyAuthError(authError.message));
-      setSigningIn(false);
-    }
-  }
+    try {
+      oauthFlow.current ??= createOAuthFlow(supabase.auth);
+      await oauthFlow.current.start(window.location.origin);
+    } catch (authError) {
+      setError(friendlyAuthError(authError instanceof Error ? authError.message : "Falha no login Google."));
+    } finally { setSigningIn(false); }
+  }, [signingIn]);
 
   useEffect(() => {
-    if (loading || session || signingIn || autoStartConsumed.current) return;
+    if (loading || signingIn || autoStartConsumed.current) return;
     const url = new URL(window.location.href);
     if (url.searchParams.get("start") !== "google") return;
 
@@ -127,23 +115,8 @@ export function ELOWebAuthBoundary() {
     url.searchParams.delete("start");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      setError("Cliente de autenticação do ELO não está configurado.");
-      return;
-    }
-
-    setSigningIn(true);
-    void supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    }).then(({ error: authError }) => {
-      if (authError) {
-        setError(friendlyAuthError(authError.message));
-        setSigningIn(false);
-      }
-    });
-  }, [loading, session, signingIn]);
+    if (!session && !error) void beginGoogleOAuth();
+  }, [loading, session, signingIn, error, beginGoogleOAuth]);
 
   async function signOut() {
     setError(null);
@@ -151,7 +124,8 @@ export function ELOWebAuthBoundary() {
     if (!supabase) return;
     try {
       if (session) await callELOAuthorization(session.access_token, "revoke_session");
-      await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
       setAuthorized(false);
       setWorkspaceOpen(false);
       setSession(null);
@@ -166,7 +140,7 @@ export function ELOWebAuthBoundary() {
   }
 
   if (!session || !authorized) {
-    return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] p-6 text-[var(--elo-ink)]"><section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm"><div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div><div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-slate-400">ELO · Inteligência corporativa</div><h1 className="mt-2 text-2xl font-semibold tracking-tight">Acesso ao ELO</h1><p className="mt-3 text-sm leading-6 text-slate-500">Entre com sua conta Google. Depois, o ELO Authorization valida sua identidade e permissões.</p>{error && <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-left text-sm text-red-700" role="alert"><div className="font-semibold">Não foi possível continuar</div><div className="mt-1 leading-5">{error}</div></div>}<button type="button" onClick={() => void beginGoogleOAuth()} disabled={signingIn} className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"><GoogleIcon />{signingIn ? "Abrindo Google…" : "Continuar com Google"}</button></section></main>;
+    return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] p-6 text-[var(--elo-ink)]"><section className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm"><div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div><div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-slate-400">ELO · Inteligência corporativa</div><h1 className="mt-2 text-2xl font-semibold tracking-tight">Acesso ao ELO</h1><p className="mt-3 text-sm leading-6 text-slate-500">Entre com sua conta Google. Depois, o ELO Authorization valida sua identidade e permissões.</p>{error && <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-left text-sm text-red-700" role="alert"><div className="font-semibold">Não foi possível continuar</div><div className="mt-1 leading-5">{error}</div></div>}<button type="button" onClick={() => session ? window.location.reload() : void beginGoogleOAuth()} disabled={signingIn} className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"><GoogleIcon />{signingIn ? "Abrindo Google…" : session ? "Tentar autorização ELO novamente" : "Continuar com Google"}</button></section></main>;
   }
 
   if (!workspaceOpen) {

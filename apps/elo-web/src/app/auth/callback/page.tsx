@@ -1,55 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { createOAuthFlow } from "@/auth/oauthFlow";
+
+let flow: ReturnType<typeof createOAuthFlow> | undefined;
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)?.trim();
-
-    if (!url || !key) {
-      setError("ELO Web não está configurado: variáveis públicas do Supabase não foram definidas no ambiente.");
-      return () => { active = false; };
-    }
-
-    const supabase = createClient(url, key, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-    });
-    const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get("error_description") ?? params.get("error");
-    const code = params.get("code");
-
-    if (oauthError) {
-      setError(decodeURIComponent(oauthError.replace(/\+/g, " ")));
-      return () => { active = false; };
-    }
-
-    if (!code) {
-      void supabase.auth.getSession().then(({ data, error: sessionError }) => {
-        if (!active) return;
-        if (sessionError) setError(sessionError.message);
-        else if (data.session) window.location.replace("/");
-        else setError("O retorno do Google não trouxe um código de autenticação válido.");
+    try {
+      flow ??= createOAuthFlow(createClient().auth);
+      void flow.complete(window.location.href, () => {
+        window.history.replaceState({}, "", window.location.pathname);
+      }).then(() => {
+        if (active) window.location.replace("/");
+      }).catch(callbackError => {
+        if (active) setError(callbackError instanceof Error ? callbackError.message : "Falha no retorno Google.");
       });
-      return () => { active = false; };
+    } catch (configurationError) {
+      setError(configurationError instanceof Error ? configurationError.message : "Cliente Supabase indisponível.");
     }
-
-    // Remove the authorization code from browser history before exchanging it.
-    // This prevents refresh/back navigation from trying to consume the same PKCE code again.
-    window.history.replaceState({}, "", window.location.pathname);
-
-    void supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
-      if (!active) return;
-      if (exchangeError) {
-        setError(exchangeError.message);
-        return;
-      }
-      window.location.replace("/");
-    });
 
     return () => { active = false; };
   }, []);
