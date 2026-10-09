@@ -4,6 +4,19 @@
 
 The ELO orchestrator has two read-side presentation surfaces and must not become a monolithic authority.
 
+## Access matrix
+
+| Audience | Systemic view | Operational view |
+|---|---:|---:|
+| ELO administrator | Yes | Yes |
+| ELO developer | Yes | Yes |
+| Corporate operator | No | Yes |
+| Corporate interface | No | Yes |
+
+ADM/developer access is intentionally cumulative: they can inspect the ELO system itself and also inspect the governed operational reality needed to understand business impact. Operational users/interfaces remain operational-only unless the canonical identity/authorization boundary grants a broader audience.
+
+The orchestrator never infers or self-assigns these audiences. The resolved read scope must come from the canonical identity/authorization boundary (`elo-authz` and identity contracts).
+
 ### 1. Systemic view — ADM / developer
 
 Purpose: explain the ELO system itself in a humanized, actionable way.
@@ -33,9 +46,11 @@ The output should be humanized and may include chart-ready datasets. Charts are 
 
 Systemic visibility is restricted to an audience already resolved as ELO administrator/developer by the canonical identity/authorization boundary. The orchestrator does not interpret bearer tokens or self-assign this audience.
 
-### 2. Operational view — ELO Web / corporate interfaces
+### 2. Operational view — ELO Web / corporate interfaces / ADM / developer
 
-Purpose: expose governed business analysis without exposing unnecessary internal system-governance detail.
+Purpose: expose governed business analysis without exposing unnecessary internal system-governance detail to operational-only audiences.
+
+ADM/developer also have access to this operational view so they can relate architecture, capabilities, skills and governance gaps to concrete business effects.
 
 The operational surface consumes Forge/read-model evidence for domains such as:
 
@@ -53,7 +68,7 @@ The operational surface consumes Forge/read-model evidence for domains such as:
 
 Typical flow:
 
-`Corporate interface -> CognitiveCore/Orchestrator -> governed Forge context -> operational read surface -> humanized response / chart-ready data`
+`Corporate interface or ADM/developer -> CognitiveCore/Orchestrator -> governed Forge context -> operational read surface -> humanized response / chart-ready data`
 
 The Forge remains the operational knowledge/data source. The orchestrator does not take ownership of Forge tables, business rules or operational decisions.
 
@@ -113,6 +128,8 @@ An operational diagnosis should, whenever the evidence supports it:
 5. explain allowed decisions versus blocked decisions;
 6. preserve the distinction between observed indicator and formal KPI;
 7. never invent quantities, relations or causal attributions.
+
+For ADM/developer, the two views may be combined in one explanation: a systemic gap can be connected to its observed operational consequence, and operational evidence can be used to prioritize a systemic capability/skill improvement. This cross-view relation remains explanatory/read-only and does not transfer authority between domains.
 
 ## Chart contract
 
