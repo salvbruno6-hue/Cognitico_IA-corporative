@@ -2,7 +2,7 @@
 
 ## Canonical decision
 
-`GovernedOrchestrator` is above the OKR domain. OKR is a strategic capability consumed by the orchestrator; it is not an orchestration authority.
+`GovernedOrchestrator` remains above the OKR domain. OKR is a strategic capability consumed by the orchestrator; it is not an orchestration authority.
 
 ```text
 GovernedOrchestrator
@@ -34,122 +34,147 @@ No `OkrOrchestrator`, `OKRRouter`, `OkrEvidenceRepository`, `OkrDecisionLifecycl
 | O9 | IMPLEMENTADO/TESTADO | existing OrchestrationResponseComposer renders strategic state with evidence/uncertainty |
 | O10 | IMPLEMENTADO/TESTADO | attributed decision/outcome can become existing SymbiontLabObservation; no learning promotion |
 | O11 | IMPLEMENTADO/TESTADO | focused unit tests cover contracts, tenant isolation, KPI authority, evidence, evaluation, decision and observation |
-| O12 | PARCIAL/TESTADO | existing CapabilityRegistry/Selector selects `strategic_okr`; GovernedOrchestrator visibility/orientation remains above it; general natural-language → CapabilityRequirement resolver is not proven in current runtime |
-| O13 | COMPROVADO | AST-based structural guard forbids parallel OKR owner classes without falsely rejecting `OkrSymbiontBridge` |
-| O14 | COMPROVADO | validated implementation head `838b3186bcfa9b934dce2b6a60c8ffbdd5b3c545` closed all seven workflows in `success`, including Evolution Gate; later documentation-only reconciliation must also pass before merge eligibility |
+| O12 | PARCIAL/TESTADO | existing CapabilityRegistry/Selector selects `strategic_okr`; generic natural-language → CapabilityRequirement resolver remains unproven |
+| O13 | COMPROVADO | AST-based structural guard forbids parallel OKR owners |
+| O14 | COMPROVADO NO HEAD ANTERIOR | seven workflows green; persistence-preparation head must rerun gates |
 | O15 | DRAFT PR #961 | no merge authorization granted |
+| O16 | OWNER PERSISTENTE APROVADO | Option A approved for migration preparation only |
+| O17 | SQL CANDIDATO PREPARADO | Objective/KR tenant-scoped, backend-only; live DDL not applied |
 
-## Persistence audit
+## Persistence audit and approved decision
 
-Read-only inspection of the live Supabase project `fxbpevjrkwhbicpmecow` found no table in `public` or `elo_core` whose name matches OKR, Objective, Objetivo, KeyResult or Resultado-Chave variants.
+Read-only inspection of live Supabase found no existing Objective/KeyResult/OKR entity owner in `public` or `elo_core`.
 
-Classification:
+The user explicitly approved on 2026-10-09:
 
-- Objective persistence: `NAO_COMPROVADO`.
-- KeyResult persistence: `NAO_COMPROVADO`.
-- Objective ↔ KeyResult durable relation: `NAO_COMPROVADO`.
-- New Objective/KR schema: **NOT CREATED**, because the persistent owner and tenant-isolation model require an explicit architectural decision.
-- Draft decision contract: `docs/architecture/ELO_OKR_PERSISTENCE_BOUNDARY_DECISION_20261009.md`.
+`Option A → dedicated tenant-scoped Objective/KeyResult persistence → prepare migration only`.
 
-The application port `OkrReadRepository` therefore remains storage-neutral until a canonical persistent owner/schema is explicitly approved or an existing equivalent is proven.
+Approved owners:
 
-### Existing generic relation/knowledge owners
+- `public.elo_strategic_objectives`;
+- `public.elo_strategic_key_results`.
 
-Live inspection found:
+The decision is recorded in:
 
-- `elo_cognitive_relations`;
-- `elo_relation_types`;
-- `elo_conhecimento_itens`;
-- `elo_conhecimento_vinculos`;
-- `elo_conhecimento_nucleos`.
+`docs/architecture/ELO_OKR_PERSISTENCE_BOUNDARY_DECISION_20261009.md`.
 
-`elo_cognitive_relations` is suitable only as a **relation candidate**, not as the Objective/KR entity store. It represents `source_type/source_id → relation_type → target_type/target_id`, but has no `tenant_id`, is currently service-role-only and has no Objective/KR lifecycle semantics. Repository code search found no canonical consumer that would justify silently overloading it with entire strategic entities.
+## Tenant/access boundary selected for the prepared schema
 
-Knowledge tables remain knowledge owners and must not be repurposed as strategic commitment/entity storage.
+Because the current authorization baseline does not provide a general tenant-membership table/FK suitable for direct client RLS, the prepared schema uses the safest compatible mode:
 
-### KPI definition versus tenant-scoped Measurement
+**BACKEND-ONLY / SERVICE-BOUND.**
 
-Live inspection of the existing KPI layer established:
+Rules:
 
-- `mt_definicoes_kpi`: RLS enabled, zero current rows, primary key `id`, unique `codigo_kpi`, authenticated `SELECT` policy with `USING (true)`, no `tenant_id`;
-- `mt_snapshots_kpi`: RLS enabled, zero current rows, FK `kpi_id → mt_definicoes_kpi.id`, unique `(kpi_id, data_referencia)`, authenticated `SELECT` with `USING (true)` and authenticated `INSERT` with `WITH CHECK (true)`, no `tenant_id` and no `key_result_id`.
+- RLS enabled on both tables;
+- all table privileges revoked from `anon` and `authenticated`;
+- no permissive authenticated policy;
+- explicit `service_role` table privileges only;
+- tenant authorization remains upstream in the canonical ELO authorization boundary;
+- sector/department is not tenant identity;
+- user-editable JWT metadata is not used for tenant authorization.
 
-Therefore the existing KPI layer must be interpreted more precisely:
+This preserves fail-closed behavior while a future tenant-membership model remains undecided.
 
-- KPI definition identity: `REUSE`, with global/corporate scope still to be explicitly confirmed;
-- KPI snapshot authority: `REUSE CANDIDATE`, but tenant/subject binding is not proven;
-- OKR `Measurement.tenant_id` persistence: `PARCIAL/BLOQUEADO POR MODELO DE VINCULO`.
+## Tenant-safe Objective ↔ KeyResult relation
 
-The runtime contract may continue using `metric_code` to reference the formal KPI registry, but it must not claim that `mt_snapshots_kpi` is already a complete tenant-safe persistence implementation of `Measurement`.
+The approved persistent identity model is composite:
 
-### Authorization/tenant boundary
+- Objective PK: `(tenant_id, objective_id)`;
+- KeyResult PK: `(tenant_id, key_result_id)`;
+- KeyResult → Objective FK: `(tenant_id, objective_id)`.
 
-The canonical authorization baseline owns identity, session, role, capability and scope and keeps those primitives closed to ordinary client access. It does not establish a general tenant table/FK that new strategic persistence can assume automatically.
+This prevents a KeyResult from referencing an Objective from another tenant at the database constraint layer.
 
-Consequently, any future Objective/KR persistence must explicitly choose and prove its tenant authority before DDL. Sector/department must not become the primary security boundary, and authenticated access with `USING (true)` is insufficient for tenant-scoped strategic data.
+## KPI and Evidence boundaries preserved
+
+`KeyResult.metric_code` reuses:
+
+`mt_definicoes_kpi.codigo_kpi`.
+
+No second KPI registry is created.
+
+The prepared SQL does not alter or populate:
+
+- `mt_definicoes_kpi`;
+- `mt_snapshots_kpi`.
+
+Evidence persistence contains reference identities only:
+
+- Objective `evidence_refs`;
+- KR `baseline_evidence_refs`;
+- KR `target_evidence_refs`.
+
+`EvidenceRepository` remains the evidence authority.
+
+Checks preserve the application contract:
+
+- non-null baseline requires baseline evidence refs;
+- non-null target requires target evidence refs;
+- `APPROVED` target requires non-empty `target_approval_ref`;
+- `weight > 0`;
+- direction restricted to `INCREASE`, `DECREASE`, `MAINTAIN`.
+
+## Migration preparation state
+
+Prepared SQL candidate:
+
+`docs/implementation/sql/ELO_OKR_STRATEGIC_PERSISTENCE_CANDIDATE.sql`
+
+Structural regression test:
+
+`tests/integration/test_okr_strategic_persistence_candidate.py`
+
+The SQL candidate creates only the approved Objective/KR owners and their indexes/security constraints.
+
+### Official migration filename
+
+The official `supabase/migrations/<timestamp>_...sql` file has **not** been fabricated.
+
+The Supabase skill requires `supabase migration new <name>` to generate the migration filename. The current environment had no installed Supabase CLI, and `npx supabase ...` did not complete within the execution environment. Therefore the reviewed SQL remains a candidate artifact until a working official migration-generation path is available.
+
+No DDL has been applied to live Supabase.
+
+## Measurement boundary remains unchanged
+
+`mt_definicoes_kpi` remains the formal KPI registry.
+
+`mt_snapshots_kpi` remains the existing snapshot owner, but still has no tenant/KR binding sufficient to prove persistence for the application `Measurement` contract.
+
+No M1/M2/M3 option was selected by the Objective/KR approval. No Measurement table or binding migration was created.
 
 ## Acceptance matrix
 
 | Criterion | State | Note |
 |---|---|---|
-| GovernedOrchestrator recognizes OKR as a capability | PARCIAL/TESTADO | capability registry/selector + orchestrator visibility prove hierarchy; generic NLP capability resolution remains a separate existing gap |
-| no parallel OkrOrchestrator | COMPROVADO | structural search/test |
-| Objective accessible | COMPROVADO IN CONTRACT/FIXTURE | live persistence absent |
-| KeyResult accessible | COMPROVADO IN CONTRACT/FIXTURE | live persistence absent |
-| KPI related | COMPROVADO | uses formal KPI registry identity; no duplicate registry |
-| Measurement accessible | COMPROVADO IN CONTRACT/FIXTURE | live tenant/KR binding to snapshot authority remains unproven |
-| current derived correctly | COMPROVADO | latest valid Measurement, never silent zero |
-| progress calculated by OKR owner | COMPROVADO | direction-aware domain evaluator |
-| trend separate from progress | COMPROVADO | independent field/evaluation |
-| forecast separate | COMPROVADO | currently `None`/SEM_DADO; no invented forecast |
-| deviation identifiable | COMPROVADO | independent current-target difference when both known |
-| EvidenceRepository integrated | COMPROVADO | canonical tenant-scoped repository reused |
-| Objective Health governed | PARCIAL | fail-closed without explicit policy; no simple-average default |
-| diagnosis traceable | COMPROVADO | CausalAssessment requires evidence from KR evaluation |
-| Action/Outcome related | PARCIAL | canonical DecisionLifecycle bridge proven; durable OKR relation not persisted |
-| Response Composer integrated | COMPROVADO | existing composer extended |
-| Humanized business response | COMPROVADO AT COMPOSER BOUNDARY | human-facing output preserves uncertainty; no second response/humanizer authority introduced |
-| multi-tenancy preserved | COMPROVADO IN APPLICATION/EVIDENCE; PERSISTENCE BLOCKED | Objective/KR runtime checks tenant; persistent tenant authority must still be approved |
-| authorization preserved | COMPROVADO BY BOUNDARY DESIGN | OKR capability does not self-authorize; execution remains GovernedOrchestrator/elo-authz/ExecutionBoundary |
-| Symbiont observational | COMPROVADO | observation only after ATTRIBUTED outcome |
-| no automatic learning | COMPROVADO | bridge does not evaluate/promote/attach learning |
-| no autoauthorization | COMPROVADO | no authorization code in OKR domain |
-| no parallel owner | COMPROVADO | AST structural guard |
-| full regression CI | COMPROVADO AT IMPLEMENTATION HEAD | all seven workflows green at `838b3186...`; documentation reconciliation head must remain green before merge |
-| Evolution Gate | COMPROVADO AT IMPLEMENTATION HEAD | workflow and internal canonical/security/Hermes jobs green |
-
-## CI correction evidence
-
-The first final-head run failed only because the structural anti-duplication test searched forbidden symbols by substring and interpreted the permitted class `OkrSymbiontBridge` as the forbidden authority `OkrSymbiont`. The full suite at that point reported **1717 passed / 1 failed**.
-
-The test was corrected to inspect exact class names via AST. No architecture or implementation behavior was weakened. At head `838b3186bcfa9b934dce2b6a60c8ffbdd5b3c545`, all seven workflows passed.
+| GovernedOrchestrator recognizes OKR as a capability | PARCIAL/TESTADO | capability registry/selector + hierarchy proven; generic NLP capability resolution separate |
+| no parallel OkrOrchestrator | COMPROVADO | structural guard |
+| Objective contract | COMPROVADO | application contract exists |
+| KeyResult contract | COMPROVADO | application contract exists |
+| Objective persistent owner | PREPARADO | approved SQL candidate; not live |
+| KeyResult persistent owner | PREPARADO | approved SQL candidate; not live |
+| tenant-safe KR→Objective relation | PREPARADO | composite FK in SQL candidate |
+| KPI relation | COMPROVADO/PREPARADO | existing formal KPI registry reused by `metric_code` |
+| Measurement persistence | BLOQUEADO POR DECISAO | no tenant/KR snapshot binding chosen |
+| baseline/target evidence constraints | PREPARADO | DB checks present |
+| target approval constraint | PREPARADO | APPROVED requires approval ref |
+| backend-only security | PREPARADO | RLS + revoke client roles + service_role grant |
+| EvidenceRepository authority | PRESERVADO | refs only |
+| DecisionLifecycle authority | PRESERVADO | no duplicate lifecycle |
+| Symbiont boundary | PRESERVADO | no automatic learning |
+| live Supabase DDL | NÃO APLICADO | outside current authorization |
+| merge | NÃO AUTORIZADO | PR remains draft |
 
 ## Remaining real gaps / gates
 
-1. **Durable Objective/KeyResult persistence**: no canonical live entity owner exists. Draft proposal recommends the minimum dedicated tenant-scoped owner, but implementation is blocked until explicit architecture approval.
-2. **Tenant security source for strategic persistence**: no general tenant registry/FK has been proven in the authorization baseline. Must be selected before RLS/DDL.
-3. **Measurement ↔ KR persistence**: current `mt_snapshots_kpi` has neither `tenant_id` nor `key_result_id`; select a governed strengthening/association strategy before claiming persistent E2E traceability.
-4. **KPI registry scope**: formal KPI definitions appear structurally global; confirm global/corporate scope explicitly before using that assumption as architecture.
-5. **Generic natural-language → CapabilityRequirement resolution**: no canonical runtime owner was found. Do not create an `OKRRouter`; solve this later at the general intent/capability-resolution layer.
-6. **Objective Health policy**: no approved policy exists. Health remains `INDETERMINADO` instead of using a silent arithmetic mean.
-7. **Production operational proof**: fixture/unit/CI evidence is not a production OKR dataset proof.
-
-## Architectural decision gate
-
-Repository governance explicitly requires stopping before implementation when a new persistent data model is required but unspecified. That gate is now reached.
-
-The draft decision contract recommends:
-
-- dedicated tenant-scoped Objective/KR entity ownership only;
-- continued reuse of `mt_definicoes_kpi` for KPI definition identity;
-- no duplicate KPI snapshot registry;
-- a separate explicit decision for tenant/KR binding of measurements;
-- `elo_cognitive_relations` only as a relation layer if/when its tenant semantics are governed;
-- no live DDL and no merge until the persistent owner and tenant authority are explicitly approved.
+1. generate the official migration filename through a working Supabase CLI/migration workflow and place the reviewed candidate SQL there;
+2. rerun repository gates on the final migration head;
+3. separately decide M1/M2/M3 for persistent Measurement binding;
+4. generic natural-language → CapabilityRequirement resolution remains a separate existing gap;
+5. Objective Health policy remains `INDETERMINADO` until governed;
+6. production operational proof requires real persisted Objective/KR data after separately authorized live migration.
 
 ## Architectural outcome
-
-The implementation has the intended dependency direction:
 
 ```text
 ELO / GovernedOrchestrator
@@ -160,17 +185,9 @@ strategic_okr
         ↓
 Objective / KeyResult domain semantics
         ↓
+elo_strategic_objectives / elo_strategic_key_results   [prepared, not live]
+        ↓
 existing KPI + Evidence + Decision + Symbiont owners
 ```
 
-The inverse relation remains structurally valid when persisted evidence/bindings exist:
-
-```text
-operational event / evidence
-  -> formal KPI measurement
-  -> KeyResult evaluation
-  -> Objective evaluation
-  -> strategy reference
-```
-
-No hypothesis, missing value, achievement, completed decision, or positive outcome is promoted automatically to canonical learning.
+No hypothesis, missing value, target, achievement, completed decision, or positive outcome is promoted automatically to canonical learning.
