@@ -18,7 +18,7 @@ export type ELOSettings = {
 };
 
 export const DEFAULT_ELO_SETTINGS: ELOSettings = {
-  theme: "light",
+  theme: "dark",
   soundEnabled: true,
   notificationsEnabled: true,
   connectors: {
