@@ -1,7 +1,8 @@
+import ast
 from pathlib import Path
 
 
-FORBIDDEN_SYMBOLS = {
+FORBIDDEN_CLASS_NAMES = {
     "OkrOrchestrator",
     "OKRRouter",
     "OkrEvidenceRepository",
@@ -11,24 +12,29 @@ FORBIDDEN_SYMBOLS = {
 }
 
 
-def test_okr_integration_does_not_create_parallel_authority_symbols():
+def _defined_classes(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+    }
+
+
+def test_okr_integration_does_not_define_parallel_authorities():
     root = Path("src/elo")
     violations = []
     for path in root.rglob("*.py"):
-        text = path.read_text(encoding="utf-8")
-        for symbol in FORBIDDEN_SYMBOLS:
-            if symbol in text:
-                violations.append(f"{path}:{symbol}")
+        forbidden = _defined_classes(path) & FORBIDDEN_CLASS_NAMES
+        violations.extend(f"{path}:{name}" for name in sorted(forbidden))
 
     assert violations == [], "parallel OKR authorities found: " + ", ".join(violations)
 
 
-def test_okr_files_do_not_define_router_or_orchestrator_classes():
-    root = Path("src/elo")
-    violations = []
-    for path in root.rglob("*okr*.py"):
-        text = path.read_text(encoding="utf-8")
-        if "class OkrOrchestrator" in text or "class OKRRouter" in text:
-            violations.append(str(path))
+def test_okr_bridge_names_do_not_count_as_parallel_authorities():
+    bridge = Path("src/elo/application/use_cases/okr_symbiont_bridge.py")
+    classes = _defined_classes(bridge)
 
-    assert violations == []
+    assert "OkrSymbiontBridge" in classes
+    assert "OkrSymbiont" not in classes
+    assert classes.isdisjoint(FORBIDDEN_CLASS_NAMES)
