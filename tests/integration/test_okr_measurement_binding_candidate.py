@@ -16,6 +16,8 @@ def test_m2_candidate_creates_binding_owner_only() -> None:
     assert "references public.mt_snapshots_kpi (id)" in sql
     assert "unique (tenant_id, key_result_id, snapshot_id)" in sql
     assert "cardinality(evidence_refs) > 0" in sql
+    assert "authorization_ref text not null" in sql
+    assert "elo_strategic_kr_snapshot_bindings_authorization_required" in sql
 
 
 def test_m2_candidate_does_not_mutate_existing_kpi_owners() -> None:
