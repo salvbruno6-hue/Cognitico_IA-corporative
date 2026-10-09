@@ -53,6 +53,24 @@ def _grant(action: StrategicWriteAction, **overrides) -> StrategicWriteGrant:
     return StrategicWriteGrant(**values)
 
 
+def _receipt(**overrides):
+    values = {
+        "authorized": True,
+        "authorization_authority": "elo-authz",
+        "action": "authorize_strategic_write",
+        "strategic_action": "strategic_okr_propose",
+        "capability": "PROPOSE",
+        "tenant_id": "tenant-a",
+        "resource_ref": objective_resource_ref("obj-1"),
+        "identity_id": "identity-a",
+        "evidence_ref": "elo-authz:req-1",
+        "grant_ref": "elo-authz:req-1",
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),
+    }
+    values.update(overrides)
+    return values
+
+
 def _objective() -> Objective:
     return Objective(
         tenant_id="tenant-a",
@@ -77,6 +95,34 @@ def _kr(*, state: TargetApprovalState = TargetApprovalState.DRAFT) -> KeyResult:
         target_approval_state=state,
         target_approval_ref="approval-1" if state is TargetApprovalState.APPROVED else None,
     )
+
+
+def test_canonical_elo_authz_receipt_parses_to_resource_bound_grant() -> None:
+    grant = StrategicWriteGrant.from_elo_authz(_receipt())
+
+    assert grant.authority == "elo-authz"
+    assert grant.action is StrategicWriteAction.PROPOSE
+    assert grant.capability_code == "PROPOSE"
+    assert grant.tenant_id == "tenant-a"
+    assert grant.resource_ref == objective_resource_ref("obj-1")
+    assert grant.validates(
+        tenant_id="tenant-a",
+        action=StrategicWriteAction.PROPOSE,
+        resource_ref=objective_resource_ref("obj-1"),
+    )
+
+
+def test_receipt_parser_rejects_generic_or_forged_authz_shapes() -> None:
+    for payload in (
+        _receipt(action="read"),
+        _receipt(authorization_authority="local"),
+        _receipt(capability="CANONICAL_WRITE"),
+        _receipt(authorized=False),
+        _receipt(tenant_id=""),
+        _receipt(resource_ref=""),
+    ):
+        with pytest.raises(ValueError):
+            StrategicWriteGrant.from_elo_authz(payload)
 
 
 def test_proposal_requires_canonical_elo_authz_grant() -> None:
