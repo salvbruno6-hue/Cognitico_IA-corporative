@@ -46,6 +46,16 @@ def test_baseline_target_and_approval_are_fail_closed() -> None:
     assert "check (weight > 0)" in sql
 
 
+def test_updated_at_reuses_existing_canonical_elo_trigger_function() -> None:
+    sql = _sql()
+
+    assert "create trigger trg_elo_strategic_objectives_updated_at" in sql
+    assert "create trigger trg_elo_strategic_key_results_updated_at" in sql
+    assert sql.count("execute function public.elo_cognitive_set_updated_at()") == 2
+    assert "create function" not in sql.lower()
+    assert "create or replace function" not in sql.lower()
+
+
 def test_data_api_surface_is_backend_only_and_rls_enabled() -> None:
     sql = _sql()
 
