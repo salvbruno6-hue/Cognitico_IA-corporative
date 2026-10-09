@@ -1,3 +1,5 @@
+import math
+
 from elo.agent_intake.hermes_model_capability_metadata import (
     MetadataDisposition,
     ModelCapabilityMetadata,
@@ -32,14 +34,29 @@ def test_unverified_training_tier_warns_without_authorizing():
     assert result.routing_permitted is False
 
 
-def test_missing_provenance_is_blocked():
-    result = assess_model_capability_metadata(make_metadata(provenance_ref=""))
-    assert result.disposition is MetadataDisposition.BLOCKED
+def test_unrecognized_training_tier_warns_without_authorizing():
+    result = assess_model_capability_metadata(make_metadata(training_tier="unreviewed"))
+    assert result.warning == "training_tier_requires_policy_review"
+    assert result.routing_permitted is False
 
 
-def test_invalid_cost_is_blocked():
-    result = assess_model_capability_metadata(make_metadata(input_cost=-1.0))
-    assert result.disposition is MetadataDisposition.BLOCKED
+def test_missing_or_whitespace_controls_are_blocked():
+    assert assess_model_capability_metadata(make_metadata(provenance_ref="")).disposition is MetadataDisposition.BLOCKED
+    assert assess_model_capability_metadata(make_metadata(model_id=" ")).disposition is MetadataDisposition.BLOCKED
+    assert assess_model_capability_metadata(make_metadata(training_tier=" ")).disposition is MetadataDisposition.BLOCKED
+    assert assess_model_capability_metadata(make_metadata(capabilities=frozenset())).disposition is MetadataDisposition.BLOCKED
+
+
+def test_invalid_or_non_finite_cost_is_blocked():
+    for value in (-1.0, math.nan, math.inf):
+        result = assess_model_capability_metadata(make_metadata(input_cost=value))
+        assert result.disposition is MetadataDisposition.BLOCKED
+
+
+def test_digest_uses_unambiguous_structured_encoding():
+    combined = assess_model_capability_metadata(make_metadata(capabilities=frozenset({"a,b"})))
+    separate = assess_model_capability_metadata(make_metadata(capabilities=frozenset({"a", "b"})))
+    assert combined.metadata_digest != separate.metadata_digest
 
 
 def test_metadata_does_not_create_routing_authority():
