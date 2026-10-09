@@ -1,0 +1,24 @@
+# Checklist PR — E2E PCP/KPI/MCP
+
+- [x] Auditoria Markdown/runtime/Supabase realizada.
+- [x] Divergência de documentação MCP identificada.
+- [x] README MCP reconciliado com tools já existentes.
+- [x] Mapa canônico MCP reconciliado.
+- [x] Estado de `mt_definicoes_kpi` e `mt_snapshots_kpi` verificado.
+- [x] Gaps de catálogo governado identificados.
+- [x] Contrato de implementação registrado.
+- [x] Prompt Codex registrado.
+- [ ] Nova migration criada via fluxo oficial Supabase CLI.
+- [ ] `v_elo_pcp_carga_capacidade_periodo` governada.
+- [ ] `v_elo_pcp_indicadores_montagem_externa` governada.
+- [ ] Adapter Forge atualizado.
+- [ ] Humanizer atualizado.
+- [ ] Tool `elo_pcp_indicadores_status` implementada.
+- [ ] Testes Forge passando.
+- [ ] Testes cognitivos/humanizer passando.
+- [ ] Testes MCP passando.
+- [ ] Migration validada.
+- [ ] CI verificado.
+- [ ] Evidência E2E direta comprovada.
+- [ ] Rastreabilidade reversa comprovada.
+- [ ] Merge autorizado explicitamente.

@@ -167,6 +167,12 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
+    name: "elo_pcp_indicadores_status",
+    title: "Read governed PCP indicators and formal KPI state",
+    description: "Reads capacity and external-operation indicators only after their sources are enabled in the canonical catalog, and reports whether a formal KPI definition/snapshot exists. Indicators are never promoted automatically to KPI.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "elo_dol_read",
     title: "Read Decision Outcome Loop",
     description: "Reads Decision Outcome Loop records from the cognitive projection. Read-only and audited.",
@@ -262,7 +268,7 @@ Deno.serve(async (req: Request) => {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: { tools: {} },
       serverInfo: { name: "ELO MCP", version: "0.2.0" },
-      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. Use elo_pcp_orquestrador_dialogo to persist each turn, validate explicitly supplied fields, explain missing fields one at a time, and continue until the current gap is closed or the source is unresolved. The ELO is also authorized to autonomously create a communication and point out missing inputs, process items that should be inserted, and improvement points. It does not need a separate approval to communicate a governed gap; it must not alter canonical data/rules or execute a blocked decision. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone.",
+      instructions: "ELO is available through an authenticated, read-only boundary. Authorization is delegated to elo-authz. Do not infer write authority from this connection. Cognitive projections (DOL, calibration, precedents) are exposed as read-only tools. When elo_pcp_demanda_crossing_status reports a pending PCP demand crossing, ask its next_question before calculating or presenting the crossing; do not apply the factor to the RH headcount. When elo_pcp_dados_pendentes returns blocking requests, ask the first next_question (or the request question in priority order) through GPT, identify the canonical source and required fields, and never invent or estimate the missing value. Use elo_pcp_orquestrador_dialogo to persist each turn, validate explicitly supplied fields, explain missing fields one at a time, and continue until the current gap is closed or the source is unresolved. The ELO is also authorized to autonomously create a communication and point out missing inputs, process items that should be inserted, and improvement points. It does not need a separate approval to communicate a governed gap; it must not alter canonical data/rules or execute a blocked decision. When elo_pcp_decisao_externa_status reports a pending PCP external decision validation, ask its next_question before presenting the consolidated decision cockpit; do not infer hiring, headcount, availability or capacity from the cockpit alone. Use elo_pcp_indicadores_status for governed capacity/external-operation indicators and formal KPI registry state; when it reports BLOQUEADO_CATALOGO or SEM_KPI_FORMAL_REGISTRADO, do not invent, promote or label an indicator as a KPI.",
     });
   }
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
@@ -415,7 +421,6 @@ Deno.serve(async (req: Request) => {
       }) }] });
     }
 
-
     if (name === "elo_pcp_orquestrador_dialogo") {
       const suppliedSessionId = typeof args.sessao_id === "string" && /^[0-9a-fA-F-]{36}$/.test(args.sessao_id)
         ? args.sessao_id
@@ -477,11 +482,11 @@ Deno.serve(async (req: Request) => {
         const quantidade = Number((dados as any).quantidade_real);
         const semChave = (dados as any).sem_chave_comparabilidade === true;
 
-        if (inicio && !/^\\d{4}-\\d{2}-\\d{2}$/.test(inicio)) semanticErrors.push("periodo_inicio deve estar no formato AAAA-MM-DD.");
-        if (fim && !/^\\d{4}-\\d{2}-\\d{2}$/.test(fim)) semanticErrors.push("periodo_fim deve estar no formato AAAA-MM-DD.");
-        if (inicio && /^\\d{4}-\\d{2}-\\d{2}$/.test(inicio) && inicio < "2025-09-01") semanticErrors.push("periodo_inicio está antes do horizonte histórico autorizado.");
-        if (fim && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim) && fim > "2026-02-28") semanticErrors.push("periodo_fim está depois do horizonte histórico autorizado.");
-        if (inicio && fim && /^\\d{4}-\\d{2}-\\d{2}$/.test(inicio) && /^\\d{4}-\\d{2}-\\d{2}$/.test(fim) && inicio > fim) semanticErrors.push("periodo_inicio não pode ser posterior ao periodo_fim.");
+        if (inicio && !/^\d{4}-\d{2}-\d{2}$/.test(inicio)) semanticErrors.push("periodo_inicio deve estar no formato AAAA-MM-DD.");
+        if (fim && !/^\d{4}-\d{2}-\d{2}$/.test(fim)) semanticErrors.push("periodo_fim deve estar no formato AAAA-MM-DD.");
+        if (inicio && /^\d{4}-\d{2}-\d{2}$/.test(inicio) && inicio < "2025-09-01") semanticErrors.push("periodo_inicio está antes do horizonte histórico autorizado.");
+        if (fim && /^\d{4}-\d{2}-\d{2}$/.test(fim) && fim > "2026-02-28") semanticErrors.push("periodo_fim está depois do horizonte histórico autorizado.");
+        if (inicio && fim && /^\d{4}-\d{2}-\d{2}$/.test(inicio) && /^\d{4}-\d{2}-\d{2}$/.test(fim) && inicio > fim) semanticErrors.push("periodo_inicio não pode ser posterior ao periodo_fim.");
         if (Number.isNaN(quantidade) || quantidade < 0) semanticErrors.push("quantidade_real deve ser um número maior ou igual a zero.");
         if (!String((dados as any).natureza_demanda ?? "").trim()) semanticErrors.push("natureza_demanda precisa ser informada conforme a fonte oficial.");
         if (!String((dados as any).chave_comparabilidade ?? "").trim() && !semChave) semanticErrors.push("chave_comparabilidade precisa ser informada ou o usuário deve declarar explicitamente que não existe correspondência comparável.");
@@ -671,6 +676,140 @@ Deno.serve(async (req: Request) => {
           resumo: summaryError?.message ?? null,
           detalhes: detailsError?.message ?? null,
         },
+      }) }] });
+    }
+
+    if (name === "elo_pcp_indicadores_status") {
+      const requiredSources = [
+        "v_elo_pcp_carga_capacidade_periodo",
+        "v_elo_pcp_indicadores_montagem_externa",
+        "mt_definicoes_kpi",
+        "mt_snapshots_kpi",
+      ];
+
+      const { data: catalogRows, error: catalogError } = await supabase
+        .from("elo_aprendizado_fontes")
+        .select("table_name,dominio_codigo,regra_extracao,enabled,extracao_ativa")
+        .in("table_name", requiredSources)
+        .eq("enabled", true)
+        .eq("extracao_ativa", true);
+
+      if (catalogError) {
+        await audit(auth.user.id, "elo_pcp_indicadores_status", "error", { error: catalogError.message });
+        return rpcError(id, -32009, "pcp_indicator_catalog_read_failed");
+      }
+
+      const governed = new Set((catalogRows ?? []).map((row: any) => String(row.table_name)));
+      const missingSources = requiredSources.filter((table) => !governed.has(table));
+      if (missingSources.length) {
+        await audit(auth.user.id, "elo_pcp_indicadores_status", "success", {
+          state: "BLOQUEADO_CATALOGO",
+          missing_sources: missingSources,
+        });
+        return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+          state: "BLOQUEADO_CATALOGO",
+          read_only: true,
+          automatic_kpi_promotion: false,
+          catalog_authority: "elo_aprendizado_fontes",
+          missing_sources: missingSources,
+          rule: "A tool nao le indicadores ou registros de KPI fora do catalogo governado. Aplicar primeiro a migration canonica e validar as fontes.",
+        }) }] });
+      }
+
+      const { data: capacity, error: capacityError } = await supabase
+        .from("v_elo_pcp_carga_capacidade_periodo")
+        .select("data_referencia,centro_trabalho_id,centro_trabalho_codigo,centro_trabalho_nome,unidade_capacidade,quantidade_planejada,carga_horas_planejada,capacidade_disponivel,capacidade_padrao,capacidade_recuperacao,capacidade_bloqueada,folga_horas,utilizacao_pct,excesso_carga")
+        .limit(200);
+
+      const { data: external, error: externalError } = await supabase
+        .from("v_elo_pcp_indicadores_montagem_externa")
+        .select("ordens_total,ordens_abertas,ordens_atrasadas,modulos_total,colaboradores_alocados,funcoes_ativas,horas_planejadas_ordens,horas_realizadas_ordens,horas_planejadas_equipe,horas_mao_obra_realizadas,aderencia_horas_pct")
+        .limit(1)
+        .maybeSingle();
+
+      const { data: definitions, error: definitionsError } = await supabase
+        .from("mt_definicoes_kpi")
+        .select("id,codigo_kpi,nome,dominio,unidade,formula,ativo")
+        .limit(100);
+
+      const { data: snapshots, error: snapshotsError } = await supabase
+        .from("mt_snapshots_kpi")
+        .select("id,kpi_id,data_referencia,valor,numerador,denominador,contexto,calculado_em")
+        .order("data_referencia", { ascending: false })
+        .limit(100);
+
+      const capacityState = capacityError
+        ? "INDETERMINADO"
+        : (capacity?.length ?? 0) > 0 ? "OBSERVADO" : "SEM_DADO_OPERACIONAL";
+
+      const externalNumericFields = [
+        "ordens_total", "ordens_abertas", "ordens_atrasadas", "modulos_total",
+        "colaboradores_alocados", "funcoes_ativas", "horas_planejadas_ordens",
+        "horas_realizadas_ordens", "horas_planejadas_equipe", "horas_mao_obra_realizadas",
+      ];
+      const hasExternalActivity = external
+        ? externalNumericFields.some((field) => Number((external as any)[field] ?? 0) !== 0)
+        : false;
+      const externalState = externalError
+        ? "INDETERMINADO"
+        : !external ? "SEM_DADO_OPERACIONAL"
+        : hasExternalActivity || external.aderencia_horas_pct !== null
+          ? "OBSERVADO"
+          : "SEM_ATIVIDADE_OPERACIONAL";
+
+      const formalKpiState = definitionsError
+        ? "INDETERMINADO"
+        : (definitions?.length ?? 0) > 0
+          ? "KPI_FORMAL_REGISTRADO"
+          : "SEM_KPI_FORMAL_REGISTRADO";
+
+      await audit(auth.user.id, "elo_pcp_indicadores_status", "success", {
+        state: "CONSULTED",
+        capacity_state: capacityState,
+        capacity_rows: capacity?.length ?? 0,
+        external_state: externalState,
+        kpi_state: formalKpiState,
+        kpi_definitions: definitions?.length ?? 0,
+        kpi_snapshots: snapshots?.length ?? 0,
+        read_errors: {
+          capacity: capacityError?.message ?? null,
+          external: externalError?.message ?? null,
+          definitions: definitionsError?.message ?? null,
+          snapshots: snapshotsError?.message ?? null,
+        },
+      });
+
+      return rpc(id, { content: [{ type: "text", text: JSON.stringify({
+        state: "CONSULTED",
+        read_only: true,
+        catalog_authority: "elo_aprendizado_fontes",
+        automatic_kpi_promotion: false,
+        indicadores: {
+          capacidade: {
+            source_table: "v_elo_pcp_carga_capacidade_periodo",
+            state: capacityState,
+            rows: capacity ?? [],
+          },
+          montagem_externa: {
+            source_table: "v_elo_pcp_indicadores_montagem_externa",
+            state: externalState,
+            row: external ?? null,
+          },
+        },
+        kpi_formal: {
+          definition_source: "mt_definicoes_kpi",
+          snapshot_source: "mt_snapshots_kpi",
+          state: formalKpiState,
+          definitions: definitions ?? [],
+          snapshots: snapshots ?? [],
+        },
+        read_errors: {
+          capacity: capacityError?.message ?? null,
+          external: externalError?.message ?? null,
+          definitions: definitionsError?.message ?? null,
+          snapshots: snapshotsError?.message ?? null,
+        },
+        rule: "Indicadores permanecem indicadores. Somente uma definicao existente em mt_definicoes_kpi autoriza classifica-los como KPI formal; ausencia de dado nao e convertida em zero.",
       }) }] });
     }
 
