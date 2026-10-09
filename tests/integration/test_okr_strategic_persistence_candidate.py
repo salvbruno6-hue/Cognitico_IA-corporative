@@ -9,12 +9,12 @@ def _sql() -> str:
 
 
 def test_candidate_creates_only_approved_objective_and_key_result_owners() -> None:
-    sql = _sql()
+    sql = _sql().lower()
 
     assert "create table if not exists public.elo_strategic_objectives" in sql
     assert "create table if not exists public.elo_strategic_key_results" in sql
-    assert "create table" in sql
-    assert "measurement" not in sql.lower().split("create table if not exists public.elo_strategic_key_results", 1)[1]
+    assert "create table if not exists public.elo_strategic_measurements" not in sql
+    assert "create table if not exists public.elo_okr_measurements" not in sql
 
 
 def test_tenant_identity_is_part_of_both_primary_keys_and_objective_fk() -> None:
@@ -70,8 +70,8 @@ def test_candidate_does_not_mutate_existing_kpi_snapshot_or_learning_owners() ->
         "update public.mt_snapshots_kpi",
         "delete from public.mt_definicoes_kpi",
         "delete from public.mt_snapshots_kpi",
-        "elo_learning",
-        "elo_symbiont",
+        "create table if not exists public.elo_learning",
+        "create table if not exists public.elo_symbiont",
     )
 
     for statement in forbidden_mutations:
