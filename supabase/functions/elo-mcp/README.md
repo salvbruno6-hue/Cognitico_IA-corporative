@@ -41,28 +41,55 @@ A lista normativa deve acompanhar `TOOLS` em `index.ts`.
 | `elo_status` | Estado autenticado do operador e do boundary | `elo-authz`, `elo_identity_registry` |
 | `elo_read` | Leitura de tabelas explicitamente allowlisted | allowlist em `index.ts` |
 | `elo_pcp_demanda_crossing_status` | Estado governado do cruzamento de demanda PCP | read-models PCP governados |
-| `elo_pcp_comunicacao_melhoria` | Comunicação dos gaps e pontos de melhoria sem mutação canônica | `v_elo_pcp_comunicacao_melhoria` / gaps governados |
+| `elo_pcp_comunicacao_melhoria` | Comunicação dos gaps e pontos de melhoria sem mutação canônica | gaps/read-models governados |
 | `elo_pcp_orquestrador_dialogo` | Diálogo controlado de coleta/validação de dados faltantes | regras e sessões do diálogo PCP |
 | `elo_pcp_dados_pendentes` | Solicitações canônicas de dados faltantes | `v_elo_pcp_dados_pendentes` |
 | `elo_pcp_decisao_externa_status` | Cockpit read-only de decisão/impacto PCP | `v_elo_pcp_decisao_externa_resumo` e detalhe relacionado |
+| `elo_pcp_indicadores_status` | Indicadores governados de capacidade/operações externas e estado do registro formal de KPI | `elo_aprendizado_fontes` → views de indicadores → `mt_definicoes_kpi`/`mt_snapshots_kpi` |
 | `elo_dol_read` | Leitura do Decision Outcome Loop | projeção DOL |
 | `elo_calibration_read` | Leitura de calibração/confiança | projeção de calibração |
 | `elo_precedent_search` | Busca de precedentes de decisão | índice de precedentes |
 
 Todas as tools passam pelo mesmo caminho de autenticação/autorização e são auditadas em `elo_audit_log`. Nenhuma tool deste boundary autoriza escrita operacional.
 
+### Regra específica de `elo_pcp_indicadores_status`
+
+A tool não usa a existência física de uma view/tabela como autorização de leitura. Antes de ler qualquer indicador/KPI ela exige que estas fontes estejam `enabled=true` e `extracao_ativa=true` em `elo_aprendizado_fontes`:
+
+- `v_elo_pcp_carga_capacidade_periodo`;
+- `v_elo_pcp_indicadores_montagem_externa`;
+- `mt_definicoes_kpi`;
+- `mt_snapshots_kpi`.
+
+Se qualquer uma estiver ausente, o estado retornado é `BLOQUEADO_CATALOGO` e nenhuma leitura operacional é feita pela tool.
+
+Estados relevantes:
+
+- `OBSERVADO` — há evidência na fonte do indicador;
+- `SEM_DADO_OPERACIONAL` — a fonte está governada, mas não há linha operacional suficiente;
+- `SEM_ATIVIDADE_OPERACIONAL` — a view agregada existe, porém não há atividade mensurável no período/estado retornado;
+- `SEM_KPI_FORMAL_REGISTRADO` — não existe definição em `mt_definicoes_kpi`;
+- `KPI_FORMAL_REGISTRADO` — há definição formal governada; snapshots continuam sendo evidência separada;
+- `INDETERMINADO` — ocorreu falha de leitura/evidência insuficiente.
+
+A tool sempre retorna `automatic_kpi_promotion=false`.
+
 ---
 
 ## Limite atual de cobertura PCP/KPI
 
-O runtime já expõe leitura governada de demanda, cobertura, gaps e decisão externa. Isso não significa que toda a arquitetura corporativa de KPIs esteja materializada no MCP.
+O runtime expõe leitura governada de demanda, cobertura, gaps, decisão externa e, após governança no catálogo, indicadores de capacidade/operações externas e estado do registro formal de KPI.
+
+Isso não significa que toda a arquitetura corporativa de KPIs esteja materializada.
 
 Em particular:
 
 - `docs/MULTITEINER_KPIs_MASTER.md` define KPIs corporativos, inclusive ICAC, disponibilidade, fabricação, reparo, gargalos, qualidade, expedição e outros;
-- `mt_definicoes_kpi` e `mt_snapshots_kpi` existem como estruturas operacionais, mas sua população e vínculo E2E precisam ser comprovados antes de declarar KPI executável;
+- `mt_definicoes_kpi` é a autoridade operacional para existência de KPI formal;
+- `mt_snapshots_kpi` registra observações de KPI e não cria uma definição por conta própria;
 - views como `v_elo_pcp_carga_capacidade_periodo`, `v_elo_pcp_indicadores_montagem_externa`, `v_elo_pcp_cobertura_demanda_externa` e `v_elo_pcp_decisao_externa_resumo` produzem indicadores/read-models específicos;
-- o MCP não deve converter um indicador existente em KPI corporativo sem fórmula, unidade, janela, baseline/target quando aplicável e proveniência comprovadas.
+- uma linha de indicador igual a zero não deve ser descrita como “KPI=0” quando não houver definição formal e evidência operacional suficiente;
+- o MCP não converte indicador em KPI corporativo sem definição, fórmula, unidade, janela, baseline/target quando aplicável e proveniência comprovadas.
 
 A regra é fail-closed: na ausência de evidência suficiente, retornar gap/estado de indeterminação em vez de inferir valor operacional.
 
