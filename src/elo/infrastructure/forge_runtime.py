@@ -2,6 +2,8 @@
 
 This is only a loading bridge. Source governance remains owned by
 elo_aprendizado_fontes and the adapter under elo-virtual-core/integracoes.
+Indicator enrichment is a read-only decorator and does not create a second
+source authority.
 """
 
 from __future__ import annotations
@@ -10,6 +12,8 @@ import importlib.util
 import sys
 from pathlib import Path
 from types import ModuleType
+
+from .governed_indicator_forge import GovernedIndicatorForge
 
 
 def load_forge_adapter():
@@ -23,4 +27,4 @@ def load_forge_adapter():
     module: ModuleType = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
-    return module.SupabaseEloForge()
+    return GovernedIndicatorForge(module.SupabaseEloForge())
