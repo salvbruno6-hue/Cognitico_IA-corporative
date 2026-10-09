@@ -12,6 +12,7 @@ create table if not exists public.elo_strategic_kr_snapshot_bindings (
   key_result_id text not null,
   snapshot_id uuid not null,
   evidence_refs text[] not null,
+  authorization_ref text not null,
   created_at timestamptz not null default now(),
 
   constraint elo_strategic_kr_snapshot_bindings_kr_fkey
@@ -34,7 +35,10 @@ create table if not exists public.elo_strategic_kr_snapshot_bindings (
     check (btrim(key_result_id) <> ''),
 
   constraint elo_strategic_kr_snapshot_bindings_evidence_required
-    check (cardinality(evidence_refs) > 0)
+    check (cardinality(evidence_refs) > 0),
+
+  constraint elo_strategic_kr_snapshot_bindings_authorization_required
+    check (btrim(authorization_ref) <> '')
 );
 
 create index if not exists idx_elo_strategic_kr_snapshot_bindings_kr
@@ -52,4 +56,4 @@ revoke all on table public.elo_strategic_kr_snapshot_bindings from anon, authent
 grant select, insert, update, delete on table public.elo_strategic_kr_snapshot_bindings to service_role;
 
 comment on table public.elo_strategic_kr_snapshot_bindings is
-  'Tenant-scoped binding between an ELO strategic KR and an existing KPI snapshot. Owns attribution/evidence references only; does not own KPI definition or snapshot value.';
+  'Tenant-scoped binding between an ELO strategic KR and an existing KPI snapshot. Owns attribution/evidence refs plus elo-authz authorization_ref only; does not own KPI definition or snapshot value.';
