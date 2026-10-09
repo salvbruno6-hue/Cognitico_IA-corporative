@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 import hashlib
+import json
+import math
 
 
 class MetadataDisposition(StrEnum):
@@ -30,29 +32,40 @@ class MetadataAssessment:
     provenance_ref: str
 
 
-def assess_model_capability_metadata(metadata: ModelCapabilityMetadata) -> MetadataAssessment:
-    digest_source = "|".join((
-        metadata.model_id,
-        ",".join(sorted(metadata.capabilities)),
-        str(metadata.context_window),
-        str(metadata.input_cost),
-        str(metadata.output_cost),
-        metadata.training_tier,
-    ))
-    digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()
+def _canonical_digest(metadata: ModelCapabilityMetadata) -> str:
+    payload = {
+        "capabilities": sorted(metadata.capabilities),
+        "context_window": metadata.context_window,
+        "input_cost": metadata.input_cost,
+        "model_id": metadata.model_id,
+        "output_cost": metadata.output_cost,
+        "training_tier": metadata.training_tier,
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
-    if not metadata.model_id or not metadata.provenance_ref:
+
+def assess_model_capability_metadata(metadata: ModelCapabilityMetadata) -> MetadataAssessment:
+    digest = _canonical_digest(metadata)
+    required_text = (metadata.model_id, metadata.training_tier, metadata.provenance_ref)
+    capabilities_valid = bool(metadata.capabilities) and all(
+        isinstance(capability, str) and capability.strip() for capability in metadata.capabilities
+    )
+    if not all(isinstance(value, str) and value.strip() for value in required_text) or not capabilities_valid:
         return MetadataAssessment(metadata.model_id, MetadataDisposition.BLOCKED, False,
                                   "missing_model_metadata_controls", digest, metadata.provenance_ref)
 
-    if metadata.context_window <= 0 or metadata.input_cost < 0 or metadata.output_cost < 0:
+    costs_valid = all(
+        isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+        for value in (metadata.input_cost, metadata.output_cost)
+    )
+    if metadata.context_window <= 0 or not costs_valid:
         return MetadataAssessment(metadata.model_id, MetadataDisposition.BLOCKED, False,
                                   "invalid_model_metadata_values", digest, metadata.provenance_ref)
 
-    warning = (
+    recognized_training_tiers = {"verified", "standard", "production"}
+    warning = None if metadata.training_tier.strip().lower() in recognized_training_tiers else (
         "training_tier_requires_policy_review"
-        if metadata.training_tier.lower() in {"unknown", "experimental", "unverified"}
-        else None
     )
     return MetadataAssessment(metadata.model_id, MetadataDisposition.CANDIDATE_ONLY, False,
                               warning, digest, metadata.provenance_ref)
