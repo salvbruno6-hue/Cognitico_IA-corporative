@@ -37,7 +37,7 @@ class SupabaseOkrWriteRepository:
         self._timeout = timeout
 
     def upsert_objective(self, objective: Objective, *, authorization_ref: str) -> None:
-        self._required(authorization_ref, "authorization_ref")
+        auth_ref = self._required(authorization_ref, "authorization_ref")
         self._post(
             OBJECTIVE_TABLE,
             {
@@ -47,12 +47,13 @@ class SupabaseOkrWriteRepository:
                 "strategy_ref": objective.strategy_ref,
                 "owner_ref": objective.owner_ref,
                 "evidence_refs": list(objective.evidence_refs),
+                "authorization_ref": auth_ref,
             },
             on_conflict="tenant_id,objective_id",
         )
 
     def upsert_key_result(self, key_result: KeyResult, *, authorization_ref: str) -> None:
-        self._required(authorization_ref, "authorization_ref")
+        auth_ref = self._required(authorization_ref, "authorization_ref")
         self._post(
             KEY_RESULT_TABLE,
             {
@@ -70,12 +71,13 @@ class SupabaseOkrWriteRepository:
                 "target_evidence_refs": list(key_result.target_evidence_refs),
                 "target_approval_state": key_result.target_approval_state.value,
                 "target_approval_ref": key_result.target_approval_ref,
+                "authorization_ref": auth_ref,
             },
             on_conflict="tenant_id,key_result_id",
         )
 
     def bind_snapshot(self, binding: SnapshotBindingWrite, *, authorization_ref: str) -> None:
-        self._required(authorization_ref, "authorization_ref")
+        auth_ref = self._required(authorization_ref, "authorization_ref")
         self._post(
             BINDING_TABLE,
             {
@@ -83,6 +85,7 @@ class SupabaseOkrWriteRepository:
                 "key_result_id": binding.key_result_id,
                 "snapshot_id": binding.snapshot_id,
                 "evidence_refs": list(binding.evidence_refs),
+                "authorization_ref": auth_ref,
             },
             on_conflict="tenant_id,key_result_id,snapshot_id",
         )
