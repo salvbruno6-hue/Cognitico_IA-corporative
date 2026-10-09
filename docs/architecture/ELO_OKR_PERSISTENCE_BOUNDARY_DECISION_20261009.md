@@ -197,7 +197,7 @@ Keep snapshot values in the existing owner and persist only the tenant/KR associ
 
 If `mt_snapshots_kpi` is intentionally global and cannot carry tenant context, a different canonical measurement source must be proved; do not duplicate snapshot authority merely for OKR.
 
-No option is selected by this draft.
+No measurement option is selected by this draft.
 
 ## 10. Implementation gate
 
@@ -230,3 +230,11 @@ This proposal does NOT authorize:
 **Recommended architecture:** approve Option A for Objective/KeyResult entity ownership, while keeping KPI definition in `mt_definicoes_kpi`; separately choose the Measurement binding strategy before implementation.
 
 Until that decision exists, the current `OkrReadRepository` remains the correct storage-neutral boundary and the persistence gap remains fail-closed rather than being filled by an invented schema.
+
+### Explicit approval required to proceed
+
+The next coding/migration-preparation step must not be inferred from a generic continuation instruction. It requires an explicit architectural approval equivalent to:
+
+`Autorizo definir o owner persistente tenant-scoped de Objective/KeyResult conforme a Opção A e preparar a migration, sem aplicar no Supabase live.`
+
+A separate explicit decision is still required for M1/M2/M3 before persistent Measurement binding is implemented.
