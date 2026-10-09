@@ -66,6 +66,19 @@ Tools anteriores permanecem declaradas e a nova tool está presente:
 
 O advisor não apontou vulnerabilidade específica causada pela migration. Permanecem findings preexistentes, incluindo tabelas com RLS habilitado sem policy e leaked-password protection desabilitada. Esses itens são escopo separado desta implementação.
 
+## Limite da prova live
+
+Foi comprovado no ambiente live:
+
+- migration aplicada e registrada;
+- catálogo governado com as quatro fontes;
+- estados operacionais das views/tabelas consultados diretamente;
+- Edge Function `elo-mcp` ativa na versão 15;
+- código live contém a nova tool e mantém as tools anteriores;
+- JWT obrigatório e autoridade `elo-authz` preservados.
+
+Ainda não foi executada nesta sessão uma chamada MCP autenticada com bearer de usuário real para `tools/call: elo_pcp_indicadores_status`. Portanto essa etapa permanece como `NÃO COMPROVADO EM CHAMADA AUTENTICADA LIVE`, embora o handler live e seus dados-fonte estejam comprovados e os contratos estejam cobertos por testes de CI.
+
 ## Estado para PR #959
 
 A migration e o MCP live foram implantados e verificados. O PR deve permanecer sem merge até a revisão final de CI, rastreabilidade e autorização explícita de merge.
