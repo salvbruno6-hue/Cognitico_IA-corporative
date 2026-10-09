@@ -10,6 +10,9 @@ from elo.application.commands.okr_write import (
     SnapshotBindingWrite,
     StrategicWriteAction,
     StrategicWriteGrant,
+    binding_resource_ref,
+    key_result_resource_ref,
+    objective_resource_ref,
 )
 from elo.contracts.okr import KeyResult, KeyResultDirection, Objective, TargetApprovalState
 
@@ -40,6 +43,7 @@ def _grant(action: StrategicWriteAction, **overrides) -> StrategicWriteGrant:
             StrategicWriteAction.CANONICAL_WRITE: "CANONICAL_WRITE",
         }[action],
         tenant_id="tenant-a",
+        resource_ref=objective_resource_ref("obj-1"),
         identity_id="identity-a",
         evidence_ref="elo-authz:req-1",
         grant_ref="grant-1",
@@ -95,6 +99,19 @@ def test_proposal_rejects_cross_tenant_grant() -> None:
     assert repo.calls == []
 
 
+def test_proposal_rejects_grant_for_different_resource() -> None:
+    repo = RecordingRepository()
+    writer = GovernedOkrWriter(repo)
+
+    with pytest.raises(PermissionError):
+        writer.propose_objective(
+            _objective(),
+            _grant(StrategicWriteAction.PROPOSE, resource_ref=objective_resource_ref("obj-2")),
+        )
+
+    assert repo.calls == []
+
+
 def test_expired_grant_cannot_write() -> None:
     repo = RecordingRepository()
     writer = GovernedOkrWriter(repo)
@@ -128,10 +145,17 @@ def test_draft_key_result_can_be_proposed_but_not_approved() -> None:
     repo = RecordingRepository()
     writer = GovernedOkrWriter(repo)
     draft = _kr()
+    kr_resource = key_result_resource_ref(draft.key_result_id)
 
-    writer.propose_key_result(draft, _grant(StrategicWriteAction.PROPOSE))
+    writer.propose_key_result(
+        draft,
+        _grant(StrategicWriteAction.PROPOSE, resource_ref=kr_resource),
+    )
     with pytest.raises(ValueError, match="APPROVED"):
-        writer.approve_key_result(draft, _grant(StrategicWriteAction.APPROVE))
+        writer.approve_key_result(
+            draft,
+            _grant(StrategicWriteAction.APPROVE, resource_ref=kr_resource),
+        )
 
     assert repo.calls[0][0] == "key_result"
 
@@ -140,11 +164,18 @@ def test_approved_key_result_requires_approve_action() -> None:
     repo = RecordingRepository()
     writer = GovernedOkrWriter(repo)
     approved = _kr(state=TargetApprovalState.APPROVED)
+    kr_resource = key_result_resource_ref(approved.key_result_id)
 
     with pytest.raises(ValueError, match="proposal"):
-        writer.propose_key_result(approved, _grant(StrategicWriteAction.PROPOSE))
+        writer.propose_key_result(
+            approved,
+            _grant(StrategicWriteAction.PROPOSE, resource_ref=kr_resource),
+        )
 
-    writer.approve_key_result(approved, _grant(StrategicWriteAction.APPROVE))
+    writer.approve_key_result(
+        approved,
+        _grant(StrategicWriteAction.APPROVE, resource_ref=kr_resource),
+    )
     assert repo.calls == [("key_result", approved, "elo-authz:req-1")]
 
 
@@ -157,11 +188,18 @@ def test_snapshot_binding_requires_review_grant_and_evidence() -> None:
         snapshot_id="11111111-1111-1111-1111-111111111111",
         evidence_refs=("ev-binding",),
     )
+    resource = binding_resource_ref(binding.key_result_id, binding.snapshot_id)
 
     with pytest.raises(PermissionError):
-        writer.bind_measurement_snapshot(binding, _grant(StrategicWriteAction.PROPOSE))
+        writer.bind_measurement_snapshot(
+            binding,
+            _grant(StrategicWriteAction.PROPOSE, resource_ref=resource),
+        )
 
-    writer.bind_measurement_snapshot(binding, _grant(StrategicWriteAction.REVIEW))
+    writer.bind_measurement_snapshot(
+        binding,
+        _grant(StrategicWriteAction.REVIEW, resource_ref=resource),
+    )
     assert repo.calls == [("binding", binding, "elo-authz:req-1")]
 
 
