@@ -36,7 +36,7 @@ No `OkrOrchestrator`, `OKRRouter`, `OkrEvidenceRepository`, `OkrDecisionLifecycl
 | O11 | IMPLEMENTADO/TESTADO | focused unit tests cover contracts, tenant isolation, KPI authority, evidence, evaluation, decision and observation |
 | O12 | PARCIAL/TESTADO | existing CapabilityRegistry/Selector selects `strategic_okr`; GovernedOrchestrator visibility/orientation remains above it; general natural-language → CapabilityRequirement resolver is not proven in current runtime |
 | O13 | COMPROVADO | AST-based structural guard forbids parallel OKR owner classes without falsely rejecting `OkrSymbiontBridge` |
-| O14 | COMPROVADO | final validated head `838b3186bcfa9b934dce2b6a60c8ffbdd5b3c545` closed all seven workflows in `success`, including Evolution Gate |
+| O14 | COMPROVADO | validated implementation head `838b3186bcfa9b934dce2b6a60c8ffbdd5b3c545` closed all seven workflows in `success`, including Evolution Gate; later documentation-only reconciliation must also pass before merge eligibility |
 | O15 | DRAFT PR #961 | no merge authorization granted |
 
 ## Persistence audit
@@ -115,8 +115,8 @@ Consequently, any future Objective/KR persistence must explicitly choose and pro
 | no automatic learning | COMPROVADO | bridge does not evaluate/promote/attach learning |
 | no autoauthorization | COMPROVADO | no authorization code in OKR domain |
 | no parallel owner | COMPROVADO | AST structural guard |
-| full regression CI | COMPROVADO | all seven workflows green at `838b3186...` |
-| Evolution Gate | COMPROVADO | workflow and internal canonical/security/Hermes jobs green |
+| full regression CI | COMPROVADO AT IMPLEMENTATION HEAD | all seven workflows green at `838b3186...`; documentation reconciliation head must remain green before merge |
+| Evolution Gate | COMPROVADO AT IMPLEMENTATION HEAD | workflow and internal canonical/security/Hermes jobs green |
 
 ## CI correction evidence
 
