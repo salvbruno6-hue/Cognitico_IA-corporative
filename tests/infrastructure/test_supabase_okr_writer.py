@@ -33,6 +33,7 @@ def test_objective_writer_targets_only_approved_owner() -> None:
     assert conflict == "tenant_id,objective_id"
     assert payload["tenant_id"] == "tenant-a"
     assert payload["evidence_refs"] == ["ev-objective"]
+    assert payload["authorization_ref"] == "elo-authz:req-1"
 
 
 def test_key_result_writer_reuses_metric_identity_without_touching_kpi_owner() -> None:
@@ -58,6 +59,7 @@ def test_key_result_writer_reuses_metric_identity_without_touching_kpi_owner() -
     assert table == "elo_strategic_key_results"
     assert conflict == "tenant_id,key_result_id"
     assert payload["metric_code"] == "KPI_ADERENCIA"
+    assert payload["authorization_ref"] == "elo-authz:req-2"
     assert all(post[0] not in {"mt_definicoes_kpi", "mt_snapshots_kpi"} for post in repo.posts)
 
 
@@ -80,6 +82,7 @@ def test_binding_writer_only_writes_attribution_owner() -> None:
         "key_result_id": "kr-1",
         "snapshot_id": "11111111-1111-1111-1111-111111111111",
         "evidence_refs": ["ev-binding"],
+        "authorization_ref": "elo-authz:req-3",
     }
 
 
