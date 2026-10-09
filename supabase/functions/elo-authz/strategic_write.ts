@@ -19,8 +19,31 @@ export type EloScopeView = {
   active?: unknown;
 };
 
+export type GoogleIdentityView = {
+  provider?: unknown;
+  authorized_email?: unknown;
+  active?: unknown;
+  auth_user_id?: unknown;
+};
+
 export function strategicCapabilityForAction(action: string): string | null {
   return STRATEGIC_ACTION_CAPABILITY[action] ?? null;
+}
+
+export function isRegisteredGoogleIdentity(
+  identity: GoogleIdentityView,
+  authenticatedEmail: string,
+): boolean {
+  const email = authenticatedEmail.trim().toLowerCase();
+  const authorizedEmail = String(identity?.authorized_email ?? "").trim().toLowerCase();
+  const authUserId = String(identity?.auth_user_id ?? "").trim();
+  return (
+    identity?.active === true &&
+    String(identity?.provider ?? "").trim().toLowerCase() === "google" &&
+    Boolean(authUserId) &&
+    Boolean(email) &&
+    authorizedEmail === email
+  );
 }
 
 export function hasEnterpriseTenantScope(scopes: EloScopeView[], tenantId: string): boolean {
