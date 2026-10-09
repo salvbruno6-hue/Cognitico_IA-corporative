@@ -17,7 +17,7 @@ from typing import Any, Mapping, Sequence
 
 from elo.cognitive.symbiont_capability_governance import GlobalCapabilityVisibility
 
-from .orchestrator import GovernedOrchestrator, OrchestrationRequest
+from .orchestrator import GovernedOrchestrator
 from .orchestration_views import (
     OrchestrationAudience,
     OrchestrationViewComposer,
@@ -58,35 +58,21 @@ class GovernedOrchestratorReadSurface:
     def operational_overview(
         self,
         *,
-        request: OrchestrationRequest,
         audience: OrchestrationAudience,
-        forge,
+        forge_context: Mapping[str, Any],
     ) -> OrchestrationViewResult:
-        """Expose governed Forge analysis to a corporate operational surface.
+        """Project an already-governed Forge context for an operational UI.
 
-        The canonical orchestrator performs the Forge consultation first so
-        evidence continuity remains identical to conversational ELO behavior.
-        The view composer then projects the raw governed context when available.
+        The caller supplies the same context produced by the canonical Forge
+        consultation path.  This avoids a second read and keeps presentation
+        synchronized with the evidence already attached to that consultation.
 
-        This façade deliberately does not execute, approve, learn or mutate.
+        This façade deliberately does not query, execute, approve, learn or
+        mutate by itself.
         """
-        # Preserve canonical evidence creation/human consultation side effects
-        # in the read-side repository; this validates the same bounded path used
-        # by CognitiveCore. The presentation view itself is built only from an
-        # explicit governed context returned by the Forge adapter.
-        self.orchestrator.consult_forge(request, forge)
-
-        import re
-
-        match = re.search(r"\b(?:MLT\.)?M\d{2}\b", request.objective, flags=re.IGNORECASE)
-        if match:
-            context = forge.governed_model_context(match.group(0).upper(), request.objective)
-        else:
-            context = forge.governed_demand_context(request.objective)
-
         return self.composer.operational_view(
             audience=audience,
-            forge_context=context,
+            forge_context=forge_context,
         )
 
 
