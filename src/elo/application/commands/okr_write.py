@@ -34,21 +34,51 @@ ACTION_CAPABILITY = {
 }
 
 
+def objective_resource_ref(objective_id: str) -> str:
+    value = objective_id.strip()
+    if not value:
+        raise ValueError("objective_id is required")
+    return f"strategic_okr:objective:{value}"
+
+
+def key_result_resource_ref(key_result_id: str) -> str:
+    value = key_result_id.strip()
+    if not value:
+        raise ValueError("key_result_id is required")
+    return f"strategic_okr:key_result:{value}"
+
+
+def binding_resource_ref(key_result_id: str, snapshot_id: str) -> str:
+    kr = key_result_id.strip()
+    snapshot = snapshot_id.strip()
+    if not kr or not snapshot:
+        raise ValueError("key_result_id and snapshot_id are required")
+    return f"strategic_okr:binding:{kr}:{snapshot}"
+
+
 @dataclass(frozen=True, slots=True)
 class StrategicWriteGrant:
-    """Normalized receipt from the canonical authorization boundary."""
+    """Normalized, tenant- and resource-bound receipt from ``elo-authz``."""
 
     authorized: bool
     authority: str
     action: StrategicWriteAction
     capability_code: str
     tenant_id: str
+    resource_ref: str
     identity_id: str
     evidence_ref: str
     grant_ref: str
     expires_at: datetime
 
-    def validates(self, *, tenant_id: str, action: StrategicWriteAction, now: datetime | None = None) -> bool:
+    def validates(
+        self,
+        *,
+        tenant_id: str,
+        action: StrategicWriteAction,
+        resource_ref: str,
+        now: datetime | None = None,
+    ) -> bool:
         reference = now or datetime.now(timezone.utc)
         expiry = self.expires_at
         if expiry.tzinfo is None or expiry.utcoffset() is None:
@@ -59,6 +89,7 @@ class StrategicWriteGrant:
             and self.action is action
             and self.capability_code == ACTION_CAPABILITY[action]
             and self.tenant_id == tenant_id
+            and self.resource_ref == resource_ref
             and bool(self.identity_id.strip())
             and bool(self.evidence_ref.strip())
             and bool(self.grant_ref.strip())
@@ -99,30 +130,56 @@ class GovernedOkrWriter:
         self._repository = repository
 
     @staticmethod
-    def _require(grant: StrategicWriteGrant, *, tenant_id: str, action: StrategicWriteAction) -> None:
-        if not grant.validates(tenant_id=tenant_id, action=action):
-            raise PermissionError("canonical elo-authz strategic write grant is required")
+    def _require(
+        grant: StrategicWriteGrant,
+        *,
+        tenant_id: str,
+        action: StrategicWriteAction,
+        resource_ref: str,
+    ) -> None:
+        if not grant.validates(tenant_id=tenant_id, action=action, resource_ref=resource_ref):
+            raise PermissionError("canonical tenant- and resource-bound elo-authz strategic write grant is required")
 
     def propose_objective(self, objective: Objective, grant: StrategicWriteGrant) -> None:
-        self._require(grant, tenant_id=objective.tenant_id, action=StrategicWriteAction.PROPOSE)
+        self._require(
+            grant,
+            tenant_id=objective.tenant_id,
+            action=StrategicWriteAction.PROPOSE,
+            resource_ref=objective_resource_ref(objective.objective_id),
+        )
         if not objective.evidence_refs:
             raise ValueError("objective proposal requires evidence_refs")
         self._repository.upsert_objective(objective, authorization_ref=grant.evidence_ref)
 
     def propose_key_result(self, key_result: KeyResult, grant: StrategicWriteGrant) -> None:
-        self._require(grant, tenant_id=key_result.tenant_id, action=StrategicWriteAction.PROPOSE)
+        self._require(
+            grant,
+            tenant_id=key_result.tenant_id,
+            action=StrategicWriteAction.PROPOSE,
+            resource_ref=key_result_resource_ref(key_result.key_result_id),
+        )
         if key_result.target_approval_state is not TargetApprovalState.DRAFT:
             raise ValueError("approved KeyResult cannot be written through proposal action")
         self._repository.upsert_key_result(key_result, authorization_ref=grant.evidence_ref)
 
     def approve_key_result(self, key_result: KeyResult, grant: StrategicWriteGrant) -> None:
-        self._require(grant, tenant_id=key_result.tenant_id, action=StrategicWriteAction.APPROVE)
+        self._require(
+            grant,
+            tenant_id=key_result.tenant_id,
+            action=StrategicWriteAction.APPROVE,
+            resource_ref=key_result_resource_ref(key_result.key_result_id),
+        )
         if key_result.target_approval_state is not TargetApprovalState.APPROVED:
             raise ValueError("approval action requires an APPROVED target state")
         self._repository.upsert_key_result(key_result, authorization_ref=grant.evidence_ref)
 
     def bind_measurement_snapshot(self, binding: SnapshotBindingWrite, grant: StrategicWriteGrant) -> None:
-        self._require(grant, tenant_id=binding.tenant_id, action=StrategicWriteAction.REVIEW)
+        self._require(
+            grant,
+            tenant_id=binding.tenant_id,
+            action=StrategicWriteAction.REVIEW,
+            resource_ref=binding_resource_ref(binding.key_result_id, binding.snapshot_id),
+        )
         self._repository.bind_snapshot(binding, authorization_ref=grant.evidence_ref)
 
 
@@ -133,4 +190,7 @@ __all__ = [
     "SnapshotBindingWrite",
     "StrategicWriteAction",
     "StrategicWriteGrant",
+    "binding_resource_ref",
+    "key_result_resource_ref",
+    "objective_resource_ref",
 ]
