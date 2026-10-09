@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Protocol
+from typing import Mapping, Protocol
 
 from elo.contracts.okr import KeyResult, Objective, TargetApprovalState
 
@@ -70,6 +70,58 @@ class StrategicWriteGrant:
     evidence_ref: str
     grant_ref: str
     expires_at: datetime
+
+    @classmethod
+    def from_elo_authz(cls, payload: Mapping[str, object]) -> "StrategicWriteGrant":
+        """Parse only the canonical strategic receipt shape; anything else fails closed."""
+
+        if payload.get("authorization_authority") != "elo-authz":
+            raise ValueError("strategic receipt authority must be elo-authz")
+        if payload.get("authorized") is not True:
+            raise ValueError("strategic receipt must be authorized")
+        if payload.get("action") != "authorize_strategic_write":
+            raise ValueError("unexpected elo-authz receipt action")
+
+        try:
+            action = StrategicWriteAction(str(payload.get("strategic_action") or ""))
+        except ValueError as exc:
+            raise ValueError("unknown strategic_action") from exc
+
+        capability = str(payload.get("capability") or "").strip()
+        if capability != ACTION_CAPABILITY[action]:
+            raise ValueError("strategic receipt capability does not match action")
+
+        expires_raw = str(payload.get("expires_at") or "").strip()
+        if not expires_raw:
+            raise ValueError("strategic receipt expires_at is required")
+        try:
+            expires_at = datetime.fromisoformat(expires_raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("strategic receipt expires_at is invalid") from exc
+
+        tenant_id = str(payload.get("tenant_id") or "").strip()
+        resource_ref = str(payload.get("resource_ref") or "").strip()
+        identity_id = str(payload.get("identity_id") or "").strip()
+        evidence_ref = str(payload.get("evidence_ref") or "").strip()
+        grant_ref = str(payload.get("grant_ref") or "").strip()
+        if not all((tenant_id, resource_ref, identity_id, evidence_ref, grant_ref)):
+            raise ValueError("strategic receipt identity, tenant, resource and provenance are required")
+
+        grant = cls(
+            authorized=True,
+            authority="elo-authz",
+            action=action,
+            capability_code=capability,
+            tenant_id=tenant_id,
+            resource_ref=resource_ref,
+            identity_id=identity_id,
+            evidence_ref=evidence_ref,
+            grant_ref=grant_ref,
+            expires_at=expires_at,
+        )
+        if expires_at.tzinfo is None or expires_at.utcoffset() is None:
+            raise ValueError("strategic receipt expires_at must be timezone-aware")
+        return grant
 
     def validates(
         self,
