@@ -5,7 +5,7 @@ family: 05-cognitive-platform
 layer: cognitive
 status: normative
 owner: ELO Cognitive Platform
-version: 1.1.0
+version: 1.2.0
 related:
   - ELO_EXTERNAL_AI_AUTHORITY_CONTRACT
   - ADR-0013-external-ai-authority-contract
@@ -40,13 +40,16 @@ A lista de execução é definida por `TOOLS` em `supabase/functions/elo-mcp/ind
 - `elo_pcp_orquestrador_dialogo`
 - `elo_pcp_dados_pendentes`
 - `elo_pcp_decisao_externa_status`
+- `elo_pcp_indicadores_status`
 - `elo_dol_read`
 - `elo_calibration_read`
 - `elo_precedent_search`
 
 **Função:** boundary empresarial segura de leitura. O ELO-MCP pode expor tabelas allowlisted e read-models governados por tools específicas, mas não recebe autoridade para alterar dados operacionais, schema, regras, decisões, aprendizado ou gates.
 
-As tools PCP existentes fornecem leitura governada de gaps, demanda, cobertura, diálogo de coleta e cockpit decisório. Elas não constituem, por si só, prova de que todos os KPIs corporativos descritos em `docs/MULTITEINER_KPIs_MASTER.md` estejam materializados e disponíveis ponta a ponta.
+As tools PCP existentes fornecem leitura governada de gaps, demanda, cobertura, diálogo de coleta, cockpit decisório e indicadores de capacidade/operações externas. A tool `elo_pcp_indicadores_status` exige que cada fonte esteja ativa em `elo_aprendizado_fontes` antes da leitura e mantém `automatic_kpi_promotion=false`.
+
+Um indicador só pode ser apresentado como KPI formal quando existir definição correspondente em `mt_definicoes_kpi`. `mt_snapshots_kpi` registra observações e não cria autoridade de definição.
 
 **Tier de autoridade:** `READ` conforme `ELO_EXTERNAL_AI_AUTHORITY_CONTRACT.md`.
 
@@ -115,10 +118,27 @@ As tools PCP existentes fornecem leitura governada de gaps, demanda, cobertura, 
 
 Quando uma tool MCP expuser um indicador ou KPI, o resultado deve poder ser rastreado até:
 
-`tool → read-model/função → fórmula → tabelas/campos → registros/evidências`
+`tool → catálogo governado → read-model/função → fórmula → tabelas/campos → registros/evidências`
 
 E a resposta do ELO deve preservar o caminho inverso:
 
 `resposta → interpretação/decisão → KPI/indicador → cálculo → fonte → evidência`
 
-Se qualquer elo obrigatório estiver ausente, o estado não deve ser promovido a KPI operacional comprovado; deve ser classificado como parcial, bloqueado por dados ou indeterminado.
+Para a malha PCP/KPI:
+
+```text
+elo_pcp_indicadores_status
+        ↓
+elo_aprendizado_fontes
+        ↓
+├─ v_elo_pcp_carga_capacidade_periodo
+├─ v_elo_pcp_indicadores_montagem_externa
+├─ mt_definicoes_kpi
+└─ mt_snapshots_kpi
+        ↓
+indicador observado / ausência de dado
+        ↓
+KPI formal somente se houver definição
+```
+
+Se qualquer elo obrigatório estiver ausente, o estado não deve ser promovido a KPI operacional comprovado; deve ser classificado como parcial, bloqueado por catálogo/dados ou indeterminado.
