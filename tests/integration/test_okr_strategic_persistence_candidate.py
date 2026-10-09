@@ -46,6 +46,14 @@ def test_baseline_target_and_approval_are_fail_closed() -> None:
     assert "check (weight > 0)" in sql
 
 
+def test_authorization_provenance_is_required_on_both_strategic_owners() -> None:
+    sql = _sql()
+
+    assert sql.count("authorization_ref text not null") == 2
+    assert "elo_strategic_objectives_authorization_required" in sql
+    assert "elo_strategic_key_results_authorization_required" in sql
+
+
 def test_updated_at_reuses_existing_canonical_elo_trigger_function() -> None:
     sql = _sql()
 
