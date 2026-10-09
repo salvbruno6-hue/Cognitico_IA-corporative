@@ -148,6 +148,7 @@ class OrchestrationResponseComposer:
             "intent": "forge_consulta",
             "forge_context": forge_context,
         })
+        response = self._append_indicator_context(response, forge_context)
         entity = forge_context.get("entity") or {}
         model = forge_context.get("model") or {}
         orientation = None
@@ -197,6 +198,108 @@ class OrchestrationResponseComposer:
             orientation=orientation,
             evidence_refs=tuple(evidence_ids),
         )
+
+    @staticmethod
+    def _append_indicator_context(response: str, forge_context: dict[str, Any]) -> str:
+        indicator = forge_context.get("indicator_context") or {}
+        if not indicator:
+            return response
+
+        discovery = forge_context.get("governed_discovery") or {}
+        linked = discovery.get("linked_records") or {}
+        capacity_rows = linked.get("v_elo_pcp_carga_capacidade_periodo") or []
+        external_rows = linked.get("v_elo_pcp_indicadores_montagem_externa") or []
+        kpi_definitions = linked.get("mt_definicoes_kpi") or []
+
+        lines = [
+            "",
+            "**Indicadores governados — rastreabilidade operacional**",
+        ]
+
+        if capacity_rows:
+            lines.append("- Fonte `v_elo_pcp_carga_capacidade_periodo`:")
+            for row in capacity_rows[:10]:
+                center = row.get("centro_trabalho_codigo") or row.get("centro_trabalho_nome") or "centro não informado"
+                date = row.get("data_referencia") or "data não informada"
+                lines.append(
+                    "  - "
+                    f"{date} / {center}: carga_h={row.get('carga_horas_planejada', 'não informada')}; "
+                    f"capacidade_disponível={row.get('capacidade_disponivel', 'não informada')}; "
+                    f"folga_h={row.get('folga_horas', 'não informada')}; "
+                    f"utilização={row.get('utilizacao_pct', 'não informada')}%; "
+                    f"excesso_carga={row.get('excesso_carga', 'não informado')}."
+                )
+        else:
+            lines.append(
+                "- `v_elo_pcp_carga_capacidade_periodo`: nenhuma linha operacional recuperada; "
+                "não há evidência para declarar utilização ou folga de capacidade."
+            )
+
+        if external_rows:
+            row = external_rows[0]
+            lines.append(
+                "- Fonte `v_elo_pcp_indicadores_montagem_externa`: "
+                f"ordens={row.get('ordens_total', 'não informado')}; "
+                f"abertas={row.get('ordens_abertas', 'não informado')}; "
+                f"atrasadas={row.get('ordens_atrasadas', 'não informado')}; "
+                f"módulos={row.get('modulos_total', 'não informado')}; "
+                f"colaboradores={row.get('colaboradores_alocados', 'não informado')}; "
+                f"horas_planejadas={row.get('horas_planejadas_ordens', 'não informado')}; "
+                f"horas_realizadas={row.get('horas_realizadas_ordens', 'não informado')}; "
+                f"aderência={row.get('aderencia_horas_pct', 'não informada')}%."
+            )
+            activity_fields = (
+                "ordens_total",
+                "ordens_abertas",
+                "ordens_atrasadas",
+                "modulos_total",
+                "colaboradores_alocados",
+                "funcoes_ativas",
+                "horas_planejadas_ordens",
+                "horas_realizadas_ordens",
+                "horas_planejadas_equipe",
+                "horas_mao_obra_realizadas",
+            )
+            has_activity = any(float(row.get(field) or 0) != 0 for field in activity_fields)
+            if not has_activity and row.get("aderencia_horas_pct") is None:
+                lines.append(
+                    "  - Estado: registro estrutural presente, mas sem atividade operacional mensurável; "
+                    "isso não equivale a KPI com valor zero."
+                )
+        else:
+            lines.append(
+                "- `v_elo_pcp_indicadores_montagem_externa`: nenhuma linha recuperada."
+            )
+
+        formal_state = indicator.get("formal_kpi_state")
+        if formal_state == "SEM_KPI_FORMAL_REGISTRADO":
+            lines.append(
+                "- KPI formal: nenhum registro em `mt_definicoes_kpi`; os valores acima permanecem "
+                "indicadores e não podem ser promovidos automaticamente a KPI."
+            )
+        elif formal_state == "KPI_FORMAL_REGISTRADO":
+            lines.append(
+                f"- KPI formal: {indicator.get('kpi_definition_count', len(kpi_definitions))} definição(ões) "
+                "governada(s) localizada(s) em `mt_definicoes_kpi`."
+            )
+            for row in kpi_definitions[:10]:
+                lines.append(
+                    f"  - {row.get('codigo_kpi') or 'código não informado'} — "
+                    f"{row.get('nome') or 'nome não informado'}; "
+                    f"unidade={row.get('unidade', 'não informada')}; "
+                    f"fórmula={row.get('formula', 'não informada')}."
+                )
+        else:
+            lines.append(
+                "- KPI formal: o registro de definições não está governado nesta consulta; "
+                "não é permitido inferir existência de KPI."
+            )
+
+        lines.append(
+            f"- Autoridade de fontes: `{indicator.get('catalog_authority', 'elo_aprendizado_fontes')}`; "
+            "consulta somente leitura; promoção automática a KPI=false."
+        )
+        return f"{response}\n" + "\n".join(lines)
 
     @staticmethod
     def _append_orientation(response: str, orientation: Any) -> str:
