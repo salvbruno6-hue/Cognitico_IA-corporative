@@ -46,6 +46,8 @@ The Supabase writer adapter is transport/persistence only. `service_role` is not
 identity/session
   -> elo-authz
   -> explicit strategic action + canonical capability
+  -> explicit tenant scope verification
+  -> auditable, bounded authorization receipt/grant
   -> normalized StrategicWriteGrant
   -> GovernedOkrWriter
   -> SupabaseOkrWriteRepository
@@ -91,6 +93,8 @@ The grant tenant must exactly match the entity/binding tenant. Cross-tenant writ
 
 The persistence layer remains backend-only and service-bound until a canonical tenant membership model exists for client-side RLS.
 
+Repository scope and area scope are not interchangeable with tenant scope. `elo-authz` must verify an explicit tenant scope before emitting a strategic write authorization.
+
 ## Evidence and provenance
 
 - Objective proposal requires evidence refs.
@@ -99,21 +103,29 @@ The persistence layer remains backend-only and service-bound until a canonical t
 - Every persisted strategic write records `authorization_ref`.
 - `EvidenceRepository` remains the evidence authority; tables store references only.
 
-## Current activation blocker
+## Current activation blockers
 
-`elo-authz` currently does not expose the four strategic actions listed above in its `ACTION_CAPABILITY` mapping.
+The current `elo-authz` implementation is not yet sufficient for live strategic writes for three independent reasons:
 
-Therefore the writer is intentionally fail-closed and MUST NOT be activated live until `elo-authz` is extended to recognize these actions using the existing capability codes and its existing identity/session/scope/audit checks.
+1. **Action mapping** — the four strategic actions are not yet present in `ACTION_CAPABILITY`.
+2. **Tenant scope** — generic authorization currently validates repository scope, while `authorize_area` validates area scope. Neither is a canonical tenant authorization contract for OKR writes.
+3. **Bounded authorization receipt** — the generic action response contains identity/session/action/capability/request information, but it does not currently provide the tenant-bound, auditable, expirability semantics expected by `StrategicWriteGrant`.
 
-Do not bypass this blocker by:
+Therefore the writer is intentionally fail-closed and MUST NOT be activated live until `elo-authz` is extended to satisfy all three conditions using its existing identity/session/capability/audit authorities.
+
+The extension should preserve existing owners rather than repurpose GitHub execution/commit/merge grants for corporate data writes.
+
+Do not bypass these blockers by:
 
 - reading a role directly in the writer;
 - accepting caller-supplied capability names;
 - interpreting `service_role` as authorization;
 - reusing `operation="execute"`;
+- treating repository scope or area scope as tenant scope;
+- reusing GitHub operator bindings as corporate tenant authority;
 - using `PCP_UPDATE` as a generic strategic write capability;
 - creating `OKR_WRITE` or another duplicate capability.
 
 ## Live state
 
-No strategic OKR persistence table or writer flow has been activated in the live Supabase project as part of this decision.
+No strategic OKR persistence table, authz extension or writer flow has been activated in the live Supabase project as part of this decision.
