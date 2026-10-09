@@ -4,9 +4,9 @@ name: Strategic Objective Persistence Boundary
 type: contract
 layer: data
 owner: strategic-objective-domain
-status: draft
-authority: proposal
-version: 0.1
+status: normative
+authority: contract
+version: 1.0
 related:
   - strategic_okr
   - OkrReadRepository
@@ -15,226 +15,184 @@ related:
   - elo_cognitive_relations
   - EvidenceRepository
   - GovernedOrchestrator
-depends_on:
-  - explicit architectural approval for the persistent owner
-  - explicit tenant isolation model for strategic data
 ---
 
 # ELO — Strategic Objective Persistence Boundary
 
 ## 1. Decision status
 
-This document is a **DRAFT architecture/data contract proposal**. It does not authorize schema creation, migration execution, production data writes, or merge.
+**APPROVED FOR MIGRATION PREPARATION on 2026-10-09.**
 
-The repository rule `INSPECT → REUSE → EXTEND → RELATE → REFACTOR/MIGRATE → CREATE ONLY IF INDISPENSABLE` was applied before this proposal.
+Explicit human authorization approved **Option A**: define the smallest tenant-scoped persistent owner for `Objective` and `KeyResult` and prepare the migration, without applying DDL to Supabase live and without merging PR #961.
+
+The repository rule `INSPECT → REUSE → EXTEND → RELATE → REFACTOR/MIGRATE → CREATE ONLY IF INDISPENSABLE` was applied before this decision.
 
 ## 2. Proven facts
 
 Read-only inspection of the canonical repository and live Supabase project established that:
 
 1. no existing `Objective`, `KeyResult`, `OKR`, `Objetivo` or `Resultado-Chave` persistent entity owner was found in `public` or `elo_core`;
-2. `elo_cognitive_relations` is a generic **relation** owner with `source_type/source_id → relation_type → target_type/target_id`, but it has no `tenant_id` and is currently service-role-only;
-3. `elo_conhecimento_itens` / `elo_conhecimento_vinculos` are knowledge owners, not strategic entity stores, and also do not represent a tenant-scoped Objective/KR lifecycle;
-4. `mt_definicoes_kpi` is the existing formal KPI-definition registry and must not be duplicated;
-5. `mt_snapshots_kpi` is the existing KPI observation/snapshot owner, but its current schema has no `tenant_id` and no `key_result_id` binding;
-6. `mt_definicoes_kpi` and `mt_snapshots_kpi` currently have RLS enabled, but their authenticated policies are not tenant filters: definitions are readable by authenticated clients and snapshots are readable/appendable by authenticated clients;
-7. the canonical authorization baseline owns identity, role, capability and scope, but it does not establish a general tenant table/FK that can be assumed for new strategic persistence;
-8. the application contract already requires `tenant_id` on `Objective`, `KeyResult` and `Measurement` and fails closed on cross-tenant reads.
+2. `elo_cognitive_relations` is a generic relation owner, not an entity-state owner, has no `tenant_id`, and is currently service-role-only;
+3. `elo_conhecimento_itens` / `elo_conhecimento_vinculos` are knowledge owners, not strategic entity stores;
+4. `mt_definicoes_kpi` remains the existing formal KPI-definition registry and must not be duplicated;
+5. `mt_snapshots_kpi` remains the existing KPI snapshot owner but currently has no `tenant_id` or `key_result_id` binding;
+6. the canonical authorization baseline owns identity, role, capability and scope but does not establish a general tenant-membership table/FK suitable for direct client-side tenant RLS;
+7. the application contract already requires `tenant_id` on `Objective`, `KeyResult` and `Measurement` and fails closed on cross-tenant reads.
 
 ## 3. Canonical ownership boundaries
 
-The persistence design MUST preserve these owners:
-
-| Concept | Existing owner | Rule |
+| Concept | Canonical owner | Rule |
 |---|---|---|
 | Cognitive orchestration | `GovernedOrchestrator` | OKR remains subordinate capability |
-| Objective/KR semantics | `strategic-objective-domain` | persistence may implement the port; it must not become an orchestrator |
+| Objective/KR semantics | `strategic-objective-domain` | owns only strategic entity semantics |
+| Objective/KR persistence | `public.elo_strategic_objectives` / `public.elo_strategic_key_results` | approved new minimal persistent owner |
 | KPI definition | `mt_definicoes_kpi` | reuse; no second KPI registry |
-| KPI snapshot/observation | `mt_snapshots_kpi` | reuse or strengthen only after tenant/binding decision |
-| Evidence | `EvidenceRepository` | references only from OKR entities; no OKR evidence store |
+| KPI snapshot/observation | `mt_snapshots_kpi` | unchanged by this decision |
+| Evidence | `EvidenceRepository` | persistence stores references only, never evidence content |
 | Decision/Action/Outcome | canonical `DecisionLifecycle` / outcome owners | no OKR lifecycle copy |
 | Learning | canonical Symbiont / learning governance | no automatic OKR learning |
 | Generic cognitive relations | `elo_cognitive_relations` | relation only; not Objective/KR entity storage |
 | Authorization | `elo-authz` / canonical authorization schema | persistence does not self-authorize |
 
-## 4. Why existing generic tables are insufficient as the Objective/KR entity owner
+## 4. Approved persistent owner
 
-### 4.1 `elo_cognitive_relations`
+### 4.1 `public.elo_strategic_objectives`
 
-It can potentially represent links such as:
+Minimum persistent state:
 
-`operational-event → KPI → KR → Objective → strategy`
+- `tenant_id` — required tenant identity;
+- `objective_id` — stable Objective identity inside the tenant;
+- `title` — required human-readable objective;
+- `strategy_ref` — optional reference to an external/canonical strategy identity;
+- `owner_ref` — optional owner identity/reference;
+- `evidence_refs` — identities only; no evidence payload;
+- `created_at`, `updated_at` — temporal metadata.
 
-but it cannot safely own the Objective or KR entity itself because:
+Primary identity is composite:
 
-- it models edges rather than entity state;
-- it has no `tenant_id` column;
-- its live policy is service-role-only;
-- it has no Objective/KR lifecycle fields;
-- overloading `context` JSONB with the entire strategic entity would hide schema, constraints and ownership.
+`(tenant_id, objective_id)`.
 
-Result: **REUSE FOR RELATIONS ONLY, subject to a later tenant-isolation decision.**
+### 4.2 `public.elo_strategic_key_results`
 
-### 4.2 Knowledge tables
+Minimum persistent state:
 
-`elo_conhecimento_itens` and `elo_conhecimento_vinculos` own governed knowledge, not operational strategic commitments with approved targets, deadlines and current measurements.
+- `tenant_id`;
+- `key_result_id`;
+- `objective_id`;
+- `title`;
+- `metric_code` — reference to the existing formal KPI registry;
+- `direction` — `INCREASE`, `DECREASE` or `MAINTAIN`;
+- `baseline` + `baseline_evidence_refs`;
+- `target` + `target_evidence_refs`;
+- `target_approval_state` — `DRAFT` or `APPROVED`;
+- `target_approval_ref`;
+- `deadline`;
+- `weight`;
+- `created_at`, `updated_at`.
 
-Result: **DO NOT REUSE AS THE OKR ENTITY STORE.**
+Primary identity is composite:
 
-## 5. KPI definition versus tenant-scoped measurement
+`(tenant_id, key_result_id)`.
 
-The current design must distinguish two scopes:
+The Objective relation is also composite:
 
-### 5.1 KPI definition identity
+`(tenant_id, objective_id) → elo_strategic_objectives(tenant_id, objective_id)`.
 
-`mt_definicoes_kpi` may remain a corporate/global definition registry if that scope is explicitly confirmed. A KPI code, formula, domain and unit can be global without making every measurement global.
+This prevents a KR from binding to an Objective belonging to another tenant at the database constraint layer.
 
-This proposal therefore preserves:
+## 5. KPI boundary
 
-`KeyResult.metric_code → mt_definicoes_kpi.codigo_kpi`
+`KeyResult.metric_code` references `mt_definicoes_kpi.codigo_kpi`.
 
-### 5.2 Measurement context
+This reuses the current formal KPI identity and does not create a second KPI registry. The migration prepared under this decision does **not** modify `mt_definicoes_kpi` or `mt_snapshots_kpi`.
 
-The OKR contract requires:
+The corporate/global versus tenant-aware semantic scope of KPI definitions remains a separate governance question; this decision only reuses the registry that exists today.
 
-`Measurement(tenant_id, measurement_id, key_result_id, metric_code, value, measured_at, evidence_refs, source_ref)`
+## 6. Evidence representation
 
-The current `mt_snapshots_kpi` table contains KPI/date/value context but does not represent `tenant_id` or `key_result_id`. Therefore it must **not** be claimed as a complete tenant-safe implementation of `Measurement` yet.
+To minimize new authority, Objective/KR persistence stores only evidence identities as `text[]` references:
 
-Current classification:
+- Objective: `evidence_refs`;
+- KR baseline: `baseline_evidence_refs`;
+- KR target: `target_evidence_refs`.
 
-- KPI definition registry: `REUSE / GLOBAL SCOPE TO BE CONFIRMED`;
-- KPI snapshots: `REUSE CANDIDATE / TENANT+SUBJECT BINDING NOT PROVEN`;
-- OKR Measurement persistence: `PARCIAL / BLOCKED BY BINDING MODEL`.
+No evidence body, confidence model, provenance calculation or evidence lifecycle is copied into these tables. `EvidenceRepository` remains the evidence authority.
 
-## 6. Minimum persistent domain that appears indispensable
+Database checks preserve the application contract:
 
-Because no equivalent Objective/KR entity owner was found, a dedicated tenant-scoped strategic entity owner is the leading architecture candidate. This is a **proposal, not authorized DDL**.
+- a non-null `baseline` requires at least one baseline evidence reference;
+- a non-null `target` requires at least one target evidence reference;
+- `APPROVED` target state requires a non-empty `target_approval_ref`;
+- `weight > 0`.
 
-Minimum semantics required by the already-implemented contract:
+## 7. Tenant isolation / access mode
 
-### Objective entity
+Because no canonical tenant-membership table suitable for client-side RLS is proven, the prepared migration uses the safest compatible mode:
 
-- tenant identity;
-- objective identity;
-- title;
-- optional strategy reference;
-- optional owner reference;
-- evidence/provenance linkage;
-- temporal/audit metadata.
+**BACKEND-ONLY / SERVICE-BOUND.**
 
-### KeyResult entity
+Rules:
 
-- tenant identity;
-- KR identity;
-- Objective identity;
-- title;
-- formal KPI identity (`metric_code`), not a duplicate KPI definition;
-- direction;
-- baseline + baseline evidence;
-- target + target evidence;
-- target approval state + approval reference;
-- deadline;
-- weight;
-- temporal/audit metadata.
+1. RLS is enabled on both tables because they live in `public`;
+2. all privileges are revoked from `anon` and `authenticated`;
+3. no permissive client RLS policy is created;
+4. `service_role` receives explicit table privileges for the authorized backend path;
+5. tenant authorization must be validated by the existing ELO authorization boundary before repository access;
+6. sector/department is never treated as tenant identity;
+7. user-editable JWT metadata is never used as tenant authority.
 
-The storage representation of evidence references (array, normalized relation, or canonical evidence association) remains a separate implementation decision and must not be silently embedded in JSON merely for convenience.
+A future migration may expose authenticated access only after a canonical tenant membership/source is approved. This decision does not pre-authorize that future exposure.
 
-## 7. Candidate architectures
+## 8. Measurement remains separate
 
-### Option A — Dedicated tenant-scoped Objective/KR persistence — RECOMMENDED FOR APPROVAL
+This approval does **not** select M1/M2/M3 for persistent Measurement binding.
 
-Create the smallest persistent owner for Objective and KeyResult only, implementing `OkrReadRepository` and preserving all existing owners.
+Current state remains:
 
-Properties:
+- KPI definition: existing registry reused;
+- KPI snapshots: existing owner preserved;
+- `Measurement ↔ KeyResult ↔ tenant` persistence: **BLOCKED BY A SEPARATE GOVERNANCE DECISION**.
 
-- explicit `tenant_id` on strategic entities;
-- FK/constraint that prevents KR from binding to an Objective of another tenant;
-- RLS or backend-only access aligned with canonical ELO authorization;
-- no duplicate KPI definition/snapshot registry;
-- no learning/decision/evidence authority inside the tables;
-- relation to `elo_cognitive_relations` remains optional/read-side until tenant semantics for that table are governed.
+No new measurement table is authorized by this decision.
 
-This option best matches the current domain contract while minimizing new authority.
+## 9. Migration preparation requirements
 
-### Option B — Extend a future proven generic strategic-entity owner
+The migration candidate must:
 
-If a canonical tenant-scoped generic entity owner is later found or approved, adapt Objective/KR to it instead of creating dedicated tables.
+- create only the two approved strategic entity tables;
+- include tenant-safe composite keys/FK;
+- reference the existing KPI registry;
+- enable RLS;
+- revoke `anon` and `authenticated` access;
+- avoid client policies until tenant membership is governed;
+- avoid `SECURITY DEFINER` helpers;
+- avoid automatic learning, decisions or target approval;
+- perform no data backfill;
+- remain unapplied to live Supabase until a separate explicit authorization.
 
-Current state: **BLOCKED — no such owner is proven today.**
+The official migration filename must be generated by the Supabase migration workflow. If the CLI is unavailable, the SQL may be prepared as a candidate artifact but must not be committed under an invented migration timestamp.
 
-### Option C — External system remains persistent owner
+## 10. Non-goals
 
-Keep `OkrReadRepository` as an adapter over an external OKR/strategy system if such a system becomes the corporate source of truth.
+This decision does NOT authorize:
 
-Current state: **BLOCKED — no external owner/source was identified in the current scope.**
-
-## 8. Tenant isolation requirements before any DDL
-
-Any approved persistence MUST define the tenant security source explicitly. It must not infer tenant from department/sector and must not trust user-editable metadata.
-
-Before migration creation, one of these must be proven and approved:
-
-1. canonical tenant membership table / scope binding used by RLS; or
-2. backend-only/service-bound access where tenant authorization is validated by `elo-authz` before storage access; or
-3. another existing canonical tenant boundary with equivalent evidence.
-
-A policy equivalent to `TO authenticated USING (true)` is insufficient for Objective/KR strategic data.
-
-## 9. Measurement binding decision required
-
-Before claiming full persistence E2E, choose one governed approach:
-
-### M1 — Strengthen `mt_snapshots_kpi`
-
-Add tenant/subject binding to the existing snapshot owner if this does not break its intended corporate/global semantics.
-
-### M2 — Add a tenant-scoped KR↔snapshot association
-
-Keep snapshot values in the existing owner and persist only the tenant/KR association with provenance. This avoids creating a second KPI snapshot registry.
-
-### M3 — Prove snapshots are intentionally global and source measurements elsewhere
-
-If `mt_snapshots_kpi` is intentionally global and cannot carry tenant context, a different canonical measurement source must be proved; do not duplicate snapshot authority merely for OKR.
-
-No measurement option is selected by this draft.
-
-## 10. Implementation gate
-
-The next implementation step is authorized only after an explicit architecture decision confirms:
-
-- persistent owner for Objective/KR;
-- tenant-isolation authority;
-- KPI-definition scope (global vs tenant-aware);
-- Measurement ↔ KR binding model;
-- access mode (backend-only vs authenticated RLS surface).
-
-Only then should a migration be generated through the repository's official Supabase migration flow, followed by adapter implementation, tests, advisors and live validation.
-
-## 11. Non-goals
-
-This proposal does NOT authorize:
-
-- new `OkrOrchestrator` or router;
-- new KPI registry;
-- new evidence repository;
-- new decision lifecycle;
-- new learning engine;
+- `OkrOrchestrator` or OKR router;
+- second KPI registry;
+- OKR evidence repository;
+- OKR decision lifecycle;
+- OKR learning engine;
 - automatic target approval;
 - automatic learning;
-- live Supabase DDL;
-- merge of PR #961.
+- Measurement persistence changes;
+- Supabase live DDL;
+- PR #961 merge.
 
-## 12. Proposed decision
+## 11. Current authorization boundary
 
-**Recommended architecture:** approve Option A for Objective/KeyResult entity ownership, while keeping KPI definition in `mt_definicoes_kpi`; separately choose the Measurement binding strategy before implementation.
+Authorized now:
 
-Until that decision exists, the current `OkrReadRepository` remains the correct storage-neutral boundary and the persistence gap remains fail-closed rather than being filled by an invented schema.
+`Option A → define owner → prepare migration SQL → validate repository gates`.
 
-### Explicit approval required to proceed
+Not authorized now:
 
-The next coding/migration-preparation step must not be inferred from a generic continuation instruction. It requires an explicit architectural approval equivalent to:
-
-`Autorizo definir o owner persistente tenant-scoped de Objective/KeyResult conforme a Opção A e preparar a migration, sem aplicar no Supabase live.`
-
-A separate explicit decision is still required for M1/M2/M3 before persistent Measurement binding is implemented.
+`apply live → deploy → merge → Measurement schema mutation`.
