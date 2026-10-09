@@ -11,6 +11,7 @@ create table if not exists public.elo_strategic_objectives (
   strategy_ref text,
   owner_ref text,
   evidence_refs text[] not null default '{}'::text[],
+  authorization_ref text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
@@ -21,7 +22,9 @@ create table if not exists public.elo_strategic_objectives (
   constraint elo_strategic_objectives_id_required
     check (btrim(objective_id) <> ''),
   constraint elo_strategic_objectives_title_required
-    check (btrim(title) <> '')
+    check (btrim(title) <> ''),
+  constraint elo_strategic_objectives_authorization_required
+    check (btrim(authorization_ref) <> '')
 );
 
 create table if not exists public.elo_strategic_key_results (
@@ -39,6 +42,7 @@ create table if not exists public.elo_strategic_key_results (
   target_evidence_refs text[] not null default '{}'::text[],
   target_approval_state text not null default 'DRAFT',
   target_approval_ref text,
+  authorization_ref text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
@@ -75,7 +79,9 @@ create table if not exists public.elo_strategic_key_results (
     check (
       target_approval_state <> 'APPROVED'
       or nullif(btrim(target_approval_ref), '') is not null
-    )
+    ),
+  constraint elo_strategic_key_results_authorization_required
+    check (btrim(authorization_ref) <> '')
 );
 
 create index if not exists idx_elo_strategic_objectives_tenant
@@ -110,7 +116,7 @@ grant select, insert, update, delete on table public.elo_strategic_objectives to
 grant select, insert, update, delete on table public.elo_strategic_key_results to service_role;
 
 comment on table public.elo_strategic_objectives is
-  'Tenant-scoped strategic Objective owner for ELO strategic_okr capability. Backend-only; no orchestration, evidence, decision or learning authority.';
+  'Tenant-scoped strategic Objective owner for ELO strategic_okr capability. Backend-only; authorization_ref preserves elo-authz provenance; no orchestration, evidence, decision or learning authority.';
 
 comment on table public.elo_strategic_key_results is
-  'Tenant-scoped KeyResult owner linked to the existing formal KPI registry. Backend-only; Measurement persistence remains separate.';
+  'Tenant-scoped KeyResult owner linked to the existing formal KPI registry. Backend-only; authorization_ref preserves elo-authz provenance; Measurement persistence remains separate.';
