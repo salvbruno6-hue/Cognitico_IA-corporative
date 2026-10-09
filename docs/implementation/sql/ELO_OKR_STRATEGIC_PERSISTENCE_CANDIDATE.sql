@@ -87,6 +87,17 @@ create index if not exists idx_elo_strategic_key_results_objective
 create index if not exists idx_elo_strategic_key_results_metric
   on public.elo_strategic_key_results (metric_code);
 
+-- Reuse the existing canonical ELO updated_at owner. Do not create a parallel function.
+drop trigger if exists trg_elo_strategic_objectives_updated_at on public.elo_strategic_objectives;
+create trigger trg_elo_strategic_objectives_updated_at
+before update on public.elo_strategic_objectives
+for each row execute function public.elo_cognitive_set_updated_at();
+
+drop trigger if exists trg_elo_strategic_key_results_updated_at on public.elo_strategic_key_results;
+create trigger trg_elo_strategic_key_results_updated_at
+before update on public.elo_strategic_key_results
+for each row execute function public.elo_cognitive_set_updated_at();
+
 alter table public.elo_strategic_objectives enable row level security;
 alter table public.elo_strategic_key_results enable row level security;
 
