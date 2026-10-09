@@ -16,6 +16,17 @@ def test_strategic_policy_reuses_existing_capabilities_only() -> None:
     assert "PCP_UPDATE" not in source
 
 
+def test_strategic_policy_requires_registered_google_identity() -> None:
+    source = POLICY.read_text(encoding="utf-8")
+
+    assert "isRegisteredGoogleIdentity" in source
+    assert '=== "google"' in source
+    assert "authorized_email" in source
+    assert "auth_user_id" in source
+    assert "identity?.active === true" in source
+    assert "authorizedEmail === email" in source
+
+
 def test_strategic_policy_requires_enterprise_scope_not_domain_or_repository() -> None:
     source = POLICY.read_text(encoding="utf-8")
 
@@ -42,7 +53,7 @@ def test_resource_shapes_are_explicit_and_scoped() -> None:
     assert "strategic_okr:binding:" in source
 
 
-def test_decision_explicitly_blocks_scope_equivalence_shortcuts() -> None:
+def test_decision_explicitly_blocks_scope_and_identity_shortcuts() -> None:
     text = DECISION.read_text(encoding="utf-8")
 
     assert "enterprise_context" in text
@@ -51,3 +62,7 @@ def test_decision_explicitly_blocks_scope_equivalence_shortcuts() -> None:
     assert "area_code" in text
     assert "GitHub operator binding" in text
     assert "No new tenant table" in text
+    assert "email domain" in text
+    assert "caller-supplied email" in text
+    assert "successful Google authentication without a matching canonical identity record" in text
+    assert "authorized_email = authenticated Google email" in text
