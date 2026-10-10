@@ -6,8 +6,8 @@ from elo.core.directory_intelligence import DirectoryAssessment, DirectorySemant
 from elo.core.outcome_feedback import OutcomeFeedback
 from elo.core.scenario_engine import Scenario, ScenarioAssumption, ScenarioOutcome
 from elo.core.systemic_model import SystemicModel, SystemicNode, SystemicRelation
+from elo.core.systemic_primitives import UncertaintyAssessment
 from elo.core.temporal_knowledge import TemporalValidity
-from elo.core.uncertainty import UncertaintyAssessment
 
 
 def test_systemic_model_returns_related_relations():
@@ -44,8 +44,16 @@ def test_temporal_validity():
 
 
 def test_uncertainty_and_directory_profiles_are_typed():
-    assessment = UncertaintyAssessment("PROBABLE", 0.6, 2, "evidence incomplete")
+    assessment = UncertaintyAssessment(
+        confidence=0.6,
+        uncertainty_level="PROBABLE",
+        evidence_ids=("ev-uncertainty-1", "ev-uncertainty-2"),
+        limitations=("evidence incomplete",),
+    )
     profile = DirectorySemanticProfile("src/elo/core", "runtime core", "cognitive boundaries", "canonical", "active")
     directory = DirectoryAssessment(profile.path, "REUSE", "canonical owner exists")
     assert assessment.confidence == 0.6
+    assert assessment.uncertainty_level == "PROBABLE"
+    assert assessment.evidence_ids == ("ev-uncertainty-1", "ev-uncertainty-2")
+    assert assessment.limitations == ("evidence incomplete",)
     assert directory.action == "REUSE"
