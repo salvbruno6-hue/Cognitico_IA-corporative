@@ -3,6 +3,7 @@ from pathlib import Path
 
 POLICY = Path("supabase/functions/elo-authz/strategic_write.ts")
 DECISION = Path("docs/architecture/ELO_OKR_ENTERPRISE_TENANT_SCOPE_DECISION_20261009.md")
+AUTHORITY_DECISION = Path("docs/architecture/ELO_AUTHORITY_SEPARATION_DECISION_20261009.md")
 
 
 def test_strategic_policy_reuses_existing_capabilities_only() -> None:
@@ -35,6 +36,28 @@ def test_strategic_policy_requires_enterprise_scope_not_domain_or_repository() -
     assert '=== "DOMAIN"' not in source
     assert '=== "REPOSITORY"' not in source
     assert "enterprise_context" not in source
+
+
+def test_structural_strategic_write_is_not_delegable() -> None:
+    source = POLICY.read_text(encoding="utf-8")
+
+    assert 'STRUCTURAL_ONLY_CAPABILITIES = new Set(["ADMIN", "CANONICAL_WRITE"])' in source
+    assert 'STRUCTURAL_ONLY_STRATEGIC_ACTIONS = new Set(["strategic_okr_write"])' in source
+    assert "strategicActionRequiresStructuralAuthority" in source
+    assert "isDelegableStrategicAction" in source
+
+
+def test_authority_decision_keeps_admin_developer_boundary() -> None:
+    text = AUTHORITY_DECISION.read_text(encoding="utf-8")
+
+    assert "Only ADM/Developer authority" in text
+    assert "PCP_UPDATE" in text
+    assert "PROPOSE" in text
+    assert "REVIEW" in text
+    assert "APPROVE" in text
+    assert "CANONICAL_WRITE" in text
+    assert "Alter governed tables" in text
+    assert "generic SQL/table mutation authority" in text
 
 
 def test_strategic_policy_uses_short_bounded_receipt() -> None:
