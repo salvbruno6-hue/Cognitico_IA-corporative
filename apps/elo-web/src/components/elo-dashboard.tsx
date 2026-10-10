@@ -28,13 +28,72 @@ function StateCard({ label }: { label: string }) {
   return <article className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-4 shadow-sm"><p className="text-xs text-slate-500">{label}</p><strong className="mt-3 block text-base">Sem dado conectado</strong><p className="mt-2 text-xs leading-5 text-slate-500">Aguardando fonte canônica e permissão de acesso.</p></article>;
 }
 
-function GenericArea({ area, onOpenPCP }: { area: Area; onOpenPCP: () => void }) {
+type Subtab = { title: string; columns: string[]; action?: string };
+const moduleTabs: Partial<Record<AreaId, Subtab[]>> = {
+  orquestrador: [
+    { title: "Agentes por setor", columns: ["Agente", "Setor", "Última orientação", "Estado"] },
+    { title: "Recomendações ativas", columns: ["Prioridade", "Recomendação", "Fonte", "Impacto", "Revisão"] },
+    { title: "Governança e KPIs", columns: ["Indicador", "Fonte", "Período", "Estado"] },
+  ],
+  dashboard: [
+    { title: "Capacidade por modelo", columns: ["Modelo", "Estoque livre", "Em produção", "Em reparo", "OF estoque", "Disponível", "Prazo", "Risco"] },
+    { title: "Disponibilidade × demanda", columns: ["Modelo", "Disponibilidade", "Demanda", "Cobertura", "Fonte"] },
+    { title: "Demanda sazonal", columns: ["Mês", "Quantidade", "Modelos", "Fonte"] },
+  ],
+  comercial: [
+    { title: "Solicitações", columns: ["SO", "Cliente", "Família", "Modelo", "Quantidade", "Status", "Prioridade", "Necessidade", "Ações"], action: "Nova solicitação" },
+    { title: "Demanda sazonal", columns: ["Mês", "Quantidade", "Modelos mais solicitados", "Fonte"], action: "Editar demanda" },
+    { title: "Movimentação de clientes", columns: ["Cliente", "Modelo", "Quantidade", "Fornecimento", "Devolução"], action: "Nova movimentação" },
+  ],
+  almoxarifado: [
+    { title: "Estoque", columns: ["Família", "Modelo", "Quantidade", "Status", "Origem", "Ações"], action: "Novo item" },
+    { title: "Pedidos de material", columns: ["Pedido", "Solicitante", "Material", "Quantidade", "Status", "Prioridade", "Projeto/OF"], action: "Novo pedido" },
+  ],
+  compras: [
+    { title: "Pedidos de compra", columns: ["Pedido", "Fornecedor", "Descrição", "Quantidade", "Lead time", "Status", "AF/Projeto"], action: "Novo pedido" },
+  ],
+  producao: [
+    { title: "Oficinas", columns: ["Etapa", "OF/AF", "Cliente", "Modelo", "Quantidade", "Estado"] },
+    { title: "Ordens em produção", columns: ["Referência", "Cliente", "Modelo", "Status", "Etapa", "Ações"], action: "Nova OF" },
+    { title: "Serviços externos", columns: ["Título", "AF", "Status", "Fornecedor", "Saída", "Retorno"], action: "Novo serviço" },
+  ],
+  expedicao: [
+    { title: "Expedições", columns: ["AF", "Cliente", "Modelo", "Quantidade", "Status", "Quarentena", "Retorno", "Disponível"], action: "Nova expedição" },
+  ],
+  catalogo: [
+    { title: "Taxonomia", columns: ["Modelo", "Família", "Tamanho", "Área", "Uso", "Capacidade", "Dificuldade", "Acessibilidade"] },
+    { title: "Lista Mãe", columns: ["COD_ITEM", "Descrição", "Aplicação", "Unidade", "Valor", "Curva", "Modelos"], action: "Novo item" },
+    { title: "BOM", columns: ["Código", "Descrição", "Unidade", "Quantidade", "Valor unitário", "Valor total", "Centro de custo"], action: "Novo item" },
+    { title: "Diretório", columns: ["Documento", "Tipo", "Origem", "Versão", "Acesso"] },
+  ],
+  chat: [{ title: "Conversas", columns: ["Remetente", "Setor", "Destinatário", "Mensagem", "Data"], action: "Nova mensagem" }],
+  notificacoes: [{ title: "Alertas", columns: ["Data", "Prioridade", "Setor", "Mensagem", "Fonte", "Leitura"] }],
+  configuracoes: [
+    { title: "Integrações", columns: ["Serviço", "Fonte", "Escopo", "Estado"] },
+    { title: "Usuários e setores", columns: ["Usuário", "Setor", "Permissão", "Origem"] },
+    { title: "Backup e logs", columns: ["Recurso", "Escopo", "Política", "Disponibilidade"] },
+  ],
+};
+
+function GenericArea({ area, onOpenPCP, onMission }: { area: Area; onOpenPCP: () => void; onMission: (text: string) => void }) {
+  const tabs = moduleTabs[area.id] ?? [];
+  const [selected, setSelected] = useState(0);
+  const [query, setQuery] = useState("");
+  const [notice, setNotice] = useState("");
+  const active = tabs[Math.min(selected, tabs.length - 1)];
   return <div className="space-y-5">
-    <section className="rounded-3xl border border-slate-200 bg-[var(--elo-panel)] p-6 shadow-sm lg:p-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">{area.eyebrow}</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">{area.title}</h2><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">{area.description}</p><div className="mt-6 grid gap-3 sm:grid-cols-3">{area.cards.map((label) => <StateCard key={label} label={label} />)}</div></section>
-    <div className="grid gap-5 xl:grid-cols-[1.3fr_.7fr]">
-      <section className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{area.title} · fila operacional</h3><p className="mt-1 text-sm text-slate-500">Nenhum registro operacional é exibido sem uma fonte integrada.</p></div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500">Estado vazio correto</span></div><div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center"><p className="font-semibold">Aguardando conexão governada</p><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">A tela está pronta para {area.source.toLowerCase()}. Nenhum volume, saldo, ordem, mensagem ou indicador foi criado para preencher a interface.</p></div></section>
-      <aside className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-5 shadow-sm"><h3 className="font-semibold">Limites aplicados</h3><ul className="mt-4 space-y-3 text-sm leading-5 text-slate-600"><li>• Ações externas exigem autorização.</li><li>• A fonte deve preservar tenant e principal.</li><li>• Evidência e resultado permanecem rastreáveis.</li></ul>{area.id !== "pcp" && <button type="button" onClick={onOpenPCP} className="mt-6 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold hover:bg-slate-50">Abrir Planejamento/PCP</button>}</aside>
-    </div>
+    <section className="elo-panel p-5 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-violet-300">{area.eyebrow}</p><h2 className="mt-2 text-2xl font-semibold">{area.title}</h2><p className="mt-2 text-sm text-white/60">{area.description}</p></div><span className="elo-badge">Fonte: {area.source}</span></div>
+      <div className="mt-5 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label={area.title}>{tabs.map((tab, index) => <button key={tab.title} type="button" role="tab" aria-selected={selected === index} onClick={() => { setSelected(index); setQuery(""); setNotice(""); }} className={`elo-subtab ${selected === index ? "active" : ""}`}>{tab.title}</button>)}</div>
+    </section>
+    {active && <section className="elo-panel p-5" role="tabpanel">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{active.title}</h3><p className="mt-1 text-xs text-white/45">Sem registros operacionais autorizados nesta tela.</p></div><div className="flex flex-wrap gap-2">{active.action && <button type="button" onClick={() => setNotice(`${active.action}: requer fonte, política de acesso e formulário governado antes de salvar.`)} className="elo-button">＋ {active.action}</button>}{area.id === "orquestrador" && <button type="button" onClick={() => onMission("Analisar evidências e gargalos disponíveis, explicitando lacunas e sem executar ações externas.")} className="elo-button">🔍 Analisar gargalos</button>}</div></div>
+      {notice && <p className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200" role="status">{notice}</p>}
+      <label className="mt-4 block max-w-sm text-xs text-white/50">Filtrar registros<input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por código, cliente ou status" className="elo-input mt-2" /></label>
+      <div className="mt-4 overflow-x-auto rounded-xl border border-white/10"><table className="elo-table"><thead><tr>{active.columns.map(column => <th key={column}>{column}</th>)}</tr></thead><tbody><tr><td colSpan={active.columns.length} className="text-center text-white/45">Nenhum registro vinculado. A busca “{query || "todos"}” não gera dados fictícios.</td></tr></tbody></table></div>
+      <p className="mt-4 text-xs text-white/45">Os botões mostram o fluxo previsto; escritas, importações e sincronizações permanecem bloqueadas até a integração canônica e a revisão do analista.</p>
+    </section>}
+    {area.id === "pcp" && <button type="button" onClick={onOpenPCP} className="elo-button">Abrir Planejamento/PCP</button>}
   </div>;
 }
 
@@ -85,7 +144,7 @@ export function EloDashboard({ onSignOut, accessToken }: Props) {
     <aside className="bg-[var(--elo-sidebar)] p-5 text-white lg:min-h-screen"><div className="flex items-center gap-3 px-2"><div className="grid size-10 place-items-center rounded-xl border border-white/30 font-bold text-teal-200">E</div><div><p className="text-xl font-semibold tracking-wide">ELO</p><p className="text-[10px] uppercase tracking-[.22em] text-white/50">Multiteiner</p></div></div><div className="mt-9 px-2 text-xs uppercase tracking-[.14em] text-white/45">Planejamento/PCP</div><p className="mt-2 px-2 text-xs text-white/60">Orçamento é setor interno</p><button type="button" onClick={() => setAreaId("pcp")} className={`mt-4 w-full rounded-xl px-4 py-3 text-left text-sm font-semibold ${areaId === "pcp" ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10"}`}>▧ Fluxo de solicitações</button><div className="mt-8 border-t border-white/10 pt-5"><p className="mb-2 px-2 text-xs uppercase tracking-[.14em] text-white/45">Acesso</p><p className="px-2 text-sm text-white/75">Sessão ELO autorizada</p><button type="button" onClick={onSignOut} className="mt-5 w-full rounded-xl border border-white/15 px-4 py-3 text-left text-sm font-semibold text-white/85 hover:bg-white/10">Encerrar sessão</button></div></aside>
     <section className="min-w-0"><header className="border-b border-slate-200 bg-[var(--elo-panel)] px-5 py-4 lg:px-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-slate-500">ELO / Workspace operacional</p><h1 className="text-2xl font-semibold tracking-tight">{area.label}</h1></div><span className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Cognitivo ativo</span></div><nav className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="Áreas do workspace">{areas.map((item) => <button key={item.id} type="button" onClick={() => { setAreaId(item.id); setNotice(null); setResult(null); }} aria-current={item.id === areaId ? "page" : undefined} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition ${item.id === areaId ? "border-teal-700 bg-teal-700 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}><span className="mr-1.5">{item.icon}</span>{item.label}</button>)}</nav></header>
       <div className="space-y-5 p-5 lg:p-8">{notice && <div role="status" className="rounded-xl border border-slate-200 bg-[var(--elo-panel)] px-4 py-3 text-sm text-slate-700">{notice}</div>}
-        {areaId === "pcp" ? <PCPWorkspace onMission={runMission} /> : <GenericArea area={area} onOpenPCP={() => setAreaId("pcp")} />}
+        {areaId === "pcp" ? <PCPWorkspace onMission={runMission} /> : <GenericArea key={areaId} area={area} onOpenPCP={() => setAreaId("pcp")} onMission={runMission} />}
         <section className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="font-semibold">Missão ELO</h3><p className="mt-1 text-sm text-slate-500">Consulta ao ELO Cognitivo no contexto da área aberta.</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{busy ? "Processando" : "Pronto"}</span></div><div className="mt-4 flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2"><input value={mission} onChange={(event) => setMission(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void runMission(mission); }} placeholder={`Solicite uma análise para ${area.label.toLowerCase()}…`} disabled={busy} className="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none" /><button type="button" onClick={() => void runMission(mission)} disabled={busy} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Enviar</button></div></section>
         {result && <CognitiveResult result={result} />}
       </div></section></div></main>;
