@@ -11,6 +11,13 @@ export const STRATEGIC_ACTION_CAPABILITY: Readonly<Record<string, string>> = {
   strategic_okr_write: "CANONICAL_WRITE",
 };
 
+// Structural/system authority is intentionally NOT delegable to ordinary
+// enterprise operators. CANONICAL_WRITE remains restricted to the existing
+// ADM/Developer authority boundary; normal strategic work uses
+// PROPOSE/REVIEW/APPROVE instead.
+export const STRUCTURAL_ONLY_CAPABILITIES = new Set(["ADMIN", "CANONICAL_WRITE"]);
+export const STRUCTURAL_ONLY_STRATEGIC_ACTIONS = new Set(["strategic_okr_write"]);
+
 export const STRATEGIC_RECEIPT_TTL_SECONDS = 300;
 
 export type EloScopeView = {
@@ -28,6 +35,18 @@ export type GoogleIdentityView = {
 
 export function strategicCapabilityForAction(action: string): string | null {
   return STRATEGIC_ACTION_CAPABILITY[action] ?? null;
+}
+
+export function strategicActionRequiresStructuralAuthority(action: string): boolean {
+  const capability = strategicCapabilityForAction(action);
+  return (
+    STRUCTURAL_ONLY_STRATEGIC_ACTIONS.has(action) ||
+    (capability !== null && STRUCTURAL_ONLY_CAPABILITIES.has(capability))
+  );
+}
+
+export function isDelegableStrategicAction(action: string): boolean {
+  return strategicCapabilityForAction(action) !== null && !strategicActionRequiresStructuralAuthority(action);
 }
 
 export function isRegisteredGoogleIdentity(
