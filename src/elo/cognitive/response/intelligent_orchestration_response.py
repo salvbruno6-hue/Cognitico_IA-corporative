@@ -6,9 +6,12 @@ execute, learn, promote, or create a new cognitive authority.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
+from elo.application.queries.okr import ObjectiveContext
+from elo.application.queries.okr_metric import KeyResultMetricState
 from elo.cognitive.runtime.humanization.humanizer import Humanizer
+from elo.core.okr_evaluation import KeyResultEvaluation, ObjectiveEvaluation
 from elo.evidence import EvidenceRepository
 
 
@@ -198,6 +201,124 @@ class OrchestrationResponseComposer:
             orientation=orientation,
             evidence_refs=tuple(evidence_ids),
         )
+
+    def compose_okr(
+        self,
+        *,
+        request: Any,
+        objective: ObjectiveContext,
+        metric_states: Mapping[str, KeyResultMetricState],
+        evaluations: Mapping[str, KeyResultEvaluation],
+        objective_evaluation: ObjectiveEvaluation,
+        diagnoses: Mapping[str, Any] | None = None,
+    ) -> IntelligentOrchestrationResponse:
+        """Compose strategic facts already produced by canonical OKR owners.
+
+        This method does not calculate, authorize, diagnose or evaluate. It only
+        presents bounded strategic state to the user through the existing
+        orchestration response boundary.
+        """
+        diagnoses = diagnoses or {}
+        lines = [
+            f"O ELO consultou o objetivo **{objective.objective.title}** ({objective.objective.objective_id}) pelo fluxo governado.",
+            "",
+            "**Objetivo**",
+            f"- Health: {objective_evaluation.health}.",
+            f"- KRs avaliados: {objective_evaluation.evaluated_key_results}.",
+            f"- KRs indeterminados: {objective_evaluation.indeterminate_key_results}.",
+            f"- Regra de avaliação: {objective_evaluation.rationale}",
+            "",
+            "**Key Results**",
+        ]
+
+        evidence_refs: list[str] = list(objective.objective.evidence_refs)
+        evidence_refs.extend(objective_evaluation.evidence_refs)
+        for kr in objective.key_results:
+            metric = metric_states.get(kr.key_result_id)
+            evaluation = evaluations.get(kr.key_result_id)
+            lines.append(f"- **{kr.key_result_id} — {kr.title}**")
+            lines.append(f"  - KPI/Metric: {kr.metric_code}.")
+            if metric is None:
+                lines.append("  - Estado do KPI: NAO_COMPROVADO nesta resposta.")
+            else:
+                lines.append(f"  - Estado do KPI: {metric.metric_state}.")
+                if metric.kpi is not None:
+                    lines.append(
+                        f"  - KPI formal: {metric.kpi.name or metric.kpi.metric_code}; "
+                        f"unidade={metric.kpi.unit or 'não informada'}; "
+                        f"fórmula={metric.kpi.formula or 'não informada'}."
+                    )
+                evidence_refs.extend(metric.current_evidence_refs)
+            if evaluation is None:
+                lines.append("  - Avaliação: NAO_COMPROVADA.")
+                continue
+            evidence_refs.extend(evaluation.evidence_refs)
+            lines.extend([
+                f"  - Baseline: {self._known(evaluation.baseline)}.",
+                f"  - Target aprovado: {self._known(evaluation.target)}.",
+                f"  - Current: {self._known(evaluation.current)}.",
+                f"  - Progress: {self._pct(evaluation.progress_pct)}.",
+                f"  - Trend: {evaluation.trend.value}.",
+                f"  - Forecast: {self._known(evaluation.forecast)}.",
+                f"  - Deviation: {self._known(evaluation.deviation)}.",
+                f"  - Status: {evaluation.status}.",
+                f"  - Confidence: {evaluation.confidence}.",
+            ])
+            if evaluation.limitations:
+                lines.append("  - Limitações: " + ", ".join(evaluation.limitations) + ".")
+            diagnosis = diagnoses.get(kr.key_result_id)
+            if diagnosis is not None:
+                assessment = getattr(diagnosis, "assessment", diagnosis)
+                lines.append(
+                    "  - Diagnóstico: "
+                    f"{getattr(assessment, 'cause', 'causa não informada')} → "
+                    f"{getattr(assessment, 'effect', 'efeito não informado')} "
+                    f"(confiança={getattr(assessment, 'confidence', 'não informada')})."
+                )
+                evidence_refs.extend(tuple(getattr(assessment, "evidence_ids", ()) or ()))
+
+        unique_refs = tuple(dict.fromkeys(ref for ref in evidence_refs if ref))
+        if unique_refs:
+            lines.extend(["", "**Evidências**", f"- {len(unique_refs)} referência(s) preservada(s) no fluxo."])
+        else:
+            lines.extend(["", "**Evidências**", "- SEM_DADO: nenhuma evidência foi preservada nesta resposta."])
+
+        lines.extend([
+            "",
+            "**Conclusão**",
+            "- Progress, trend, forecast, deviation e status permanecem dimensões distintas.",
+            "- Ausência de KPI, Measurement ou evidência não é convertida em zero nem em estado positivo.",
+            "- O Orquestrador apresenta a visão; os owners de KPI, evidência, decisão e execução permanecem separados.",
+        ])
+        next_action = (
+            "resolver as limitações/evidências pendentes antes de concluir status ou ação estratégica."
+            if objective_evaluation.health == "INDETERMINADO"
+            else "acompanhar medições, desvios e decisões relacionadas usando as mesmas evidências governadas."
+        )
+        lines.extend(["", f"**Próximo passo:** {next_action}"])
+
+        return IntelligentOrchestrationResponse(
+            status="CONSULTED",
+            stage="ANALYZE",
+            headline=f"Visão governada do objetivo {objective.objective.objective_id}.",
+            response="\n".join(lines),
+            capability="strategic_okr",
+            provider=None,
+            model=None,
+            execution_id=None,
+            correlation_id=getattr(request, "correlation_id", ""),
+            evidence_state="OBSERVED" if unique_refs else "INSUFFICIENT",
+            next_action=next_action,
+            evidence_refs=unique_refs,
+        )
+
+    @staticmethod
+    def _known(value: Any) -> str:
+        return "[SEM_DADO]" if value is None else str(value)
+
+    @staticmethod
+    def _pct(value: Any) -> str:
+        return "[SEM_DADO]" if value is None else f"{value}%"
 
     @staticmethod
     def _append_indicator_context(response: str, forge_context: dict[str, Any]) -> str:
