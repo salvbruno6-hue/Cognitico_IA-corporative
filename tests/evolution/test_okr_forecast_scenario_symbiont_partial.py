@@ -2,7 +2,8 @@
 
 This test promotes only the evidence classification from UNCONFIRMED to PARTIAL
 after two controlled contexts and successful regression/evolution gates. It does
-not promote canonical learning or claim productive efficacy.
+not promote canonical learning or claim productive efficacy. The PR is validated
+against main so the complete incremental composition crosses the canonical gates.
 """
 
 from elo.cognitive.symbionte_lab import SymbiontLabAdapter, SymbiontLabObservation
