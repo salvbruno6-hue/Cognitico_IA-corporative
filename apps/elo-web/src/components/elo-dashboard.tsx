@@ -99,6 +99,7 @@ function GenericArea({ area, onMission, drafts, onSave, onDelete }: { area: Area
   const [reviewing,setReviewing] = useState(false);
   const [notice,setNotice] = useState("");
   const [kanbanTarget,setKanbanTarget] = useState<{id:string;stage:string}|null>(null);
+  const [analysis,setAnalysis] = useState<string[]>([]);
   const active = tabs[Math.min(selected,tabs.length-1)];
   const key = tabKey(area.id,selected);
   const records = drafts[key] ?? [];
@@ -129,7 +130,29 @@ function GenericArea({ area, onMission, drafts, onSave, onDelete }: { area: Area
   const total = allDrafts.length;
   return <div className="space-y-5">
     <section className="elo-panel p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-semibold">{area.title}</h2><p className="mt-2 text-sm text-white/60">{area.description}</p></div><span className="elo-badge">Rascunhos locais · {total} registro(s) na sessão</span></div><div className="mt-5 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label={area.title}>{tabs.map((tab,index)=><button key={tab.title} type="button" role="tab" aria-selected={selected===index} onClick={()=>{setSelected(index);setQuery("");setEditing(null);setReviewing(false);setNotice("");}} className={`elo-subtab ${selected===index?"active":""}`}>{tab.title}</button>)}</div></section>
-    {area.id==="orquestrador" && <div className="elo-panel flex flex-wrap gap-2 p-4">{["Gerar insights","Analisar gargalos","Simular decisão"].map(label=><button key={label} type="button" onClick={()=>setNotice(`${label}: análise de cenário disponível apenas com fontes e metas aprovadas. Nenhum agente foi acionado.`)} className="elo-button">{label}</button>)}</div>}
+    {area.id==="orquestrador" && <section className="elo-panel p-4"><div className="flex flex-wrap gap-2">{["Gerar insights","Analisar gargalos","Simular decisão"].map(label=><button key={label} type="button" onClick={()=>{
+  const commercial=drafts[tabKey("comercial",0)]??[];
+  const stock=drafts[tabKey("almoxarifado",0)]??[];
+  const purchases=drafts[tabKey("compras",0)]??[];
+  const production=drafts[tabKey("producao",1)]??[];
+  const expedition=drafts[tabKey("expedicao",0)]??[];
+  const lines:string[]=[];
+  if(label==="Gerar insights"){
+    commercial.filter(row=>row.values.Status==="APROVADO").forEach(row=>lines.push(`Comercial: ${row.values.SO||"SO não informada"} em rascunho aprovado; projeto/OF dependem de revisão e autorização.`));
+    stock.filter(row=>row.values.Quantidade==="0").forEach(row=>lines.push(`Almoxarifado: saldo zero informado para ${row.values.Modelo||row.values.Família||"item"}; confirmar no registro de estoque.`));
+    expedition.filter(row=>row.values.Status==="QUARENTENA").forEach(row=>lines.push(`Expedição: ${row.values.AF||"AF não informada"} em quarentena informada; disponibilidade não presumida.`));
+  }else if(label==="Analisar gargalos"){
+    purchases.filter(row=>row.values.Status==="PENDENTE").forEach(row=>lines.push(`Compras: ${row.values.Pedido||"pedido"} pendente; lead time ${row.values["Lead time"]||"não informado"}; não há prazo de entrega comprovado.`));
+    production.filter(row=>row.values.Etapa && row.values.Etapa!=="pronto").forEach(row=>lines.push(`Produção: ${row.values.Referência||"ordem"} na etapa ${row.values.Etapa}; capacidade não comprovada.`));
+  }else{
+    lines.push(`Comercial: ${commercial.length} rascunho(s) para qualificação de demanda.`);
+    lines.push(`PCP: avaliar capacidade e checklist antes de converter demanda; ${production.length} ordem(ns) em rascunho.`);
+    lines.push(`Compras e Almoxarifado: ${purchases.length} pedido(s) e ${stock.length} saldo(s) informados; cobertura não calculável sem vínculos e fonte validada.`);
+    lines.push(`Produção e Expedição: ${production.length} ordem(ns) e ${expedition.length} expedição(ões) em rascunho; nenhum acionamento ocorreu.`);
+  }
+  setAnalysis(lines.length?lines:["Nenhum dado suficiente nesta sessão para afirmar um insight ou gargalo. Informe registros e fontes nos setores."]);
+  setNotice(`${label}: prévia local baseada apenas nos registros informados; nenhum agente, compra ou OF foi acionado.`);
+}} className="elo-button">{label}</button>)}</div>{analysis.length>0&&<div className="mt-4 space-y-2 text-sm" role="status">{analysis.map((line,index)=><p key={index} className="rounded-lg bg-white/5 p-3">{line}</p>)}</div>}</section>}
     {area.id==="dashboard" && <div className="grid gap-3 sm:grid-cols-3">{[
       ["Solicitações em rascunho",(drafts[tabKey("comercial",0)]??[]).length],
       ["Ordens em rascunho",(drafts[tabKey("producao",1)]??[]).length],
