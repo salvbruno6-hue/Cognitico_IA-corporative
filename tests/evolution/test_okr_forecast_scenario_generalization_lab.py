@@ -74,4 +74,5 @@ def test_independent_trial_still_fails_closed_when_evidence_window_is_not_met():
     assert result.status is ForecastStatus.GAP
     assert result.forecast is None
     assert result.reproducible is False
-    assert result.gap == "at least 3 governed observations are required"
+    # The fail-closed requirement follows the requested governed window.
+    assert result.gap == "at least 4 governed observations are required"
