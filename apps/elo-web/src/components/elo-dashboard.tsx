@@ -75,25 +75,76 @@ const moduleTabs: Partial<Record<AreaId, Subtab[]>> = {
   ],
 };
 
-function GenericArea({ area, onOpenPCP, onMission }: { area: Area; onOpenPCP: () => void; onMission: (text: string) => void }) {
+type DraftRecord = { id: string; values: Record<string,string>; source: string; updated: string };
+type DraftStore = Record<string,DraftRecord[]>;
+const tabKey = (area: AreaId, index: number) => `${area}:${index}`;
+const editableColumns = (tab: Subtab) => tab.columns.filter(column => !["Ações","Fonte","Revisão"].includes(column));
+const workflowStages = ["preparacao","corte","solda","montagem_padrao","montagem_customizada","acabamento","inspecao","reparo","pronto"];
+function DraftSignals({ drafts }: { drafts: DraftStore }) {
+  const commercial = drafts[tabKey("comercial",0)] ?? [];
+  const stock = drafts[tabKey("almoxarifado",0)] ?? [];
+  const production = drafts[tabKey("producao",1)] ?? [];
+  const alerts = [
+    ...commercial.filter(row => row.values.Status === "APROVADO").map(row => `Solicitação ${row.values.SO || "sem SO"} aprovada em rascunho: revisar Projeto e OF; nada foi criado.`),
+    ...stock.filter(row => row.values.Quantidade === "0").map(row => `Estoque zero informado para ${row.values.Modelo || row.values.Família || "item sem identificação"}; confirmar saldo na fonte.`),
+    ...production.filter(row => row.values.Etapa === "pronto").map(row => `Ordem ${row.values.Referência || "sem referência"} na etapa pronto: revisar inspeção antes de concluir.`),
+  ];
+  return alerts.length ? <div className="elo-panel p-4"><h3 className="font-semibold">Sinais para revisão</h3><ul className="mt-2 space-y-2 text-sm text-amber-200">{alerts.map((alert,index)=><li key={index}>• {alert}</li>)}</ul><p className="mt-2 text-xs text-white/45">Derivado somente dos rascunhos desta sessão; não é alerta canônico nem acionamento automático.</p></div> : null;
+}
+function GenericArea({ area, onMission, drafts, onSave, onDelete }: { area: Area; onMission: (text: string) => void; drafts: DraftStore; onSave: (key: string,record: DraftRecord) => void; onDelete: (key: string,id: string) => void }) {
   const tabs = moduleTabs[area.id] ?? [];
-  const [selected, setSelected] = useState(0);
-  const [query, setQuery] = useState("");
-  const [notice, setNotice] = useState("");
-  const active = tabs[Math.min(selected, tabs.length - 1)];
+  const [selected,setSelected] = useState(0);
+  const [query,setQuery] = useState("");
+  const [editing,setEditing] = useState<DraftRecord | null>(null);
+  const [reviewing,setReviewing] = useState(false);
+  const [notice,setNotice] = useState("");
+  const [kanbanTarget,setKanbanTarget] = useState<{id:string;stage:string}|null>(null);
+  const active = tabs[Math.min(selected,tabs.length-1)];
+  const key = tabKey(area.id,selected);
+  const records = drafts[key] ?? [];
+  const filtered = records.filter(row => !query || Object.values(row.values).some(value=>value.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))));
+  const allDrafts = Object.values(drafts).flat();
+  function startNew() {
+    const columns = editableColumns(active);
+    setEditing({id:crypto.randomUUID(),values:Object.fromEntries(columns.map(column=>[column,""])),source:"",updated:""});
+    setReviewing(false);setNotice("");
+  }
+  function review() {
+    if(!editing)return;
+    const columns = editableColumns(active);
+    if(!editing.source.trim() || !columns.some(column=>editing.values[column]?.trim())) { setNotice("Preencha ao menos um dado e identifique a fonte antes da revisão."); return; }
+    const so=editing.values.SO?.trim();
+    if(so && !/^\\d{3}\\.\\d{2}$/.test(so)){setNotice("Use SO 000.AA, informada pelo analista.");return;}
+    const numeric=columns.filter(column=>/^(Qtd|Quantidade|Lead time|Prazo|Estoque livre|Disponível)$/.test(column));
+    if(numeric.some(column=>editing.values[column] && (!Number.isFinite(Number(editing.values[column])) || Number(editing.values[column])<0))){setNotice("Quantidades e prazos informados devem ser números não negativos.");return;}
+    setNotice("");setReviewing(true);
+  }
+  function commit() { if(!editing)return;onSave(key,{...editing,updated:new Date().toISOString()});setEditing(null);setReviewing(false);setNotice("Rascunho salvo somente nesta sessão. Nenhuma operação externa foi executada."); }
+  function moveKanban() {
+    if(!kanbanTarget)return;
+    const record=records.find(row=>row.id===kanbanTarget.id);
+    if(record)onSave(key,{...record,values:{...record.values,Etapa:kanbanTarget.stage},updated:new Date().toISOString()});
+    setKanbanTarget(null);setNotice("Etapa movida no rascunho da sessão. Nenhuma OF foi alterada no banco.");
+  }
+  const total = allDrafts.length;
   return <div className="space-y-5">
-    <section className="elo-panel p-5 md:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-violet-300">{area.eyebrow}</p><h2 className="mt-2 text-2xl font-semibold">{area.title}</h2><p className="mt-2 text-sm text-white/60">{area.description}</p></div><span className="elo-badge">Fonte: {area.source}</span></div>
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label={area.title}>{tabs.map((tab, index) => <button key={tab.title} type="button" role="tab" aria-selected={selected === index} onClick={() => { setSelected(index); setQuery(""); setNotice(""); }} className={`elo-subtab ${selected === index ? "active" : ""}`}>{tab.title}</button>)}</div>
-    </section>
-    {active && <section className="elo-panel p-5" role="tabpanel">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{active.title}</h3><p className="mt-1 text-xs text-white/45">Sem registros operacionais autorizados nesta tela.</p></div><div className="flex flex-wrap gap-2">{active.action && <button type="button" onClick={() => setNotice(`${active.action}: requer fonte, política de acesso e formulário governado antes de salvar.`)} className="elo-button">＋ {active.action}</button>}{area.id === "orquestrador" && <button type="button" onClick={() => onMission("Analisar evidências e gargalos disponíveis, explicitando lacunas e sem executar ações externas.")} className="elo-button">🔍 Analisar gargalos</button>}</div></div>
-      {notice && <p className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200" role="status">{notice}</p>}
-      <label className="mt-4 block max-w-sm text-xs text-white/50">Filtrar registros<input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por código, cliente ou status" className="elo-input mt-2" /></label>
-      <div className="mt-4 overflow-x-auto rounded-xl border border-white/10"><table className="elo-table"><thead><tr>{active.columns.map(column => <th key={column}>{column}</th>)}</tr></thead><tbody><tr><td colSpan={active.columns.length} className="text-center text-white/45">Nenhum registro vinculado. A busca “{query || "todos"}” não gera dados fictícios.</td></tr></tbody></table></div>
-      <p className="mt-4 text-xs text-white/45">Os botões mostram o fluxo previsto; escritas, importações e sincronizações permanecem bloqueadas até a integração canônica e a revisão do analista.</p>
+    <section className="elo-panel p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-semibold">{area.title}</h2><p className="mt-2 text-sm text-white/60">{area.description}</p></div><span className="elo-badge">Rascunhos locais · {total} registro(s) na sessão</span></div><div className="mt-5 flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label={area.title}>{tabs.map((tab,index)=><button key={tab.title} type="button" role="tab" aria-selected={selected===index} onClick={()=>{setSelected(index);setQuery("");setEditing(null);setReviewing(false);setNotice("");}} className={`elo-subtab ${selected===index?"active":""}`}>{tab.title}</button>)}</div></section>
+    {area.id==="orquestrador" && <div className="elo-panel flex flex-wrap gap-2 p-4">{["Gerar insights","Analisar gargalos","Simular decisão"].map(label=><button key={label} type="button" onClick={()=>setNotice(`${label}: análise de cenário disponível apenas com fontes e metas aprovadas. Nenhum agente foi acionado.`)} className="elo-button">{label}</button>)}</div>}
+    {area.id==="dashboard" && <div className="grid gap-3 sm:grid-cols-3">{[
+      ["Solicitações em rascunho",(drafts[tabKey("comercial",0)]??[]).length],
+      ["Ordens em rascunho",(drafts[tabKey("producao",1)]??[]).length],
+      ["Compras em rascunho",(drafts[tabKey("compras",0)]??[]).length],
+    ].map(([label,value])=><div key={label} className="elo-panel p-4"><p className="text-xs text-white/50">{label}</p><strong className="mt-2 block text-2xl">{value}</strong><p className="mt-1 text-xs text-white/40">Apenas nesta sessão; não é KPI operacional.</p></div>)}</div>}
+    <DraftSignals drafts={drafts}/>
+    {notice&&<p role="status" className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">{notice}</p>}
+    {active && <section className="elo-panel p-5" role="tabpanel"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{active.title}</h3><p className="mt-1 text-xs text-white/45">{records.length} registro(s) informados nesta sessão · Fonte canônica: {area.source}</p></div><div className="flex flex-wrap gap-2">{active.action&&<button type="button" onClick={startNew} className="elo-button">＋ {active.action}</button>}{area.id==="orquestrador"&&<button type="button" onClick={()=>onMission("Analisar lacunas e evidências disponíveis sem acionar agentes ou executar decisões.")} className="elo-button">Consultar ELO</button>}</div></div>
+      {area.id==="producao" && selected===1 && <div className="mt-4 flex gap-2 overflow-x-auto pb-2">{workflowStages.map(stage=><div key={stage} className="min-w-32 rounded-lg border border-white/10 p-2"><strong className="text-xs">{stage.replaceAll("_"," ")}</strong><p className="mt-1 text-xs text-white/40">{records.filter(row=>row.values.Etapa===stage).length} rascunho(s)</p>{records.filter(row=>row.values.Etapa===stage).map(row=><button key={row.id} type="button" onClick={()=>setKanbanTarget({id:row.id,stage})} className="mt-2 block w-full rounded-md bg-white/5 p-2 text-left text-xs">{row.values.Referência||"Sem referência"}</button>)}</div>)}</div>}
+      {kanbanTarget && <div className="mt-3 rounded-lg border border-violet-400/30 p-3 text-sm"><p>Alterar etapa apenas no rascunho:</p><select value={kanbanTarget.stage} onChange={e=>setKanbanTarget({...kanbanTarget,stage:e.target.value})} className="elo-input mt-2">{workflowStages.map(stage=><option key={stage} value={stage}>{stage.replaceAll("_"," ")}</option>)}</select><div className="mt-2 flex gap-2"><button type="button" onClick={moveKanban} className="elo-button">Confirmar movimento local</button><button type="button" onClick={()=>setKanbanTarget(null)} className="elo-subtab">Cancelar</button></div></div>}
+      <label className="mt-4 block max-w-sm text-xs text-white/50">Filtrar registros<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nesta tela" className="elo-input mt-2"/></label>
+      <div className="mt-4 overflow-x-auto rounded-xl border border-white/10"><table className="elo-table"><thead><tr>{active.columns.map(column=><th key={column}>{column}</th>)}{active.action&&<th>Revisar</th>}</tr></thead><tbody>{filtered.length===0?<tr><td colSpan={active.columns.length+(active.action?1:0)} className="text-center text-white/45">Nenhum registro. Não há volume ou indicador canônico presumido.</td></tr>:filtered.map(row=><tr key={row.id}>{active.columns.map(column=><td key={column}>{column==="Fonte"?row.source:column==="Ações"?"—":row.values[column]||"—"}</td>)}{active.action&&<td><div className="flex gap-2"><button type="button" onClick={()=>{setEditing(row);setReviewing(false);}} className="elo-subtab">Editar</button><button type="button" onClick={()=>{if(window.confirm("Remover este rascunho desta sessão?"))onDelete(key,row.id);}} className="elo-subtab">Remover</button></div></td>}</tr>)}</tbody></table></div>
     </section>}
-    {area.id === "pcp" && <button type="button" onClick={onOpenPCP} className="elo-button">Abrir Planejamento/PCP</button>}
+    {editing&&<section className="elo-panel p-5"><h3 className="font-semibold">{reviewing?"Revisar antes de salvar":"Preencher rascunho"} · {active.title}</h3><p className="mt-1 text-xs text-white/45">Este formulário não escreve no Supabase, não cria AF/OF e não envia mensagem.</p>{reviewing?<div className="mt-4 space-y-2 text-sm">{editableColumns(active).map(column=><p key={column}><strong>{column}:</strong> {editing.values[column]||"Não informado"}</p>)}<p><strong>Fonte:</strong> {editing.source}</p><div className="flex gap-2"><button type="button" onClick={commit} className="elo-button">Confirmar rascunho local</button><button type="button" onClick={()=>setReviewing(false)} className="elo-subtab">Corrigir</button></div></div>:<div className="mt-4 grid gap-3 sm:grid-cols-2">{editableColumns(active).map(column=><label key={column} className="text-xs text-white/70">{column}{column==="Status"||column==="Etapa"?<select value={editing.values[column]??""} onChange={e=>setEditing({...editing,values:{...editing.values,[column]:e.target.value}})} className="elo-input mt-1"><option value="">Selecione</option>{(column==="Etapa"?workflowStages:["PENDENTE","EM_ANDAMENTO","APROVADO","PRODUCAO","REPARO","CONCLUIDO","ENTREGUE","QUARENTENA"]).map(option=><option key={option} value={option}>{option}</option>)}</select>:<input value={editing.values[column]??""} onChange={e=>setEditing({...editing,values:{...editing.values,[column]:e.target.value}})} placeholder={column==="SO"?"000.AA":column} className="elo-input mt-1"/>}</label>)}<label className="text-xs text-white/70 sm:col-span-2">Fonte e evidência<input value={editing.source} onChange={e=>setEditing({...editing,source:e.target.value})} placeholder="Documento, responsável ou registro de origem" className="elo-input mt-1"/></label><div className="flex gap-2 sm:col-span-2"><button type="button" onClick={review} className="elo-button">Revisar dados</button><button type="button" onClick={()=>setEditing(null)} className="elo-subtab">Cancelar</button></div></div>}</section>}
+    <p className="text-xs text-white/45">Rascunhos são temporários e desaparecem ao recarregar a página. Integrações e decisões externas exigem fonte canônica, permissão e confirmação separada.</p>
   </div>;
 }
 
@@ -161,6 +212,9 @@ export function EloDashboard({ onSignOut, accessToken }: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<CognitiveResponse | null>(null);
   const [busy, setBusy] = useState(false);
+  const [drafts,setDrafts] = useState<DraftStore>({});
+  const saveDraft = (key: string,record: DraftRecord) => setDrafts(previous=>({...previous,[key]:[record,...(previous[key]??[]).filter(item=>item.id!==record.id)]}));
+  const deleteDraft = (key: string,id: string) => setDrafts(previous=>({...previous,[key]:(previous[key]??[]).filter(item=>item.id!==id)}));
   const area = useMemo(() => areas.find((item) => item.id === areaId) ?? areas[0], [areaId]);
 
   async function runMission(text: string) {
@@ -187,7 +241,7 @@ export function EloDashboard({ onSignOut, accessToken }: Props) {
     <nav className="sticky top-14 z-20 flex gap-1 overflow-x-auto border-b border-white/10 bg-[#0a1628] px-3 py-1" aria-label="Áreas do workspace">{areas.map(item=><button type="button" key={item.id} onClick={()=>{setAreaId(item.id);setNotice(null);setResult(null);}} aria-current={item.id===areaId?"page":undefined} className={`elo-subtab ${item.id===areaId?"active":""}`}><span className="mr-1">{item.icon}</span><span>{item.label}</span></button>)}</nav>
     <div className="mx-auto max-w-[1500px] space-y-5 px-4 py-5 md:px-6"><div><h1 className="text-xl font-semibold">{area.label}</h1><p className="text-sm text-white/40">{area.description}</p></div>
       {notice && <div role="status" className="rounded-xl border border-violet-400/30 bg-violet-400/10 p-3 text-sm text-violet-200">{notice}</div>}
-      {areaId==="pcp"?<PCPWorkspace onMission={runMission}/>:<GenericArea key={areaId} area={area} onOpenPCP={()=>setAreaId("pcp")} onMission={runMission}/>}
+      {areaId==="pcp"?<PCPWorkspace onMission={runMission}/>:<GenericArea key={areaId} area={area} onMission={runMission} drafts={drafts} onSave={saveDraft} onDelete={deleteDraft}/>}
       <section className="elo-panel p-5"><div className="flex items-center justify-between"><div><h3 className="font-semibold">🧠 ELO Assistente</h3><p className="mt-1 text-xs text-white/45">Consulta cognitiva contextual; não executa ações externas sem autorização.</p></div><span className="elo-badge">{busy?"Processando":"Pronto"}</span></div><div className="mt-4 flex gap-2"><input value={mission} onChange={e=>setMission(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void runMission(mission);}} disabled={busy} placeholder="Digite sua pergunta ao ELO…" className="elo-input min-w-0 flex-1"/><button type="button" disabled={busy||!mission.trim()} onClick={()=>void runMission(mission)} className="elo-button disabled:opacity-40">Enviar</button></div></section>
       {result&&<CognitiveResult result={result}/>}
     </div>
