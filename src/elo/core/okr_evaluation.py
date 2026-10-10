@@ -79,6 +79,7 @@ class OkrEvaluationService:
         *,
         context: KeyResultContext,
         metric_state: KeyResultMetricState,
+        evidence_state: str | None = None,
     ) -> KeyResultEvaluation:
         kr = context.key_result
         current = metric_state.current
@@ -96,6 +97,12 @@ class OkrEvaluationService:
             limitations.append("SEM_MEDICAO_ATUAL")
         if metric_state.kpi is None:
             limitations.append("SEM_KPI_FORMAL_REGISTRADO")
+        if self._target_direction_conflict(
+            direction=kr.direction,
+            baseline=baseline,
+            target=target,
+        ):
+            limitations.append("TARGET_DIRECAO_INCONSISTENTE")
 
         progress = self._progress(
             direction=kr.direction,
@@ -118,7 +125,16 @@ class OkrEvaluationService:
                 ]
             )
         )
-        confidence = "OBSERVED" if not limitations and evidence_refs else "PARCIAL" if evidence_refs else "SEM_DADO"
+        if evidence_state is None:
+            confidence = "OBSERVED" if not limitations and evidence_refs else "PARCIAL" if evidence_refs else "SEM_DADO"
+        elif evidence_state == "COMPROVADO" and not limitations and evidence_refs:
+            confidence = "OBSERVED"
+        elif evidence_state in {"COMPROVADO", "PARCIAL"} and evidence_refs:
+            confidence = "PARCIAL"
+        else:
+            confidence = "SEM_DADO"
+            if evidence_refs:
+                limitations.append("EVIDENCIA_NAO_COMPROVADA")
 
         return KeyResultEvaluation(
             key_result_id=kr.key_result_id,
@@ -182,6 +198,19 @@ class OkrEvaluationService:
         )
 
     @staticmethod
+    def _target_direction_conflict(
+        *,
+        direction: KeyResultDirection,
+        baseline: Decimal | None,
+        target: Decimal | None,
+    ) -> bool:
+        if baseline is None or target is None or direction is KeyResultDirection.MAINTAIN:
+            return False
+        if direction is KeyResultDirection.INCREASE:
+            return target <= baseline
+        return target >= baseline
+
+    @staticmethod
     def _progress(
         *,
         direction: KeyResultDirection,
@@ -192,6 +221,10 @@ class OkrEvaluationService:
         if baseline is None or target is None or current is None:
             return None
         if direction is KeyResultDirection.MAINTAIN:
+            return None
+        if direction is KeyResultDirection.INCREASE and target <= baseline:
+            return None
+        if direction is KeyResultDirection.DECREASE and target >= baseline:
             return None
         denominator = (
             target - baseline
