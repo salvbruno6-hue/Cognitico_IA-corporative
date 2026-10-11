@@ -31,6 +31,8 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-ACP-HERMES", "Agent Client Protocol / IDE integration", "ELO Agent Context & Delegation", "isolated agent-client session boundary"),
     ("EXT-PLUGIN-CATALOG-HERMES", "curated plugin catalog/discovery", "ELO External Capability Gateway", "discover-before-activate capability contract"),
     ("EXT-PROMPT-CACHE-HERMES", "cross-session prompt caching", "ELO Model/Tool Routing", "bounded cache scope and invalidation contract"),
+    ("EXT-WIRE-CONTRACT-HERMES", "wire-contract registry metadata", "ELO Interface", "versioned deterministic compatibility evidence over existing contracts"),
+    ("EXT-SESSION-SEARCH-BOUNDS-HERMES", "bounded historical session retrieval", "ELO Context", "temporal bounds plus explicit relaxed-recall retry without widening memory authority"),
 )
 
 
