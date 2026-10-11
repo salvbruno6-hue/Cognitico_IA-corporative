@@ -41,6 +41,12 @@ EXTENSION_PROFILES: dict[str, CapabilityProfile] = {
     "EXT-WORKTREE-HERMES": CapabilityProfile(
         "EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")
     ),
+    "EXT-WIRE-CONTRACT-HERMES": CapabilityProfile(
+        "EXT-WIRE-CONTRACT-HERMES", "ELO Interface", ("compatibility evidence", "contract versioning", "change detection")
+    ),
+    "EXT-SESSION-SEARCH-BOUNDS-HERMES": CapabilityProfile(
+        "EXT-SESSION-SEARCH-BOUNDS-HERMES", "ELO Context", ("retrieval precision", "temporal scope", "explicit retry")
+    ),
 }
 
 PROFILES: dict[str, CapabilityProfile] = {
@@ -70,7 +76,6 @@ PROFILES: dict[str, CapabilityProfile] = {
     ),
 }
 
-# These are experience surfaces, not additional ELO capability identities.
 EXPERIENCE_SOURCES: dict[str, tuple[str, ...]] = {
     "HERMES-MEMORY": ("Hermes: memory runtime", "OpenClaw: extensions/memory-core/index.ts"),
     "HERMES-SKILLS": ("Hermes: operational skills", "OpenClaw: src/agents/skills/plugin-skills.ts"),
@@ -81,6 +86,8 @@ EXPERIENCE_SOURCES: dict[str, tuple[str, ...]] = {
     "HERMES-MCP": ("Hermes: external tools/plugins", "OpenClaw: src/mcp/tools-stdio-server.ts"),
     "HERMES-CHECKPOINT": ("Hermes: execution state", "OpenClaw: src/agents/session-file-repair.ts"),
     "EXT-WORKTREE-HERMES": ("Hermes: isolated workspaces", "OpenClaw: workspace isolation"),
+    "EXT-WIRE-CONTRACT-HERMES": ("Hermes: wire-contract registry", "ELO: canonical interface contracts"),
+    "EXT-SESSION-SEARCH-BOUNDS-HERMES": ("Hermes: bounded session_search", "ELO: canonical context retrieval boundary"),
 }
 
 MECHANISMS: dict[str, tuple[str, str]] = {
@@ -93,17 +100,17 @@ MECHANISMS: dict[str, tuple[str, str]] = {
     "HERMES-MCP": ("external capability boundary", "require explicit allowlisting before an external capability is considered available"),
     "HERMES-CHECKPOINT": ("scoped state snapshot and restore", "recover execution state without changing canonical knowledge"),
     "EXT-WORKTREE-HERMES": ("bounded Forge workspace descriptor", "represent verified isolation without granting merge or canonical authority"),
+    "EXT-WIRE-CONTRACT-HERMES": ("deterministic contract fingerprinting", "make canonical interface compatibility changes observable without adding an interface authority"),
+    "EXT-SESSION-SEARCH-BOUNDS-HERMES": ("bounded historical retrieval", "narrow context retrieval by time and make relaxed recall an explicit retry mode"),
 }
 
 
 def _successful_outcome(evidence: Mapping[str, Any]) -> bool:
-    """Return true only when an execution outcome explicitly contains no false result."""
     outcome = evidence.get("outcome")
     return isinstance(outcome, Mapping) and bool(outcome) and all(value is True for value in outcome.values())
 
 
 def _quality(evidence: Mapping[str, Any]) -> str:
-    """Classify evidence conservatively; failed outcomes are not execution proof."""
     if evidence.get("live_execution") is True and _successful_outcome(evidence):
         return "execution_verified"
     if evidence.get("controlled_test") is True and _successful_outcome(evidence):
@@ -114,7 +121,6 @@ def _quality(evidence: Mapping[str, Any]) -> str:
 
 
 def refine_capability(capability_id: str, evidence: Mapping[str, Any]) -> SymbiontAdaptation:
-    """Produce a refined candidate adjustment attached to an existing ELO capacity."""
     profiles = PROFILES if capability_id in CAPABILITY_IDS else EXTENSION_PROFILES
     if capability_id not in profiles:
         raise ValueError(f"unknown capability: {capability_id}")
@@ -142,7 +148,6 @@ def refine_capability(capability_id: str, evidence: Mapping[str, Any]) -> Symbio
 
 
 def refinement_is_eligible_for_test(adaptation: SymbiontAdaptation) -> bool:
-    """Only validated evidence can enter the controlled refinement test."""
     return adaptation.evidence_quality in {"controlled_verified", "execution_verified"}
 
 
