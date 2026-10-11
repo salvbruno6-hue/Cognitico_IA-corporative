@@ -83,14 +83,17 @@ def test_partially_failed_controlled_outcome_is_not_verified_or_test_eligible():
     assert refinement_is_eligible_for_test(adaptation) is False
 
 
-def test_eight_experiences_map_one_to_one_without_new_capability_authority():
+def test_eight_native_experiences_and_selected_extensions_map_without_new_authority():
     assert set(PROFILES) == set(CAPABILITY_IDS)
     assert set(CAPABILITY_IDS).issubset(EXPERIENCE_SOURCES)
-    assert set(PROFILES) == set(CAPABILITY_IDS)
     assert len(PROFILES) == len(CAPABILITY_IDS) == 8
-    assert len(EXPERIENCE_SOURCES) == 9
-    assert len(EXTENSION_PROFILES) == 1
-    assert "EXT-WORKTREE-HERMES" in EXTENSION_PROFILES
+    assert len(EXPERIENCE_SOURCES) == 11
+    assert len(EXTENSION_PROFILES) == 3
+    assert set(EXTENSION_PROFILES) == {
+        "EXT-WORKTREE-HERMES",
+        "EXT-WIRE-CONTRACT-HERMES",
+        "EXT-SESSION-SEARCH-BOUNDS-HERMES",
+    }
     assert len({profile.existing_capacity for profile in PROFILES.values()}) == 8
 
 
