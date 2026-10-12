@@ -33,6 +33,7 @@ CANDIDATES: tuple[tuple[str, str, str, str], ...] = (
     ("EXT-PROMPT-CACHE-HERMES", "cross-session prompt caching", "ELO Model/Tool Routing", "bounded cache scope and invalidation contract"),
     ("EXT-WIRE-CONTRACT-HERMES", "wire-contract registry metadata", "ELO Interface", "versioned deterministic compatibility evidence over existing contracts"),
     ("EXT-SESSION-SEARCH-BOUNDS-HERMES", "bounded historical session retrieval", "ELO Context", "temporal bounds plus explicit relaxed-recall retry without widening memory authority"),
+    ("EXT-SKILL-CHANGE-AWARENESS-HERMES", "cross-process skill inventory change awareness", "ELO Knowledge & Skills", "deterministic skill inventory delta evidence without activation authority"),
 )
 
 
