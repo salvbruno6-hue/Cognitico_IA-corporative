@@ -38,42 +38,21 @@ class SymbiontAdaptation:
 
 
 EXTENSION_PROFILES: dict[str, CapabilityProfile] = {
-    "EXT-WORKTREE-HERMES": CapabilityProfile(
-        "EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")
-    ),
-    "EXT-WIRE-CONTRACT-HERMES": CapabilityProfile(
-        "EXT-WIRE-CONTRACT-HERMES", "ELO Interface", ("compatibility evidence", "contract versioning", "change detection")
-    ),
-    "EXT-SESSION-SEARCH-BOUNDS-HERMES": CapabilityProfile(
-        "EXT-SESSION-SEARCH-BOUNDS-HERMES", "ELO Context", ("retrieval precision", "temporal scope", "explicit retry")
-    ),
+    "EXT-WORKTREE-HERMES": CapabilityProfile("EXT-WORKTREE-HERMES", "ELO Forge", ("isolation", "workspace integrity", "merge boundary")),
+    "EXT-WIRE-CONTRACT-HERMES": CapabilityProfile("EXT-WIRE-CONTRACT-HERMES", "ELO Interface", ("compatibility evidence", "contract versioning", "change detection")),
+    "EXT-SESSION-SEARCH-BOUNDS-HERMES": CapabilityProfile("EXT-SESSION-SEARCH-BOUNDS-HERMES", "ELO Context", ("retrieval precision", "temporal scope", "explicit retry")),
+    "EXT-SKILL-CHANGE-AWARENESS-HERMES": CapabilityProfile("EXT-SKILL-CHANGE-AWARENESS-HERMES", "ELO Knowledge & Skills", ("inventory observability", "change detection", "admission evidence")),
 }
 
 PROFILES: dict[str, CapabilityProfile] = {
-    "HERMES-MEMORY": CapabilityProfile(
-        "HERMES-MEMORY", "ELO Memory", ("structure", "retrieval", "isolation")
-    ),
-    "HERMES-SKILLS": CapabilityProfile(
-        "HERMES-SKILLS", "ELO Skills", ("registration", "execution", "reuse")
-    ),
-    "HERMES-TOOLSETS": CapabilityProfile(
-        "HERMES-TOOLSETS", "ELO Toolset Resolution", ("allowlist", "scope", "denial")
-    ),
-    "HERMES-CONTEXT": CapabilityProfile(
-        "HERMES-CONTEXT", "ELO Context", ("hierarchy", "precedence", "clarity")
-    ),
-    "HERMES-DELEGATION": CapabilityProfile(
-        "HERMES-DELEGATION", "ELO Delegation", ("scope", "handoff", "result")
-    ),
-    "HERMES-AUTOMATION": CapabilityProfile(
-        "HERMES-AUTOMATION", "ELO Automation", ("registration", "safety", "repeatability")
-    ),
-    "HERMES-MCP": CapabilityProfile(
-        "HERMES-MCP", "ELO External Capability Gateway", ("trust", "allowlist", "boundary")
-    ),
-    "HERMES-CHECKPOINT": CapabilityProfile(
-        "HERMES-CHECKPOINT", "ELO State Recovery", ("snapshot", "restore", "scope")
-    ),
+    "HERMES-MEMORY": CapabilityProfile("HERMES-MEMORY", "ELO Memory", ("structure", "retrieval", "isolation")),
+    "HERMES-SKILLS": CapabilityProfile("HERMES-SKILLS", "ELO Skills", ("registration", "execution", "reuse")),
+    "HERMES-TOOLSETS": CapabilityProfile("HERMES-TOOLSETS", "ELO Toolset Resolution", ("allowlist", "scope", "denial")),
+    "HERMES-CONTEXT": CapabilityProfile("HERMES-CONTEXT", "ELO Context", ("hierarchy", "precedence", "clarity")),
+    "HERMES-DELEGATION": CapabilityProfile("HERMES-DELEGATION", "ELO Delegation", ("scope", "handoff", "result")),
+    "HERMES-AUTOMATION": CapabilityProfile("HERMES-AUTOMATION", "ELO Automation", ("registration", "safety", "repeatability")),
+    "HERMES-MCP": CapabilityProfile("HERMES-MCP", "ELO External Capability Gateway", ("trust", "allowlist", "boundary")),
+    "HERMES-CHECKPOINT": CapabilityProfile("HERMES-CHECKPOINT", "ELO State Recovery", ("snapshot", "restore", "scope")),
 }
 
 EXPERIENCE_SOURCES: dict[str, tuple[str, ...]] = {
@@ -88,6 +67,7 @@ EXPERIENCE_SOURCES: dict[str, tuple[str, ...]] = {
     "EXT-WORKTREE-HERMES": ("Hermes: isolated workspaces", "OpenClaw: workspace isolation"),
     "EXT-WIRE-CONTRACT-HERMES": ("Hermes: wire-contract registry", "ELO: canonical interface contracts"),
     "EXT-SESSION-SEARCH-BOUNDS-HERMES": ("Hermes: bounded session_search", "ELO: canonical context retrieval boundary"),
+    "EXT-SKILL-CHANGE-AWARENESS-HERMES": ("Hermes: external skill inventory change awareness", "ELO: governed skill admission boundary"),
 }
 
 MECHANISMS: dict[str, tuple[str, str]] = {
@@ -102,6 +82,7 @@ MECHANISMS: dict[str, tuple[str, str]] = {
     "EXT-WORKTREE-HERMES": ("bounded Forge workspace descriptor", "represent verified isolation without granting merge or canonical authority"),
     "EXT-WIRE-CONTRACT-HERMES": ("deterministic contract fingerprinting", "make canonical interface compatibility changes observable without adding an interface authority"),
     "EXT-SESSION-SEARCH-BOUNDS-HERMES": ("bounded historical retrieval", "narrow context retrieval by time and make relaxed recall an explicit retry mode"),
+    "EXT-SKILL-CHANGE-AWARENESS-HERMES": ("deterministic skill inventory delta", "make external skill metadata changes observable before governed admission without granting activation authority"),
 }
 
 
@@ -124,7 +105,6 @@ def refine_capability(capability_id: str, evidence: Mapping[str, Any]) -> Symbio
     profiles = PROFILES if capability_id in CAPABILITY_IDS else EXTENSION_PROFILES
     if capability_id not in profiles:
         raise ValueError(f"unknown capability: {capability_id}")
-
     profile = profiles[capability_id]
     mechanism, adjustment = MECHANISMS[capability_id]
     quality = _quality(evidence)
@@ -151,11 +131,4 @@ def refinement_is_eligible_for_test(adaptation: SymbiontAdaptation) -> bool:
     return adaptation.evidence_quality in {"controlled_verified", "execution_verified"}
 
 
-__all__ = [
-    "CapabilityProfile",
-    "SymbiontAdaptation",
-    "PROFILES",
-    "EXPERIENCE_SOURCES",
-    "refine_capability",
-    "refinement_is_eligible_for_test",
-]
+__all__ = ["CapabilityProfile", "SymbiontAdaptation", "PROFILES", "EXPERIENCE_SOURCES", "refine_capability", "refinement_is_eligible_for_test"]
