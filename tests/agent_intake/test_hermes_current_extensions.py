@@ -1,12 +1,8 @@
-from src.elo.agent_intake.hermes_current_extensions import (
-    CANDIDATES,
-    build_candidate,
-    evaluate_candidate,
-)
+from src.elo.agent_intake.hermes_current_extensions import CANDIDATES, build_candidate, evaluate_candidate
 
 
 def test_all_current_hermes_candidates_have_existing_elo_owners():
-    assert len(CANDIDATES) == 22
+    assert len(CANDIDATES) == 23
     assert all(owner for _, _, owner, _ in CANDIDATES)
     assert len({candidate_id for candidate_id, *_ in CANDIDATES}) == len(CANDIDATES)
 
@@ -19,22 +15,7 @@ def test_candidates_are_candidate_only_and_non_mutating():
 
 
 def test_new_candidates_are_registered():
-    expected = {
-        "EXT-LEARN-HERMES",
-        "EXT-LEARNING-GRAPH-HERMES",
-        "EXT-CONTEXT-PLUGIN-HERMES",
-        "EXT-WORKTREE-HERMES",
-        "EXT-MULTIAGENT-HERMES",
-        "EXT-CRON-HERMES",
-        "EXT-MCP-HERMES",
-        "EXT-CODE-EXEC-HERMES",
-        "EXT-API-HERMES",
-        "EXT-ACP-HERMES",
-        "EXT-PLUGIN-CATALOG-HERMES",
-        "EXT-PROMPT-CACHE-HERMES",
-        "EXT-WIRE-CONTRACT-HERMES",
-        "EXT-SESSION-SEARCH-BOUNDS-HERMES",
-    }
+    expected = {"EXT-LEARN-HERMES", "EXT-LEARNING-GRAPH-HERMES", "EXT-CONTEXT-PLUGIN-HERMES", "EXT-WORKTREE-HERMES", "EXT-MULTIAGENT-HERMES", "EXT-CRON-HERMES", "EXT-MCP-HERMES", "EXT-CODE-EXEC-HERMES", "EXT-API-HERMES", "EXT-ACP-HERMES", "EXT-PLUGIN-CATALOG-HERMES", "EXT-PROMPT-CACHE-HERMES", "EXT-WIRE-CONTRACT-HERMES", "EXT-SESSION-SEARCH-BOUNDS-HERMES", "EXT-SKILL-CHANGE-AWARENESS-HERMES"}
     assert expected.issubset({candidate_id for candidate_id, *_ in CANDIDATES})
 
 
@@ -46,14 +27,7 @@ def test_positive_repeatable_measurement_stops_at_evolution_gate():
 
 def test_regression_is_rejected():
     candidate = build_candidate("EXT-CHECKPOINT-HERMES")
-    result = evaluate_candidate(
-        candidate,
-        {"recovery": 0.90},
-        {"recovery": 0.95},
-        regressions=("mutation_boundary",),
-        repeatable=True,
-        metric_directions={"recovery": "maximize"},
-    )
+    result = evaluate_candidate(candidate, {"recovery": 0.90}, {"recovery": 0.95}, regressions=("mutation_boundary",), repeatable=True, metric_directions={"recovery": "maximize"})
     assert result.result == "REJECT"
 
 

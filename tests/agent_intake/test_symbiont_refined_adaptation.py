@@ -4,27 +4,15 @@ import pytest
 
 from elo.agent_intake.native_capabilities import CAPABILITY_IDS
 from elo.agent_intake.symbiont_adaptation import EXTENSION_PROFILES
-from elo.agent_intake.symbiont_adaptation import (
-    EXPERIENCE_SOURCES,
-    PROFILES,
-    refine_capability,
-    refinement_is_eligible_for_test,
-)
+from elo.agent_intake.symbiont_adaptation import EXPERIENCE_SOURCES, PROFILES, refine_capability, refinement_is_eligible_for_test
 
 
 @pytest.mark.parametrize("capability_id", CAPABILITY_IDS)
 def test_every_candidate_attaches_to_one_existing_elo_capacity(capability_id):
-    adaptation = refine_capability(
-        capability_id,
-        {"controlled_test": True, "outcome": {"passed": True}},
-    )
-
+    adaptation = refine_capability(capability_id, {"controlled_test": True, "outcome": {"passed": True}})
     assert adaptation.existing_capacity == PROFILES[capability_id].existing_capacity
     assert adaptation.capability_id == capability_id
-    assert adaptation.mechanism
-    assert adaptation.adjustment
-    assert adaptation.rationale
-    assert adaptation.expected_gain
+    assert adaptation.mechanism and adaptation.adjustment and adaptation.rationale and adaptation.expected_gain
     assert adaptation.source_experience == EXPERIENCE_SOURCES[capability_id]
     assert adaptation.promotion_state == "candidate_only"
     assert adaptation.canonical_mutation is False
@@ -32,11 +20,7 @@ def test_every_candidate_attaches_to_one_existing_elo_capacity(capability_id):
 
 
 def test_symbiont_refinement_is_conservative_when_only_source_code_is_available():
-    adaptation = refine_capability(
-        "HERMES-MEMORY",
-        {"source_reference": "OpenClaw: extensions/memory-core/index.ts"},
-    )
-
+    adaptation = refine_capability("HERMES-MEMORY", {"source_reference": "OpenClaw: extensions/memory-core/index.ts"})
     assert adaptation.evidence_quality == "reference_only"
     assert refinement_is_eligible_for_test(adaptation) is False
     assert adaptation.promotion_state == "candidate_only"
@@ -44,11 +28,7 @@ def test_symbiont_refinement_is_conservative_when_only_source_code_is_available(
 
 
 def test_live_execution_requires_outcome_evidence_before_refinement_test():
-    adaptation = refine_capability(
-        "HERMES-SKILLS",
-        {"live_execution": True},
-    )
-
+    adaptation = refine_capability("HERMES-SKILLS", {"live_execution": True})
     assert adaptation.evidence_quality == "insufficient"
     assert refinement_is_eligible_for_test(adaptation) is False
 
@@ -63,10 +43,7 @@ def test_failed_or_missing_evidence_cannot_become_canonical():
 
 def test_failed_controlled_outcome_is_not_verified_or_test_eligible():
     for capability_id in CAPABILITY_IDS:
-        adaptation = refine_capability(
-            capability_id,
-            {"controlled_test": True, "outcome": {"passed": False}},
-        )
+        adaptation = refine_capability(capability_id, {"controlled_test": True, "outcome": {"passed": False}})
         assert adaptation.evidence_quality == "insufficient"
         assert refinement_is_eligible_for_test(adaptation) is False
         assert adaptation.promotion_state == "candidate_only"
@@ -74,11 +51,7 @@ def test_failed_controlled_outcome_is_not_verified_or_test_eligible():
 
 
 def test_partially_failed_controlled_outcome_is_not_verified_or_test_eligible():
-    adaptation = refine_capability(
-        "HERMES-TOOLSETS",
-        {"controlled_test": True, "outcome": {"allow": True, "deny": False}},
-    )
-
+    adaptation = refine_capability("HERMES-TOOLSETS", {"controlled_test": True, "outcome": {"allow": True, "deny": False}})
     assert adaptation.evidence_quality == "insufficient"
     assert refinement_is_eligible_for_test(adaptation) is False
 
@@ -87,58 +60,40 @@ def test_eight_native_experiences_and_selected_extensions_map_without_new_author
     assert set(PROFILES) == set(CAPABILITY_IDS)
     assert set(CAPABILITY_IDS).issubset(EXPERIENCE_SOURCES)
     assert len(PROFILES) == len(CAPABILITY_IDS) == 8
-    assert len(EXPERIENCE_SOURCES) == 11
-    assert len(EXTENSION_PROFILES) == 3
+    assert len(EXPERIENCE_SOURCES) == 12
+    assert len(EXTENSION_PROFILES) == 4
     assert set(EXTENSION_PROFILES) == {
         "EXT-WORKTREE-HERMES",
         "EXT-WIRE-CONTRACT-HERMES",
         "EXT-SESSION-SEARCH-BOUNDS-HERMES",
+        "EXT-SKILL-CHANGE-AWARENESS-HERMES",
     }
     assert len({profile.existing_capacity for profile in PROFILES.values()}) == 8
 
 
 def test_repeated_identical_experience_is_idempotent_and_creates_no_second_candidate():
-    evidence = {
-        "controlled_test": True,
-        "outcome": {"passed": True},
-        "source_reference": "controlled-lab:memory-001",
-    }
-
+    evidence = {"controlled_test": True, "outcome": {"passed": True}, "source_reference": "controlled-lab:memory-001"}
     first = refine_capability("HERMES-MEMORY", evidence)
     second = refine_capability("HERMES-MEMORY", evidence)
-
     assert second == first
     assert second.capability_id == first.capability_id == "HERMES-MEMORY"
     assert second.existing_capacity == first.existing_capacity == "ELO Memory"
     assert second.mechanism == first.mechanism
     assert second.source_experience == first.source_experience
     assert second.promotion_state == first.promotion_state == "candidate_only"
-    assert second.canonical_mutation is False
-    assert first.canonical_mutation is False
+    assert second.canonical_mutation is False and first.canonical_mutation is False
 
 
 def test_refinement_does_not_mutate_the_input_evidence():
-    evidence = {
-        "controlled_test": True,
-        "outcome": {"passed": True},
-        "source_reference": "controlled-lab:skills-001",
-    }
+    evidence = {"controlled_test": True, "outcome": {"passed": True}, "source_reference": "controlled-lab:skills-001"}
     before = evidence.copy()
-
     refine_capability("HERMES-SKILLS", evidence)
-
     assert evidence == before
 
 
 def test_same_experience_cannot_fan_out_to_multiple_existing_capabilities():
-    evidence = {
-        "controlled_test": True,
-        "outcome": {"passed": True},
-        "source_reference": "controlled-lab:single-experience-001",
-    }
-
+    evidence = {"controlled_test": True, "outcome": {"passed": True}, "source_reference": "controlled-lab:single-experience-001"}
     adaptations = [refine_capability(capability_id, evidence) for capability_id in CAPABILITY_IDS]
-
     assert len({adaptation.capability_id for adaptation in adaptations}) == len(CAPABILITY_IDS)
     assert len({adaptation.existing_capacity for adaptation in adaptations}) == len(CAPABILITY_IDS)
     assert all(adaptation.promotion_state == "candidate_only" for adaptation in adaptations)
