@@ -5,55 +5,66 @@ Escopo: **estrutura metálica** do MLT.M01.
 Não inclui telha, drenagem, pintura, fechamentos ou demais componentes da estrutura modular.  
 Esta reconciliação **não altera a BOM** e não promove automaticamente o item `PERDA-EST-MET`.
 
-## Fontes validadas neste ciclo
+## Fontes validadas
 
-- tabela de compra com 10 matérias-primas;
-- tabela integral de peças fabricadas/aplicadas;
-- validação do analista de que, para perfis UDC, `Peso un.` da compra é o peso da barra inteira de 6 m;
-- apontamento complementar dos perfis Z externos em chapa 1,55 mm;
-- confirmação de que a compra de 2,88 kg do COD `3200600124` corresponde ao acabamento de forro do teto.
+- tabela de compra com 10 matérias-primas e **652,530 kg** em precisão de cálculo;
+- tabela de 23 linhas de peças fabricadas com **513,050 kg** em `PESO PEÇAS`;
+- associação explícita de cada peça ao `COD_PRODUT` da matéria-prima;
+- apontamento complementar dos perfis Z externos em chapa 1,55 mm: **28,335 kg**;
+- confirmação de que `3200600124` corresponde ao acabamento de teto de **2,250 kg**;
+- `3200600100` permanece parcial: **10,030 kg** comprovados de acabamento de coluna.
 
-## Regra de cálculo
+## Regra canônica de cálculo
 
-- `saldo_kg = peso_comprado_kg - peso_aplicado_kg`;
-- `% perda = saldo_kg / peso_comprado_kg * 100`;
-- `impacto_rs = saldo_kg * custo_rs_kg`;
-- perda bruta validada soma somente saldo positivo com `status_dado = RECONCILIADO`;
-- material `PARCIAL` permanece visível, mas não integra `PERDA-EST-MET` até completar o apontamento;
-- perfis UDC usam `peso_barra_6m / 6 * comprimento_aplicado` para equalizar a base física entre compra e fabricação.
+A VW de perda passa a usar diretamente o peso das peças associadas ao material:
 
-## Reconciliação por material
+1. associar cada peça ao `COD_PRODUT` da matéria-prima;
+2. `peso_utilizado_kg = soma(PESO PEÇAS)` por `COD_PRODUT`;
+3. `diferenca_kg = peso_comprado_kg - peso_utilizado_kg`;
+4. `% diferenca = diferenca_kg / peso_comprado_kg * 100`;
+5. `impacto_rs = diferenca_kg * custo_rs_kg`;
+6. diferença negativa = **DIVERGÊNCIA / INSUFICIÊNCIA DE APONTAMENTO**, nunca perda negativa;
+7. perda bruta validada soma somente diferenças positivas com `status_dado = RECONCILIADO`;
+8. diferenças negativas não compensam diferenças positivas na perda bruta;
+9. material `PARCIAL` fica visível, mas não integra `PERDA-EST-MET` até o apontamento ser fechado.
 
-| COD_PRODUTO | Peso comprado kg | Peso aplicado kg | Saldo kg | % saldo | R$/kg | Impacto R$ | Status |
-|---|---:|---:|---:|---:|---:|---:|---|
-| 3200600291 | 47,754 | 12,894 | 34,860 | 73,00% | 8,12 | 283,07 | RECONCILIADO |
-| 3200600289 | 116,100 | 112,574 | 3,526 | 3,04% | 8,12 | 28,63 | RECONCILIADO |
-| 3200600288 | 72,000 | 72,000 | 0,000 | 0,00% | 8,12 | 0,00 | RECONCILIADO |
-| 3200600335 | 108,510 | 101,758 | 6,752 | 6,22% | 8,12 | 54,82 | RECONCILIADO |
-| 3200600075 | 147,744 | 141,530 | 6,214 | 4,21% | 7,78 | 48,34 | RECONCILIADO |
-| 3200600239 | 56,160 | 29,050 | 27,110 | 48,27% | 8,78 | 238,03 | RECONCILIADO |
-| 3200600260 | 27,942 | 18,820 | 9,122 | 32,65% | 6,00 | 54,73 | RECONCILIADO |
-| 3200600124 | 2,880 | 2,250 | 0,630 | 21,88% | 21,21 | 13,36 | RECONCILIADO |
-| 3200600065 | 44,640 | 28,335 | 16,305 | 36,52% | 8,00 | 130,44 | RECONCILIADO |
-| 3200600100 | 28,800 | 10,030 | 18,770 | 65,17% | 12,00 | 225,24 | PARCIAL |
+A normalização anterior de UDC por peso da barra de 6 m fica **superada para esta VW de perdas**. O peso da barra pode continuar como dado diagnóstico, mas o peso utilizado oficial desta análise é o `PESO PEÇAS` associado ao material.
 
-## Indicadores
+## Associação e diferença por material
 
-- peso comprado em precisão de cálculo: **652,530 kg**;
-- peso comprado consolidado arredondado informado: **652,5 kg**;
-- peso aplicado/apontado atual: **529,241 kg**;
-- perda bruta **validada** (somente reconciliados positivos): **104,519 kg**;
-- impacto financeiro **validado**: **R$ 851,42**;
-- percentual validado sobre peso comprado: **16,02%**;
-- percentual financeiro validado sobre compra de R$ 5.370,13: **15,85%**;
-- saldo total apontado, incluindo `3200600100` parcial: **123,289 kg / R$ 1.076,66** — indicador potencial/gerencial, não elegível integralmente para `PERDA-EST-MET`.
+| COD_PRODUTO | Peso comprado kg | Peso utilizado kg | Diferença kg | % diferença | R$/kg | Impacto R$ | Classificação | Status |
+|---|---:|---:|---:|---:|---:|---:|---|---|
+| 3200600291 | 47,754 | 12,880 | 34,874 | 73,03% | 8,12 | 283,18 | SOBRA ALTA | RECONCILIADO |
+| 3200600289 | 116,100 | 133,780 | -17,680 | -15,23% | 8,12 | -143,56 | DIVERGÊNCIA / INSUFICIÊNCIA | RECONCILIADO |
+| 3200600288 | 72,000 | 73,560 | -1,560 | -2,17% | 8,12 | -12,67 | DIVERGÊNCIA / INSUFICIÊNCIA | RECONCILIADO |
+| 3200600335 | 108,510 | 91,150 | 17,360 | 16,00% | 8,12 | 140,96 | SOBRA RELEVANTE | RECONCILIADO |
+| 3200600075 | 147,744 | 141,530 | 6,214 | 4,21% | 7,78 | 48,34 | SOBRA | RECONCILIADO |
+| 3200600239 | 56,160 | 29,050 | 27,110 | 48,27% | 8,78 | 238,03 | SOBRA ALTA | RECONCILIADO |
+| 3200600260 | 27,942 | 18,820 | 9,122 | 32,65% | 6,00 | 54,73 | SOBRA ALTA | RECONCILIADO |
+| 3200600124 | 2,880 | 2,250 | 0,630 | 21,88% | 21,21 | 13,36 | SOBRA RELEVANTE | RECONCILIADO |
+| 3200600065 | 44,640 | 28,335 | 16,305 | 36,53% | 8,00 | 130,44 | SOBRA ALTA | RECONCILIADO |
+| 3200600100 | 28,800 | 10,030 | 18,770 | 65,17% | 12,00 | 225,24 | PENDENTE / PARCIAL | PARCIAL |
+
+## Fechamento de massa
+
+- tabela principal de 23 peças: **513,050 kg**;
+- perfis Z externos complementares `3200600065`: **28,335 kg**;
+- peso utilizado/apontado total: **541,385 kg**;
+- peso comprado total: **652,530 kg**;
+- diferença líquida `comprado - utilizado`: **111,145 kg**;
+- divergências negativas: **-19,240 kg** (`3200600289` + `3200600288`);
+- diferenças positivas totais, incluindo `3200600100` parcial: **130,385 kg**;
+- perda bruta validada, excluindo divergências e o parcial: **111,615 kg**;
+- impacto financeiro validado pela VW: **R$ 909,04**;
+- perda bruta validada / peso comprado: **17,10%**;
+- impacto validado / compra de R$ 5.370,13: **16,93%**.
+
+A diferença líquida é um indicador gerencial de balanço de massa. Para perda bruta não se compensam diferenças positivas com diferenças negativas.
 
 ## Pendência remanescente
 
-`3200600100 — CHAPA PRIMER BRANCA 0,50mm`: 10,03 kg estão comprovados como acabamento de coluna, porém a aplicação da compra também cita acabamento de canto e perfil U. O saldo de 18,77 kg permanece `PARCIAL` até o apontamento completo dessas peças ou confirmação explícita de que não foram utilizadas.
+`3200600100 — CHAPA PRIMER BRANCA 0,50mm`: **10,030 kg** estão comprovados como acabamento de coluna. Como a aplicação da compra também cita acabamento de canto e perfil U, a diferença de **18,770 kg / R$ 225,24** permanece `PARCIAL` e não é elegível para `PERDA-EST-MET` enquanto o apontamento não for fechado.
 
-## Alteração de dados deste ciclo
+## Implementação
 
-`estrutura_metalica_20_componentes.PRTH01` foi corrigido de 7 para 2 peças, com peso de peças 12,88 kg e valor total R$ 104,58, conforme tabela integral fornecida.
-
-A `public.vw_perda_estrutura_metalica_20` passou a conter os 10 materiais, `status_dado`, `metodo_calculo`, `elegivel_perda` e `impacto_validado_rs`, com `security_invoker = true`.
+A `public.vw_perda_estrutura_metalica_20` usa `SOMA_PESO_PECAS_ASSOCIADAS`, mantém `security_invoker = true`, expõe `status_dado`, `metodo_calculo`, `elegivel_perda` e `impacto_validado_rs`, e classifica diferenças negativas como divergência. A BOM não foi alterada.
