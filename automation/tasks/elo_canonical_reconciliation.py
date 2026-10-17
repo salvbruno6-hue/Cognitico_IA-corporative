@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import json
 import re
 from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
+CANONICAL_APPLICATION_REGISTRY = "docs/governance/AUTHORIZED_VERCEL_PROJECTS.json"
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
@@ -68,6 +70,55 @@ def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
         if declared_stem in candidate_stems:
             targets.add(declared_stem)
     return targets
+
+
+def _registered_application(root: Path, changed: set[str], candidates: list[str]) -> str | None:
+    """Resolve the existing ELO Web owner; a PR cannot authorize its own target."""
+    if CANONICAL_APPLICATION_REGISTRY in changed:
+        return None
+    try:
+        registry = json.loads((root / CANONICAL_APPLICATION_REGISTRY).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(registry, dict):
+        return None
+    if (registry.get("rule"), registry.get("canonical_project"), registry.get("canonical_path")) != (
+        "ELO-VRC-001", "elo-web", "apps/elo-web"
+    ):
+        return None
+    prefix = "apps/elo-web/"
+    if not any(path.startswith(prefix) for path in changed):
+        return None
+    # This proof covers an application and supporting evidence, never a mixed
+    # Core/backend change or a second application outside the registered root.
+    if not all(path.startswith(prefix) or _is_audit_infrastructure(path) for path in changed):
+        return None
+    deprecated = registry.get("deprecated_noncanonical_projects", [])
+    legacy_resolved = isinstance(deprecated, list) and any(
+        isinstance(item, dict)
+        and item.get("path") == "frontend"
+        and item.get("status") == "DEPRECATED"
+        and item.get("replacement") == "apps/elo-web"
+        for item in deprecated
+    )
+    try:
+        core_map = (root / CANONICAL_STRUCTURE_MAP).read_text(encoding="utf-8")
+    except OSError:
+        core_map = ""
+    core_resolved = CANONICAL_STRUCTURE_MAP not in changed and (
+        "`src/elo/` | Executable ELO" in core_map and "canonical executable root" in core_map
+    )
+    # Candidate hits stay in the audit. Only already-owned application/Core
+    # references and the explicitly deprecated frontend have resolved ownership.
+    # An unclassified executable remains a GAP, even with a valid app registry.
+    if not all(
+        candidate.startswith(prefix)
+        or (legacy_resolved and candidate.startswith("frontend/"))
+        or (core_resolved and candidate.startswith("src/elo/"))
+        for candidate in candidates
+    ):
+        return None
+    return "apps/elo-web"
 
 
 def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
@@ -165,7 +216,17 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
 
-    frontend_changed = any(p.startswith("frontend/") for p in changed_normalised)
+    application = _registered_application(root, changed_normalised, candidates)
+    if application and not owner_evidence:
+        source_of_truth = CANONICAL_APPLICATION_REGISTRY
+        canonical_identity = application
+        duplicate = False
+        reasons = ["Existing ELO-VRC-001 registry resolves the canonical ELO Web application; no explicit parallel owner found"]
+
+    frontend_changed = (
+        any(p.startswith("frontend/") for p in changed_normalised)
+        and not (root / CANONICAL_APPLICATION_REGISTRY).exists()
+    )
     if frontend_changed and owners and not candidates and not maintenance_changed:
         source_of_truth = owners[0]
         canonical_identity = "frontend"
@@ -173,7 +234,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = "REUSE" if complete and (duplicate or application) else "CREATE" if complete else None
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
