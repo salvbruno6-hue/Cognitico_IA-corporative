@@ -133,3 +133,24 @@ FROM mt_true_policies p
 JOIN mt_tables t ON t.relname = p.tablename
 GROUP BY p.tablename, t.oid, t.has_tenant_id
 ORDER BY t.has_tenant_id DESC, p.tablename;
+
+-- 4) PERFORMANCE: direct auth.jwt() calls inside RLS predicates are evaluated
+-- in row context and are currently reported by the Supabase auth_rls_initplan
+-- advisor. This probe is intentionally narrow: it mirrors the nine known live
+-- findings without reclassifying already-wrapped auth.uid() subqueries.
+-- A finding is a performance REVIEW, not permission to alter authorization
+-- semantics. Any remediation must preserve the exact predicate and only change
+-- evaluation shape (for example, a scalar SELECT wrapper where valid).
+SELECT
+  'PERF_RLS_AUTH_JWT_PER_ROW'::text AS finding,
+  p.schemaname AS schema_name,
+  p.tablename AS object_name,
+  'REVIEW'::text AS severity,
+  format('policy=%s command=%s roles=%s', p.policyname, p.cmd, p.roles::text) AS evidence
+FROM pg_policies p
+WHERE p.schemaname IN ('public', 'elo_core', 'elo_private')
+  AND (
+    coalesce(p.qual, '') LIKE '%auth.jwt()%'
+    OR coalesce(p.with_check, '') LIKE '%auth.jwt()%'
+  )
+ORDER BY p.schemaname, p.tablename, p.policyname;
