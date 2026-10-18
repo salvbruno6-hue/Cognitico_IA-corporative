@@ -43,3 +43,11 @@ def test_tenant_data_probe_keeps_estimates_distinct_from_exact_repair_truth() ->
     assert "estimated_populated_tables" in source
     assert "repair_truth" in source
     assert "count(*) filter (where tenant_id is null)" in source
+
+
+def test_unverified_populated_tenant_tables_keep_gap_open() -> None:
+    source = _source()
+    assert "unverified_populated_tables" in source
+    assert "or unverified_populated_tables > 0" in source
+    assert "estimated statistics may prioritize verification" in source
+    assert "can never clear tenant readiness" in source
