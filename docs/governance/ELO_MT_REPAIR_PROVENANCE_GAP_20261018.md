@@ -53,7 +53,16 @@ can be read didactically as:
 - `01` — model family, corresponding to M01;
 - `0030` — sequential individual identification inside that model/family.
 
-This decomposition is a domain interpretation for comprehension and reconciliation. It does not by itself create a database key, tenant boundary or authorization rule. Before any automated parsing becomes canonical, it must be validated against the full identifier population and existing model/taxonomy rules.
+Live validation supports the structural form but also shows why automatic classification must wait:
+
+- all 133 current identifiers follow `MLTM` + numeric content;
+- 132/133 use exactly six digits after the `MLTM` prefix;
+- no current row falls outside the `MLTM` + numeric pattern;
+- legacy `tipo_modulo` text is not fully consistent with the model code embedded in the identifier: code `01` currently appears with more than one module type, and code `02` also appears with more than one module type.
+
+Therefore the identifier structure is a strong reconciliation key, while the legacy textual module classification remains evidence to reconcile, not authority to overwrite the model automatically.
+
+This decomposition does not by itself create a database key, tenant boundary or authorization rule. Any canonical parser must validate the code against the existing model/taxonomy records and record conflicts instead of silently choosing one side.
 
 The Google Drive PCP spreadsheet may be used as a didactic/reference source for presenting model, repair, status and flow information in a simpler form, but it is not assumed to be the row-level origin of the 133 persisted repairs.
 
