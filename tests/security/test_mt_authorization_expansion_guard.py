@@ -59,10 +59,13 @@ def test_guard_documents_current_authority_boundary() -> None:
     health = Path("docs/governance/ELO_SYSTEM_HEALTH_GATE.md").read_text(
         encoding="utf-8"
     )
+    health_sql = Path("supabase/health/elo_system_health_gate.sql").read_text(
+        encoding="utf-8"
+    )
 
     assert "Status: PREPARED / NOT LIVE" in decision
     assert "scope_type = ENTERPRISE" in decision
     assert "scope_key  = MULTITEINER" in decision
     assert "elo_identity_scopes" in decision
     assert "GAP_HIGH" in health
-    assert "AUTHZ_MT_PERMISSIVE_TRUE" in health
+    assert "AUTHZ_MT_PERMISSIVE_TRUE" in health_sql
