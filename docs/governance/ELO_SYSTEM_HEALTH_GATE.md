@@ -63,6 +63,8 @@ The current Supabase probe finds:
 
 This evidence does **not** prove that all 71 tables leak cross-tenant data in every runtime path; it proves that tenant isolation and ordinary-user authorization cannot be certified from the current policies alone.
 
+PR #978 adds a repository regression guard so new migrations cannot introduce additional literal-true MT policies applicable to `authenticated` or `PUBLIC` while this tenant contract remains unresolved. The guard uses an explicit checked-in legacy-file baseline rather than a timestamp cutoff.
+
 ## Performance invariant: duplicate indexes
 
 An exact duplicate index is a `REVIEW` finding until provenance determines which name is canonical.
@@ -77,14 +79,27 @@ Removal is allowed only when:
 
 Unknown provenance remains a GAP; do not choose a winner by naming preference.
 
-## Current reconciliation — 2026-10-18
+### Duplicate-index reconciliation — 2026-10-18
 
 Evidence from production Supabase after PR #976 and production migration `20261018200439_reconcile_canonical_orcamento_duplicate_indexes`:
 
 - the effective client-exposure probe returns zero custom ELO tables with RLS/no-policy plus `anon` or `authenticated` DML privileges;
 - exact duplicate-index findings fell from five pairs to two;
-- the two remaining pairs are both in `elo_orcamento_calculos_aprendidos` and remain `REVIEW` because canonical name/provenance is not yet established in GitHub;
-- the Supabase performance advisor now reports `duplicate_index=2` and `unused_index=86` (previously 5 and 88 respectively).
+- the two remaining pairs are both in `elo_orcamento_calculos_aprendidos` and remain `REVIEW` because canonical name/provenance is not established in GitHub;
+- live catalog inspection confirms all four indexes are valid ordinary non-constraint indexes; observed scans differ, but usage statistics do not establish canonical authority;
+- the Supabase performance advisor reports `duplicate_index=2` and `unused_index=86` after the governed cleanup.
+
+## Performance invariant: RLS initialization plan
+
+Row-independent authentication helpers inside RLS predicates should not be needlessly re-evaluated for every row. This is a performance concern, not an authorization redesign opportunity.
+
+The live Health Gate finding `PERF_RLS_AUTH_JWT_PER_ROW` identifies policies that still contain direct `auth.jwt()` calls. A remediation is valid only when it preserves the existing authorization predicate and changes only the evaluation shape. In particular, the presence of this finding is **not** permission to remove `PCP_ADMIN`, change role semantics, add tenant membership, or broaden/narrow access as a side effect.
+
+### Live reconciliation — 2026-10-18
+
+Production currently contains **9** policies with direct `auth.jwt()` evaluation, matching the Supabase `auth_rls_initplan` advisor count. They are the seven `p_pcp_*_admin_write` policies on `lista_mae`, `modelos`, `dimensoes`, `kits`, `kit_itens`, `fluxo_produtivo_modular` and `fluxo_produtivo_modular_etapas`, plus the DELETE policies `p_pcp_reparo_delete_admin` and `p_pcp_lotes_delete_admin`.
+
+The seven `*_admin_write` policies use `FOR ALL`, so they also overlap SELECT policies and contribute to part of the separate `multiple_permissive_policies` advisor surface. That overlap must be analyzed independently before splitting policy commands; the initplan optimization itself must not silently change authorization semantics.
 
 ## Reusable evidence query
 
