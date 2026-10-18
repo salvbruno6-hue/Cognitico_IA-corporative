@@ -2,6 +2,9 @@
 -- Read-only. This query reports whether MT tables that expose a tenant_id
 -- column actually contain persisted tenant assignments. It does not create a
 -- tenant, infer ownership, backfill tenant_id, or authorize any RLS rewrite.
+-- Any populated direct-tenant table that is not explicitly verified below keeps
+-- the readiness gap open; estimated statistics may prioritize verification but
+-- can never clear tenant readiness by themselves.
 
 WITH tenant_tables AS (
   SELECT c.oid, c.relname AS table_name
@@ -34,9 +37,10 @@ WITH tenant_tables AS (
   FROM table_stats
   WHERE estimated_rows > 0
 ), repair_truth AS (
-  -- mt_ordens_reparo is the only currently populated direct-tenant MT table in
-  -- the live inventory. Exact row counts are used here because this probe must
-  -- distinguish estimated activity from actual persisted tenant assignment.
+  -- mt_ordens_reparo is explicitly verified with exact counts because it is the
+  -- only currently populated direct-tenant MT table in the observed inventory.
+  -- If another direct-tenant table becomes populated, it remains unverified and
+  -- this probe stays GAP_HIGH until an exact check is added for that table.
   SELECT
     count(*)::bigint AS total_rows,
     count(*) FILTER (WHERE tenant_id IS NOT NULL)::bigint AS rows_with_tenant,
@@ -47,6 +51,11 @@ WITH tenant_tables AS (
   SELECT
     (SELECT count(*) FROM tenant_tables) AS direct_tenant_tables,
     (SELECT count(*) FROM populated_tables) AS estimated_populated_tables,
+    GREATEST(
+      (SELECT count(*) FROM populated_tables)
+      - CASE WHEN rt.total_rows > 0 THEN 1 ELSE 0 END,
+      0
+    ) AS unverified_populated_tables,
     tc.tenant_rows,
     tc.active_tenants,
     rt.total_rows AS repair_rows,
@@ -62,9 +71,10 @@ SELECT
   'mt_*'::text AS object_name,
   'GAP_HIGH'::text AS severity,
   format(
-    'direct_tenant_tables=%s estimated_populated_tables=%s tenant_rows=%s active_tenants=%s repair_rows=%s repair_rows_with_tenant=%s repair_rows_without_tenant=%s repair_distinct_tenants=%s',
+    'direct_tenant_tables=%s estimated_populated_tables=%s unverified_populated_tables=%s tenant_rows=%s active_tenants=%s repair_rows=%s repair_rows_with_tenant=%s repair_rows_without_tenant=%s repair_distinct_tenants=%s',
     direct_tenant_tables,
     estimated_populated_tables,
+    unverified_populated_tables,
     tenant_rows,
     active_tenants,
     repair_rows,
@@ -74,4 +84,5 @@ SELECT
   ) AS evidence
 FROM summary
 WHERE tenant_rows = 0
-   OR repair_rows_without_tenant > 0;
+   OR repair_rows_without_tenant > 0
+   OR unverified_populated_tables > 0;
