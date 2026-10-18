@@ -78,3 +78,58 @@ GROUP BY
   pg_get_expr(i.indpred, i.indrelid)
 HAVING count(*) > 1
 ORDER BY 2, 3;
+
+-- 3) AUTHORIZATION GOVERNANCE: legacy MT policies that reduce an authenticated
+-- predicate to literal TRUE are an explicit high-priority GAP until elo-authz
+-- proves the caller's canonical identity, ENTERPRISE scope membership and the
+-- resource/action contract. This query does NOT infer a replacement policy and
+-- does NOT turn ENTERPRISE/MULTITEINER into live tenant authority by itself.
+WITH mt_true_policies AS (
+  SELECT
+    p.tablename,
+    p.policyname,
+    p.cmd,
+    p.qual,
+    p.with_check
+  FROM pg_policies p
+  WHERE p.schemaname = 'public'
+    AND p.tablename LIKE 'mt\_%' ESCAPE '\'
+    AND 'authenticated' = ANY (p.roles)
+    AND (
+      trim(coalesce(p.qual, '')) = 'true'
+      OR trim(coalesce(p.with_check, '')) = 'true'
+    )
+), mt_tables AS (
+  SELECT
+    c.oid,
+    c.relname,
+    EXISTS (
+      SELECT 1
+      FROM pg_attribute a
+      WHERE a.attrelid = c.oid
+        AND a.attname = 'tenant_id'
+        AND NOT a.attisdropped
+    ) AS has_tenant_id
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relkind = 'r'
+)
+SELECT
+  'AUTHZ_MT_PERMISSIVE_TRUE'::text AS finding,
+  'public'::text AS schema_name,
+  p.tablename AS object_name,
+  'GAP_HIGH'::text AS severity,
+  format(
+    'policies=%s tenant_id=%s effective_select=%s effective_write=%s',
+    count(*),
+    t.has_tenant_id,
+    has_table_privilege('authenticated', t.oid, 'SELECT'),
+    has_table_privilege('authenticated', t.oid, 'INSERT')
+      OR has_table_privilege('authenticated', t.oid, 'UPDATE')
+      OR has_table_privilege('authenticated', t.oid, 'DELETE')
+  ) AS evidence
+FROM mt_true_policies p
+JOIN mt_tables t ON t.relname = p.tablename
+GROUP BY p.tablename, t.oid, t.has_tenant_id
+ORDER BY t.has_tenant_id DESC, p.tablename;
