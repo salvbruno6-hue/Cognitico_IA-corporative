@@ -1,8 +1,8 @@
 """Regression guard for the unresolved MT tenant-authorization boundary.
 
-Historical MT migrations intentionally remain immutable evidence. Until elo-authz
-has a live ENTERPRISE/MULTITEINER membership contract, new migrations must not
-expand authenticated MT access with literal-true RLS predicates.
+Historical checked-in migrations remain immutable evidence. Until elo-authz has a
+live ENTERPRISE/MULTITEINER membership contract, no *new migration file* may
+expand authenticated/PUBLIC MT access with literal-true RLS predicates.
 """
 from __future__ import annotations
 
@@ -10,46 +10,71 @@ import re
 from pathlib import Path
 
 MIGRATIONS = Path("supabase/migrations")
-CUTOFF_VERSION = "20261018200927"
 
-# Scope this guard to policy statements that target an mt_* table and grant the
-# authenticated role literal-unrestricted row access. The regex is deliberately
-# formatting-tolerant but bounded to one CREATE POLICY statement.
-PERMISSIVE_MT_AUTHENTICATED = re.compile(
-    r"create\s+policy\b(?:(?!;).)*?\bon\s+(?:public\.)?mt_[a-z0-9_]+"
-    r"(?:(?!;).)*?\bto\s+authenticated\b"
-    r"(?:(?!;).)*?(?:\busing\s*\(\s*true\s*\)|\bwith\s+check\s*\(\s*true\s*\))",
+# Explicit checked-in baseline at introduction of this guard. This is path based,
+# not timestamp based, so a concurrent branch cannot evade the guard by carrying
+# an older migration timestamp. Additions require a governed review of this test.
+LEGACY_PERMISSIVE_MT_POLICY_FILES = {
+    "20261016174348_protege_tabelas_m01_rls_admin_canonico.sql",
+}
+
+CREATE_POLICY = re.compile(r"create\s+policy\b(?:(?!;).)*?;", re.IGNORECASE | re.DOTALL)
+MT_TABLE = re.compile(r"\bon\s+(?:public\.)?mt_[a-z0-9_]+\b", re.IGNORECASE)
+LITERAL_TRUE = re.compile(
+    r"(?:\busing\s*\(\s*true\s*\)|\bwith\s+check\s*\(\s*true\s*\))",
+    re.IGNORECASE,
+)
+TO_ROLES = re.compile(
+    r"\bto\s+(.+?)(?=\busing\b|\bwith\s+check\b|;)",
     re.IGNORECASE | re.DOTALL,
 )
 
 
-def _migration_version(path: Path) -> str | None:
-    match = re.match(r"(\d{14})_", path.name)
-    return match.group(1) if match else None
+def _applies_to_authenticated(statement: str) -> bool:
+    """No TO means PUBLIC; explicit PUBLIC/authenticated also reaches clients."""
+    match = TO_ROLES.search(statement)
+    if match is None:
+        return True
+    roles = {
+        role.strip().strip('"').lower()
+        for role in match.group(1).split(",")
+        if role.strip()
+    }
+    return "authenticated" in roles or "public" in roles
 
 
-def _post_cutoff_migrations() -> list[Path]:
-    migrations: list[Path] = []
-    for path in MIGRATIONS.glob("*.sql"):
-        version = _migration_version(path)
-        if version is not None and version > CUTOFF_VERSION:
-            migrations.append(path)
-    return sorted(migrations)
+def _contains_permissive_mt_client_policy(sql: str) -> bool:
+    for statement in CREATE_POLICY.findall(sql):
+        if (
+            MT_TABLE.search(statement)
+            and LITERAL_TRUE.search(statement)
+            and _applies_to_authenticated(statement)
+        ):
+            return True
+    return False
 
 
-def test_no_new_authenticated_literal_true_mt_policy() -> None:
-    offenders: list[str] = []
-    for path in _post_cutoff_migrations():
-        sql = path.read_text(encoding="utf-8")
-        if PERMISSIVE_MT_AUTHENTICATED.search(sql):
-            offenders.append(path.as_posix())
+def test_no_new_authenticated_or_public_literal_true_mt_policy() -> None:
+    observed = {
+        path.name
+        for path in MIGRATIONS.glob("*.sql")
+        if _contains_permissive_mt_client_policy(path.read_text(encoding="utf-8"))
+    }
+    unexpected = sorted(observed - LEGACY_PERMISSIVE_MT_POLICY_FILES)
 
-    assert not offenders, (
-        "New MT authenticated literal-true RLS policies expand an unresolved "
-        "tenant-authorization GAP. Route authorization through the canonical "
-        "elo-authz identity/scope/capability contract first. Offenders: "
-        + ", ".join(offenders)
+    assert not unexpected, (
+        "New MT literal-true RLS policies expand an unresolved tenant-authorization "
+        "GAP for authenticated/PUBLIC. Route authorization through the canonical "
+        "elo-authz identity/scope/capability contract first. New files: "
+        + ", ".join(unexpected)
     )
+
+
+def test_legacy_baseline_is_still_present_and_explicit() -> None:
+    missing = sorted(
+        name for name in LEGACY_PERMISSIVE_MT_POLICY_FILES if not (MIGRATIONS / name).exists()
+    )
+    assert not missing, "Guard baseline refers to missing historical migrations: " + ", ".join(missing)
 
 
 def test_guard_documents_current_authority_boundary() -> None:
