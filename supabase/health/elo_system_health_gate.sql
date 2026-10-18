@@ -224,3 +224,69 @@ SELECT
   ) AS evidence
 FROM grouped
 ORDER BY schemaname, tablename, action;
+
+-- 6) PERFORMANCE/GOVERNANCE: an unindexed foreign key is not an instruction to
+-- create an index blindly. Rank unresolved FK paths by live table evidence so
+-- remediation can be bounded to relations that actually have data/activity.
+-- pg_stat_user_tables is cumulative and can reset; the output is prioritization
+-- evidence, not a permanent importance score or automatic CREATE INDEX command.
+WITH foreign_keys AS (
+  SELECT
+    con.oid AS constraint_oid,
+    n.nspname AS schema_name,
+    rel.relname AS table_name,
+    con.conname AS fk_name,
+    con.conrelid,
+    con.conkey,
+    array_agg(att.attname ORDER BY u.ord) AS fk_columns
+  FROM pg_constraint con
+  JOIN pg_class rel ON rel.oid = con.conrelid
+  JOIN pg_namespace n ON n.oid = rel.relnamespace
+  JOIN unnest(con.conkey) WITH ORDINALITY AS u(attnum, ord) ON true
+  JOIN pg_attribute att
+    ON att.attrelid = con.conrelid
+   AND att.attnum = u.attnum
+  WHERE con.contype = 'f'
+    AND n.nspname IN ('public', 'elo_core', 'elo_private')
+  GROUP BY
+    con.oid,
+    n.nspname,
+    rel.relname,
+    con.conname,
+    con.conrelid,
+    con.conkey
+), unindexed_foreign_keys AS (
+  SELECT fk.*
+  FROM foreign_keys fk
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM pg_index i
+    WHERE i.indrelid = fk.conrelid
+      AND i.indisvalid
+      AND i.indisready
+      AND (i.indkey::smallint[])[0:cardinality(fk.conkey)-1] = fk.conkey
+  )
+)
+SELECT
+  'PERF_UNINDEXED_FK_PRIORITY'::text AS finding,
+  u.schema_name,
+  u.table_name AS object_name,
+  'REVIEW'::text AS severity,
+  format(
+    'fk=%s columns=%s rows=%s seq_scans=%s index_scans=%s writes=%s',
+    u.fk_name,
+    array_to_string(u.fk_columns, ','),
+    coalesce(s.n_live_tup, 0),
+    coalesce(s.seq_scan, 0),
+    coalesce(s.idx_scan, 0),
+    coalesce(s.n_tup_ins, 0) + coalesce(s.n_tup_upd, 0) + coalesce(s.n_tup_del, 0)
+  ) AS evidence
+FROM unindexed_foreign_keys u
+LEFT JOIN pg_stat_user_tables s ON s.relid = u.conrelid
+ORDER BY
+  coalesce(s.n_live_tup, 0) DESC,
+  coalesce(s.seq_scan, 0) DESC,
+  (coalesce(s.n_tup_ins, 0) + coalesce(s.n_tup_upd, 0) + coalesce(s.n_tup_del, 0)) DESC,
+  u.schema_name,
+  u.table_name,
+  u.fk_name;
