@@ -43,6 +43,19 @@ Therefore a tenant-aware/domain-aware replacement policy cannot yet be made live
 - the observed 24-hour Supabase request-log window contained no direct `/rest/v1/mt_ordens_reparo` request;
 - absence from one log window is not proof that no legitimate client consumer exists, so it is evidence for narrowing the pilot, not permission to revoke access automatically.
 
+### Tenant-data readiness
+
+Live data inspection adds a separate prerequisite that must be resolved before any tenant-aware RLS rewrite:
+
+- `public.mt_tenants` currently contains **0 rows**;
+- `public.mt_ordens_reparo` currently contains **133 rows**;
+- **0/133** repair rows have a non-null `tenant_id`;
+- therefore there is currently no persisted tenant assignment that a policy could safely enforce.
+
+This means `tenant_id` cannot be treated as a live authorization boundary merely because the column and foreign key exist. A migration that changed the current permissive policies to `tenant_id = <authorized tenant>` would fail closed for all existing repair rows unless a governed tenant-population decision and data reconciliation happen first.
+
+No synthetic tenant row, default tenant, inferred tenant assignment or automatic backfill is authorized by this evidence.
+
 ## Existing capability model
 
 The canonical model already contains `PCP_READ` and `PCP_UPDATE`. They must not be automatically generalized to all MT resources. A repair-table write contract must first prove that the resource is PCP-governed and identify the exact DOMAIN scope that governs it.
@@ -56,11 +69,12 @@ All of the following must be proven for the selected pilot resource:
 1. the real human/client consumer is identified, or client access is explicitly classified as unsupported;
 2. the selected identity is explicitly linked to the intended live scope by authorized governance action;
 3. the selected role already carries the required existing capability, or a separate governed capability decision is approved;
-4. `elo-authz` can evaluate the action/resource/scope contract and fail closed when any prerequisite is absent;
-5. allow and deny behavior is covered by tests before the legacy permissive policy is removed;
-6. service-role/server workflows are shown not to depend on the authenticated policy path;
-7. post-deployment Health Gate evidence confirms the legacy gap decreased without expanding another authority path.
+4. the selected resource rows have a governed tenant assignment when tenant isolation is part of the policy contract;
+5. `elo-authz` can evaluate the action/resource/scope contract and fail closed when any prerequisite is absent;
+6. allow and deny behavior is covered by tests before the legacy permissive policy is removed;
+7. service-role/server workflows are shown not to depend on the authenticated policy path;
+8. post-deployment Health Gate evidence confirms the legacy gap decreased without expanding another authority path.
 
 ## Current decision boundary
 
-The technical work can continue through read-only tracing and test design. The first assignment of an identity to `ENTERPRISE/MULTITEINER`, a DOMAIN scope, or a role/capability combination is a real authorization decision and must not be inferred from the existence of the identity itself.
+The technical work can continue through read-only tracing and test design. The first assignment of an identity to `ENTERPRISE/MULTITEINER`, a DOMAIN scope, a role/capability combination, or an operational MT row to a concrete tenant is a real authorization/data-governance decision and must not be inferred from the existence of the identity or `tenant_id` column itself.
