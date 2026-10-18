@@ -154,3 +154,56 @@ WHERE p.schemaname IN ('public', 'elo_core', 'elo_private')
     OR coalesce(p.with_check, '') LIKE '%auth.jwt()%'
   )
 ORDER BY p.schemaname, p.tablename, p.policyname;
+
+-- 5) PERFORMANCE/GOVERNANCE: multiple permissive policies for the same role and
+-- action have different remediation semantics. ALL_PLUS_SPECIFIC means a FOR ALL
+-- policy overlaps a command-specific policy; EXACT_DUPLICATE means specific
+-- policies have identical row predicates. MULTIPLE_DISTINCT means the policies
+-- are not semantically identical and must not be collapsed by name alone.
+WITH expanded AS (
+  SELECT
+    p.schemaname,
+    p.tablename,
+    p.policyname,
+    p.cmd,
+    p.qual,
+    p.with_check,
+    unnest(
+      CASE
+        WHEN p.cmd = 'ALL' THEN ARRAY['SELECT','INSERT','UPDATE','DELETE']::text[]
+        ELSE ARRAY[p.cmd]::text[]
+      END
+    ) AS action
+  FROM pg_policies p
+  WHERE p.schemaname IN ('public', 'elo_core', 'elo_private')
+    AND 'authenticated' = ANY (p.roles)
+), grouped AS (
+  SELECT
+    schemaname,
+    tablename,
+    action,
+    count(*) AS policy_count,
+    array_agg(policyname ORDER BY policyname) AS policies,
+    count(*) FILTER (WHERE cmd = 'ALL') AS all_policy_count,
+    count(DISTINCT coalesce(qual, '<null>') || '|' || coalesce(with_check, '<null>')) AS predicate_variants
+  FROM expanded
+  GROUP BY schemaname, tablename, action
+  HAVING count(*) > 1
+)
+SELECT
+  'PERF_RLS_PERMISSIVE_OVERLAP'::text AS finding,
+  schemaname AS schema_name,
+  tablename AS object_name,
+  'REVIEW'::text AS severity,
+  format(
+    'action=%s type=%s policies=%s',
+    action,
+    CASE
+      WHEN all_policy_count > 0 THEN 'ALL_PLUS_SPECIFIC'
+      WHEN predicate_variants = 1 THEN 'EXACT_DUPLICATE'
+      ELSE 'MULTIPLE_DISTINCT'
+    END,
+    array_to_string(policies, ',')
+  ) AS evidence
+FROM grouped
+ORDER BY schemaname, tablename, action;
