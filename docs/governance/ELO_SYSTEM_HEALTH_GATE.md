@@ -101,6 +101,23 @@ Production currently contains **9** policies with direct `auth.jwt()` evaluation
 
 The seven `*_admin_write` policies use `FOR ALL`, so they also overlap SELECT policies and contribute to part of the separate `multiple_permissive_policies` advisor surface. That overlap must be analyzed independently before splitting policy commands; the initplan optimization itself must not silently change authorization semantics.
 
+## Performance invariant: permissive-policy overlap
+
+Multiple permissive policies for the same role/action are not one homogeneous problem. The Health Gate classifies `PERF_RLS_PERMISSIVE_OVERLAP` findings as:
+
+- `ALL_PLUS_SPECIFIC`: a `FOR ALL` policy overlaps a command-specific policy. Correcting this can change authorization semantics and therefore requires behavioral allow/deny tests before policy restructuring.
+- `EXACT_DUPLICATE`: command-specific policies have the same effective row predicates. They are candidates for consolidation only after GitHub provenance establishes which policy name/owner is canonical.
+- `MULTIPLE_DISTINCT`: multiple permissive policies intentionally or historically express different predicates. They must not be collapsed as duplicates.
+
+### Live reconciliation — 2026-10-18
+
+The current 17 advisor findings split into:
+
+- **7 `ALL_PLUS_SPECIFIC`** SELECT overlaps on `dimensoes`, `fluxo_produtivo_modular`, `fluxo_produtivo_modular_etapas`, `kit_itens`, `kits`, `lista_mae` and `modelos`;
+- **10 `EXACT_DUPLICATE`** action overlaps across `mt_eventos_reparo`, `mt_lotes_estoque`, `mt_movimentacoes_estoque` and `mt_ordens_reparo`.
+
+The 10 MT pairs are semantically identical in the live catalog (`authenticated`, same command, same `true` predicates), but their canonical policy-name provenance is not established in GitHub. Therefore they remain `REVIEW`; equivalence is evidence for possible cleanup, not authority to choose which policy survives.
+
 ## Reusable evidence query
 
 Run `supabase/health/elo_system_health_gate.sql` against the target environment. The script is read-only and reports findings; it does not mutate production.
