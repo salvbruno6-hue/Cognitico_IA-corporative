@@ -4,13 +4,14 @@
 
 - GitHub remains the canonical authority for migration history, rules and governed implementation.
 - Supabase remains the authority for persisted operational state.
-- A conflict between the two is a GAP to reconcile, never permission to infer missing business ownership.
+- Project/Library artifacts may provide historical evidence, but do not become a third operational authority.
+- A conflict between sources is a GAP to reconcile, never permission to infer missing business ownership.
 
 ## Reconstructed migration history
 
 Production migration `20260924142122` (`adequar_mt_ordens_reparo_controle_reparos_modulos`) is present in `supabase_migrations.schema_migrations` and was missing from the GitHub migration tree at the start of this audit.
 
-This change restores that migration to GitHub from the exact SQL recorded by Supabase. It is historical reconciliation only and must not be reapplied to production as a new migration.
+The audit restored that migration to GitHub from the exact SQL recorded by Supabase. It is historical reconciliation only and must not be reapplied to production as a new migration.
 
 The migration did only schema work:
 
@@ -33,22 +34,51 @@ Live Supabase evidence on 2026-10-18:
 
 No canonical GitHub script or migration was found that loads these repair records.
 
+## Partial source reconstruction
+
+Project/Library evidence preserves a derived presentation named `Relatorio_Manutencao_Containers_5_Slides_70pct_Visual(1).pptx`. The presentation explicitly says it is based exclusively on records from a spreadsheet and describes an initial cohort of 13 repair records:
+
+- 8 repair starts in August 2026;
+- 5 repair starts in September 2026;
+- the only start dates shown are 21/08, 24/08, 26/08, 03/09 and 10/09;
+- module composition is reported as 6 Escritório Suíte, 4 Sanitário 7 Vasos and 3 Amplo;
+- it records a specific configuration-change observation for container `MLTM 020189`.
+
+The live Supabase table contains exactly 13 repair rows across those same five initial dates. Their current module composition is 5 Escritório Suíte, 5 Sanitário 7 Vasos and 3 Amplo. This is strong evidence that the initial Supabase cohort descends from the same Quality/maintenance spreadsheet family, while also proving that the persisted data has since diverged from the preserved report.
+
+The source spreadsheet itself was not located in the connected Google Drive, Dropbox, Project files or Library index. Searches by representative container identifiers and by the `MLTM` prefix did not locate an original row-level source file.
+
+Therefore provenance is now classified as **PARTIALLY_RECONSTRUCTED**, not unknown and not fully reconciled:
+
+- source family: Quality / container-maintenance spreadsheet — supported;
+- initial cohort relationship: supported by date/count/type correlation;
+- exact original spreadsheet file: unresolved;
+- row-level lineage for the 133 current rows: unresolved;
+- later changes/reclassifications after the initial cohort: unresolved;
+- tenant/business ownership: unresolved.
+
+This evidence must not be used to manufacture `mt_proveniencia_registros` rows retroactively. Historical provenance requires a verifiable row-level source or a separately governed reconciliation process.
+
 ## Existing canonical rule
 
 The PCP integration documentation from 2026-10-03 establishes that the Quality spreadsheet is an operational reconciliation source. It requires reconciliation of module identity, model/taxonomy, duplicates, dates and status before a governed load. Container number may support reconciliation but does not replace `unidade_modular_id` when physical identity is available.
 
-Therefore, the current repair rows must not be promoted to tenant ownership, production coverage or authenticated MT authority solely from `numero_container`.
+The Quality specialist evidence independently reinforces the same boundary: a spreadsheet must be decomposed into the correct entities, physical module identity must remain recoverable, configuration changes belong to repair events, and a `PLANILHA != BANCO` divergence must be investigated instead of silently choosing one side.
+
+Therefore, the current repair rows must not be promoted to tenant ownership, production coverage or authenticated MT authority solely from `numero_container` or from the partial source reconstruction.
 
 ## Current classification
 
 The schema-history GAP for migration `20260924142122` is reconciled by restoring the exact migration file in GitHub.
 
-The **data provenance GAP remains open**: the 133 persisted rows still have no canonical load script, record-level provenance or physical-unit reconciliation.
+The **data provenance GAP remains open but partially reconstructed**: the source family and initial 13-row cohort are supported by preserved evidence, but the 133 current persisted rows still have no canonical load script, record-level provenance or physical-unit reconciliation.
 
 The only proven consumption path remains the governed Forge/backend read path with extraction mode `registro_para_experiencia`.
 
-The 133 rows are **operational evidence with unresolved load provenance**, not tenant-ready data.
+The 133 rows are **operational evidence with partially reconstructed provenance**, not tenant-ready data.
 
 ## Exit criteria
 
-`AUTHZ_MT_REPAIR_PROVENANCE_GAP` can clear only when persisted repair rows are reconciled with sufficient record provenance and/or physical unit identity for the intended governed use. Clearing this gap does not itself authorize tenant assignment or RLS changes; those remain separate governance decisions.
+`AUTHZ_MT_REPAIR_PROVENANCE_GAP` can clear only when persisted repair rows are reconciled with sufficient row-level source provenance and/or physical unit identity for the intended governed use. A derived report or aggregate cohort match is not sufficient to backfill provenance automatically.
+
+Clearing this gap does not itself authorize tenant assignment or RLS changes; those remain separate governance decisions.
