@@ -4,7 +4,9 @@ scope: rls
 generated_from:
   - supabase/migrations/
   - docs/governance/ELO_LIVE_STATE_RECONCILIATION_CONTRACT.md
-last_reviewed: "2026-09-27"
+  - docs/evolution/RLS_AUTHORIZATION_AUDIT_2026-10-08.md
+  - docs/evolution/RLS_NO_POLICY_AUDIT_2026-10-08.json
+last_reviewed: "2026-10-18"
 
 tables:
   - name: lista_mae
@@ -22,25 +24,25 @@ tables:
 
   - name: fornecedor_cotacoes
     expected_rls: true
-    declared_in: null
+    declared_in: 20260928000000_enable_rls_fornecedor_cotacoes.sql
     policies: []
     criticality: high
     note: |
-      Tabela criada em 20260918094500 SEM declaração explícita
-      de RLS. Auditoria 22.0 detectou RLS OFF em produção.
-      Por ser tabela exposta na API Supabase, o esperado é
-      RLS ON (fail-closed). DRIFT esperado até correção.
+      RLS está habilitado e a ausência de policy é deliberadamente
+      fail-closed. O estado vivo reconciliado em 2026-10-18 mostra
+      zero privilégios de tabela para anon e authenticated. Não criar
+      policy permissiva apenas para silenciar Advisor.
 
   - name: lista_mae_alteracoes
     expected_rls: true
-    declared_in: null
+    declared_in: 20261002190000_enable_rls_lista_mae_alteracoes.sql
     policies: []
     criticality: high
     note: |
-      Origem não localizada nas migrations versionadas.
-      Auditoria 22.0 detectou RLS OFF em produção.
-      Por ser tabela exposta na API Supabase, o esperado é
-      RLS ON (fail-closed). DRIFT esperado até correção.
+      RLS está habilitado e a tabela de auditoria permanece fail-closed
+      para clientes. O trigger governado grava via caminho privilegiado;
+      o estado vivo reconciliado em 2026-10-18 mostra zero privilégios
+      de tabela para anon e authenticated.
 
   - name: elo_dol_projection
     expected_rls: true
