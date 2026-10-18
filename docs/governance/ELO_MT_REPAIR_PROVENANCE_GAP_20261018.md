@@ -65,11 +65,19 @@ Therefore provenance is now classified as **PARTIALLY_RECONSTRUCTED**, not unkno
 
 This evidence must not be used to manufacture `mt_proveniencia_registros` rows retroactively. Historical provenance requires a verifiable row-level source or a separately governed reconciliation process.
 
+## Conceptual Quality model boundary
+
+A Project/Library Quality-specialist artifact also describes entities named `controle_ordens_reparo`, `eventos_reparo`, `unidades_modulares` and `retornos` and expresses useful conceptual rules for separating repair orders, events, units and returns.
+
+Those object names are **not live schema authority**: on 2026-10-18 none of those four tables exists in the live `public` schema, and no matching canonical GitHub implementation was found. They must therefore be treated as conceptual/historical evidence only.
+
+Do not create those tables merely to conform production to the Library artifact. Any future schema evolution must first reconcile the concepts with the existing `mt_*` model, prove a non-duplicate gap, and pass normal architecture/evolution governance.
+
 ## Existing canonical rule
 
 The PCP integration documentation from 2026-10-03 establishes that the Quality spreadsheet is an operational reconciliation source. It requires reconciliation of module identity, model/taxonomy, duplicates, dates and status before a governed load. Container number may support reconciliation but does not replace `unidade_modular_id` when physical identity is available.
 
-The Quality specialist evidence independently reinforces the same boundary: a spreadsheet must be decomposed into the correct entities, physical module identity must remain recoverable, configuration changes belong to repair events, and a `PLANILHA != BANCO` divergence must be investigated instead of silently choosing one side.
+The Quality specialist evidence independently reinforces the same boundary: a spreadsheet must be decomposed into the correct entities, physical module identity must remain recoverable, configuration changes belong to repair events, and a `PLANILHA != BANCO` divergence must be investigated instead of silently choosing one side. Its conceptual table names do not override the live/canonical schema.
 
 Therefore, the current repair rows must not be promoted to tenant ownership, production coverage or authenticated MT authority solely from `numero_container`, `Status fonte:` or from the partial source reconstruction.
 
