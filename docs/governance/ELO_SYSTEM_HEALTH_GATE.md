@@ -87,19 +87,27 @@ Evidence from production Supabase after PR #976 and production migration `202610
 - exact duplicate-index findings fell from five pairs to two;
 - the two remaining pairs are both in `elo_orcamento_calculos_aprendidos` and remain `REVIEW` because canonical name/provenance is not established in GitHub;
 - live catalog inspection confirms all four indexes are valid ordinary non-constraint indexes; observed scans differ, but usage statistics do not establish canonical authority;
-- the Supabase performance advisor reports `duplicate_index=2` and `unused_index=86` after the governed cleanup.
+- the Supabase performance advisor reported `duplicate_index=2` after the governed cleanup.
 
 ## Performance invariant: RLS initialization plan
 
 Row-independent authentication helpers inside RLS predicates should not be needlessly re-evaluated for every row. This is a performance concern, not an authorization redesign opportunity.
 
-The live Health Gate finding `PERF_RLS_AUTH_JWT_PER_ROW` identifies policies that still contain direct `auth.jwt()` calls. A remediation is valid only when it preserves the existing authorization predicate and changes only the evaluation shape. In particular, the presence of this finding is **not** permission to remove `PCP_ADMIN`, change role semantics, add tenant membership, or broaden/narrow access as a side effect.
+The live Health Gate finding `PERF_RLS_AUTH_JWT_PER_ROW` identifies policies that still contain direct `auth.jwt()` calls after valid scalar-`SELECT` wrappers are removed from the diagnostic expression. A remediation is valid only when it preserves the existing authorization predicate and changes only the evaluation shape.
 
 ### Live reconciliation — 2026-10-18
 
-Production currently contains **9** policies with direct `auth.jwt()` evaluation, matching the Supabase `auth_rls_initplan` advisor count. They are the seven `p_pcp_*_admin_write` policies on `lista_mae`, `modelos`, `dimensoes`, `kits`, `kit_itens`, `fluxo_produtivo_modular` and `fluxo_produtivo_modular_etapas`, plus the DELETE policies `p_pcp_reparo_delete_admin` and `p_pcp_lotes_delete_admin`.
+PR #981 and production migration `optimize_rls_auth_jwt_initplan` converted the nine direct `auth.jwt()` policy evaluations to scalar `SELECT` form while preserving policy names, commands, roles, `app_metadata.role = admin`, `PCP_ADMIN`, tenant behavior and grants.
 
-The seven `*_admin_write` policies use `FOR ALL`, so they also overlap SELECT policies and contribute to part of the separate `multiple_permissive_policies` advisor surface. That overlap must be analyzed independently before splitting policy commands; the initplan optimization itself must not silently change authorization semantics.
+Post-production evidence:
+
+- Supabase `auth_rls_initplan` advisor: **9 -> 0**;
+- Health Gate `PERF_RLS_AUTH_JWT_PER_ROW`: **9 -> 0**;
+- MT literal-true policy count remains **168**;
+- permissive-policy overlaps remain **17**;
+- duplicate-index groups remain **2**.
+
+Therefore the initPlan debt is closed without authorization drift.
 
 ## Performance invariant: permissive-policy overlap
 
@@ -117,6 +125,40 @@ The current 17 advisor findings split into:
 - **10 `EXACT_DUPLICATE`** action overlaps across `mt_eventos_reparo`, `mt_lotes_estoque`, `mt_movimentacoes_estoque` and `mt_ordens_reparo`.
 
 The 10 MT pairs are semantically identical in the live catalog (`authenticated`, same command, same `true` predicates), but their canonical policy-name provenance is not established in GitHub. Therefore they remain `REVIEW`; equivalence is evidence for possible cleanup, not authority to choose which policy survives.
+
+## Performance invariant: foreign-key indexing
+
+An advisor finding for an unindexed foreign key is **not** an instruction to index every FK. Each additional index has storage/write cost and newly created indexes will initially appear as unused until workload exercises them.
+
+The Health Gate finding `PERF_UNINDEXED_FK_PRIORITY` ranks remaining FK paths using current `pg_stat_user_tables` evidence:
+
+- estimated live rows;
+- sequential scans;
+- index scans on the table;
+- insert/update/delete activity.
+
+These statistics are cumulative and can reset, so they are prioritization evidence rather than a permanent importance score. Index creation remains bounded, versioned and separately validated.
+
+### Live reconciliation — 2026-10-18
+
+PR #982 and production migration `add_hot_fk_performance_indexes` added five covering indexes to the highest-evidence current FK paths:
+
+- `elo_orcamento_memoria(orcamento_id)`;
+- `mt_ordens_reparo(unidade_modular_id)`;
+- `mt_ordens_reparo(tenant_id)`;
+- `mt_ordens_reparo(nao_conformidade_id)`;
+- `mt_ordens_reparo(aprovado_por)`.
+
+Post-production evidence:
+
+- `unindexed_foreign_keys`: **150 -> 145**;
+- `auth_rls_initplan`: remains **0**;
+- `multiple_permissive_policies`: remains **17**;
+- `duplicate_index`: remains **2**;
+- security advisor: unchanged at 34 informational RLS/no-policy findings plus the separate leaked-password-protection warning;
+- `unused_index`: **86 -> 91** immediately after deployment because all five new indexes had no post-creation scans yet. This is expected initialization evidence, not a reason for immediate removal.
+
+After this first batch, the remaining populated candidates drop sharply in scale: the largest currently observed unindexed-FK table has 37 estimated rows. The process should therefore re-rank live evidence before any further batch instead of chasing the advisor count toward zero.
 
 ## Reusable evidence query
 
