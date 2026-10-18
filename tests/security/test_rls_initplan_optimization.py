@@ -22,6 +22,13 @@ def _sql() -> str:
     return MIGRATION.read_text(encoding="utf-8")
 
 
+def _executable_sql(sql: str) -> str:
+    """Strip line comments so guards inspect executable SQL only."""
+    return "\n".join(
+        line for line in sql.splitlines() if not line.lstrip().startswith("--")
+    )
+
+
 def test_only_the_nine_known_policies_are_altered() -> None:
     sql = _sql()
     altered = set(
@@ -32,7 +39,7 @@ def test_only_the_nine_known_policies_are_altered() -> None:
 
 
 def test_change_is_performance_shape_only() -> None:
-    sql = _sql()
+    sql = _executable_sql(_sql())
     lowered = sql.lower()
 
     # This migration must not change the authorization surface.
@@ -52,11 +59,11 @@ def test_change_is_performance_shape_only() -> None:
 
 
 def test_every_jwt_lookup_uses_scalar_select_initplan_shape() -> None:
-    sql = _sql()
+    sql = _executable_sql(_sql())
     # Seven USING+WITH CHECK pairs plus two DELETE USING predicates = 16 calls.
     assert len(re.findall(r"\(\s*SELECT\s+auth\.jwt\(\)\s*\)", sql, re.IGNORECASE)) == 16
 
-    # Remove the approved scalar form; no direct auth.jwt() call may remain.
+    # Remove the approved scalar form; no direct executable auth.jwt() call may remain.
     without_wrapped = re.sub(
         r"\(\s*SELECT\s+auth\.jwt\(\)\s*\)",
         "",
@@ -67,7 +74,7 @@ def test_every_jwt_lookup_uses_scalar_select_initplan_shape() -> None:
 
 
 def test_admin_claim_contract_is_preserved() -> None:
-    sql = _sql()
+    sql = _executable_sql(_sql())
     assert sql.count("'app_metadata'::text") == 16
     assert sql.count("'role'::text") == 16
     assert sql.count("= 'admin'::text") == 16
