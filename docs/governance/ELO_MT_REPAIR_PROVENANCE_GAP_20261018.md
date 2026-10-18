@@ -91,22 +91,33 @@ The functional concept of repairs belongs to the **Quality** domain flow. The in
 
 The earlier project intent was to take repair information used by the Quality project and persist it in a Quality-related database structure, preserving the relationship between the physical module and its repair lifecycle.
 
-This domain ownership is more important than preserving any old experimental table name. Future implementation should therefore answer, in order:
+This domain ownership is more important than preserving any old experimental table name. The live schema already provides the minimal reusable structure:
 
-1. Which existing live `mt_*` entities already represent module, quality/inspection and repair concepts?
-2. Can those entities be reused or extended without duplicating information?
-3. What minimal relationship is missing to make the flow understandable and auditable?
-4. Only if no adequate canonical structure exists should a new Quality-owned structure be proposed through the normal Evolution Gate.
+`mt_unidades_modulares → mt_inspecoes → mt_ordens_reparo → mt_eventos_reparo`
 
-The goal is a simpler conceptual model, not more tables.
+Verified live relationships:
+
+- `mt_unidades_modulares` identifies the physical module through `codigo_unidade`, its `modelo_id` and `status_qualidade`;
+- `mt_inspecoes.unidade_modular_id` is a foreign key to `mt_unidades_modulares.id`;
+- `mt_ordens_reparo.unidade_modular_id` is a foreign key to `mt_unidades_modulares.id`;
+- `mt_ordens_reparo.nao_conformidade_id` links repair to `mt_nao_conformidades` when applicable;
+- `mt_eventos_reparo.ordem_reparo_id` is a foreign key to `mt_ordens_reparo.id`.
+
+For didactic use, the model can therefore be presented simply as:
+
+`MÓDULO → INSPEÇÃO/QUALIDADE → ORDEM DE REPARO → EVENTOS DO REPARO → APROVAÇÃO/LIBERAÇÃO`
+
+This is the preferred direction for adapting spreadsheet information: map each spreadsheet field to an existing concept first, instead of reproducing the spreadsheet structure as new tables.
+
+The current 133 legacy repair rows are not yet connected to that full flow because `unidade_modular_id` is null. Reconciliation should focus on linking trustworthy module identity to `mt_unidades_modulares`, not on creating a parallel repair subsystem.
 
 ## Conceptual Quality model boundary
 
 A Project/Library Quality-specialist artifact describes entities named `controle_ordens_reparo`, `eventos_reparo`, `unidades_modulares` and `retornos` and expresses useful conceptual rules for separating repair orders, events, units and returns.
 
-Those object names are **not live schema authority**: on 2026-10-18 none of those four tables exists in the live `public` schema, and no matching canonical GitHub implementation was found. They must therefore be treated as conceptual/historical evidence only.
+Those object names are **not live schema authority**: on 2026-10-18 none of those four exact table names exists in the live `public` schema, and no matching canonical GitHub implementation was found. Their concepts, however, substantially overlap the existing live `mt_*` entities listed above.
 
-Do not create those tables merely to conform production to the Library artifact. Any future schema evolution must first reconcile the concepts with the existing `mt_*` model, prove a non-duplicate gap, and pass normal architecture/evolution governance.
+Do not create those tables merely to conform production to the Library artifact. Reuse the canonical `mt_*` model and extend it only when a proven non-duplicate gap remains.
 
 ## Existing canonical rule
 
