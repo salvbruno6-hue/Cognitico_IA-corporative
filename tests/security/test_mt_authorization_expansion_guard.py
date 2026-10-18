@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 MIGRATIONS = Path("supabase/migrations")
-CUTOFF = "20261018"
+CUTOFF_VERSION = "20261018200927"
 
 # Scope this guard to policy statements that target an mt_* table and grant the
 # authenticated role literal-unrestricted row access. The regex is deliberately
@@ -23,12 +23,18 @@ PERMISSIVE_MT_AUTHENTICATED = re.compile(
 )
 
 
+def _migration_version(path: Path) -> str | None:
+    match = re.match(r"(\d{14})_", path.name)
+    return match.group(1) if match else None
+
+
 def _post_cutoff_migrations() -> list[Path]:
-    return sorted(
-        path
-        for path in MIGRATIONS.glob("*.sql")
-        if path.name[:8].isdigit() and path.name[:8] > CUTOFF
-    )
+    migrations: list[Path] = []
+    for path in MIGRATIONS.glob("*.sql"):
+        version = _migration_version(path)
+        if version is not None and version > CUTOFF_VERSION:
+            migrations.append(path)
+    return sorted(migrations)
 
 
 def test_no_new_authenticated_literal_true_mt_policy() -> None:
