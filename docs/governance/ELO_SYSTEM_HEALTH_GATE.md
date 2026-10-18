@@ -14,6 +14,15 @@ This gate **operationalizes, and does not replace**, the existing RLS evidence c
 
 `diagnose -> evidence -> analyze -> correct -> test -> validate -> Evolution Gate -> merge -> production reconciliation -> learn`
 
+## Finding states
+
+| State | Meaning | Promotion rule |
+|---|---|---|
+| `BLOCK` | A demonstrated unsafe regression in the governed boundary | Do not promote until corrected or explicitly reclassified by canonical evidence |
+| `GAP_HIGH` | A known high-priority authorization/architecture gap whose safe replacement contract is not live yet | Do not expand or normalize the pattern; unrelated work may proceed only without increasing the gap |
+| `REVIEW` | A finding requiring provenance and governed disposition | No automatic mutation |
+| PASS / no row | The specific regression probe did not find a violation | Does not replace functional/security tests |
+
 ## Security invariant: RLS without policy
 
 `RLS enabled + no policy` is not automatically a vulnerability.
@@ -22,11 +31,37 @@ Classification:
 
 | Condition | Status | Action |
 |---|---|---|
-| RLS enabled, no policy, `anon=0`, `authenticated=0` privileges | PASS / fail-closed | Preserve unless a real client contract requires access |
-| RLS enabled, no policy, client role has privileges | BLOCK | Investigate grants and intended access before promotion |
+| RLS enabled, no policy, no effective client DML privileges | PASS / fail-closed | Preserve unless a real client contract requires access |
+| RLS enabled, no policy, client role has effective DML privileges | BLOCK | Investigate grants and intended access before promotion |
 | RLS enabled with policies | REVIEW | Validate ownership/tenant/capability predicates and avoid authorization by role alone |
 
-Do not create permissive policies merely to silence an advisor. Access must follow the real application contract. The richer A/B/C classification and per-table provenance remain in the existing RLS audit; this gate only detects live regression of the client exposure boundary.
+The live probe uses `has_table_privilege`, so inherited grants through role membership or `PUBLIC` are included. Do not create permissive policies merely to silence an advisor. Access must follow the real application contract. The richer A/B/C classification and per-table provenance remain in the existing RLS audit.
+
+## Authorization invariant: MT permissive policies
+
+The 2026-10-08 RLS audit identified legacy `mt_*` policies where an authenticated predicate reduces to literal `true`. Those policies are **not a canonical tenant-authorization contract**.
+
+The later `ELO_OKR_ENTERPRISE_TENANT_SCOPE_DECISION_20261009.md` establishes `ENTERPRISE/MULTITEINER` only as a prepared candidate boundary and explicitly marks it **NOT LIVE**. It requires `elo-authz` to prove canonical Google-bound identity, active session, active `ENTERPRISE` scope membership, capability, tenant, action and resource before strategic write authorization. That decision must not be generalized silently to every MT table.
+
+Therefore:
+
+1. existing literal-true MT policies remain `GAP_HIGH` until their real consumers and authorization contracts are traced;
+2. the gap must not be expanded by new permissive policies or treated as evidence that all authenticated users are authorized;
+3. no bulk revoke/rewrite is allowed without proving required application/admin workflows;
+4. no new tenant table, role, capability or parallel authorization service may be invented;
+5. remediation must reuse canonical `elo-authz`, `elo_identity_registry`, `elo_identity_scopes`, `elo_scopes` and existing capabilities where applicable.
+
+### Live reconciliation — 2026-10-18
+
+The current Supabase probe finds:
+
+- **168** literal-true policy objects across **71** `mt_*` tables;
+- **71/71** tables have effective authenticated SELECT access;
+- **71/71** tables have effective authenticated write access (INSERT/UPDATE/DELETE, at least one);
+- **30/71** tables carry a direct `tenant_id` column;
+- the prior 2026-10-08 audit recorded 164 policy objects across 68 tables, so the gap has expanded and must remain visible as drift.
+
+This evidence does **not** prove that all 71 tables leak cross-tenant data in every runtime path; it proves that tenant isolation and ordinary-user authorization cannot be certified from the current policies alone.
 
 ## Performance invariant: duplicate indexes
 
@@ -34,7 +69,7 @@ An exact duplicate index is a `REVIEW` finding until provenance determines which
 
 Removal is allowed only when:
 
-1. the two definitions are equivalent;
+1. the two definitions are equivalent across material `pg_index` semantics;
 2. the retained index is evidenced by the canonical GitHub migration/contract, or another explicit authority;
 3. no constraint depends on the index being removed;
 4. the cleanup is idempotent and deletes no application data;
@@ -44,15 +79,15 @@ Unknown provenance remains a GAP; do not choose a winner by naming preference.
 
 ## Current reconciliation — 2026-10-18
 
-Evidence from production Supabase:
+Evidence from production Supabase after PR #976 and production migration `20261018200439_reconcile_canonical_orcamento_duplicate_indexes`:
 
-- the live client-exposure probe returns zero custom ELO tables with RLS/no-policy plus `anon` or `authenticated` privileges; this confirms the fail-closed boundary already classified by the 2026-10-08 audit rather than creating a new classification;
-- five exact duplicate-index pairs are present;
-- three duplicate pairs in `elo_orcamento_associacoes` / `elo_orcamento_decisoes` have canonical `ix_*` counterparts declared by `20260912100000_align_elo_orcamento_forge_governance.sql` and are safe cleanup candidates;
-- two pairs in `elo_orcamento_calculos_aprendidos` remain GAPs because the canonical index name/provenance is not yet established in GitHub.
+- the effective client-exposure probe returns zero custom ELO tables with RLS/no-policy plus `anon` or `authenticated` DML privileges;
+- exact duplicate-index findings fell from five pairs to two;
+- the two remaining pairs are both in `elo_orcamento_calculos_aprendidos` and remain `REVIEW` because canonical name/provenance is not yet established in GitHub;
+- the Supabase performance advisor now reports `duplicate_index=2` and `unused_index=86` (previously 5 and 88 respectively).
 
 ## Reusable evidence query
 
 Run `supabase/health/elo_system_health_gate.sql` against the target environment. The script is read-only and reports findings; it does not mutate production.
 
-Promotion is blocked by `BLOCK` findings. `REVIEW` findings require evidence and a governed disposition. A clean query does not replace the existing classified audit, functional/regression tests or post-merge validation.
+`BLOCK` findings stop promotion. `GAP_HIGH` findings prohibit expansion/normalization of the known gap and require a bounded remediation path. `REVIEW` findings require evidence and governed disposition. A clean query does not replace the existing classified audit, functional/regression tests or post-merge validation.
