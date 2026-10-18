@@ -7,10 +7,12 @@
 WITH eligible_google_identities AS (
   SELECT i.identity_id
   FROM public.elo_identity_registry i
+  JOIN auth.users u ON u.id = i.auth_user_id
   WHERE i.active
     AND i.provider = 'google'
     AND i.auth_user_id IS NOT NULL
     AND i.authorized_email IS NOT NULL
+    AND lower(trim(i.authorized_email)) = lower(trim(u.email))
 ),
 enterprise_links AS (
   SELECT DISTINCT x.identity_id
@@ -42,6 +44,13 @@ pcp_capabilities AS (
   JOIN eligible_google_identities i ON i.identity_id = ir.identity_id
   WHERE c.code IN ('PCP_READ', 'PCP_UPDATE')
 ),
+fully_ready_identities AS (
+  SELECT i.identity_id
+  FROM eligible_google_identities i
+  JOIN enterprise_links e ON e.identity_id = i.identity_id
+  JOIN domain_links d ON d.identity_id = i.identity_id
+  JOIN pcp_capabilities p ON p.identity_id = i.identity_id
+),
 mt_gap AS (
   SELECT
     count(*) AS policy_objects,
@@ -61,6 +70,7 @@ readiness AS (
     (SELECT count(*) FROM enterprise_links) AS enterprise_multiteiner_links,
     (SELECT count(*) FROM domain_links) AS identities_with_domain_scope,
     (SELECT count(*) FROM pcp_capabilities) AS identities_with_pcp_capability,
+    (SELECT count(*) FROM fully_ready_identities) AS fully_ready_identities,
     mt_gap.policy_objects,
     mt_gap.tables
   FROM mt_gap
@@ -71,18 +81,15 @@ SELECT
   'mt_*'::text AS object_name,
   'GAP_HIGH'::text AS severity,
   format(
-    'legacy_policies=%s tables=%s eligible_google_identities=%s enterprise_multiteiner_links=%s identities_with_domain_scope=%s identities_with_pcp_capability=%s',
+    'legacy_policies=%s tables=%s eligible_google_identities=%s enterprise_multiteiner_links=%s identities_with_domain_scope=%s identities_with_pcp_capability=%s fully_ready_identities=%s',
     policy_objects,
     tables,
     eligible_google_identities,
     enterprise_multiteiner_links,
     identities_with_domain_scope,
-    identities_with_pcp_capability
+    identities_with_pcp_capability,
+    fully_ready_identities
   ) AS evidence
 FROM readiness
 WHERE policy_objects > 0
-  AND (
-    enterprise_multiteiner_links = 0
-    OR identities_with_domain_scope = 0
-    OR identities_with_pcp_capability = 0
-  );
+  AND fully_ready_identities = 0;
