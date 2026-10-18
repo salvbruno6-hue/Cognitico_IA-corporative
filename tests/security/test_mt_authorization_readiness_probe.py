@@ -14,7 +14,7 @@ def test_mt_readiness_probe_is_read_only_and_aggregate_only() -> None:
     assert "authz_mt_operator_readiness" in source
     assert "gap_high" in source
     assert "enterprise" in source
-    assert "multiteiner" in source
+    assert "multiteinER".lower() in source
     assert "pcp_read" in source
     assert "pcp_update" in source
 
@@ -31,6 +31,24 @@ def test_mt_readiness_probe_is_read_only_and_aggregate_only() -> None:
     )
     for statement in forbidden_mutations:
         assert statement not in source
+
+
+def test_mt_readiness_probe_matches_elo_authz_identity_eligibility() -> None:
+    source = _source().lower()
+
+    assert "join auth.users" in source
+    assert "u.id = i.auth_user_id" in source
+    assert "lower(trim(i.authorized_email)) = lower(trim(u.email))" in source
+
+
+def test_mt_readiness_probe_requires_one_identity_to_hold_all_prerequisites() -> None:
+    source = _source().lower()
+
+    assert "fully_ready_identities as" in source
+    assert "join enterprise_links e on e.identity_id = i.identity_id" in source
+    assert "join domain_links d on d.identity_id = i.identity_id" in source
+    assert "join pcp_capabilities p on p.identity_id = i.identity_id" in source
+    assert "and fully_ready_identities = 0" in source
 
 
 def test_mt_readiness_probe_does_not_project_identity_details() -> None:
