@@ -8,9 +8,11 @@
 
 ## Reconstructed migration history
 
-Production migration `20260924142122` (`adequar_mt_ordens_reparo_controle_reparos_modulos`) is present in `supabase_migrations.schema_migrations` but is absent from the current GitHub migration tree.
+Production migration `20260924142122` (`adequar_mt_ordens_reparo_controle_reparos_modulos`) is present in `supabase_migrations.schema_migrations` and was missing from the GitHub migration tree at the start of this audit.
 
-The live migration did only schema work:
+This change restores that migration to GitHub from the exact SQL recorded by Supabase. It is historical reconciliation only and must not be reapplied to production as a new migration.
+
+The migration did only schema work:
 
 - dropped `NOT NULL` from `mt_ordens_reparo.tenant_id`;
 - added `numero_container`, `tipo_modulo`, `observacoes`, `data_final_reparo`;
@@ -38,6 +40,10 @@ The PCP integration documentation from 2026-10-03 establishes that the Quality s
 Therefore, the current repair rows must not be promoted to tenant ownership, production coverage or authenticated MT authority solely from `numero_container`.
 
 ## Current classification
+
+The schema-history GAP for migration `20260924142122` is reconciled by restoring the exact migration file in GitHub.
+
+The **data provenance GAP remains open**: the 133 persisted rows still have no canonical load script, record-level provenance or physical-unit reconciliation.
 
 The only proven consumption path remains the governed Forge/backend read path with extraction mode `registro_para_experiencia`.
 
