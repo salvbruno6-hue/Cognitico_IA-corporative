@@ -14,7 +14,7 @@ def test_mt_readiness_probe_is_read_only_and_aggregate_only() -> None:
     assert "authz_mt_operator_readiness" in source
     assert "gap_high" in source
     assert "enterprise" in source
-    assert "multiteinER".lower() in source
+    assert "multiteiner" in source
     assert "pcp_read" in source
     assert "pcp_update" in source
 
@@ -41,21 +41,46 @@ def test_mt_readiness_probe_matches_elo_authz_identity_eligibility() -> None:
     assert "lower(trim(i.authorized_email)) = lower(trim(u.email))" in source
 
 
-def test_mt_readiness_probe_requires_one_identity_to_hold_all_prerequisites() -> None:
+def test_mt_readiness_probe_requires_one_identity_to_hold_all_operator_prerequisites() -> None:
     source = _source().lower()
 
     assert "fully_ready_identities as" in source
     assert "join enterprise_links e on e.identity_id = i.identity_id" in source
     assert "join domain_links d on d.identity_id = i.identity_id" in source
     assert "join pcp_capabilities p on p.identity_id = i.identity_id" in source
-    assert "and fully_ready_identities = 0" in source
+    assert "fully_ready_identities = 0" in source
 
 
-def test_mt_readiness_probe_does_not_project_identity_details() -> None:
+def test_mt_readiness_probe_exposes_typed_tenant_data_prerequisites() -> None:
     source = _source().lower()
 
-    # The probe may use eligibility columns in predicates, but evidence must stay
-    # aggregate-only: no identifying values are projected into the finding.
+    assert "tenant_data as" in source
+    assert "from public.mt_tenants" in source
+    assert "from public.mt_ordens_reparo" in source
+    assert "where tenant_id is not null" in source
+    assert "tenant_rows" in source
+    assert "repair_rows" in source
+    assert "repair_rows_with_tenant" in source
+    assert "repair_rows_with_tenant < repair_rows" in source
+
+
+def test_mt_readiness_probe_projects_aggregate_signals_but_not_identity_details() -> None:
+    source = _source().lower()
+
+    for signal in (
+        "eligible_google_identities",
+        "enterprise_multiteiner_links",
+        "identities_with_domain_scope",
+        "identities_with_pcp_capability",
+        "fully_ready_identities",
+        "tenant_rows",
+        "repair_rows",
+        "repair_rows_with_tenant",
+        "legacy_policy_objects",
+        "legacy_tables",
+    ):
+        assert signal in source
+
     evidence_section = source.split("format(", 1)[1]
     assert "authorized_email" not in evidence_section
     assert "display_name" not in evidence_section
