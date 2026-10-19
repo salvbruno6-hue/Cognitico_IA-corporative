@@ -56,7 +56,7 @@ class RouteFragmentLink:
     def __post_init__(self) -> None:
         if not self.predecessor_fragment_id.strip() or not self.successor_fragment_id.strip():
             raise ValueError("fragment link endpoints are required")
-        if self.predecessor_fragment_id.strip() == self.successor_fragment_id.strip():
+        if self.predecessor_fragment_id.strip().upper() == self.successor_fragment_id.strip().upper():
             raise ValueError("fragment cannot precede itself")
         if not self.source_ref.strip():
             raise ValueError("source_ref is required")
@@ -71,6 +71,45 @@ class PartialRouteAssessment:
     evidence_refs: tuple[str, ...]
     next_required_condition: str | None
     canonical_mutation: bool = False
+
+
+def _chain_order(
+    fragment_ids: tuple[str, ...],
+    link_pairs: set[tuple[str, str]],
+) -> tuple[str, ...] | None:
+    if len(fragment_ids) <= 1:
+        return fragment_ids
+    if len(link_pairs) != len(fragment_ids) - 1:
+        return None
+
+    outgoing: dict[str, str] = {}
+    indegree = {item: 0 for item in fragment_ids}
+    for predecessor, successor in link_pairs:
+        if predecessor not in indegree or successor not in indegree:
+            return None
+        if predecessor in outgoing:
+            return None
+        outgoing[predecessor] = successor
+        indegree[successor] += 1
+        if indegree[successor] > 1:
+            return None
+
+    starts = [item for item, degree in indegree.items() if degree == 0]
+    if len(starts) != 1:
+        return None
+
+    ordered: list[str] = []
+    current = starts[0]
+    seen: set[str] = set()
+    while current not in seen:
+        seen.add(current)
+        ordered.append(current)
+        if current not in outgoing:
+            break
+        current = outgoing[current]
+    if len(ordered) != len(fragment_ids):
+        return None
+    return tuple(ordered)
 
 
 def assess_partial_route(
@@ -101,8 +140,8 @@ def assess_partial_route(
         key = op.fragment_id.strip().upper()
         by_fragment.setdefault(key, []).append(op)
 
-    ordered: list[tuple[str, tuple[str, ...]]] = []
-    for fragment_id, items in sorted(by_fragment.items()):
+    fragment_operations: dict[str, tuple[str, ...]] = {}
+    for fragment_id, items in by_fragment.items():
         sequences = [item.sequence for item in items]
         if len(sequences) != len(set(sequences)):
             refs = tuple(dict.fromkeys(item.source_ref for item in relevant))
@@ -115,41 +154,63 @@ def assess_partial_route(
                 "unique_sequence_within_fragment",
             )
         items_sorted = sorted(items, key=lambda item: item.sequence)
-        ordered.append((fragment_id, tuple(item.operation for item in items_sorted)))
+        fragment_operations[fragment_id] = tuple(item.operation for item in items_sorted)
 
-    fragment_ids = tuple(fragment_id for fragment_id, _ in ordered)
+    fragment_ids = tuple(sorted(fragment_operations))
     link_pairs = {
         (link.predecessor_fragment_id.strip().upper(), link.successor_fragment_id.strip().upper())
         for link in fragment_links
-        if link.predecessor_fragment_id.strip().upper() in fragment_ids
-        and link.successor_fragment_id.strip().upper() in fragment_ids
+        if link.predecessor_fragment_id.strip().upper() in fragment_operations
+        and link.successor_fragment_id.strip().upper() in fragment_operations
     }
-    unresolved: list[tuple[str, str]] = []
-    if len(fragment_ids) > 1:
-        for left, right in zip(fragment_ids, fragment_ids[1:]):
-            if (left, right) not in link_pairs and (right, left) not in link_pairs:
-                unresolved.append((left, right))
-
     refs = tuple(
         dict.fromkeys(
             [item.source_ref for item in relevant]
             + [link.source_ref for link in fragment_links]
         )
     )
-    if unresolved:
+
+    if len(fragment_ids) == 1:
+        only = fragment_ids[0]
+        return PartialRouteAssessment(
+            stage,
+            PartialRouteState.READY_FOR_ROUTE_PROPOSAL,
+            ((only, fragment_operations[only]),),
+            (),
+            refs,
+            "governed_route_registration",
+        )
+
+    chain = _chain_order(fragment_ids, link_pairs)
+    if chain is None:
+        linked_any_direction = {
+            frozenset((left, right)) for left, right in link_pairs
+        }
+        unresolved = tuple(
+            (left, right)
+            for index, left in enumerate(fragment_ids)
+            for right in fragment_ids[index + 1 :]
+            if frozenset((left, right)) not in linked_any_direction
+        )
+        ordered_local = tuple(
+            (fragment_id, fragment_operations[fragment_id]) for fragment_id in fragment_ids
+        )
         return PartialRouteAssessment(
             stage,
             PartialRouteState.CROSS_FRAGMENT_ORDER_UNPROVEN,
-            tuple(ordered),
-            tuple(unresolved),
+            ordered_local,
+            unresolved,
             refs,
-            "explicit_cross_fragment_precedence",
+            "complete_acyclic_cross_fragment_precedence",
         )
 
+    ordered_route = tuple(
+        (fragment_id, fragment_operations[fragment_id]) for fragment_id in chain
+    )
     return PartialRouteAssessment(
         stage,
         PartialRouteState.READY_FOR_ROUTE_PROPOSAL,
-        tuple(ordered),
+        ordered_route,
         (),
         refs,
         "governed_route_registration",
