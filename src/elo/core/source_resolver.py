@@ -113,6 +113,7 @@ class SourceResolver:
             provenance = dict(item.provenance)
             provenance.update(
                 {
+                    # Resolver-owned request context overrides adapter assertions.
                     "tenant_id": request.tenant_id,
                     "domain": request.domain,
                     "principal_id": request.principal_id,
@@ -120,6 +121,11 @@ class SourceResolver:
                     "request_id": request.request_id,
                     "correlation_id": request.correlation_id,
                     "source_id": item.source_id,
+                    # These values come from the capability contract validated
+                    # immediately above, never from adapter-provided provenance.
+                    "source_kind": candidate.kind,
+                    "required_capability": candidate.required_capability,
+                    "authorization_scope": request.authorization_scope,
                 }
             )
             records.append(
@@ -153,6 +159,9 @@ class SourceResolver:
             "conversation_id": request.conversation_id,
             "authorization_scope": request.authorization_scope,
         }
-        missing = tuple(name for name, value in required.items() if not value)
+        missing = tuple(
+            name for name, value in required.items()
+            if value is None or not str(value).strip()
+        )
         if missing:
             raise ValueError(f"source resolution request missing: {', '.join(missing)}")
