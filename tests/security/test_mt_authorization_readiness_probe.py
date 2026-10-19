@@ -54,11 +54,17 @@ def test_mt_readiness_probe_requires_one_identity_to_hold_all_operator_prerequis
 def test_mt_readiness_probe_exposes_typed_tenant_data_prerequisites() -> None:
     source = _source().lower()
 
+    assert "tenant_tables as" in source
+    assert "table_stats as" in source
+    assert "populated_tables as" in source
     assert "tenant_data as" in source
     assert "from public.mt_tenants" in source
     assert "from public.mt_ordens_reparo" in source
     assert "where tenant_id is not null" in source
-    assert "tenant_rows" in source
+    assert "direct_tenant_tables" in source
+    assert "estimated_populated_tables" in source
+    assert "unverified_populated_tables" in source
+    assert "unverified_populated_tables > 0" in source
     assert "repair_rows" in source
     assert "repair_rows_with_tenant" in source
     assert "repair_rows_with_tenant < repair_rows" in source
@@ -74,6 +80,9 @@ def test_mt_readiness_probe_projects_aggregate_signals_but_not_identity_details(
         "identities_with_pcp_capability",
         "fully_ready_identities",
         "tenant_rows",
+        "direct_tenant_tables",
+        "estimated_populated_tables",
+        "unverified_populated_tables",
         "repair_rows",
         "repair_rows_with_tenant",
         "legacy_policy_objects",
