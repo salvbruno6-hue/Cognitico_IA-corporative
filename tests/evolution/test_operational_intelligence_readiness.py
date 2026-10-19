@@ -81,6 +81,89 @@ def test_learning_without_execution_is_review_not_false_validated_learning():
     assert "feedback_loop_closed=False" in learning.detail
 
 
+def test_governed_external_capacity_is_review_until_canonicalized():
+    values = asdict(empty_live_signals())
+    values.update(
+        demand_history_rows=1,
+        governed_external_capacity_rows=8,
+        governed_external_capacity_ref=(
+            "google-sheets:PcP Multiteiner/17_CAPACIDADE!A2:K9"
+        ),
+    )
+    readiness = assess_operational_intelligence_readiness(
+        OperationalIntelligenceSignals(**values)
+    )
+    capacity = next(
+        item
+        for item in readiness.assessment.findings
+        if item.finding_id == "OP_INTEL_CAPACITY_EVIDENCE"
+    )
+
+    assert capacity.severity is HealthSeverity.REVIEW
+    assert readiness.next_required_evidence == "capacity_canonicalization"
+    assert "governed_external=8" in capacity.detail
+    assert "google-sheets:PcP Multiteiner/17_CAPACIDADE!A2:K9" in capacity.evidence_refs
+
+
+def test_canonical_capacity_overrides_external_review_without_erasing_provenance():
+    values = asdict(empty_live_signals())
+    values.update(
+        demand_history_rows=1,
+        capacity_daily_rows=8,
+        governed_external_capacity_rows=8,
+        governed_external_capacity_ref=(
+            "google-sheets:PcP Multiteiner/17_CAPACIDADE!A2:K9"
+        ),
+    )
+    readiness = assess_operational_intelligence_readiness(
+        OperationalIntelligenceSignals(**values)
+    )
+    capacity = next(
+        item
+        for item in readiness.assessment.findings
+        if item.finding_id == "OP_INTEL_CAPACITY_EVIDENCE"
+    )
+
+    assert capacity.severity is HealthSeverity.PASS
+    assert "google-sheets:PcP Multiteiner/17_CAPACIDADE!A2:K9" in capacity.evidence_refs
+
+
+def test_external_capacity_requires_explicit_provenance():
+    values = asdict(empty_live_signals())
+    values["governed_external_capacity_rows"] = 8
+
+    try:
+        OperationalIntelligenceSignals(**values)
+    except ValueError as exc:
+        assert "explicit provenance" in str(exc)
+    else:
+        raise AssertionError("external evidence without provenance must fail closed")
+
+
+def test_evidence_ref_positional_contract_is_preserved():
+    signals = OperationalIntelligenceSignals(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        1,
+        "custom:legacy-positional-ref",
+    )
+
+    assert signals.evidence_ref == "custom:legacy-positional-ref"
+    assert signals.governed_external_capacity_rows == 0
+
+
 def test_negative_counts_are_rejected():
     values = asdict(empty_live_signals())
     values["plan_rows"] = -1
