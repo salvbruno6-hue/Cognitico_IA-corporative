@@ -50,6 +50,7 @@ class CapabilityVisibilityRecord:
     consumer: str | None = None
     canonical_route: str | None = None
     execution_boundary: str | None = None
+    missing_runtime_links: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +90,7 @@ class GlobalCapabilityVisibility:
                     "consumer": item.consumer,
                     "canonical_route": item.canonical_route,
                     "execution_boundary": item.execution_boundary,
+                    "missing_runtime_links": list(item.missing_runtime_links),
                     "runtime_status": item.runtime_status,
                     "evolution_status": item.evolution_status,
                     "evidence_refs": list(item.evidence_refs),
@@ -109,22 +111,34 @@ def build_global_capability_visibility(
     consumers: Mapping[str, str] | None = None,
     canonical_routes: Mapping[str, str] | None = None,
     execution_boundaries: Mapping[str, str] | None = None,
+    require_runtime_wiring: Sequence[str] = (),
 ) -> GlobalCapabilityVisibility:
     """Reconcile existing capability visibility without inferring runtime.
 
     Consumer, route and execution-boundary links are accepted only as explicit
     evidence supplied by the caller. File existence or registry visibility does
     not infer any of these relationships.
+
+    When a capability is explicitly listed in ``require_runtime_wiring``, the
+    Symbiont read-model treats missing consumer, canonical route or execution
+    boundary evidence as ``EXISTING_BUT_UNWIRED``. This is observation only: it
+    does not connect, authorize or mutate the capability.
     """
     consumers = consumers or {}
     canonical_routes = canonical_routes or {}
     execution_boundaries = execution_boundaries or {}
+    required_wiring = {item for item in require_runtime_wiring if item}
     snapshots = {item.name: item for item in registry_snapshot}
     views_by_capability: dict[str, SymbiontImplementationView] = {}
     for view in implementation_views:
         views_by_capability.setdefault(view.capability, view)
 
-    ids = set(declared_capabilities) | set(snapshots) | set(views_by_capability)
+    ids = (
+        set(declared_capabilities)
+        | set(snapshots)
+        | set(views_by_capability)
+        | required_wiring
+    )
     records: list[CapabilityVisibilityRecord] = []
     for capability_id in sorted(item for item in ids if item):
         snapshot = snapshots.get(capability_id)
@@ -133,6 +147,20 @@ def build_global_capability_visibility(
         implementation_visible = view is not None
         evidence_refs = tuple(dict.fromkeys(view.evidence_refs if view else ()))
         owner = view.owner if view and view.owner.strip() else None
+        consumer = consumers.get(capability_id)
+        canonical_route = canonical_routes.get(capability_id)
+        execution_boundary = execution_boundaries.get(capability_id)
+
+        missing_runtime_links: tuple[str, ...] = ()
+        if capability_id in required_wiring:
+            missing: list[str] = []
+            if not consumer:
+                missing.append("consumer")
+            if not canonical_route:
+                missing.append("canonical_route")
+            if not execution_boundary:
+                missing.append("execution_boundary")
+            missing_runtime_links = tuple(missing)
 
         if view is not None and view.ownership.value == "UNRESOLVED":
             state = CapabilityVisibilityState.UNRESOLVED_OWNER
@@ -140,6 +168,8 @@ def build_global_capability_visibility(
             state = CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED
         elif snapshot is not None and view is None:
             state = CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW
+        elif snapshot is not None and missing_runtime_links:
+            state = CapabilityVisibilityState.EXISTING_BUT_UNWIRED
         elif snapshot is not None:
             state = CapabilityVisibilityState.REGISTERED_VISIBLE
         else:
@@ -152,9 +182,10 @@ def build_global_capability_visibility(
                 available=bool(snapshot and snapshot.status.value == "AVAILABLE"),
                 implementation_visible=implementation_visible,
                 owner=owner,
-                consumer=consumers.get(capability_id),
-                canonical_route=canonical_routes.get(capability_id),
-                execution_boundary=execution_boundaries.get(capability_id),
+                consumer=consumer,
+                canonical_route=canonical_route,
+                execution_boundary=execution_boundary,
+                missing_runtime_links=missing_runtime_links,
                 runtime_status=view.runtime_status if view else None,
                 evolution_status=view.evolution_gate_status if view else None,
                 evidence_refs=evidence_refs,
@@ -164,6 +195,11 @@ def build_global_capability_visibility(
 
     blockers = tuple(
         f"{record.capability_id}:{record.state.value}"
+        + (
+            ":missing_runtime_links=" + ",".join(record.missing_runtime_links)
+            if record.missing_runtime_links
+            else ""
+        )
         for record in records
         if record.state is not CapabilityVisibilityState.REGISTERED_VISIBLE
     )
