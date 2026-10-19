@@ -307,4 +307,5 @@ def audit_requirement(node: RequirementNode) -> Mapping[str, object]:
         ),
         "evidence_ids": evidence_ids,
         "dependencies": node.dependencies,
+        "metadata": dict(node.metadata),
     }
