@@ -7,12 +7,13 @@ promotes similarity into canonical truth.
 
 Automatic resolution is deliberately narrow: only exact predicate identity or
 an explicitly supplied governed alias may bind validated, evidenced knowledge
-to a requirement as a ``RETRIEVED`` claim. Token overlap is diagnostic only.
+to a requirement as a ``RETRIEVED`` claim. When a requirement identifies an
+entity, applicability to that entity must also be exact or explicitly aliased.
+Token overlap is diagnostic only.
 """
 from __future__ import annotations
 
 import hashlib
-import re
 import unicodedata
 from dataclasses import dataclass
 from enum import StrEnum
@@ -47,12 +48,16 @@ class SemanticMatch:
     kind: SemanticMatchKind
     score: float
     matched_terms: tuple[str, ...]
+    entity_compatible: bool = True
+    entity_match_kind: SemanticMatchKind | None = None
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.score <= 1.0:
             raise ValueError("semantic match score must be between 0 and 1")
         if not self.matched_terms:
             raise ValueError("semantic match requires matched_terms")
+        if not self.entity_compatible and self.entity_match_kind is not None:
+            raise ValueError("incompatible entity cannot declare an entity match kind")
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,20 +97,22 @@ def normalize_semantic_text(value: str) -> str:
     """Normalize text deterministically while preserving the original evidence.
 
     Unicode accents are removed for comparison, text is case-folded, punctuation
-    becomes spaces and repeated whitespace is collapsed. The normalized value is
-    never written back into the source claim.
+    becomes spaces and repeated whitespace is collapsed. Unicode alphanumeric
+    characters outside ASCII remain comparable. The normalized value is never
+    written back into source evidence.
     """
     if value is None:
         raise ValueError("semantic text is required")
     decomposed = unicodedata.normalize("NFKD", str(value))
     without_marks = "".join(char for char in decomposed if not unicodedata.combining(char))
-    normalized = re.sub(r"[^a-z0-9]+", " ", without_marks.casefold()).strip()
-    return re.sub(r"\s+", " ", normalized)
+    folded = without_marks.casefold()
+    normalized = "".join(char if char.isalnum() else " " for char in folded)
+    return " ".join(normalized.split())
 
 
-def _alias_index(aliases: Mapping[str, Sequence[str]]) -> Mapping[str, str]:
+def _alias_index(aliases: Mapping[str, Sequence[str]] | None) -> Mapping[str, str]:
     index: dict[str, str] = {}
-    for canonical, members in aliases.items():
+    for canonical, members in (aliases or {}).items():
         canonical_normalized = normalize_semantic_text(canonical)
         if not canonical_normalized:
             raise ValueError("alias canonical term cannot normalize to empty")
@@ -131,54 +138,89 @@ def _token_overlap(left: str, right: str) -> tuple[float, tuple[str, ...]]:
     return len(common) / len(union), common
 
 
+def _strong_term_equivalence(
+    left: str,
+    right: str,
+    aliases: Mapping[str, Sequence[str]] | None,
+) -> SemanticMatchKind | None:
+    left_normalized = normalize_semantic_text(left)
+    right_normalized = normalize_semantic_text(right)
+    if not left_normalized or not right_normalized:
+        return None
+    if left_normalized == right_normalized:
+        return SemanticMatchKind.EXACT
+    alias_index = _alias_index(aliases)
+    left_group = alias_index.get(left_normalized)
+    right_group = alias_index.get(right_normalized)
+    if left_group is not None and left_group == right_group:
+        return SemanticMatchKind.GOVERNED_ALIAS
+    return None
+
+
 def match_parameter_to_claim(
     *,
     parameter: str,
     candidate: RequirementClaim,
-    aliases: Mapping[str, Sequence[str]] = {},
+    aliases: Mapping[str, Sequence[str]] | None = None,
+    required_entity: str | None = None,
+    entity_aliases: Mapping[str, Sequence[str]] | None = None,
 ) -> SemanticMatch | None:
-    """Compare one required parameter with one structured evidence claim."""
+    """Compare one required parameter with one structured evidence claim.
+
+    Parameter equivalence and entity applicability are separate. A parameter may
+    match strongly while the candidate still remains inapplicable because its
+    subject has not been related to the requirement entity.
+    """
     parameter_normalized = normalize_semantic_text(parameter)
     predicate_normalized = normalize_semantic_text(candidate.predicate)
     if not parameter_normalized or not predicate_normalized:
         return None
 
-    if parameter_normalized == predicate_normalized:
-        return SemanticMatch(
-            candidate=candidate,
-            kind=SemanticMatchKind.EXACT,
-            score=1.0,
-            matched_terms=(parameter_normalized,),
-        )
+    parameter_kind = _strong_term_equivalence(parameter, candidate.predicate, aliases)
+    if parameter_kind is SemanticMatchKind.EXACT:
+        score = 1.0
+        matched_terms = (parameter_normalized,)
+    elif parameter_kind is SemanticMatchKind.GOVERNED_ALIAS:
+        score = 0.95
+        matched_terms = tuple(sorted({parameter_normalized, predicate_normalized}))
+    else:
+        overlap, common = _token_overlap(parameter_normalized, predicate_normalized)
+        if overlap < 0.5 or not common:
+            return None
+        parameter_kind = SemanticMatchKind.TOKEN_OVERLAP
+        score = min(overlap, 0.79)
+        matched_terms = common
 
-    alias_index = _alias_index(aliases)
-    parameter_group = alias_index.get(parameter_normalized)
-    predicate_group = alias_index.get(predicate_normalized)
-    if parameter_group is not None and parameter_group == predicate_group:
-        return SemanticMatch(
-            candidate=candidate,
-            kind=SemanticMatchKind.GOVERNED_ALIAS,
-            score=0.95,
-            matched_terms=tuple(sorted({parameter_normalized, predicate_normalized})),
+    entity_compatible = True
+    entity_match_kind: SemanticMatchKind | None = None
+    if required_entity is not None and required_entity.strip():
+        entity_match_kind = _strong_term_equivalence(
+            required_entity,
+            candidate.subject,
+            entity_aliases,
         )
+        entity_compatible = entity_match_kind in {
+            SemanticMatchKind.EXACT,
+            SemanticMatchKind.GOVERNED_ALIAS,
+        }
+        if not entity_compatible:
+            entity_match_kind = None
 
-    overlap, common = _token_overlap(parameter_normalized, predicate_normalized)
-    if overlap >= 0.5 and common:
-        # Lexical overlap is useful for ranking/investigation but is never strong
-        # enough to become an automatic governed resolution.
-        return SemanticMatch(
-            candidate=candidate,
-            kind=SemanticMatchKind.TOKEN_OVERLAP,
-            score=min(overlap, 0.79),
-            matched_terms=common,
-        )
-    return None
+    return SemanticMatch(
+        candidate=candidate,
+        kind=parameter_kind,
+        score=score,
+        matched_terms=matched_terms,
+        entity_compatible=entity_compatible,
+        entity_match_kind=entity_match_kind,
+    )
 
 
 def _candidate_is_governed(candidate: RequirementClaim) -> bool:
     return (
         candidate.state in _GOVERNED_STATES
         and candidate.provenance.source_type is not RequirementSourceType.LLM_INFERENCE
+        and bool(str(candidate.value).strip())
         and bool(candidate.provenance.evidence_ids)
         and candidate.provenance.validation_status.upper() in _VALIDATION_OK
     )
@@ -228,14 +270,15 @@ def resolve_requirement_parameter(
     node: RequirementNode,
     parameter: str,
     candidates: Sequence[RequirementClaim],
-    aliases: Mapping[str, Sequence[str]] = {},
+    aliases: Mapping[str, Sequence[str]] | None = None,
+    entity_aliases: Mapping[str, Sequence[str]] | None = None,
 ) -> SemanticResolution:
     """Resolve a requirement parameter against already-governed evidence.
 
     Exact and explicitly aliased predicate matches are strong. A strong match
-    still cannot resolve automatically when values conflict or the source claim
-    lacks governed validation/evidence. Token overlap remains a non-authoritative
-    candidate signal.
+    still cannot resolve automatically when entity applicability is unproven,
+    candidate values conflict, or source claims lack governed validation and
+    evidence. Token overlap remains a non-authoritative candidate signal.
     """
     if not parameter or not parameter.strip():
         raise ValueError("parameter is required")
@@ -249,6 +292,8 @@ def resolve_requirement_parameter(
                     parameter=parameter,
                     candidate=candidate,
                     aliases=aliases,
+                    required_entity=node.entity,
+                    entity_aliases=entity_aliases,
                 ))
                 is not None
             ),
@@ -280,9 +325,20 @@ def resolve_requirement_parameter(
             reasons=("only lexical overlap was found; similarity is not evidence of equivalence",),
         )
 
+    applicable = tuple(match for match in strong if match.entity_compatible)
+    if not applicable:
+        return SemanticResolution(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            state=SemanticResolutionState.VALIDATION_REQUIRED,
+            matches=matches,
+            reasons=("parameter equivalence exists, but applicability to the requirement entity is not established",),
+            human_validation_required=True,
+        )
+
     distinct_values = {
         normalize_semantic_text(match.candidate.value)
-        for match in strong
+        for match in applicable
     }
     if len(distinct_values) > 1:
         return SemanticResolution(
@@ -290,18 +346,18 @@ def resolve_requirement_parameter(
             parameter=parameter,
             state=SemanticResolutionState.AMBIGUOUS,
             matches=matches,
-            reasons=("strong semantic matches disagree on the candidate value",),
+            reasons=("strong applicable semantic matches disagree on the candidate value",),
             human_validation_required=True,
         )
 
-    governed = tuple(match for match in strong if _candidate_is_governed(match.candidate))
+    governed = tuple(match for match in applicable if _candidate_is_governed(match.candidate))
     if not governed:
         return SemanticResolution(
             requirement_id=node.requirement_id,
             parameter=parameter,
             state=SemanticResolutionState.VALIDATION_REQUIRED,
             matches=matches,
-            reasons=("semantic equivalence exists, but no matched claim has governed validation and evidence",),
+            reasons=("semantic equivalence exists, but no applicable matched claim has governed validation, value and evidence",),
             human_validation_required=True,
         )
 
@@ -329,9 +385,16 @@ def audit_semantic_resolution(resolution: SemanticResolution) -> Mapping[str, ob
         "matches": tuple(
             {
                 "candidate_claim_id": match.candidate.claim_id,
+                "candidate_subject": match.candidate.subject,
                 "kind": match.kind.value,
                 "score": match.score,
                 "matched_terms": match.matched_terms,
+                "entity_compatible": match.entity_compatible,
+                "entity_match_kind": (
+                    match.entity_match_kind.value
+                    if match.entity_match_kind is not None
+                    else None
+                ),
                 "source_type": match.candidate.provenance.source_type.value,
                 "source_reference": match.candidate.provenance.source_reference,
                 "evidence_ids": match.candidate.provenance.evidence_ids,
