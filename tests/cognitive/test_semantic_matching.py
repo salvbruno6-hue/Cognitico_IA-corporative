@@ -17,6 +17,7 @@ from elo.cognitive.reasoning.semantic_matching import (
     audit_semantic_resolution,
     match_parameter_to_claim,
     normalize_semantic_text,
+    normalize_semantic_value,
     resolve_requirement_parameter,
 )
 
@@ -40,6 +41,7 @@ def candidate(
     source_reference="elo:taxonomia:MLT.C08",
     evidence_ids=("taxonomia-row-27",),
     validation_status="VALIDATED",
+    requires_human_validation=False,
 ):
     return RequirementClaim(
         claim_id=claim_id,
@@ -55,6 +57,7 @@ def candidate(
             evidence_ids=tuple(evidence_ids),
             validation_status=validation_status,
         ),
+        requires_human_validation=requires_human_validation,
     )
 
 
@@ -78,6 +81,11 @@ def test_normalization_is_deterministic_accent_insensitive_and_unicode_safe():
     assert normalize_semantic_text("  Espessura-MDF / TÉCNICA  ") == "espessura mdf tecnica"
     assert normalize_semantic_text("espessura mdf técnica") == "espessura mdf tecnica"
     assert normalize_semantic_text("Μοντέλο Α") == "μοντελο α"
+
+
+def test_value_normalization_preserves_technical_punctuation():
+    assert normalize_semantic_value(" 15 MM ") == "15 mm"
+    assert normalize_semantic_value("1.2 mm") != normalize_semantic_value("1/2 mm")
 
 
 def test_exact_predicate_match_is_strong_without_rewriting_evidence():
@@ -169,6 +177,23 @@ def test_strong_but_unvalidated_match_requires_validation_and_does_not_create_fa
     assert result.retrieved_claim is None
 
 
+def test_candidate_pending_human_validation_never_auto_resolves():
+    evidence = candidate(
+        predicate="mdf.thickness",
+        requires_human_validation=True,
+    )
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+    )
+
+    assert result.state is SemanticResolutionState.VALIDATION_REQUIRED
+    assert result.human_validation_required is True
+    assert result.retrieved_claim is None
+
+
 def test_empty_candidate_value_never_resolves_a_parameter():
     evidence = candidate(predicate="mdf.thickness", value="   ")
 
@@ -232,6 +257,57 @@ def test_conflicting_strong_applicable_matches_are_ambiguous_and_require_human_v
     assert result.state is SemanticResolutionState.AMBIGUOUS
     assert result.human_validation_required is True
     assert result.retrieved_claim is None
+
+
+def test_decimal_and_fraction_values_remain_conflicting():
+    decimal = candidate(
+        claim_id="decimal",
+        predicate="mdf.thickness",
+        value="1.2 mm",
+    )
+    fraction = candidate(
+        claim_id="fraction",
+        predicate="mdf.thickness",
+        value="1/2 mm",
+        source_reference="elo:knowledge:fraction",
+        evidence_ids=("ev-fraction",),
+    )
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(decimal, fraction),
+    )
+
+    assert result.state is SemanticResolutionState.AMBIGUOUS
+    assert result.retrieved_claim is None
+
+
+def test_explicit_conflict_state_blocks_resolution_even_when_value_matches():
+    governed = candidate(
+        claim_id="governed",
+        predicate="mdf.thickness",
+        value="15 mm",
+    )
+    conflict = candidate(
+        claim_id="conflict",
+        predicate="mdf.thickness",
+        value="15 mm",
+        state=RequirementState.CONFLICT,
+        source_reference="elo:knowledge:conflict",
+        evidence_ids=("ev-conflict",),
+    )
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(governed, conflict),
+    )
+
+    assert result.state is SemanticResolutionState.AMBIGUOUS
+    assert result.human_validation_required is True
+    assert result.retrieved_claim is None
+    assert "conflict" in result.reasons[0]
 
 
 def test_same_value_from_multiple_governed_sources_can_resolve_deterministically():
@@ -298,7 +374,7 @@ def test_so_203_26_semantic_equivalence_prevents_false_gap_confirmation():
     assert assessment.state is not RequirementState.GAP_CONFIRMED
 
 
-def test_audit_trace_exposes_match_evidence_and_applicability_without_private_reasoning():
+def test_audit_trace_exposes_original_context_recovered_value_and_applicability():
     result = resolve_requirement_parameter(
         node=node(),
         parameter="mdf.thickness",
@@ -306,11 +382,16 @@ def test_audit_trace_exposes_match_evidence_and_applicability_without_private_re
     )
 
     trace = audit_semantic_resolution(result)
+    match = trace["matches"][0]
 
     assert trace["state"] == "RESOLVED"
-    assert trace["matches"][0]["source_reference"] == "elo:taxonomia:MLT.C08"
-    assert trace["matches"][0]["evidence_ids"] == ("taxonomia-row-27",)
-    assert trace["matches"][0]["entity_compatible"] is True
-    assert trace["matches"][0]["entity_match_kind"] == "EXACT"
+    assert match["candidate_requirement_id"] == "knowledge:MLT.C08"
+    assert match["candidate_subject"] == "MLT.C08"
+    assert match["recovered_value"] == "15 mm"
+    assert match["source_reference"] == "elo:taxonomia:MLT.C08"
+    assert match["evidence_ids"] == ("taxonomia-row-27",)
+    assert match["entity_compatible"] is True
+    assert match["entity_match_kind"] == "EXACT"
+    assert match["candidate_requires_human_validation"] is False
     assert "reasoning" not in trace
     assert "chain_of_thought" not in trace
