@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass
-from typing import Iterable, Sequence
+from dataclasses import dataclass, replace
+from typing import Iterable, Mapping, Sequence
+
+from elo.core.temporal_memory import TemporalRecord
 
 from .requirement_analysis import (
     ClaimProvenance,
@@ -46,6 +48,33 @@ class ExplicitRequirement:
 
 _KEY_VALUE = re.compile(r"^\s*([^:;]{2,120}?)\s*:\s*(.+?)\s*$")
 _BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$")
+# Only resolver-owned context and non-authoritative source location are exposed.
+# Adapter-provided authority/capability assertions are deliberately excluded.
+_RETRIEVAL_PROVENANCE_KEYS = (
+    "uri",
+    "tenant_id",
+    "domain",
+    "principal_id",
+    "session_id",
+    "request_id",
+    "correlation_id",
+    "source_id",
+    "source_kind",
+    "required_capability",
+    "authorization_scope",
+)
+_REQUIRED_RESOLVER_CONTEXT = (
+    "tenant_id",
+    "domain",
+    "principal_id",
+    "session_id",
+    "request_id",
+    "correlation_id",
+    "source_id",
+    "source_kind",
+    "required_capability",
+    "authorization_scope",
+)
 
 
 def _stable_digest(*parts: str) -> str:
@@ -160,6 +189,69 @@ def extract_documented_requirements(
             )
         )
     return tuple(nodes)
+
+
+def _temporal_retrieval_metadata(record: TemporalRecord) -> Mapping[str, str]:
+    """Select resolver-owned provenance and source location for audit metadata."""
+    metadata: dict[str, str] = {
+        "retrieval.record_id": record.record_id.strip(),
+        # Temporal source_type is a source-reported classification; the trusted
+        # resolver route is separately recorded as retrieval.source_kind.
+        "retrieval.reported_source_type": record.source_type.strip(),
+        "retrieval.conversation_id": record.conversation_id,
+        "retrieval.classification": record.classification,
+    }
+    for key in _RETRIEVAL_PROVENANCE_KEYS:
+        value = record.provenance.get(key)
+        if value is not None and str(value).strip():
+            metadata[f"retrieval.{key}"] = str(value).strip()
+    return metadata
+
+
+def extract_temporal_document_requirements(
+    *,
+    record: TemporalRecord,
+    document_reference: str,
+    requirement_prefix: str,
+    subject: str,
+    evidence_ids: Sequence[str] = (),
+) -> tuple[RequirementNode, ...]:
+    """Bridge resolver-owned temporal evidence to explicit document extraction.
+
+    `SourceResolver` enriches temporal-record provenance with validated request
+    context and the capability contract before this function is called. The
+    caller must still explicitly qualify the material as a document through
+    ``document_reference``. Raw adapter authority/capability assertions are not
+    exposed as trusted audit provenance.
+    """
+    if not str(record.record_id).strip() or not str(record.source_type).strip():
+        raise ValueError("temporal source identity is required")
+    if not record.content.strip():
+        raise ValueError("temporal document content is required")
+    if not record.provenance:
+        raise ValueError("temporal document provenance is required")
+    if not document_reference.strip():
+        raise ValueError("document_reference is required")
+
+    missing = tuple(
+        key for key in _REQUIRED_RESOLVER_CONTEXT
+        if record.provenance.get(key) is None or not str(record.provenance.get(key)).strip()
+    )
+    if missing:
+        raise ValueError(f"resolver-owned temporal provenance missing: {', '.join(missing)}")
+
+    nodes = extract_documented_requirements(
+        source_reference=document_reference,
+        text=record.content,
+        requirement_prefix=requirement_prefix,
+        subject=subject,
+        evidence_ids=evidence_ids,
+    )
+    retrieval_metadata = _temporal_retrieval_metadata(record)
+    return tuple(
+        replace(node, metadata={**node.metadata, **retrieval_metadata})
+        for node in nodes
+    )
 
 
 def iter_claims(nodes: Iterable[RequirementNode]) -> tuple[RequirementClaim, ...]:
