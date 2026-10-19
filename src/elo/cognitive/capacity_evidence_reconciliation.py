@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from math import isfinite
 from typing import Iterable, Mapping, Sequence
 
 
@@ -37,8 +38,8 @@ class EmpiricalCapacityEvidence:
             raise ValueError("evidence_id is required")
         if not self.activity.strip():
             raise ValueError("activity is required")
-        if self.quantity_per_day <= 0:
-            raise ValueError("quantity_per_day must be greater than zero")
+        if not isfinite(self.quantity_per_day) or self.quantity_per_day <= 0:
+            raise ValueError("quantity_per_day must be a finite number greater than zero")
         if not self.unit.strip():
             raise ValueError("unit is required")
         if not self.source_ref.strip():
@@ -88,26 +89,30 @@ def reconcile_capacity_evidence(
 ) -> CapacityReconciliation:
     """Classify one empirical capacity observation without inventing semantics.
 
-    A stage match is necessary but not sufficient for canonicalization. The
-    canonical MT capacity tables require a work-center relation *for the matched
-    stage*, and observations expressed in component-level units (e.g.
+    Every declared stage must resolve canonically before the observation can
+    progress. A stage match is necessary but not sufficient for canonicalization.
+    The canonical MT capacity tables require a work-center relation *for the
+    matched stage*, and observations expressed in component-level units (e.g.
     columns/day or bases/day) need an explicit conversion or component/resource
     model before they can represent a stage-level capacity.
     """
     stages = set(_normalize_stage_codes(canonical_stage_codes))
     requested = _normalize_stage_codes(evidence.stage_codes)
     matched = tuple(code for code in requested if code in stages)
+    unmapped = tuple(code for code in requested if code not in stages)
 
-    if not requested or not matched:
+    if not requested or not matched or unmapped:
         return CapacityReconciliation(
             evidence_id=evidence.evidence_id,
             state=CapacityReconciliationState.NEEDS_STAGE_MAPPING,
-            matched_stage=None,
+            matched_stage=matched[0] if len(matched) == 1 else None,
             work_center_ref=None,
             canonical_unit=None,
             next_required_condition="canonical_stage_mapping",
             source_ref=evidence.source_ref,
-            detail=f"declared_stages={requested or ()} matched=()",
+            detail=(
+                f"declared_stages={requested or ()} matched={matched} unmapped={unmapped}"
+            ),
         )
     if len(matched) > 1:
         return CapacityReconciliation(
