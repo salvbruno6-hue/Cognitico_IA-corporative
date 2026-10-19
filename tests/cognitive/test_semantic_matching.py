@@ -21,11 +21,11 @@ from elo.cognitive.reasoning.semantic_matching import (
 )
 
 
-def node(requirement_id="SO-203.26:R5"):
+def node(requirement_id="SO-203.26:R5", entity="MLT.C08"):
     return RequirementNode(
         requirement_id=requirement_id,
         text="Requisito técnico pendente de resolução",
-        entity="container-40-hc",
+        entity=entity,
     )
 
 
@@ -34,6 +34,7 @@ def candidate(
     claim_id="knowledge-1",
     predicate="painel.mdf.espessura",
     value="15 mm",
+    subject="MLT.C08",
     state=RequirementState.KNOWN,
     source_type=RequirementSourceType.ELO,
     source_reference="elo:taxonomia:MLT.C08",
@@ -43,7 +44,7 @@ def candidate(
     return RequirementClaim(
         claim_id=claim_id,
         requirement_id="knowledge:MLT.C08",
-        subject="MLT.C08",
+        subject=subject,
         predicate=predicate,
         value=value,
         state=state,
@@ -73,9 +74,10 @@ def unresolved_attempts():
     )
 
 
-def test_normalization_is_deterministic_and_accent_insensitive():
+def test_normalization_is_deterministic_accent_insensitive_and_unicode_safe():
     assert normalize_semantic_text("  Espessura-MDF / TÉCNICA  ") == "espessura mdf tecnica"
     assert normalize_semantic_text("espessura mdf técnica") == "espessura mdf tecnica"
+    assert normalize_semantic_text("Μοντέλο Α") == "μοντελο α"
 
 
 def test_exact_predicate_match_is_strong_without_rewriting_evidence():
@@ -108,6 +110,8 @@ def test_governed_alias_can_resolve_validated_evidence_as_retrieved_claim():
     assert result.state is SemanticResolutionState.RESOLVED
     assert result.human_validation_required is False
     assert result.matches[0].kind is SemanticMatchKind.GOVERNED_ALIAS
+    assert result.matches[0].entity_compatible is True
+    assert result.matches[0].entity_match_kind is SemanticMatchKind.EXACT
     assert result.retrieved_claim is not None
     assert result.retrieved_claim.requirement_id == "SO-203.26:R5"
     assert result.retrieved_claim.predicate == "mdf.thickness"
@@ -118,6 +122,37 @@ def test_governed_alias_can_resolve_validated_evidence_as_retrieved_claim():
     assert result.retrieved_claim.provenance.evidence_ids == ("taxonomia-row-27",)
     assert result.retrieved_claim.provenance.validation_status == "VALIDATED"
     assert "semantic-match:governed_alias:v1" == result.retrieved_claim.provenance.reasoning_method
+
+
+def test_parameter_match_does_not_prove_applicability_to_another_entity():
+    evidence = candidate(predicate="mdf.thickness", subject="MLT.M01")
+
+    result = resolve_requirement_parameter(
+        node=node(entity="MLT.C08"),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+    )
+
+    assert result.state is SemanticResolutionState.VALIDATION_REQUIRED
+    assert result.human_validation_required is True
+    assert result.matches[0].entity_compatible is False
+    assert result.retrieved_claim is None
+    assert "applicability" in result.reasons[0]
+
+
+def test_governed_entity_alias_can_establish_applicability_explicitly():
+    evidence = candidate(predicate="mdf.thickness", subject="modelo c08")
+
+    result = resolve_requirement_parameter(
+        node=node(entity="MLT.C08"),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+        entity_aliases={"MLT.C08": ("modelo c08",)},
+    )
+
+    assert result.state is SemanticResolutionState.RESOLVED
+    assert result.matches[0].entity_match_kind is SemanticMatchKind.GOVERNED_ALIAS
+    assert result.retrieved_claim is not None
 
 
 def test_strong_but_unvalidated_match_requires_validation_and_does_not_create_fact():
@@ -131,6 +166,19 @@ def test_strong_but_unvalidated_match_requires_validation_and_does_not_create_fa
 
     assert result.state is SemanticResolutionState.VALIDATION_REQUIRED
     assert result.human_validation_required is True
+    assert result.retrieved_claim is None
+
+
+def test_empty_candidate_value_never_resolves_a_parameter():
+    evidence = candidate(predicate="mdf.thickness", value="   ")
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+    )
+
+    assert result.state is SemanticResolutionState.VALIDATION_REQUIRED
     assert result.retrieved_claim is None
 
 
@@ -165,7 +213,7 @@ def test_token_overlap_is_diagnostic_only_and_never_auto_resolves():
     assert result.retrieved_claim is None
 
 
-def test_conflicting_strong_matches_are_ambiguous_and_require_human_validation():
+def test_conflicting_strong_applicable_matches_are_ambiguous_and_require_human_validation():
     first = candidate(claim_id="k-15", predicate="mdf.thickness", value="15 mm")
     second = candidate(
         claim_id="k-18",
@@ -227,11 +275,12 @@ def test_so_203_26_semantic_equivalence_prevents_false_gap_confirmation():
         claim_id="so203-taxonomy",
         predicate="espessura mdf",
         value="15 mm",
+        subject="MLT.C08",
         source_reference="elo:knowledge:mdf-standard",
         evidence_ids=("knowledge-mdf-standard",),
     )
     result = resolve_requirement_parameter(
-        node=node("SO-203.26:R-MDF"),
+        node=node("SO-203.26:R-MDF", entity="MLT.C08"),
         parameter="mdf.thickness",
         candidates=(evidence,),
         aliases={"mdf.thickness": ("espessura mdf",)},
@@ -249,7 +298,7 @@ def test_so_203_26_semantic_equivalence_prevents_false_gap_confirmation():
     assert assessment.state is not RequirementState.GAP_CONFIRMED
 
 
-def test_audit_trace_exposes_match_evidence_without_private_reasoning():
+def test_audit_trace_exposes_match_evidence_and_applicability_without_private_reasoning():
     result = resolve_requirement_parameter(
         node=node(),
         parameter="mdf.thickness",
@@ -261,5 +310,7 @@ def test_audit_trace_exposes_match_evidence_without_private_reasoning():
     assert trace["state"] == "RESOLVED"
     assert trace["matches"][0]["source_reference"] == "elo:taxonomia:MLT.C08"
     assert trace["matches"][0]["evidence_ids"] == ("taxonomia-row-27",)
+    assert trace["matches"][0]["entity_compatible"] is True
+    assert trace["matches"][0]["entity_match_kind"] == "EXACT"
     assert "reasoning" not in trace
     assert "chain_of_thought" not in trace
