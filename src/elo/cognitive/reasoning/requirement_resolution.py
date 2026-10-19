@@ -12,8 +12,8 @@ The epistemic boundary is fail-closed: a missing provider is not an attempted
 resolution path, incompatible claims are rejected, inference never becomes an
 automatic fact, unresolved retrieval evidence cannot be erased by later failed
 attempts, structured claims cannot cross entity boundaries without explicit
-applicability evidence, and audit output contains only explicit evidence/status
-data.
+applicability evidence, preloaded automatic claims are revalidated before any
+short circuit, and audit output contains only explicit evidence/status data.
 """
 from __future__ import annotations
 
@@ -37,6 +37,7 @@ from .semantic_matching import (
     SemanticResolutionState,
     audit_semantic_resolution,
     normalize_semantic_identifier,
+    normalize_semantic_value,
     resolve_requirement_parameter,
 )
 
@@ -160,6 +161,20 @@ class RequirementResolutionFlow:
         current_claims = list(node.claims)
         attempts: list[ResolutionAttempt] = []
         retrieval_resolution: SemanticResolution | None = None
+
+        preloaded_conflict = _validate_preloaded_usable_claims(
+            node=node,
+            parameter=parameter,
+            claims=current_claims,
+        )
+        if preloaded_conflict is not None:
+            return RequirementResolutionResult(
+                requirement_id=node.requirement_id,
+                parameter=parameter,
+                claims=tuple(current_claims),
+                attempts=(),
+                assessment=preloaded_conflict,
+            )
 
         assessment = assess_parameter_gap(
             requirement_id=node.requirement_id,
@@ -285,11 +300,99 @@ def _is_validated(claim: RequirementClaim) -> bool:
     return claim.provenance.validation_status.strip().upper() in _VALIDATION_OK
 
 
-def _require_governed_evidence(claim: RequirementClaim, *, kind: ResolutionAttemptKind) -> None:
+def _require_nonblank_claim_value(claim: RequirementClaim, *, context: str) -> None:
+    if not str(claim.value).strip():
+        raise ValueError(f"{context} claim requires a nonblank value")
+
+
+def _require_governed_evidence(claim: RequirementClaim, *, context: str) -> None:
     if not claim.provenance.source_reference or not claim.provenance.source_reference.strip():
-        raise ValueError(f"{kind.value} claim requires source_reference")
+        raise ValueError(f"{context} claim requires source_reference")
     if not _clean_evidence_ids(claim.provenance.evidence_ids):
-        raise ValueError(f"{kind.value} claim requires nonblank evidence_ids")
+        raise ValueError(f"{context} claim requires nonblank evidence_ids")
+
+
+def _require_preloaded_entity_identity(
+    *,
+    node: RequirementNode,
+    claim: RequirementClaim,
+) -> None:
+    target_entity = node.entity.strip() if node.entity and node.entity.strip() else None
+    if target_entity is None:
+        raise ValueError(
+            "PRELOADED automatic claim requires a target entity before it can short-circuit"
+        )
+    if normalize_semantic_identifier(target_entity) != normalize_semantic_identifier(
+        claim.subject
+    ):
+        raise ValueError("PRELOADED automatic claim entity does not match target entity")
+
+
+def _validate_preloaded_usable_claims(
+    *,
+    node: RequirementNode,
+    parameter: str,
+    claims: Sequence[RequirementClaim],
+) -> GapAssessment | None:
+    """Revalidate initial usable claims before they can short-circuit the flow."""
+    usable = tuple(
+        claim
+        for claim in claims
+        if claim.predicate == parameter and claim.state in _AUTOMATIC_STATES
+    )
+    for claim in usable:
+        if not claim.subject or not claim.subject.strip():
+            raise ValueError("PRELOADED automatic claim requires a nonblank subject")
+        _require_preloaded_entity_identity(node=node, claim=claim)
+        _require_nonblank_claim_value(claim, context="PRELOADED")
+        if not claim.provenance.source_reference or not claim.provenance.source_reference.strip():
+            raise ValueError("PRELOADED automatic claim requires source_reference")
+        if claim.requires_human_validation:
+            raise ValueError(
+                "PRELOADED automatic claim cannot short-circuit with a pending human gate"
+            )
+
+        if claim.state is RequirementState.DOCUMENTED:
+            if claim.provenance.source_type is not RequirementSourceType.DOCUMENT:
+                raise ValueError("PRELOADED DOCUMENTED claim requires DOCUMENT provenance")
+            # Explicit document extraction is itself governed evidence and may
+            # legitimately carry validation_status=EXTRACTED without a separate
+            # evidence identifier; its source_reference remains mandatory.
+            continue
+
+        _require_governed_evidence(claim, context="PRELOADED")
+        if not _is_validated(claim):
+            raise ValueError(
+                "PRELOADED automatic claim requires governed validation"
+            )
+        if claim.provenance.source_type is RequirementSourceType.LLM_INFERENCE:
+            raise ValueError(
+                "PRELOADED automatic claim cannot use LLM_INFERENCE provenance"
+            )
+        if (
+            claim.state is RequirementState.CALCULATED
+            and claim.provenance.source_type is not RequirementSourceType.CALCULATION
+        ):
+            raise ValueError(
+                "PRELOADED CALCULATED claim requires CALCULATION provenance"
+            )
+
+    normalized_values = {
+        normalize_semantic_value(claim.value)
+        for claim in usable
+        if str(claim.value).strip()
+    }
+    if len(normalized_values) > 1:
+        return GapAssessment(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            state=RequirementState.CONFLICT,
+            reasons=("preloaded governed claims disagree on the parameter value",),
+            evidence_ids=_claim_evidence_ids(usable),
+            confidence=ConfidenceBand.LOW,
+            human_validation_required=True,
+        )
+    return None
 
 
 def _validate_structured_entity(
@@ -340,7 +443,8 @@ def _validate_stage_claims(
             )
         if not claim.subject or not claim.subject.strip():
             raise ValueError(f"{kind.value} claim requires a nonblank subject")
-        _require_governed_evidence(claim, kind=kind)
+        _require_nonblank_claim_value(claim, context=kind.value)
+        _require_governed_evidence(claim, context=kind.value)
         used_entity_evidence.extend(
             _validate_structured_entity(
                 kind=kind,
@@ -472,6 +576,14 @@ def _structured_attempt_outcome(
     if any(claim.state is RequirementState.CONFLICT for claim in step.claims):
         return ResolutionAttemptStatus.CONFLICT, evidence_ids
 
+    normalized_values = {
+        normalize_semantic_value(claim.value)
+        for claim in step.claims
+        if str(claim.value).strip()
+    }
+    if len(normalized_values) > 1:
+        return ResolutionAttemptStatus.CONFLICT, evidence_ids
+
     if kind is ResolutionAttemptKind.RULE and any(
         claim.state is RequirementState.KNOWN for claim in step.claims
     ):
@@ -497,10 +609,13 @@ def _preserve_unresolved_retrieval(
     retrieval_resolution: SemanticResolution | None,
     attempts: Sequence[ResolutionAttempt],
 ) -> GapAssessment:
-    """Do not let exhausted later stages erase unresolved retrieved evidence."""
-    if assessment.state is not RequirementState.GAP_CONFIRMED:
-        return assessment
+    """Do not let missing or exhausted later paths erase retrieved uncertainty."""
     if retrieval_resolution is None:
+        return assessment
+    if assessment.state not in {
+        RequirementState.GAP_CANDIDATE,
+        RequirementState.GAP_CONFIRMED,
+    }:
         return assessment
 
     retrieval_evidence = _clean_evidence_ids(
@@ -521,7 +636,7 @@ def _preserve_unresolved_retrieval(
             state=RequirementState.HUMAN_VALIDATION_REQUIRED,
             reasons=(
                 "retrieval found strong semantic evidence whose applicability or governance still requires validation",
-                "later resolution paths did not produce a governed fact",
+                "no later resolution path produced a governed fact",
             ),
             evidence_ids=retrieval_evidence,
             confidence=ConfidenceBand.UNVERIFIED,
