@@ -31,6 +31,7 @@ class CompositeSectorEvidence:
     sector: str
     observation_count: int
     source_ref: str
+    canonical_stage_codes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.sector.strip():
@@ -54,6 +55,10 @@ class CompositeStageRoutingAssessment:
     canonical_mutation: bool = False
 
 
+def _norm_codes(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(item.strip().upper() for item in values if item.strip()))
+
+
 def assess_composite_stage_routing(
     *,
     stage_code: str,
@@ -66,7 +71,8 @@ def assess_composite_stage_routing(
     """Assess whether a macro-stage can advance to a routing proposal.
 
     Multiple real sectors are preserved as constituents instead of being forced into
-    a single work center. A proposal still requires subsequent governed route and
+    a single work center. Every observation must explicitly support the requested
+    canonical stage. A proposal still requires subsequent governed route and
     work-center registration.
     """
     stage = stage_code.strip().upper()
@@ -80,10 +86,14 @@ def assess_composite_stage_routing(
         raise ValueError("aggregate_capacity_per_day must be finite and greater than zero")
 
     real = tuple(sector_evidence)
-    sectors = tuple(dict.fromkeys(item.sector.strip().upper() for item in real))
-    refs = tuple(dict.fromkeys(item.source_ref for item in real))
+    matched = tuple(item for item in real if stage in _norm_codes(item.canonical_stage_codes))
+    unmatched = tuple(item for item in real if stage not in _norm_codes(item.canonical_stage_codes))
+    sectors = tuple(dict.fromkeys(item.sector.strip().upper() for item in matched))
+    refs = tuple(dict.fromkeys(item.source_ref for item in matched))
+    capacity_ref = (capacity_source_ref or "").strip()
 
     if canonical_route_count > 0:
+        all_refs = refs + ((capacity_ref,) if capacity_ref else ())
         return CompositeStageRoutingAssessment(
             stage,
             CompositeStageRoutingState.CANONICAL_ROUTE_EXISTS,
@@ -92,10 +102,11 @@ def assess_composite_stage_routing(
             aggregate_capacity_unit,
             1.0,
             None,
-            refs + ((capacity_source_ref,) if capacity_source_ref else ()),
+            tuple(dict.fromkeys(all_refs)),
         )
 
-    if len(sectors) < 2:
+    if unmatched or len(sectors) < 2:
+        all_refs = tuple(dict.fromkeys(tuple(item.source_ref for item in real) + ((capacity_ref,) if capacity_ref else ())))
         return CompositeStageRoutingAssessment(
             stage,
             CompositeStageRoutingState.NEEDS_STAGE_EVIDENCE,
@@ -103,12 +114,12 @@ def assess_composite_stage_routing(
             aggregate_capacity_per_day,
             aggregate_capacity_unit,
             0.35 if sectors else 0.0,
-            "multiple_constituent_operational_sectors",
-            refs + ((capacity_source_ref,) if capacity_source_ref else ()),
+            "explicit_stage_binding_for_all_constituent_sectors",
+            all_refs,
         )
 
-    if aggregate_capacity_per_day is None or not (aggregate_capacity_unit or "").strip() or not capacity_source_ref:
-        count = sum(item.observation_count for item in real)
+    if aggregate_capacity_per_day is None or not (aggregate_capacity_unit or "").strip() or not capacity_ref:
+        count = sum(item.observation_count for item in matched)
         return CompositeStageRoutingAssessment(
             stage,
             CompositeStageRoutingState.NEEDS_CAPACITY_EVIDENCE,
@@ -120,7 +131,7 @@ def assess_composite_stage_routing(
             refs,
         )
 
-    count = sum(item.observation_count for item in real)
+    count = sum(item.observation_count for item in matched)
     confidence = min(0.9, 0.65 + 0.02 * min(count, 12))
     return CompositeStageRoutingAssessment(
         stage,
@@ -130,7 +141,7 @@ def assess_composite_stage_routing(
         aggregate_capacity_unit.strip(),
         round(confidence, 3),
         "governed_route_and_work_center_registration",
-        tuple(dict.fromkeys(refs + (capacity_source_ref,))),
+        tuple(dict.fromkeys(refs + (capacity_ref,))),
     )
 
 
