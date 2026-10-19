@@ -18,6 +18,7 @@ from elo.cognitive.reasoning.requirement_analysis import (
 class Adapter:
     kind = "GITHUB"
     capability = "source.github.read"
+    authorization_scope = "source:github:read"
 
     def __init__(self, content="Tipo: 40 HC"):
         self.content = content
@@ -49,16 +50,36 @@ class Adapter:
         )
 
 
-def resolved_record(content="Tipo: 40 HC"):
-    resolver = SourceResolver(adapters=(Adapter(content),))
-    candidate = SourceCandidate(
+class LegacyAdapterWithoutScope:
+    kind = "GITHUB"
+    capability = "source.github.read"
+
+    def available(self):
+        return True
+
+    def retrieve(self, candidate, request):
+        return (
+            RetrievedSource(
+                source_id="legacy-source",
+                source_type="GITHUB",
+                content="Tipo: 40 HC",
+                provenance={"uri": "github://legacy"},
+            ),
+        )
+
+
+def candidate():
+    return SourceCandidate(
         kind="GITHUB",
         reason="fixture",
         priority=1,
         query="SO 203.26",
         required_capability="source.github.read",
     )
-    request = SourceResolutionRequest(
+
+
+def request(*, scope="source:github:read"):
+    return SourceResolutionRequest(
         query="SO 203.26",
         tenant_id="tenant-a",
         domain="orcamento",
@@ -67,9 +88,12 @@ def resolved_record(content="Tipo: 40 HC"):
         request_id="request-203",
         correlation_id="correlation-203",
         conversation_id="conversation-203",
-        authorization_scope="read",
+        authorization_scope=scope,
     )
-    result = resolver.resolve(candidate, request)
+
+
+def resolved_record(content="Tipo: 40 HC"):
+    result = SourceResolver(adapters=(Adapter(content),)).resolve(candidate(), request())
     assert result.status == "RETRIEVED_TO_TEMPORAL"
     return result.temporal_records[0]
 
@@ -96,20 +120,34 @@ def test_resolver_owned_context_overrides_adapter_context_before_extraction():
     assert node.metadata["retrieval.correlation_id"] == "correlation-203"
 
 
-def test_resolver_owned_capability_overrides_forged_adapter_assertions():
+def test_resolver_owned_capability_and_scope_override_forged_adapter_assertions():
     record = resolved_record()
-    # Raw temporal provenance may preserve adapter assertions for evidence, but
-    # trusted resolver fields must overwrite the governed capability contract.
     assert record.provenance["required_capability"] == "source.github.read"
-    assert record.provenance["authorization_scope"] == "read"
+    assert record.provenance["authorization_scope"] == "source:github:read"
     assert record.provenance["source_kind"] == "GITHUB"
 
     node = extract(record)[0]
     assert node.metadata["retrieval.required_capability"] == "source.github.read"
-    assert node.metadata["retrieval.authorization_scope"] == "read"
+    assert node.metadata["retrieval.authorization_scope"] == "source:github:read"
     assert node.metadata["retrieval.source_kind"] == "GITHUB"
     assert "retrieval.authority" not in node.metadata
     assert "retrieval.adapter_capability" not in node.metadata
+
+
+def test_resolver_rejects_scope_mismatch_before_retrieval():
+    result = SourceResolver(adapters=(Adapter(),)).resolve(candidate(), request(scope="read"))
+    assert result.status == "UNAUTHORIZED"
+    assert result.temporal_records == ()
+    assert "authorization scope" in (result.gap or "")
+
+
+def test_legacy_adapter_without_declared_scope_does_not_gain_governed_scope():
+    result = SourceResolver(adapters=(LegacyAdapterWithoutScope(),)).resolve(candidate(), request())
+    assert result.status == "RETRIEVED_TO_TEMPORAL"
+    record = result.temporal_records[0]
+    assert "authorization_scope" not in record.provenance
+    with pytest.raises(ValueError, match="authorization_scope"):
+        extract(record)
 
 
 def test_temporal_explicit_document_fact_stays_documented_not_inferred():
@@ -129,7 +167,7 @@ def test_bridge_preserves_selected_resolver_provenance_in_metadata():
     assert node.metadata["retrieval.reported_source_type"] == "GITHUB-REPORTED"
     assert node.metadata["retrieval.uri"] == "github://docs/SO-203.26"
     assert node.metadata["retrieval.required_capability"] == "source.github.read"
-    assert node.metadata["retrieval.authorization_scope"] == "read"
+    assert node.metadata["retrieval.authorization_scope"] == "source:github:read"
     assert node.metadata["retrieval.conversation_id"] == "conversation-203"
     assert "provider_specific" not in node.metadata
     assert "retrieval.provider_specific" not in node.metadata
@@ -157,6 +195,12 @@ def test_bridge_fails_closed_for_blank_content():
         created_at="2026-10-19T00:00:00+00:00",
     )
     with pytest.raises(ValueError, match="content"):
+        extract(record)
+
+
+def test_bridge_fails_closed_for_whitespace_only_source_identity():
+    record = replace(resolved_record(), source_type="   ")
+    with pytest.raises(ValueError, match="source identity"):
         extract(record)
 
 
@@ -210,5 +254,6 @@ def test_audit_contract_exposes_only_allowlisted_retrieval_provenance():
     assert trace["metadata"]["retrieval.request_id"] == "request-203"
     assert trace["metadata"]["retrieval.correlation_id"] == "correlation-203"
     assert trace["metadata"]["retrieval.required_capability"] == "source.github.read"
+    assert trace["metadata"]["retrieval.authorization_scope"] == "source:github:read"
     assert "private_reasoning" not in trace["metadata"]
     assert "credential" not in trace["metadata"]
