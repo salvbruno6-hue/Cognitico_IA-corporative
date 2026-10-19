@@ -48,10 +48,10 @@ class ExplicitRequirement:
 
 _KEY_VALUE = re.compile(r"^\s*([^:;]{2,120}?)\s*:\s*(.+?)\s*$")
 _BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$")
+# Only resolver-owned context and non-authoritative source location are exposed.
+# Adapter-provided authority/capability assertions are deliberately excluded.
 _RETRIEVAL_PROVENANCE_KEYS = (
     "uri",
-    "authority",
-    "adapter_capability",
     "tenant_id",
     "domain",
     "principal_id",
@@ -59,6 +59,21 @@ _RETRIEVAL_PROVENANCE_KEYS = (
     "request_id",
     "correlation_id",
     "source_id",
+    "source_kind",
+    "required_capability",
+    "authorization_scope",
+)
+_REQUIRED_RESOLVER_CONTEXT = (
+    "tenant_id",
+    "domain",
+    "principal_id",
+    "session_id",
+    "request_id",
+    "correlation_id",
+    "source_id",
+    "source_kind",
+    "required_capability",
+    "authorization_scope",
 )
 
 
@@ -177,17 +192,19 @@ def extract_documented_requirements(
 
 
 def _temporal_retrieval_metadata(record: TemporalRecord) -> Mapping[str, str]:
-    """Select resolver-enriched provenance from canonical temporal memory."""
+    """Select resolver-owned provenance and source location for audit metadata."""
     metadata: dict[str, str] = {
         "retrieval.record_id": record.record_id,
-        "retrieval.source_type": record.source_type,
+        # Temporal source_type is a source-reported classification; the trusted
+        # resolver route is separately recorded as retrieval.source_kind.
+        "retrieval.reported_source_type": record.source_type,
         "retrieval.conversation_id": record.conversation_id,
         "retrieval.classification": record.classification,
     }
     for key in _RETRIEVAL_PROVENANCE_KEYS:
         value = record.provenance.get(key)
         if value is not None and str(value).strip():
-            metadata[f"retrieval.{key}"] = str(value)
+            metadata[f"retrieval.{key}"] = str(value).strip()
     return metadata
 
 
@@ -202,9 +219,10 @@ def extract_temporal_document_requirements(
     """Bridge resolver-owned temporal evidence to explicit document extraction.
 
     `SourceResolver` enriches temporal-record provenance with validated request
-    context before this function is called. The caller must still explicitly
-    qualify the material as a document through ``document_reference``. This
-    function does not consume raw adapter provenance as authoritative context.
+    context and the capability contract before this function is called. The
+    caller must still explicitly qualify the material as a document through
+    ``document_reference``. Raw adapter authority/capability assertions are not
+    exposed as trusted audit provenance.
     """
     if not record.record_id or not record.source_type:
         raise ValueError("temporal source identity is required")
@@ -215,16 +233,10 @@ def extract_temporal_document_requirements(
     if not document_reference.strip():
         raise ValueError("document_reference is required")
 
-    required_context = (
-        "tenant_id",
-        "domain",
-        "principal_id",
-        "session_id",
-        "request_id",
-        "correlation_id",
-        "source_id",
+    missing = tuple(
+        key for key in _REQUIRED_RESOLVER_CONTEXT
+        if record.provenance.get(key) is None or not str(record.provenance.get(key)).strip()
     )
-    missing = tuple(key for key in required_context if not record.provenance.get(key))
     if missing:
         raise ValueError(f"resolver-owned temporal provenance missing: {', '.join(missing)}")
 
