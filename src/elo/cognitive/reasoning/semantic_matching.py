@@ -73,7 +73,7 @@ class SemanticResolution:
     human_validation_required: bool = False
 
     def __post_init__(self) -> None:
-        if not self.requirement_id or not self.parameter:
+        if not self.requirement_id.strip() or not self.parameter.strip():
             raise ValueError("semantic resolution requires requirement_id and parameter")
         if self.retrieved_claim is not None:
             if self.state is not SemanticResolutionState.RESOLVED:
@@ -93,6 +93,17 @@ _GOVERNED_STATES = frozenset(
         RequirementState.CALCULATED,
     }
 )
+
+
+def _clean_evidence_ids(values: Sequence[str]) -> tuple[str, ...]:
+    """Return stable, nonblank evidence identifiers without duplication."""
+    return tuple(
+        dict.fromkeys(
+            cleaned
+            for value in values
+            if (cleaned := str(value).strip())
+        )
+    )
 
 
 def _strip_diacritics(value: str) -> str:
@@ -197,7 +208,13 @@ def _strong_term_equivalence(
 def _requirement_context_id(requirement_id: str) -> str:
     """Return the stable request/SO context for requirement-node identifiers."""
     head, separator, tail = requirement_id.rpartition(":")
-    if separator and head and tail.upper().startswith("R"):
+    tail_upper = tail.upper()
+    requirement_suffix = (
+        tail_upper == "R"
+        or tail_upper.startswith("R-")
+        or (tail_upper.startswith("R") and tail_upper[1:].isdigit())
+    )
+    if separator and head and requirement_suffix:
         return head
     return requirement_id
 
@@ -212,7 +229,7 @@ def _context_is_compatible(
         return True
     if _requirement_context_id(required_requirement_id) == _requirement_context_id(candidate_requirement_id):
         return True
-    return any(str(evidence_id).strip() for evidence_id in applicability_evidence_ids)
+    return bool(_clean_evidence_ids(applicability_evidence_ids))
 
 
 def match_parameter_to_claim(
@@ -267,11 +284,7 @@ def match_parameter_to_claim(
         if not entity_compatible:
             entity_match_kind = None
 
-    explicit_applicability = tuple(
-        str(evidence_id).strip()
-        for evidence_id in applicability_evidence_ids
-        if str(evidence_id).strip()
-    )
+    explicit_applicability = _clean_evidence_ids(applicability_evidence_ids)
     context_compatible = _context_is_compatible(
         required_requirement_id=required_requirement_id,
         candidate_requirement_id=candidate.requirement_id,
@@ -295,9 +308,12 @@ def _candidate_is_governed(candidate: RequirementClaim) -> bool:
         candidate.state in _GOVERNED_STATES
         and candidate.provenance.source_type is not RequirementSourceType.LLM_INFERENCE
         and not candidate.requires_human_validation
+        and bool(candidate.requirement_id.strip())
+        and bool(candidate.subject.strip())
         and bool(str(candidate.value).strip())
-        and bool(candidate.provenance.evidence_ids)
-        and candidate.provenance.validation_status.upper() in _VALIDATION_OK
+        and bool(candidate.provenance.source_reference.strip())
+        and bool(_clean_evidence_ids(candidate.provenance.evidence_ids))
+        and candidate.provenance.validation_status.strip().upper() in _VALIDATION_OK
     )
 
 
@@ -314,14 +330,16 @@ def _bind_retrieved_claim(
     match: SemanticMatch,
 ) -> RequirementClaim:
     candidate = match.candidate
+    candidate_evidence = _clean_evidence_ids(candidate.provenance.evidence_ids)
+    combined_evidence = _clean_evidence_ids(
+        (*candidate_evidence, *match.applicability_evidence_ids)
+    )
     provenance = ClaimProvenance(
         source_type=candidate.provenance.source_type,
-        source_reference=candidate.provenance.source_reference,
+        source_reference=candidate.provenance.source_reference.strip(),
         reasoning_method=f"semantic-match:{match.kind.value.casefold()}:v1",
-        evidence_ids=tuple(dict.fromkeys(
-            (*candidate.provenance.evidence_ids, *match.applicability_evidence_ids)
-        )),
-        validation_status=candidate.provenance.validation_status,
+        evidence_ids=combined_evidence,
+        validation_status=candidate.provenance.validation_status.strip(),
     )
     return RequirementClaim(
         claim_id=_stable_claim_id(
@@ -518,9 +536,9 @@ def audit_semantic_resolution(resolution: SemanticResolution) -> Mapping[str, ob
                 "context_compatible": match.context_compatible,
                 "applicability_evidence_ids": match.applicability_evidence_ids,
                 "source_type": match.candidate.provenance.source_type.value,
-                "source_reference": match.candidate.provenance.source_reference,
-                "evidence_ids": match.candidate.provenance.evidence_ids,
-                "validation_status": match.candidate.provenance.validation_status,
+                "source_reference": match.candidate.provenance.source_reference.strip(),
+                "evidence_ids": _clean_evidence_ids(match.candidate.provenance.evidence_ids),
+                "validation_status": match.candidate.provenance.validation_status.strip(),
             }
             for match in resolution.matches
         ),
