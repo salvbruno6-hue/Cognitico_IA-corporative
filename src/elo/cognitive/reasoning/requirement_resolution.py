@@ -17,10 +17,12 @@ short circuit, and audit output contains only explicit evidence/status data.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import Mapping, Protocol, Sequence
 
 from .requirement_analysis import (
+    ClaimProvenance,
     ConfidenceBand,
     GapAssessment,
     RequirementClaim,
@@ -221,7 +223,7 @@ class RequirementResolutionFlow:
                 if retrieval_resolution.retrieved_claim is not None:
                     current_claims.append(retrieval_resolution.retrieved_claim)
             else:
-                entity_evidence_ids = _validate_stage_claims(
+                bound_claims, entity_evidence_ids = _validate_stage_claims(
                     kind=kind,
                     node=node,
                     parameter=parameter,
@@ -230,10 +232,15 @@ class RequirementResolutionFlow:
                         self.structured_entity_applicability_evidence
                     ),
                 )
-                current_claims.extend(step.claims)
+                bound_step = ResolutionStepResult(
+                    source_reference=step.source_reference,
+                    claims=bound_claims,
+                    evidence_ids=step.evidence_ids,
+                )
+                current_claims.extend(bound_claims)
                 status, evidence_ids = _structured_attempt_outcome(
                     kind=kind,
-                    step=step,
+                    step=bound_step,
                     entity_applicability_evidence_ids=entity_evidence_ids,
                 )
 
@@ -422,6 +429,69 @@ def _validate_structured_entity(
     )
 
 
+def _stable_bound_claim_id(
+    *,
+    node: RequirementNode,
+    claim: RequirementClaim,
+    applicability_evidence_ids: Sequence[str],
+) -> str:
+    material = "\x1f".join(
+        (
+            node.requirement_id,
+            node.entity or "",
+            claim.claim_id,
+            *_clean_evidence_ids(applicability_evidence_ids),
+        )
+    )
+    digest = hashlib.sha256(material.encode("utf-8")).hexdigest()
+    return f"claim:structured-bind:{digest[:20]}"
+
+
+def _bind_structured_claim(
+    *,
+    node: RequirementNode,
+    claim: RequirementClaim,
+    applicability_evidence_ids: Sequence[str],
+) -> RequirementClaim:
+    applicability = _clean_evidence_ids(applicability_evidence_ids)
+    if not applicability:
+        return claim
+
+    target_subject = (
+        node.entity.strip()
+        if node.entity is not None and node.entity.strip()
+        else claim.subject
+    )
+    provenance = ClaimProvenance(
+        source_type=claim.provenance.source_type,
+        source_reference=claim.provenance.source_reference,
+        reasoning_method=(
+            f"{claim.provenance.reasoning_method}|structured-entity-applicability:v1"
+        ),
+        evidence_ids=_clean_evidence_ids(
+            (*claim.provenance.evidence_ids, *applicability)
+        ),
+        validation_status=claim.provenance.validation_status,
+    )
+    return RequirementClaim(
+        claim_id=_stable_bound_claim_id(
+            node=node,
+            claim=claim,
+            applicability_evidence_ids=applicability,
+        ),
+        requirement_id=node.requirement_id,
+        subject=target_subject,
+        predicate=claim.predicate,
+        value=claim.value,
+        state=claim.state,
+        provenance=provenance,
+        dependencies=tuple(
+            dict.fromkeys((*claim.dependencies, claim.claim_id))
+        ),
+        requires_human_validation=claim.requires_human_validation,
+    )
+
+
 def _validate_stage_claims(
     *,
     kind: ResolutionAttemptKind,
@@ -429,8 +499,9 @@ def _validate_stage_claims(
     parameter: str,
     claims: Sequence[RequirementClaim],
     entity_applicability_evidence: Mapping[str, Sequence[str]],
-) -> tuple[str, ...]:
+) -> tuple[tuple[RequirementClaim, ...], tuple[str, ...]]:
     used_entity_evidence: list[str] = []
+    bound_claims: list[RequirementClaim] = []
     for claim in claims:
         if claim.requirement_id != node.requirement_id:
             raise ValueError(
@@ -445,14 +516,13 @@ def _validate_stage_claims(
             raise ValueError(f"{kind.value} claim requires a nonblank subject")
         _require_nonblank_claim_value(claim, context=kind.value)
         _require_governed_evidence(claim, context=kind.value)
-        used_entity_evidence.extend(
-            _validate_structured_entity(
-                kind=kind,
-                node=node,
-                claim=claim,
-                entity_applicability_evidence=entity_applicability_evidence,
-            )
+        entity_evidence = _validate_structured_entity(
+            kind=kind,
+            node=node,
+            claim=claim,
+            entity_applicability_evidence=entity_applicability_evidence,
         )
+        used_entity_evidence.extend(entity_evidence)
 
         if kind is ResolutionAttemptKind.RULE:
             if claim.provenance.source_type is not RequirementSourceType.RULE:
@@ -512,7 +582,15 @@ def _validate_stage_claims(
         else:
             raise ValueError(f"structured claim validation is unsupported for {kind.value}")
 
-    return _clean_evidence_ids(used_entity_evidence)
+        bound_claims.append(
+            _bind_structured_claim(
+                node=node,
+                claim=claim,
+                applicability_evidence_ids=entity_evidence,
+            )
+        )
+
+    return tuple(bound_claims), _clean_evidence_ids(used_entity_evidence)
 
 
 def _retrieval_attempt_outcome(
@@ -603,19 +681,32 @@ def _structured_attempt_outcome(
     return ResolutionAttemptStatus.NOT_FOUND, evidence_ids
 
 
+def _merge_reasons(*groups: Sequence[str]) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            reason
+            for group in groups
+            for reason in group
+            if reason
+        )
+    )
+
+
 def _preserve_unresolved_retrieval(
     *,
     assessment: GapAssessment,
     retrieval_resolution: SemanticResolution | None,
     attempts: Sequence[ResolutionAttempt],
 ) -> GapAssessment:
-    """Do not let missing or exhausted later paths erase retrieved uncertainty."""
+    """Do not let later unresolved paths erase stronger retrieved uncertainty."""
     if retrieval_resolution is None:
         return assessment
-    if assessment.state not in {
-        RequirementState.GAP_CANDIDATE,
-        RequirementState.GAP_CONFIRMED,
+    if retrieval_resolution.state not in {
+        SemanticResolutionState.VALIDATION_REQUIRED,
+        SemanticResolutionState.CANDIDATE,
     }:
+        return assessment
+    if assessment.state in _TERMINAL_AUTOMATIC_STATES:
         return assessment
 
     retrieval_evidence = _clean_evidence_ids(
@@ -629,33 +720,69 @@ def _preserve_unresolved_retrieval(
             ),
         )
     )
+    semantic_reasons = tuple(retrieval_resolution.reasons)
+
     if retrieval_resolution.state is SemanticResolutionState.VALIDATION_REQUIRED:
+        if assessment.state in {
+            RequirementState.GAP_CANDIDATE,
+            RequirementState.GAP_CONFIRMED,
+        }:
+            final_state = RequirementState.HUMAN_VALIDATION_REQUIRED
+            reasons = _merge_reasons(
+                (
+                    "retrieval found strong semantic evidence whose applicability or governance still requires validation",
+                ),
+                semantic_reasons,
+                assessment.reasons,
+            )
+        else:
+            final_state = assessment.state
+            reasons = _merge_reasons(
+                (
+                    "retrieval also found strong semantic evidence pending validation",
+                ),
+                semantic_reasons,
+                assessment.reasons,
+            )
         return GapAssessment(
             requirement_id=assessment.requirement_id,
             parameter=assessment.parameter,
-            state=RequirementState.HUMAN_VALIDATION_REQUIRED,
-            reasons=(
-                "retrieval found strong semantic evidence whose applicability or governance still requires validation",
-                "no later resolution path produced a governed fact",
-            ),
+            state=final_state,
+            reasons=reasons,
             evidence_ids=retrieval_evidence,
-            confidence=ConfidenceBand.UNVERIFIED,
+            confidence=assessment.confidence,
             human_validation_required=True,
         )
-    if retrieval_resolution.state is SemanticResolutionState.CANDIDATE:
-        return GapAssessment(
-            requirement_id=assessment.requirement_id,
-            parameter=assessment.parameter,
-            state=RequirementState.GAP_CANDIDATE,
-            reasons=(
+
+    if assessment.state in {
+        RequirementState.GAP_CANDIDATE,
+        RequirementState.GAP_CONFIRMED,
+    }:
+        final_state = RequirementState.GAP_CANDIDATE
+        reasons = _merge_reasons(
+            (
                 "retrieval found only non-authoritative semantic candidates",
                 "candidate evidence must be validated before the gap can be confirmed",
             ),
-            evidence_ids=retrieval_evidence,
-            confidence=ConfidenceBand.UNVERIFIED,
-            human_validation_required=True,
+            semantic_reasons,
+            assessment.reasons,
         )
-    return assessment
+    else:
+        final_state = assessment.state
+        reasons = _merge_reasons(
+            ("retrieval also found a non-authoritative semantic candidate",),
+            semantic_reasons,
+            assessment.reasons,
+        )
+    return GapAssessment(
+        requirement_id=assessment.requirement_id,
+        parameter=assessment.parameter,
+        state=final_state,
+        reasons=reasons,
+        evidence_ids=retrieval_evidence,
+        confidence=assessment.confidence,
+        human_validation_required=True,
+    )
 
 
 def _attempt_note(
