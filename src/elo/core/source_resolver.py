@@ -93,6 +93,19 @@ class SourceResolver:
                 status="UNAUTHORIZED",
                 gap="adapter capability does not satisfy the discovery requirement",
             )
+
+        declared_scope = getattr(adapter, "authorization_scope", None)
+        governed_scope: str | None = None
+        if declared_scope is not None:
+            declared_scope_text = str(declared_scope).strip()
+            if not declared_scope_text or request.authorization_scope != declared_scope_text:
+                return SourceResolutionResult(
+                    candidate=candidate,
+                    status="UNAUTHORIZED",
+                    gap="authorization scope does not satisfy the adapter contract",
+                )
+            governed_scope = declared_scope_text
+
         if not adapter.available():
             return SourceResolutionResult(
                 candidate=candidate,
@@ -111,23 +124,27 @@ class SourceResolver:
         records: list[TemporalRecord] = []
         for item in retrieved:
             provenance = dict(item.provenance)
-            provenance.update(
-                {
-                    # Resolver-owned request context overrides adapter assertions.
-                    "tenant_id": request.tenant_id,
-                    "domain": request.domain,
-                    "principal_id": request.principal_id,
-                    "session_id": request.session_id,
-                    "request_id": request.request_id,
-                    "correlation_id": request.correlation_id,
-                    "source_id": item.source_id,
-                    # These values come from the capability contract validated
-                    # immediately above, never from adapter-provided provenance.
-                    "source_kind": candidate.kind,
-                    "required_capability": candidate.required_capability,
-                    "authorization_scope": request.authorization_scope,
-                }
-            )
+            resolver_provenance = {
+                # Resolver-owned request context overrides adapter assertions.
+                "tenant_id": request.tenant_id,
+                "domain": request.domain,
+                "principal_id": request.principal_id,
+                "session_id": request.session_id,
+                "request_id": request.request_id,
+                "correlation_id": request.correlation_id,
+                "source_id": item.source_id,
+                # These values come from the capability contract validated
+                # immediately above, never from adapter-provided provenance.
+                "source_kind": candidate.kind,
+                "required_capability": candidate.required_capability,
+            }
+            # Authorization scope becomes governed provenance only when the
+            # selected adapter explicitly declares the same scope. Legacy/custom
+            # adapters without a declared scope may still resolve evidence, but
+            # the resolver will not represent their request scope as validated.
+            if governed_scope is not None:
+                resolver_provenance["authorization_scope"] = governed_scope
+            provenance.update(resolver_provenance)
             records.append(
                 self._temporal.append(
                     conversation_id=request.conversation_id,
