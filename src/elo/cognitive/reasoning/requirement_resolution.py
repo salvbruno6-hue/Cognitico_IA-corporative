@@ -10,7 +10,8 @@ allowed to advance.
 
 The epistemic boundary is fail-closed: a missing provider is not an attempted
 resolution path, incompatible claims are rejected, inference never becomes an
-automatic fact, and audit output contains only explicit evidence/status data.
+automatic fact, unresolved retrieval evidence cannot be erased by later failed
+attempts, and audit output contains only explicit evidence/status data.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Mapping, Protocol, Sequence
 
 from .requirement_analysis import (
+    ConfidenceBand,
     GapAssessment,
     RequirementClaim,
     RequirementNode,
@@ -231,6 +233,11 @@ class RequirementResolutionFlow:
             claims=current_claims,
             attempts=attempts,
         )
+        assessment = _preserve_unresolved_retrieval(
+            assessment=assessment,
+            retrieval_resolution=retrieval_resolution,
+            attempts=attempts,
+        )
         return RequirementResolutionResult(
             requirement_id=node.requirement_id,
             parameter=parameter,
@@ -425,6 +432,58 @@ def _structured_attempt_outcome(
     if step.claims:
         return ResolutionAttemptStatus.NOT_APPLICABLE, evidence_ids
     return ResolutionAttemptStatus.NOT_FOUND, evidence_ids
+
+
+def _preserve_unresolved_retrieval(
+    *,
+    assessment: GapAssessment,
+    retrieval_resolution: SemanticResolution | None,
+    attempts: Sequence[ResolutionAttempt],
+) -> GapAssessment:
+    """Do not let exhausted later stages erase unresolved retrieved evidence."""
+    if assessment.state is not RequirementState.GAP_CONFIRMED:
+        return assessment
+    if retrieval_resolution is None:
+        return assessment
+
+    retrieval_evidence = _clean_evidence_ids(
+        (
+            *assessment.evidence_ids,
+            *(
+                evidence_id
+                for attempt in attempts
+                if attempt.kind is ResolutionAttemptKind.RETRIEVAL
+                for evidence_id in attempt.evidence_ids
+            ),
+        )
+    )
+    if retrieval_resolution.state is SemanticResolutionState.VALIDATION_REQUIRED:
+        return GapAssessment(
+            requirement_id=assessment.requirement_id,
+            parameter=assessment.parameter,
+            state=RequirementState.HUMAN_VALIDATION_REQUIRED,
+            reasons=(
+                "retrieval found strong semantic evidence whose applicability or governance still requires validation",
+                "later resolution paths did not produce a governed fact",
+            ),
+            evidence_ids=retrieval_evidence,
+            confidence=ConfidenceBand.UNVERIFIED,
+            human_validation_required=True,
+        )
+    if retrieval_resolution.state is SemanticResolutionState.CANDIDATE:
+        return GapAssessment(
+            requirement_id=assessment.requirement_id,
+            parameter=assessment.parameter,
+            state=RequirementState.GAP_CANDIDATE,
+            reasons=(
+                "retrieval found only non-authoritative semantic candidates",
+                "candidate evidence must be validated before the gap can be confirmed",
+            ),
+            evidence_ids=retrieval_evidence,
+            confidence=ConfidenceBand.UNVERIFIED,
+            human_validation_required=True,
+        )
+    return assessment
 
 
 def _attempt_note(
