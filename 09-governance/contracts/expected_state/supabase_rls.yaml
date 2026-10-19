@@ -6,21 +6,24 @@ generated_from:
   - docs/governance/ELO_LIVE_STATE_RECONCILIATION_CONTRACT.md
   - docs/evolution/RLS_AUTHORIZATION_AUDIT_2026-10-08.md
   - docs/evolution/RLS_NO_POLICY_AUDIT_2026-10-08.json
-last_reviewed: "2026-10-18"
+last_reviewed: "2026-10-19"
 
 tables:
   - name: lista_mae
     expected_rls: true
-    declared_in: production
+    declared_in: 20261019061500_split_pcp_admin_write_policies.sql
     policies:
       - p_pcp_lista_mae_select
-      - p_pcp_lista_mae_admin_write
+      - p_pcp_lista_mae_admin_insert
+      - p_pcp_lista_mae_admin_update
+      - p_pcp_lista_mae_admin_delete
     criticality: high
     note: |
       Tabela corporativa da Multiteiner, ligada ao PCP.
-      As policies canônicas são p_pcp_* (produção). As elo_*
-      do canon antigo nunca foram aplicadas em produção.
-      Ver ADR-0017.
+      SELECT permanece disponível ao papel authenticated pelo contrato p_pcp_*.
+      Escritas permanecem restritas ao mesmo predicado admin ou PCP_ADMIN,
+      agora separado por INSERT/UPDATE/DELETE para evitar overlap permissivo
+      no SELECT sem alterar a superfície efetiva de autorização. Ver ADR-0017.
 
   - name: fornecedor_cotacoes
     expected_rls: true
