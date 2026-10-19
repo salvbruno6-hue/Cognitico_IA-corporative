@@ -281,6 +281,67 @@ def test_strong_but_unvalidated_match_requires_validation_and_does_not_create_fa
     assert result.retrieved_claim is None
 
 
+def test_blank_evidence_identifiers_do_not_satisfy_governance():
+    evidence = candidate(
+        predicate="mdf.thickness",
+        evidence_ids=("", "   "),
+    )
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+        applicability_evidence=applicability(evidence),
+    )
+
+    assert result.state is SemanticResolutionState.VALIDATION_REQUIRED
+    assert result.retrieved_claim is None
+
+
+def test_only_clean_nonblank_evidence_identifiers_are_propagated():
+    evidence = candidate(
+        predicate="mdf.thickness",
+        evidence_ids=("  taxonomia-row-27  ", "", "taxonomia-row-27", "  "),
+        source_reference="  elo:taxonomia:MLT.C08  ",
+        validation_status=" VALIDATED ",
+    )
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+        applicability_evidence={
+            evidence.claim_id: ("  applicability:knowledge-1  ", ""),
+        },
+    )
+
+    assert result.state is SemanticResolutionState.RESOLVED
+    assert result.retrieved_claim is not None
+    assert result.retrieved_claim.provenance.source_reference == "elo:taxonomia:MLT.C08"
+    assert result.retrieved_claim.provenance.validation_status == "VALIDATED"
+    assert result.retrieved_claim.provenance.evidence_ids == (
+        "taxonomia-row-27",
+        "applicability:knowledge-1",
+    )
+
+
+def test_blank_source_reference_never_resolves_even_with_evidence():
+    evidence = candidate(
+        predicate="mdf.thickness",
+        source_reference="   ",
+    )
+
+    result = resolve_requirement_parameter(
+        node=node(),
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+        applicability_evidence=applicability(evidence),
+    )
+
+    assert result.state is SemanticResolutionState.VALIDATION_REQUIRED
+    assert result.retrieved_claim is None
+
+
 def test_candidate_pending_human_validation_never_auto_resolves():
     evidence = candidate(
         predicate="mdf.thickness",
