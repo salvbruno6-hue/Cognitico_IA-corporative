@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 
 class CapacityReconciliationState(StrEnum):
@@ -50,6 +50,7 @@ class CapacityReconciliation:
     evidence_id: str
     state: CapacityReconciliationState
     matched_stage: str | None
+    work_center_ref: str | None
     canonical_unit: str | None
     next_required_condition: str | None
     source_ref: str
@@ -68,20 +69,30 @@ def _normalize_stage_codes(stage_codes: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(code.strip().upper() for code in stage_codes if code.strip()))
 
 
+def _normalize_stage_work_centers(
+    stage_work_centers: Mapping[str, str],
+) -> dict[str, str]:
+    return {
+        stage.strip().upper(): center.strip()
+        for stage, center in stage_work_centers.items()
+        if stage.strip() and center.strip()
+    }
+
+
 def reconcile_capacity_evidence(
     evidence: EmpiricalCapacityEvidence,
     *,
     canonical_stage_codes: Sequence[str],
-    available_work_centers: Sequence[str] = (),
+    stage_work_centers: Mapping[str, str] | None = None,
     accepted_direct_units: Sequence[str] = tuple(_DIRECT_STAGE_UNITS),
 ) -> CapacityReconciliation:
     """Classify one empirical capacity observation without inventing semantics.
 
     A stage match is necessary but not sufficient for canonicalization. The
-    canonical MT capacity tables require a work-center relation, and observations
-    expressed in component-level units (e.g. columns/day or bases/day) need an
-    explicit conversion or component/resource model before they can represent a
-    stage-level capacity.
+    canonical MT capacity tables require a work-center relation *for the matched
+    stage*, and observations expressed in component-level units (e.g.
+    columns/day or bases/day) need an explicit conversion or component/resource
+    model before they can represent a stage-level capacity.
     """
     stages = set(_normalize_stage_codes(canonical_stage_codes))
     requested = _normalize_stage_codes(evidence.stage_codes)
@@ -92,6 +103,7 @@ def reconcile_capacity_evidence(
             evidence_id=evidence.evidence_id,
             state=CapacityReconciliationState.NEEDS_STAGE_MAPPING,
             matched_stage=None,
+            work_center_ref=None,
             canonical_unit=None,
             next_required_condition="canonical_stage_mapping",
             source_ref=evidence.source_ref,
@@ -102,6 +114,7 @@ def reconcile_capacity_evidence(
             evidence_id=evidence.evidence_id,
             state=CapacityReconciliationState.AMBIGUOUS_STAGE,
             matched_stage=None,
+            work_center_ref=None,
             canonical_unit=None,
             next_required_condition="single_canonical_stage",
             source_ref=evidence.source_ref,
@@ -116,6 +129,7 @@ def reconcile_capacity_evidence(
             evidence_id=evidence.evidence_id,
             state=CapacityReconciliationState.NEEDS_UNIT_CONVERSION,
             matched_stage=matched_stage,
+            work_center_ref=None,
             canonical_unit=None,
             next_required_condition="governed_unit_conversion_or_component_model",
             source_ref=evidence.source_ref,
@@ -124,17 +138,19 @@ def reconcile_capacity_evidence(
             ),
         )
 
-    centers = {item.strip().upper() for item in available_work_centers if item.strip()}
-    if not centers:
+    centers = _normalize_stage_work_centers(stage_work_centers or {})
+    work_center = centers.get(matched_stage)
+    if not work_center:
         return CapacityReconciliation(
             evidence_id=evidence.evidence_id,
             state=CapacityReconciliationState.NEEDS_WORK_CENTER,
             matched_stage=matched_stage,
+            work_center_ref=None,
             canonical_unit=_DIRECT_STAGE_UNITS.get(normalized_unit, normalized_unit.upper()),
-            next_required_condition="canonical_work_center",
+            next_required_condition="canonical_stage_work_center",
             source_ref=evidence.source_ref,
             detail=(
-                f"stage={matched_stage} direct_unit={evidence.unit} but no canonical work center exists"
+                f"stage={matched_stage} direct_unit={evidence.unit} but no work center is mapped to this stage"
             ),
         )
 
@@ -142,10 +158,13 @@ def reconcile_capacity_evidence(
         evidence_id=evidence.evidence_id,
         state=CapacityReconciliationState.READY_FOR_CANONICALIZATION,
         matched_stage=matched_stage,
+        work_center_ref=work_center,
         canonical_unit=_DIRECT_STAGE_UNITS.get(normalized_unit, normalized_unit.upper()),
         next_required_condition=None,
         source_ref=evidence.source_ref,
-        detail=f"stage={matched_stage} quantity_per_day={evidence.quantity_per_day}",
+        detail=(
+            f"stage={matched_stage} work_center={work_center} quantity_per_day={evidence.quantity_per_day}"
+        ),
     )
 
 
