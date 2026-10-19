@@ -3,6 +3,9 @@
 -- membership, or mutate authorization. It reports whether the currently live
 -- identity/scope/capability + tenant-data state can support a governed MT
 -- migration away from legacy literal-TRUE authenticated policies.
+-- Any newly populated direct-tenant MT table remains unverified until an exact
+-- tenant-assignment check exists for it; estimated stats may open a gap but can
+-- never authorize a rewrite.
 
 WITH eligible_google_identities AS (
   SELECT i.identity_id
@@ -64,9 +67,39 @@ mt_gap AS (
       OR trim(coalesce(p.with_check, '')) = 'true'
     )
 ),
+tenant_tables AS (
+  SELECT c.oid, c.relname AS table_name
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relkind = 'r'
+    AND c.relname LIKE 'mt\_%' ESCAPE '\'
+    AND EXISTS (
+      SELECT 1
+      FROM pg_attribute a
+      WHERE a.attrelid = c.oid
+        AND a.attname = 'tenant_id'
+        AND a.attnum > 0
+        AND NOT a.attisdropped
+    )
+),
+table_stats AS (
+  SELECT
+    t.table_name,
+    coalesce(s.n_live_tup, 0)::bigint AS estimated_rows
+  FROM tenant_tables t
+  LEFT JOIN pg_stat_user_tables s ON s.relid = t.oid
+),
+populated_tables AS (
+  SELECT table_name, estimated_rows
+  FROM table_stats
+  WHERE estimated_rows > 0
+),
 tenant_data AS (
   SELECT
     (SELECT count(*) FROM public.mt_tenants) AS tenant_rows,
+    (SELECT count(*) FROM tenant_tables) AS direct_tenant_tables,
+    (SELECT count(*) FROM populated_tables) AS estimated_populated_tables,
     (SELECT count(*) FROM public.mt_ordens_reparo) AS repair_rows,
     (SELECT count(*) FROM public.mt_ordens_reparo WHERE tenant_id IS NOT NULL) AS repair_rows_with_tenant
 ),
@@ -78,6 +111,13 @@ readiness AS (
     (SELECT count(*) FROM pcp_capabilities) AS identities_with_pcp_capability,
     (SELECT count(*) FROM fully_ready_identities) AS fully_ready_identities,
     tenant_data.tenant_rows,
+    tenant_data.direct_tenant_tables,
+    tenant_data.estimated_populated_tables,
+    greatest(
+      tenant_data.estimated_populated_tables
+      - CASE WHEN tenant_data.repair_rows > 0 THEN 1 ELSE 0 END,
+      0
+    ) AS unverified_populated_tables,
     tenant_data.repair_rows,
     tenant_data.repair_rows_with_tenant,
     mt_gap.policy_objects,
@@ -93,6 +133,7 @@ SELECT
     WHEN policy_objects > 0 AND (
       fully_ready_identities = 0
       OR tenant_rows = 0
+      OR unverified_populated_tables > 0
       OR (repair_rows > 0 AND repair_rows_with_tenant < repair_rows)
     ) THEN 'GAP_HIGH'::text
     ELSE 'PASS'::text
@@ -103,12 +144,15 @@ SELECT
   identities_with_pcp_capability,
   fully_ready_identities,
   tenant_rows,
+  direct_tenant_tables,
+  estimated_populated_tables,
+  unverified_populated_tables,
   repair_rows,
   repair_rows_with_tenant,
   policy_objects AS legacy_policy_objects,
   tables AS legacy_tables,
   format(
-    'legacy_policies=%s tables=%s eligible_google_identities=%s enterprise_multiteiner_links=%s identities_with_domain_scope=%s identities_with_pcp_capability=%s fully_ready_identities=%s tenant_rows=%s repair_rows=%s repair_rows_with_tenant=%s',
+    'legacy_policies=%s tables=%s eligible_google_identities=%s enterprise_multiteiner_links=%s identities_with_domain_scope=%s identities_with_pcp_capability=%s fully_ready_identities=%s tenant_rows=%s direct_tenant_tables=%s estimated_populated_tables=%s unverified_populated_tables=%s repair_rows=%s repair_rows_with_tenant=%s',
     policy_objects,
     tables,
     eligible_google_identities,
@@ -117,6 +161,9 @@ SELECT
     identities_with_pcp_capability,
     fully_ready_identities,
     tenant_rows,
+    direct_tenant_tables,
+    estimated_populated_tables,
+    unverified_populated_tables,
     repair_rows,
     repair_rows_with_tenant
   ) AS evidence
