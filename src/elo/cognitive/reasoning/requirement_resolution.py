@@ -13,7 +13,8 @@ resolution path, incompatible claims are rejected, inference never becomes an
 automatic fact, unresolved retrieval evidence cannot be erased by later failed
 attempts, structured claims cannot cross entity boundaries without explicit
 applicability evidence, preloaded automatic claims are revalidated before any
-short circuit, and audit output contains only explicit evidence/status data.
+short circuit, and audit output contains only explicit allowlisted context and
+evidence/status data.
 """
 from __future__ import annotations
 
@@ -60,6 +61,20 @@ _AUTOMATIC_STATES = frozenset(
     }
 )
 _TERMINAL_AUTOMATIC_STATES = _AUTOMATIC_STATES | {RequirementState.CONFLICT}
+_AUDIT_SCOPE_METADATA_KEYS = frozenset(
+    {
+        "retrieval.tenant_id",
+        "retrieval.domain",
+        "retrieval.principal_id",
+        "retrieval.session_id",
+        "retrieval.request_id",
+        "retrieval.correlation_id",
+        "retrieval.source_id",
+        "retrieval.source_kind",
+        "retrieval.required_capability",
+        "retrieval.authorization_scope",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,6 +120,36 @@ class SemanticRetrievalPolicy:
 
 
 @dataclass(frozen=True, slots=True)
+class StructuredReuseRecord:
+    """Bounded audit record for structured cross-entity consultative reuse."""
+
+    kind: ResolutionAttemptKind
+    original_claim_id: str
+    original_requirement_id: str
+    original_subject: str
+    recovered_value: str
+    target_subject: str
+    source_reference: str
+    evidence_ids: tuple[str, ...]
+    applicability_evidence_ids: tuple[str, ...]
+    bound_claim_id: str
+
+    def __post_init__(self) -> None:
+        required = (
+            self.original_claim_id,
+            self.original_requirement_id,
+            self.original_subject,
+            self.target_subject,
+            self.source_reference,
+            self.bound_claim_id,
+        )
+        if not all(str(value).strip() for value in required):
+            raise ValueError("structured reuse audit fields must be nonblank")
+        if not self.applicability_evidence_ids:
+            raise ValueError("structured reuse requires applicability evidence")
+
+
+@dataclass(frozen=True, slots=True)
 class RequirementResolutionResult:
     requirement_id: str
     parameter: str
@@ -112,6 +157,8 @@ class RequirementResolutionResult:
     attempts: tuple[ResolutionAttempt, ...]
     assessment: GapAssessment
     retrieval_resolution: SemanticResolution | None = None
+    scope_context: Mapping[str, str] = field(default_factory=dict)
+    structured_reuse: tuple[StructuredReuseRecord, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.requirement_id or not self.requirement_id.strip():
@@ -122,6 +169,11 @@ class RequirementResolutionResult:
             raise ValueError("assessment must belong to the resolved requirement")
         if self.assessment.parameter != self.parameter:
             raise ValueError("assessment must belong to the resolved parameter")
+        unsafe_scope = set(self.scope_context) - _AUDIT_SCOPE_METADATA_KEYS
+        if unsafe_scope:
+            raise ValueError(f"unsafe resolution audit scope keys: {unsafe_scope!r}")
+        if any(not str(value).strip() for value in self.scope_context.values()):
+            raise ValueError("resolution audit scope values must be nonblank")
 
     @property
     def executed_order(self) -> tuple[ResolutionAttemptKind, ...]:
@@ -163,6 +215,8 @@ class RequirementResolutionFlow:
         current_claims = list(node.claims)
         attempts: list[ResolutionAttempt] = []
         retrieval_resolution: SemanticResolution | None = None
+        structured_reuse: list[StructuredReuseRecord] = []
+        scope_context = _audit_scope_context(node.metadata)
 
         preloaded_conflict = _validate_preloaded_usable_claims(
             node=node,
@@ -176,6 +230,7 @@ class RequirementResolutionFlow:
                 claims=tuple(current_claims),
                 attempts=(),
                 assessment=preloaded_conflict,
+                scope_context=scope_context,
             )
 
         assessment = assess_parameter_gap(
@@ -191,6 +246,7 @@ class RequirementResolutionFlow:
                 claims=tuple(current_claims),
                 attempts=(),
                 assessment=assessment,
+                scope_context=scope_context,
             )
 
         for kind in _CANONICAL_ORDER:
@@ -223,7 +279,11 @@ class RequirementResolutionFlow:
                 if retrieval_resolution.retrieved_claim is not None:
                     current_claims.append(retrieval_resolution.retrieved_claim)
             else:
-                bound_claims, entity_evidence_ids = _validate_stage_claims(
+                (
+                    bound_claims,
+                    entity_evidence_ids,
+                    reuse_records,
+                ) = _validate_stage_claims(
                     kind=kind,
                     node=node,
                     parameter=parameter,
@@ -232,6 +292,7 @@ class RequirementResolutionFlow:
                         self.structured_entity_applicability_evidence
                     ),
                 )
+                structured_reuse.extend(reuse_records)
                 bound_step = ResolutionStepResult(
                     source_reference=step.source_reference,
                     claims=bound_claims,
@@ -280,6 +341,8 @@ class RequirementResolutionFlow:
             attempts=tuple(attempts),
             assessment=assessment,
             retrieval_resolution=retrieval_resolution,
+            scope_context=scope_context,
+            structured_reuse=tuple(structured_reuse),
         )
 
 
@@ -291,6 +354,15 @@ def _clean_evidence_ids(values: Sequence[str]) -> tuple[str, ...]:
             if (cleaned := str(value).strip())
         )
     )
+
+
+def _audit_scope_context(metadata: Mapping[str, str]) -> Mapping[str, str]:
+    """Copy only resolver-owned authorization/context fields into the result."""
+    return {
+        key: cleaned
+        for key in _AUDIT_SCOPE_METADATA_KEYS
+        if key in metadata and (cleaned := str(metadata[key]).strip())
+    }
 
 
 def _claim_evidence_ids(claims: Sequence[RequirementClaim]) -> tuple[str, ...]:
@@ -449,18 +521,24 @@ def _stable_bound_claim_id(
 
 def _bind_structured_claim(
     *,
+    kind: ResolutionAttemptKind,
     node: RequirementNode,
     claim: RequirementClaim,
     applicability_evidence_ids: Sequence[str],
-) -> RequirementClaim:
+) -> tuple[RequirementClaim, StructuredReuseRecord | None]:
     applicability = _clean_evidence_ids(applicability_evidence_ids)
     if not applicability:
-        return claim
+        return claim, None
 
     target_subject = (
         node.entity.strip()
         if node.entity is not None and node.entity.strip()
         else claim.subject
+    )
+    bound_claim_id = _stable_bound_claim_id(
+        node=node,
+        claim=claim,
+        applicability_evidence_ids=applicability,
     )
     provenance = ClaimProvenance(
         source_type=claim.provenance.source_type,
@@ -473,23 +551,30 @@ def _bind_structured_claim(
         ),
         validation_status=claim.provenance.validation_status,
     )
-    return RequirementClaim(
-        claim_id=_stable_bound_claim_id(
-            node=node,
-            claim=claim,
-            applicability_evidence_ids=applicability,
-        ),
+    bound = RequirementClaim(
+        claim_id=bound_claim_id,
         requirement_id=node.requirement_id,
         subject=target_subject,
         predicate=claim.predicate,
         value=claim.value,
         state=claim.state,
         provenance=provenance,
-        dependencies=tuple(
-            dict.fromkeys((*claim.dependencies, claim.claim_id))
-        ),
+        dependencies=tuple(dict.fromkeys((*claim.dependencies, claim.claim_id))),
         requires_human_validation=claim.requires_human_validation,
     )
+    reuse = StructuredReuseRecord(
+        kind=kind,
+        original_claim_id=claim.claim_id,
+        original_requirement_id=claim.requirement_id,
+        original_subject=claim.subject,
+        recovered_value=claim.value,
+        target_subject=target_subject,
+        source_reference=claim.provenance.source_reference,
+        evidence_ids=_clean_evidence_ids(claim.provenance.evidence_ids),
+        applicability_evidence_ids=applicability,
+        bound_claim_id=bound_claim_id,
+    )
+    return bound, reuse
 
 
 def _validate_stage_claims(
@@ -499,9 +584,14 @@ def _validate_stage_claims(
     parameter: str,
     claims: Sequence[RequirementClaim],
     entity_applicability_evidence: Mapping[str, Sequence[str]],
-) -> tuple[tuple[RequirementClaim, ...], tuple[str, ...]]:
+) -> tuple[
+    tuple[RequirementClaim, ...],
+    tuple[str, ...],
+    tuple[StructuredReuseRecord, ...],
+]:
     used_entity_evidence: list[str] = []
     bound_claims: list[RequirementClaim] = []
+    reuse_records: list[StructuredReuseRecord] = []
     for claim in claims:
         if claim.requirement_id != node.requirement_id:
             raise ValueError(
@@ -582,15 +672,21 @@ def _validate_stage_claims(
         else:
             raise ValueError(f"structured claim validation is unsupported for {kind.value}")
 
-        bound_claims.append(
-            _bind_structured_claim(
-                node=node,
-                claim=claim,
-                applicability_evidence_ids=entity_evidence,
-            )
+        bound, reuse = _bind_structured_claim(
+            kind=kind,
+            node=node,
+            claim=claim,
+            applicability_evidence_ids=entity_evidence,
         )
+        bound_claims.append(bound)
+        if reuse is not None:
+            reuse_records.append(reuse)
 
-    return tuple(bound_claims), _clean_evidence_ids(used_entity_evidence)
+    return (
+        tuple(bound_claims),
+        _clean_evidence_ids(used_entity_evidence),
+        tuple(reuse_records),
+    )
 
 
 def _retrieval_attempt_outcome(
@@ -794,10 +890,25 @@ def _attempt_note(
     return f"governed {kind.value.casefold()} attempt: {status.value.casefold()}"
 
 
+def _audit_structured_reuse(record: StructuredReuseRecord) -> Mapping[str, object]:
+    return {
+        "original_claim_id": record.original_claim_id,
+        "original_requirement_id": record.original_requirement_id,
+        "original_subject": record.original_subject,
+        "recovered_value": record.recovered_value,
+        "target_subject": record.target_subject,
+        "source_reference": record.source_reference,
+        "evidence_ids": record.evidence_ids,
+        "applicability_evidence_ids": record.applicability_evidence_ids,
+        "bound_claim_id": record.bound_claim_id,
+    }
+
+
 def _audit_attempt(
     *,
     attempt: ResolutionAttempt,
     retrieval_resolution: SemanticResolution | None,
+    structured_reuse: Sequence[StructuredReuseRecord],
 ) -> Mapping[str, object]:
     payload: dict[str, object] = {
         "kind": attempt.kind.value,
@@ -810,6 +921,13 @@ def _audit_attempt(
         and retrieval_resolution is not None
     ):
         payload["semantic"] = audit_semantic_resolution(retrieval_resolution)
+    relevant_reuse = tuple(
+        record for record in structured_reuse if record.kind is attempt.kind
+    )
+    if relevant_reuse:
+        payload["structured_reuse"] = tuple(
+            _audit_structured_reuse(record) for record in relevant_reuse
+        )
     return payload
 
 
@@ -817,7 +935,7 @@ def audit_requirement_resolution(
     result: RequirementResolutionResult,
 ) -> Mapping[str, object]:
     """Return an audit-safe trace for the requirement-resolution subflow."""
-    return {
+    payload: dict[str, object] = {
         "requirement_id": result.requirement_id,
         "parameter": result.parameter,
         "executed_order": tuple(kind.value for kind in result.executed_order),
@@ -825,6 +943,7 @@ def audit_requirement_resolution(
             _audit_attempt(
                 attempt=attempt,
                 retrieval_resolution=result.retrieval_resolution,
+                structured_reuse=result.structured_reuse,
             )
             for attempt in result.attempts
         ),
@@ -835,3 +954,6 @@ def audit_requirement_resolution(
             "human_validation_required": result.assessment.human_validation_required,
         },
     }
+    if result.scope_context:
+        payload["scope"] = dict(result.scope_context)
+    return payload
