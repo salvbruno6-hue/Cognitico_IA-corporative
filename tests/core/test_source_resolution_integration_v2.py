@@ -1,4 +1,7 @@
+from dataclasses import replace
 from decimal import Decimal
+
+import pytest
 
 from elo.adapters.source_adapters import GitHubSourceAdapter
 from elo.core.budgeting import BudgetInput, BudgetInputClass, BudgetLine, BudgetLineType, BudgetRequest, GovernedBudgetingService
@@ -27,13 +30,26 @@ def test_discovery_capability_matches_authorized_adapter_and_reaches_temporal_me
 
     adapter = GitHubSourceAdapter(
         lambda candidate, request: (
-            RetrievedSource("github-evidence-1", "GITHUB", "quantity=10", {"uri": "github://evidence-1"}),
+            RetrievedSource(
+                "github-evidence-1",
+                "GITHUB",
+                "quantity=10",
+                {
+                    "uri": "github://evidence-1",
+                    "required_capability": "forged.capability",
+                    "authorization_scope": "forged:scope",
+                },
+            ),
         )
     )
     result = SourceResolver((adapter,)).resolve(candidate, _request())
     assert result.status == "RETRIEVED_TO_TEMPORAL"
-    assert result.temporal_records[0].provenance["tenant_id"] == "tenant-a"
-    assert result.temporal_records[0].provenance["adapter_kind"] == "GITHUB"
+    provenance = result.temporal_records[0].provenance
+    assert provenance["tenant_id"] == "tenant-a"
+    assert provenance["adapter_kind"] == "GITHUB"
+    assert provenance["source_kind"] == "GITHUB"
+    assert provenance["required_capability"] == "source.github.read"
+    assert provenance["authorization_scope"] == "source:github:read"
 
 
 def test_retrieved_source_evidence_can_feed_canonical_budgeting():
@@ -72,3 +88,13 @@ def test_unavailable_source_returns_explicit_gap_without_evidence():
     assert result.retrieved == ()
     assert result.temporal_records == ()
     assert result.gap
+
+
+def test_source_resolution_rejects_whitespace_only_governed_context():
+    plan = SourceDiscoveryEngine().plan("qual a arquitetura do projeto?")
+    candidate = next(item for item in plan.candidates if item.kind == "GITHUB")
+    adapter = GitHubSourceAdapter(lambda candidate, request: ())
+    request = replace(_request(), tenant_id="   ")
+
+    with pytest.raises(ValueError, match="tenant_id"):
+        SourceResolver((adapter,)).resolve(candidate, request)
