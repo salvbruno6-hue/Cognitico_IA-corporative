@@ -62,6 +62,27 @@ def test_symbiont_surfaces_required_runtime_wiring_gaps_without_inferring_links(
     assert "missing_runtime_links=consumer,canonical_route,execution_boundary" in result.blockers[0]
 
 
+def test_required_only_capability_is_not_invisible_when_wholly_missing():
+    result = build_global_capability_visibility(
+        registry_snapshot=(),
+        implementation_views=(),
+        require_runtime_wiring=("MISSING-RUNTIME-CAPABILITY",),
+    )
+
+    assert len(result.records) == 1
+    record = result.records[0]
+    assert record.capability_id == "MISSING-RUNTIME-CAPABILITY"
+    assert record.state is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
+    assert record.registry_visible is False
+    assert record.implementation_visible is False
+    assert record.missing_runtime_links == (
+        "consumer",
+        "canonical_route",
+        "execution_boundary",
+    )
+    assert result.blockers
+
+
 def test_orchestrator_applies_symbiont_observation_but_does_not_self_authorize_fix():
     visibility = build_global_capability_visibility(
         registry_snapshot=_registry().snapshot(),
