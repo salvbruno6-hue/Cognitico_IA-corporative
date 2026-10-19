@@ -9,7 +9,8 @@ Automatic resolution is deliberately narrow: only exact predicate identity or
 an explicitly supplied governed alias may bind validated, evidenced knowledge
 to a requirement as a ``RETRIEVED`` claim. Entity and requirement-context
 applicability are independent gates. Cross-context reuse requires explicit
-applicability evidence. Token overlap is diagnostic only.
+applicability evidence. A target with no entity identity also requires explicit
+entity-applicability evidence. Token overlap is diagnostic only.
 """
 from __future__ import annotations
 
@@ -50,6 +51,7 @@ class SemanticMatch:
     matched_terms: tuple[str, ...]
     entity_compatible: bool = True
     entity_match_kind: SemanticMatchKind | None = None
+    entity_applicability_evidence_ids: tuple[str, ...] = ()
     context_compatible: bool = True
     applicability_evidence_ids: tuple[str, ...] = ()
 
@@ -241,12 +243,15 @@ def match_parameter_to_claim(
     entity_aliases: Mapping[str, Sequence[str]] | None = None,
     required_requirement_id: str | None = None,
     applicability_evidence_ids: Sequence[str] = (),
+    entity_applicability_evidence_ids: Sequence[str] = (),
 ) -> SemanticMatch | None:
     """Compare one required parameter with one structured evidence claim.
 
     Predicate equivalence, entity identity and request-context applicability are
     independent. Cross-context candidates remain consultative unless the caller
-    supplies explicit governed evidence that the candidate applies here.
+    supplies explicit governed evidence that the candidate applies here. When a
+    target entity is absent, explicit entity-applicability evidence is mandatory
+    before the candidate subject can be rebound to the target requirement.
     """
     parameter_normalized = normalize_semantic_text(parameter)
     predicate_normalized = normalize_semantic_text(candidate.predicate)
@@ -268,7 +273,9 @@ def match_parameter_to_claim(
         score = min(overlap, 0.79)
         matched_terms = common
 
-    entity_compatible = True
+    explicit_entity_applicability = _clean_evidence_ids(
+        entity_applicability_evidence_ids
+    )
     entity_match_kind: SemanticMatchKind | None = None
     if required_entity is not None and required_entity.strip():
         entity_match_kind = _strong_term_equivalence(
@@ -283,6 +290,10 @@ def match_parameter_to_claim(
         }
         if not entity_compatible:
             entity_match_kind = None
+    else:
+        # A candidate's subject cannot silently become the target subject when
+        # the target requirement did not establish entity identity.
+        entity_compatible = bool(explicit_entity_applicability)
 
     explicit_applicability = _clean_evidence_ids(applicability_evidence_ids)
     context_compatible = _context_is_compatible(
@@ -298,6 +309,7 @@ def match_parameter_to_claim(
         matched_terms=matched_terms,
         entity_compatible=entity_compatible,
         entity_match_kind=entity_match_kind,
+        entity_applicability_evidence_ids=explicit_entity_applicability,
         context_compatible=context_compatible,
         applicability_evidence_ids=explicit_applicability,
     )
@@ -332,7 +344,11 @@ def _bind_retrieved_claim(
     candidate = match.candidate
     candidate_evidence = _clean_evidence_ids(candidate.provenance.evidence_ids)
     combined_evidence = _clean_evidence_ids(
-        (*candidate_evidence, *match.applicability_evidence_ids)
+        (
+            *candidate_evidence,
+            *match.entity_applicability_evidence_ids,
+            *match.applicability_evidence_ids,
+        )
     )
     provenance = ClaimProvenance(
         source_type=candidate.provenance.source_type,
@@ -350,7 +366,7 @@ def _bind_retrieved_claim(
             candidate.provenance.source_reference,
         ),
         requirement_id=node.requirement_id,
-        subject=node.entity or candidate.subject,
+        subject=node.entity.strip() if node.entity and node.entity.strip() else candidate.subject,
         predicate=parameter,
         value=candidate.value,
         state=RequirementState.RETRIEVED,
@@ -368,6 +384,7 @@ def resolve_requirement_parameter(
     aliases: Mapping[str, Sequence[str]] | None = None,
     entity_aliases: Mapping[str, Sequence[str]] | None = None,
     applicability_evidence: Mapping[str, Sequence[str]] | None = None,
+    entity_applicability_evidence: Mapping[str, Sequence[str]] | None = None,
 ) -> SemanticResolution:
     """Resolve a requirement parameter against already-governed evidence.
 
@@ -375,7 +392,9 @@ def resolve_requirement_parameter(
     still cannot resolve automatically when entity or request-context
     applicability is unproven, any applicable evidence is conflicting/pending
     human validation, candidate values conflict, or source claims lack governed
-    validation/evidence. Token overlap remains non-authoritative.
+    validation/evidence. A missing target entity fails closed unless explicit
+    entity-applicability evidence is supplied. Token overlap remains
+    non-authoritative.
     """
     if not parameter or not parameter.strip():
         raise ValueError("parameter is required")
@@ -396,6 +415,9 @@ def resolve_requirement_parameter(
                         candidate.claim_id,
                         (),
                     ),
+                    entity_applicability_evidence_ids=(
+                        entity_applicability_evidence or {}
+                    ).get(candidate.claim_id, ()),
                 ))
                 is not None
             ),
@@ -532,6 +554,9 @@ def audit_semantic_resolution(resolution: SemanticResolution) -> Mapping[str, ob
                     match.entity_match_kind.value
                     if match.entity_match_kind is not None
                     else None
+                ),
+                "entity_applicability_evidence_ids": (
+                    match.entity_applicability_evidence_ids
                 ),
                 "context_compatible": match.context_compatible,
                 "applicability_evidence_ids": match.applicability_evidence_ids,
