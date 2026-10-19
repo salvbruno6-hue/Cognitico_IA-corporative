@@ -51,17 +51,28 @@ def test_component_level_capacity_requires_conversion_instead_of_inventing_modul
     assert result.canonical_mutation is False
 
 
-def test_direct_module_capacity_still_requires_work_center_before_persistence():
+def test_direct_module_capacity_still_requires_stage_work_center_before_persistence():
     result = reconcile_capacity_evidence(
         ev("CAP-005", "módulos/dia", ("ACABAMENTO",)),
         canonical_stage_codes=CANONICAL_STAGES,
-        available_work_centers=(),
+        stage_work_centers={},
     )
 
     assert result.state is CapacityReconciliationState.NEEDS_WORK_CENTER
     assert result.matched_stage == "ACABAMENTO"
     assert result.canonical_unit == "MODULOS_DIA"
-    assert result.next_required_condition == "canonical_work_center"
+    assert result.next_required_condition == "canonical_stage_work_center"
+
+
+def test_unrelated_work_center_does_not_make_capacity_ready():
+    result = reconcile_capacity_evidence(
+        ev("CAP-005", "módulos/dia", ("ACABAMENTO",)),
+        canonical_stage_codes=CANONICAL_STAGES,
+        stage_work_centers={"CHASSI": "CT-ESTRUTURA"},
+    )
+
+    assert result.state is CapacityReconciliationState.NEEDS_WORK_CENTER
+    assert result.work_center_ref is None
 
 
 def test_unmapped_repair_semantics_do_not_silently_become_tests_capacity():
@@ -71,7 +82,7 @@ def test_unmapped_repair_semantics_do_not_silently_become_tests_capacity():
     )
 
     # Only TESTES exists in the canonical production flow. The reconciler can
-    # identify that stage, but without a work center it still cannot persist it.
+    # identify that stage, but without a mapped work center it still cannot persist it.
     assert result.state is CapacityReconciliationState.NEEDS_WORK_CENTER
     assert result.matched_stage == "TESTES"
     assert result.canonical_mutation is False
@@ -87,14 +98,15 @@ def test_multiple_real_canonical_stage_matches_are_ambiguous():
     assert result.next_required_condition == "single_canonical_stage"
 
 
-def test_ready_only_after_stage_unit_and_work_center_are_explicit():
+def test_ready_only_after_stage_unit_and_stage_work_center_are_explicit():
     result = reconcile_capacity_evidence(
         ev("CAP-005", "módulos/dia", ("ACABAMENTO",)),
         canonical_stage_codes=CANONICAL_STAGES,
-        available_work_centers=("ACABAMENTO",),
+        stage_work_centers={"ACABAMENTO": "CT-MONTAGEM-FINAL"},
     )
 
     assert result.state is CapacityReconciliationState.READY_FOR_CANONICALIZATION
+    assert result.work_center_ref == "CT-MONTAGEM-FINAL"
     assert result.next_required_condition is None
     assert result.canonical_mutation is False
 
