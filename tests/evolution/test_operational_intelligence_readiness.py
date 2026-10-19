@@ -140,6 +140,30 @@ def test_external_capacity_requires_explicit_provenance():
         raise AssertionError("external evidence without provenance must fail closed")
 
 
+def test_evidence_ref_positional_contract_is_preserved():
+    signals = OperationalIntelligenceSignals(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        1,
+        "custom:legacy-positional-ref",
+    )
+
+    assert signals.evidence_ref == "custom:legacy-positional-ref"
+    assert signals.governed_external_capacity_rows == 0
+
+
 def test_negative_counts_are_rejected():
     values = asdict(empty_live_signals())
     values["plan_rows"] = -1
