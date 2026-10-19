@@ -11,7 +11,9 @@ allowed to advance.
 The epistemic boundary is fail-closed: a missing provider is not an attempted
 resolution path, incompatible claims are rejected, inference never becomes an
 automatic fact, unresolved retrieval evidence cannot be erased by later failed
-attempts, and audit output contains only explicit evidence/status data.
+attempts, structured claims cannot cross entity boundaries without explicit
+applicability evidence, and audit output contains only explicit evidence/status
+data.
 """
 from __future__ import annotations
 
@@ -33,6 +35,8 @@ from .requirement_analysis import (
 from .semantic_matching import (
     SemanticResolution,
     SemanticResolutionState,
+    audit_semantic_resolution,
+    normalize_semantic_identifier,
     resolve_requirement_parameter,
 )
 
@@ -127,11 +131,16 @@ class RequirementResolutionFlow:
 
     Providers are optional by construction. An absent provider is skipped and
     therefore cannot satisfy the four-attempt precondition for ``GAP_CONFIRMED``.
-    The mapping insertion order never affects execution order.
+    The mapping insertion order never affects execution order. Structured-stage
+    claims must belong to the target entity by identifier-safe equality or carry
+    explicit per-claim applicability evidence supplied by the caller.
     """
 
     providers: Mapping[ResolutionAttemptKind, RequirementResolutionProvider]
     semantic_policy: SemanticRetrievalPolicy = field(default_factory=SemanticRetrievalPolicy)
+    structured_entity_applicability_evidence: Mapping[str, Sequence[str]] = field(
+        default_factory=dict
+    )
 
     def __post_init__(self) -> None:
         unsupported = set(self.providers) - set(_CANONICAL_ORDER)
@@ -197,16 +206,20 @@ class RequirementResolutionFlow:
                 if retrieval_resolution.retrieved_claim is not None:
                     current_claims.append(retrieval_resolution.retrieved_claim)
             else:
-                _validate_stage_claims(
+                entity_evidence_ids = _validate_stage_claims(
                     kind=kind,
                     node=node,
                     parameter=parameter,
                     claims=step.claims,
+                    entity_applicability_evidence=(
+                        self.structured_entity_applicability_evidence
+                    ),
                 )
                 current_claims.extend(step.claims)
                 status, evidence_ids = _structured_attempt_outcome(
                     kind=kind,
                     step=step,
+                    entity_applicability_evidence_ids=entity_evidence_ids,
                 )
 
             attempt = ResolutionAttempt(
@@ -279,13 +292,42 @@ def _require_governed_evidence(claim: RequirementClaim, *, kind: ResolutionAttem
         raise ValueError(f"{kind.value} claim requires nonblank evidence_ids")
 
 
+def _validate_structured_entity(
+    *,
+    kind: ResolutionAttemptKind,
+    node: RequirementNode,
+    claim: RequirementClaim,
+    entity_applicability_evidence: Mapping[str, Sequence[str]],
+) -> tuple[str, ...]:
+    explicit = _clean_evidence_ids(
+        entity_applicability_evidence.get(claim.claim_id, ())
+    )
+    target_entity = node.entity.strip() if node.entity and node.entity.strip() else None
+    if target_entity is not None:
+        target_identity = normalize_semantic_identifier(target_entity)
+        claim_identity = normalize_semantic_identifier(claim.subject)
+        if target_identity == claim_identity:
+            return ()
+    if explicit:
+        return explicit
+    if target_entity is None:
+        raise ValueError(
+            f"{kind.value} claim requires explicit entity applicability because target entity is absent"
+        )
+    raise ValueError(
+        f"{kind.value} claim entity does not match target entity and lacks explicit applicability evidence"
+    )
+
+
 def _validate_stage_claims(
     *,
     kind: ResolutionAttemptKind,
     node: RequirementNode,
     parameter: str,
     claims: Sequence[RequirementClaim],
-) -> None:
+    entity_applicability_evidence: Mapping[str, Sequence[str]],
+) -> tuple[str, ...]:
+    used_entity_evidence: list[str] = []
     for claim in claims:
         if claim.requirement_id != node.requirement_id:
             raise ValueError(
@@ -299,6 +341,14 @@ def _validate_stage_claims(
         if not claim.subject or not claim.subject.strip():
             raise ValueError(f"{kind.value} claim requires a nonblank subject")
         _require_governed_evidence(claim, kind=kind)
+        used_entity_evidence.extend(
+            _validate_structured_entity(
+                kind=kind,
+                node=node,
+                claim=claim,
+                entity_applicability_evidence=entity_applicability_evidence,
+            )
+        )
 
         if kind is ResolutionAttemptKind.RULE:
             if claim.provenance.source_type is not RequirementSourceType.RULE:
@@ -358,6 +408,8 @@ def _validate_stage_claims(
         else:
             raise ValueError(f"structured claim validation is unsupported for {kind.value}")
 
+    return _clean_evidence_ids(used_entity_evidence)
+
 
 def _retrieval_attempt_outcome(
     *,
@@ -408,9 +460,14 @@ def _structured_attempt_outcome(
     *,
     kind: ResolutionAttemptKind,
     step: ResolutionStepResult,
+    entity_applicability_evidence_ids: Sequence[str],
 ) -> tuple[ResolutionAttemptStatus, tuple[str, ...]]:
     evidence_ids = _clean_evidence_ids(
-        (*step.evidence_ids, *_claim_evidence_ids(step.claims))
+        (
+            *step.evidence_ids,
+            *_claim_evidence_ids(step.claims),
+            *entity_applicability_evidence_ids,
+        )
     )
     if any(claim.state is RequirementState.CONFLICT for claim in step.claims):
         return ResolutionAttemptStatus.CONFLICT, evidence_ids
@@ -495,6 +552,25 @@ def _attempt_note(
     return f"governed {kind.value.casefold()} attempt: {status.value.casefold()}"
 
 
+def _audit_attempt(
+    *,
+    attempt: ResolutionAttempt,
+    retrieval_resolution: SemanticResolution | None,
+) -> Mapping[str, object]:
+    payload: dict[str, object] = {
+        "kind": attempt.kind.value,
+        "status": attempt.status.value,
+        "source_reference": attempt.source_reference,
+        "evidence_ids": _clean_evidence_ids(attempt.evidence_ids),
+    }
+    if (
+        attempt.kind is ResolutionAttemptKind.RETRIEVAL
+        and retrieval_resolution is not None
+    ):
+        payload["semantic"] = audit_semantic_resolution(retrieval_resolution)
+    return payload
+
+
 def audit_requirement_resolution(
     result: RequirementResolutionResult,
 ) -> Mapping[str, object]:
@@ -504,12 +580,10 @@ def audit_requirement_resolution(
         "parameter": result.parameter,
         "executed_order": tuple(kind.value for kind in result.executed_order),
         "attempts": tuple(
-            {
-                "kind": attempt.kind.value,
-                "status": attempt.status.value,
-                "source_reference": attempt.source_reference,
-                "evidence_ids": _clean_evidence_ids(attempt.evidence_ids),
-            }
+            _audit_attempt(
+                attempt=attempt,
+                retrieval_resolution=result.retrieval_resolution,
+            )
             for attempt in result.attempts
         ),
         "final": {
