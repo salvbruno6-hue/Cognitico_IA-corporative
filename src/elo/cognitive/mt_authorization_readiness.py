@@ -19,6 +19,9 @@ class MTAuthorizationSignals:
     identities_with_pcp_capability: int
     fully_ready_identities: int
     tenant_rows: int
+    direct_tenant_tables: int
+    estimated_populated_tables: int
+    unverified_populated_tables: int
     repair_rows: int
     repair_rows_with_tenant: int
     legacy_policy_objects: int
@@ -33,6 +36,9 @@ class MTAuthorizationSignals:
             self.identities_with_pcp_capability,
             self.fully_ready_identities,
             self.tenant_rows,
+            self.direct_tenant_tables,
+            self.estimated_populated_tables,
+            self.unverified_populated_tables,
             self.repair_rows,
             self.repair_rows_with_tenant,
             self.legacy_policy_objects,
@@ -42,6 +48,10 @@ class MTAuthorizationSignals:
             raise ValueError("MT authorization signals cannot be negative")
         if self.repair_rows_with_tenant > self.repair_rows:
             raise ValueError("tenant-covered repair rows cannot exceed total repair rows")
+        if self.estimated_populated_tables > self.direct_tenant_tables:
+            raise ValueError("populated tenant tables cannot exceed direct tenant tables")
+        if self.unverified_populated_tables > self.estimated_populated_tables:
+            raise ValueError("unverified populated tables cannot exceed populated tables")
         if not self.evidence_ref.strip():
             raise ValueError("evidence_ref is required")
 
@@ -91,13 +101,18 @@ def assess_mt_authorization_readiness(
     signals: MTAuthorizationSignals,
 ) -> MTAuthorizationReadiness:
     """Evaluate prerequisite order without granting or inferring authority."""
+    repair_coverage_ready = signals.tenant_rows > 0 and (
+        signals.repair_rows == 0 or signals.repair_rows_with_tenant == signals.repair_rows
+    )
+    all_populated_tenant_tables_verified = signals.unverified_populated_tables == 0
+
     checks = (
         (
             "MT_AUTHZ_IDENTITY_BOUND",
             signals.eligible_google_identities > 0,
             "eligible_google_identity",
             "authorization",
-            6.0,
+            7.0,
             "elo-authz",
             f"eligible_google_identities={signals.eligible_google_identities}",
         ),
@@ -106,7 +121,7 @@ def assess_mt_authorization_readiness(
             signals.enterprise_multiteiner_links > 0,
             "enterprise_multiteiner_scope",
             "authorization",
-            5.0,
+            6.0,
             "elo-authz",
             f"enterprise_multiteiner_links={signals.enterprise_multiteiner_links}",
         ),
@@ -115,7 +130,7 @@ def assess_mt_authorization_readiness(
             signals.identities_with_domain_scope > 0,
             "domain_scope",
             "authorization",
-            4.0,
+            5.0,
             "elo-authz",
             f"identities_with_domain_scope={signals.identities_with_domain_scope}",
         ),
@@ -124,7 +139,7 @@ def assess_mt_authorization_readiness(
             signals.identities_with_pcp_capability > 0,
             "pcp_capability",
             "authorization",
-            3.0,
+            4.0,
             "elo-authz",
             f"identities_with_pcp_capability={signals.identities_with_pcp_capability}",
         ),
@@ -133,7 +148,7 @@ def assess_mt_authorization_readiness(
             signals.fully_ready_identities > 0,
             "fully_ready_operator",
             "authorization",
-            2.0,
+            3.0,
             "elo-authz",
             f"fully_ready_identities={signals.fully_ready_identities}",
         ),
@@ -142,14 +157,26 @@ def assess_mt_authorization_readiness(
             signals.tenant_rows > 0,
             "tenant_registry",
             "data_governance",
-            2.0,
+            3.0,
             "mt-data-governance",
             f"tenant_rows={signals.tenant_rows}",
         ),
         (
+            "MT_TENANT_POPULATED_TABLES_VERIFIED",
+            all_populated_tenant_tables_verified,
+            "verify_all_populated_tenant_tables",
+            "data_governance",
+            2.5,
+            "mt-data-governance",
+            (
+                f"direct_tenant_tables={signals.direct_tenant_tables} "
+                f"estimated_populated_tables={signals.estimated_populated_tables} "
+                f"unverified_populated_tables={signals.unverified_populated_tables}"
+            ),
+        ),
+        (
             "MT_REPAIR_TENANT_COVERAGE",
-            signals.tenant_rows > 0
-            and (signals.repair_rows == 0 or signals.repair_rows_with_tenant == signals.repair_rows),
+            repair_coverage_ready,
             "repair_tenant_coverage",
             "data_governance",
             2.0,
@@ -195,8 +222,10 @@ def assess_mt_authorization_readiness(
         None,
     )
     operator_ready = signals.fully_ready_identities > 0
-    tenant_data_ready = signals.tenant_rows > 0 and (
-        signals.repair_rows == 0 or signals.repair_rows_with_tenant == signals.repair_rows
+    tenant_data_ready = (
+        signals.tenant_rows > 0
+        and all_populated_tenant_tables_verified
+        and repair_coverage_ready
     )
     return MTAuthorizationReadiness(
         findings=findings,
