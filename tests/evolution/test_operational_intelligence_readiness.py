@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from elo.cognitive.operational_intelligence_readiness import (
     OperationalIntelligenceSignals,
     assess_operational_intelligence_readiness,
@@ -68,8 +70,7 @@ def test_complete_chain_closes_feedback_loop_without_authorizing_mutation():
 
 
 def test_learning_without_execution_is_review_not_false_validated_learning():
-    signals = empty_live_signals()
-    readiness = assess_operational_intelligence_readiness(signals)
+    readiness = assess_operational_intelligence_readiness(empty_live_signals())
     learning = next(
         item
         for item in readiness.assessment.findings
@@ -81,7 +82,7 @@ def test_learning_without_execution_is_review_not_false_validated_learning():
 
 
 def test_negative_counts_are_rejected():
-    values = empty_live_signals().__dict__.copy()
+    values = asdict(empty_live_signals())
     values["plan_rows"] = -1
 
     try:
