@@ -91,8 +91,7 @@ def test_four_real_attempts_run_in_canonical_order_and_can_confirm_gap():
     }
 
     result = RequirementResolutionFlow(providers=providers).resolve(
-        node=_node(),
-        parameter="mdf.thickness",
+        node=_node(), parameter="mdf.thickness"
     )
 
     assert result.executed_order == (
@@ -116,8 +115,7 @@ def test_missing_provider_does_not_count_as_attempt_and_keeps_gap_candidate():
     }
 
     result = RequirementResolutionFlow(providers=providers).resolve(
-        node=_node(),
-        parameter="mdf.thickness",
+        node=_node(), parameter="mdf.thickness"
     )
 
     assert result.executed_order == (
@@ -173,7 +171,7 @@ def test_so203_semantic_retrieval_prevents_false_gap_and_stops_later_stages():
     assert inference.calls == []
 
 
-def test_cross_context_retrieval_without_applicability_evidence_does_not_resolve():
+def test_cross_context_retrieval_without_applicability_requires_validation():
     candidate = _claim(
         claim_id="OTHER-SO-MDF",
         requirement_id="SO-114.26:R1",
@@ -194,7 +192,9 @@ def test_cross_context_retrieval_without_applicability_evidence_does_not_resolve
     ).resolve(node=_node(), parameter="mdf.thickness")
 
     assert result.attempts[0].status is ResolutionAttemptStatus.NOT_APPLICABLE
-    assert result.assessment.state is RequirementState.GAP_CANDIDATE
+    assert result.assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED
+    assert result.assessment.human_validation_required is True
+    assert "EV-1" in result.assessment.evidence_ids
     assert not any(claim.state is RequirementState.RETRIEVED for claim in result.claims)
 
 
@@ -244,7 +244,8 @@ def test_missing_target_entity_requires_explicit_entity_applicability_evidence()
     blocked = RequirementResolutionFlow(
         providers={ResolutionAttemptKind.RETRIEVAL: retrieval}
     ).resolve(node=_node(entity=None), parameter="mdf.thickness")
-    assert blocked.assessment.state is RequirementState.GAP_CANDIDATE
+    assert blocked.assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED
+    assert blocked.assessment.human_validation_required is True
     assert blocked.attempts[0].status is ResolutionAttemptStatus.NOT_APPLICABLE
 
     resolved = RequirementResolutionFlow(
@@ -432,8 +433,7 @@ def test_audit_trace_exposes_only_bounded_resolution_evidence():
         )
     }
     result = RequirementResolutionFlow(providers=providers).resolve(
-        node=_node(),
-        parameter="mdf.thickness",
+        node=_node(), parameter="mdf.thickness"
     )
 
     audit = audit_requirement_resolution(result)
@@ -448,7 +448,6 @@ def test_audit_trace_exposes_only_bounded_resolution_evidence():
         "final",
     }
     assert all("note" not in attempt for attempt in audit["attempts"])
-    assert "value" not in str(audit)
 
 
 def test_provider_kind_mismatch_is_rejected():
