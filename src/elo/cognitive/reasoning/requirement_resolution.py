@@ -1,0 +1,462 @@
+"""Governed requirement-resolution subflow for ELO Reasoning.
+
+This module coordinates one requirement parameter through the canonical
+resolution attempts already modeled by :mod:`requirement_analysis`. It is not a
+second cognitive execution loop and performs no provider I/O itself. External
+owners remain responsible for retrieval, rules, calculations and controlled
+inference; this module only fixes ordering, validates returned evidence, applies
+semantic matching to retrieval candidates and decides when gap assessment is
+allowed to advance.
+
+The epistemic boundary is fail-closed: a missing provider is not an attempted
+resolution path, incompatible claims are rejected, inference never becomes an
+automatic fact, and audit output contains only explicit evidence/status data.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Mapping, Protocol, Sequence
+
+from .requirement_analysis import (
+    GapAssessment,
+    RequirementClaim,
+    RequirementNode,
+    RequirementSourceType,
+    RequirementState,
+    ResolutionAttempt,
+    ResolutionAttemptKind,
+    ResolutionAttemptStatus,
+    assess_parameter_gap,
+)
+from .semantic_matching import (
+    SemanticResolution,
+    SemanticResolutionState,
+    resolve_requirement_parameter,
+)
+
+
+_CANONICAL_ORDER = (
+    ResolutionAttemptKind.RETRIEVAL,
+    ResolutionAttemptKind.RULE,
+    ResolutionAttemptKind.CALCULATION,
+    ResolutionAttemptKind.INFERENCE,
+)
+_VALIDATION_OK = frozenset({"VALIDATED", "APPROVED", "CONFIRMED"})
+_AUTOMATIC_STATES = frozenset(
+    {
+        RequirementState.KNOWN,
+        RequirementState.DOCUMENTED,
+        RequirementState.RETRIEVED,
+        RequirementState.CALCULATED,
+    }
+)
+_TERMINAL_AUTOMATIC_STATES = _AUTOMATIC_STATES | {RequirementState.CONFLICT}
+
+
+@dataclass(frozen=True, slots=True)
+class ResolutionStepResult:
+    """Evidence returned by one external resolution provider.
+
+    ``claims`` are structured outputs owned by the provider. The orchestrator
+    validates them before they can affect the requirement. ``evidence_ids`` are
+    evidence of the attempt itself and may be empty for a genuine NOT_FOUND
+    result. No arbitrary metadata or private reasoning channel is accepted.
+    """
+
+    source_reference: str
+    claims: tuple[RequirementClaim, ...] = ()
+    evidence_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.source_reference or not self.source_reference.strip():
+            raise ValueError("resolution step requires a nonblank source_reference")
+
+
+class RequirementResolutionProvider(Protocol):
+    """Provider contract used by the deterministic requirement subflow."""
+
+    kind: ResolutionAttemptKind
+
+    def resolve(
+        self,
+        node: RequirementNode,
+        parameter: str,
+        claims: Sequence[RequirementClaim],
+    ) -> ResolutionStepResult: ...
+
+
+@dataclass(frozen=True, slots=True)
+class SemanticRetrievalPolicy:
+    """Governed semantic inputs supplied by the caller for retrieval matching."""
+
+    aliases: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    entity_aliases: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    applicability_evidence: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    entity_applicability_evidence: Mapping[str, Sequence[str]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class RequirementResolutionResult:
+    requirement_id: str
+    parameter: str
+    claims: tuple[RequirementClaim, ...]
+    attempts: tuple[ResolutionAttempt, ...]
+    assessment: GapAssessment
+    retrieval_resolution: SemanticResolution | None = None
+
+    def __post_init__(self) -> None:
+        if not self.requirement_id or not self.requirement_id.strip():
+            raise ValueError("requirement resolution requires requirement_id")
+        if not self.parameter or not self.parameter.strip():
+            raise ValueError("requirement resolution requires parameter")
+        if self.assessment.requirement_id != self.requirement_id:
+            raise ValueError("assessment must belong to the resolved requirement")
+        if self.assessment.parameter != self.parameter:
+            raise ValueError("assessment must belong to the resolved parameter")
+
+    @property
+    def executed_order(self) -> tuple[ResolutionAttemptKind, ...]:
+        return tuple(attempt.kind for attempt in self.attempts)
+
+
+@dataclass(slots=True)
+class RequirementResolutionFlow:
+    """Run configured requirement-resolution providers in canonical order.
+
+    Providers are optional by construction. An absent provider is skipped and
+    therefore cannot satisfy the four-attempt precondition for ``GAP_CONFIRMED``.
+    The mapping insertion order never affects execution order.
+    """
+
+    providers: Mapping[ResolutionAttemptKind, RequirementResolutionProvider]
+    semantic_policy: SemanticRetrievalPolicy = field(default_factory=SemanticRetrievalPolicy)
+
+    def __post_init__(self) -> None:
+        unsupported = set(self.providers) - set(_CANONICAL_ORDER)
+        if unsupported:
+            raise ValueError(f"unsupported resolution provider kinds: {unsupported!r}")
+        for kind, provider in self.providers.items():
+            if provider.kind is not kind:
+                raise ValueError(
+                    f"resolution provider key {kind.value} does not match provider kind "
+                    f"{provider.kind.value}"
+                )
+
+    def resolve(self, *, node: RequirementNode, parameter: str) -> RequirementResolutionResult:
+        if not parameter or not parameter.strip():
+            raise ValueError("parameter is required")
+
+        current_claims = list(node.claims)
+        attempts: list[ResolutionAttempt] = []
+        retrieval_resolution: SemanticResolution | None = None
+
+        assessment = assess_parameter_gap(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            claims=current_claims,
+            attempts=attempts,
+        )
+        if assessment.state in _TERMINAL_AUTOMATIC_STATES:
+            return RequirementResolutionResult(
+                requirement_id=node.requirement_id,
+                parameter=parameter,
+                claims=tuple(current_claims),
+                attempts=(),
+                assessment=assessment,
+            )
+
+        for kind in _CANONICAL_ORDER:
+            provider = self.providers.get(kind)
+            if provider is None:
+                continue
+
+            step = provider.resolve(node, parameter, tuple(current_claims))
+            if not isinstance(step, ResolutionStepResult):
+                raise TypeError(
+                    f"{kind.value} provider must return ResolutionStepResult"
+                )
+
+            if kind is ResolutionAttemptKind.RETRIEVAL:
+                retrieval_resolution = resolve_requirement_parameter(
+                    node=node,
+                    parameter=parameter,
+                    candidates=step.claims,
+                    aliases=self.semantic_policy.aliases,
+                    entity_aliases=self.semantic_policy.entity_aliases,
+                    applicability_evidence=self.semantic_policy.applicability_evidence,
+                    entity_applicability_evidence=(
+                        self.semantic_policy.entity_applicability_evidence
+                    ),
+                )
+                status, evidence_ids = _retrieval_attempt_outcome(
+                    step=step,
+                    resolution=retrieval_resolution,
+                )
+                if retrieval_resolution.retrieved_claim is not None:
+                    current_claims.append(retrieval_resolution.retrieved_claim)
+            else:
+                _validate_stage_claims(
+                    kind=kind,
+                    node=node,
+                    parameter=parameter,
+                    claims=step.claims,
+                )
+                current_claims.extend(step.claims)
+                status, evidence_ids = _structured_attempt_outcome(
+                    kind=kind,
+                    step=step,
+                )
+
+            attempt = ResolutionAttempt(
+                kind=kind,
+                status=status,
+                source_reference=step.source_reference.strip(),
+                evidence_ids=evidence_ids,
+                note=_attempt_note(kind=kind, status=status),
+            )
+            attempts.append(attempt)
+
+            assessment = assess_parameter_gap(
+                requirement_id=node.requirement_id,
+                parameter=parameter,
+                claims=current_claims,
+                attempts=attempts,
+            )
+            if assessment.state in _TERMINAL_AUTOMATIC_STATES:
+                break
+
+        assessment = assess_parameter_gap(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            claims=current_claims,
+            attempts=attempts,
+        )
+        return RequirementResolutionResult(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            claims=tuple(current_claims),
+            attempts=tuple(attempts),
+            assessment=assessment,
+            retrieval_resolution=retrieval_resolution,
+        )
+
+
+def _clean_evidence_ids(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            cleaned
+            for value in values
+            if (cleaned := str(value).strip())
+        )
+    )
+
+
+def _claim_evidence_ids(claims: Sequence[RequirementClaim]) -> tuple[str, ...]:
+    return _clean_evidence_ids(
+        tuple(
+            evidence_id
+            for claim in claims
+            for evidence_id in claim.provenance.evidence_ids
+        )
+    )
+
+
+def _is_validated(claim: RequirementClaim) -> bool:
+    return claim.provenance.validation_status.strip().upper() in _VALIDATION_OK
+
+
+def _require_governed_evidence(claim: RequirementClaim, *, kind: ResolutionAttemptKind) -> None:
+    if not claim.provenance.source_reference or not claim.provenance.source_reference.strip():
+        raise ValueError(f"{kind.value} claim requires source_reference")
+    if not _clean_evidence_ids(claim.provenance.evidence_ids):
+        raise ValueError(f"{kind.value} claim requires nonblank evidence_ids")
+
+
+def _validate_stage_claims(
+    *,
+    kind: ResolutionAttemptKind,
+    node: RequirementNode,
+    parameter: str,
+    claims: Sequence[RequirementClaim],
+) -> None:
+    for claim in claims:
+        if claim.requirement_id != node.requirement_id:
+            raise ValueError(
+                f"{kind.value} claim belongs to another requirement: {claim.requirement_id}"
+            )
+        if claim.predicate != parameter:
+            raise ValueError(
+                f"{kind.value} claim predicate does not match target parameter: "
+                f"{claim.predicate}"
+            )
+        if not claim.subject or not claim.subject.strip():
+            raise ValueError(f"{kind.value} claim requires a nonblank subject")
+        _require_governed_evidence(claim, kind=kind)
+
+        if kind is ResolutionAttemptKind.RULE:
+            if claim.provenance.source_type is not RequirementSourceType.RULE:
+                raise ValueError("RULE provider claims require RULE provenance")
+            if claim.state not in {
+                RequirementState.KNOWN,
+                RequirementState.INFERRED,
+                RequirementState.ASSUMPTION_REQUIRED,
+                RequirementState.CONFLICT,
+            }:
+                raise ValueError(f"RULE provider cannot emit state {claim.state.value}")
+            if claim.state is RequirementState.KNOWN:
+                if claim.requires_human_validation or not _is_validated(claim):
+                    raise ValueError(
+                        "RULE KNOWN claims require governed validation and no pending human gate"
+                    )
+            elif claim.state is RequirementState.INFERRED and not claim.requires_human_validation:
+                raise ValueError("RULE INFERRED claims must require human validation")
+
+        elif kind is ResolutionAttemptKind.CALCULATION:
+            if claim.provenance.source_type is not RequirementSourceType.CALCULATION:
+                raise ValueError(
+                    "CALCULATION provider claims require CALCULATION provenance"
+                )
+            if claim.state not in {
+                RequirementState.CALCULATED,
+                RequirementState.CONFLICT,
+            }:
+                raise ValueError(
+                    f"CALCULATION provider cannot emit state {claim.state.value}"
+                )
+            if claim.state is RequirementState.CALCULATED:
+                if claim.requires_human_validation or not _is_validated(claim):
+                    raise ValueError(
+                        "CALCULATED claims require governed validation and no pending human gate"
+                    )
+
+        elif kind is ResolutionAttemptKind.INFERENCE:
+            if claim.provenance.source_type not in {
+                RequirementSourceType.LLM_INFERENCE,
+                RequirementSourceType.EXPERIENCE,
+            }:
+                raise ValueError(
+                    "INFERENCE provider claims require LLM_INFERENCE or EXPERIENCE provenance"
+                )
+            if claim.state not in {
+                RequirementState.INFERRED,
+                RequirementState.ASSUMPTION_REQUIRED,
+                RequirementState.CONFLICT,
+            }:
+                raise ValueError(
+                    f"INFERENCE provider cannot emit state {claim.state.value}"
+                )
+            if claim.state is RequirementState.INFERRED and not claim.requires_human_validation:
+                raise ValueError("INFERENCE claims must require human validation")
+
+        else:
+            raise ValueError(f"structured claim validation is unsupported for {kind.value}")
+
+
+def _retrieval_attempt_outcome(
+    *,
+    step: ResolutionStepResult,
+    resolution: SemanticResolution,
+) -> tuple[ResolutionAttemptStatus, tuple[str, ...]]:
+    evidence_ids = _clean_evidence_ids(
+        (
+            *step.evidence_ids,
+            *(
+                evidence_id
+                for match in resolution.matches
+                for evidence_id in match.candidate.provenance.evidence_ids
+            ),
+            *(
+                evidence_id
+                for match in resolution.matches
+                for evidence_id in match.entity_applicability_evidence_ids
+            ),
+            *(
+                evidence_id
+                for match in resolution.matches
+                for evidence_id in match.applicability_evidence_ids
+            ),
+        )
+    )
+
+    if resolution.state is SemanticResolutionState.RESOLVED:
+        if resolution.retrieved_claim is None:
+            raise ValueError("RESOLVED semantic retrieval requires retrieved_claim")
+        resolved_evidence = _clean_evidence_ids(
+            (*evidence_ids, *resolution.retrieved_claim.provenance.evidence_ids)
+        )
+        if not resolved_evidence:
+            raise ValueError("resolved RETRIEVAL attempt requires governed evidence")
+        return ResolutionAttemptStatus.RESOLVED, resolved_evidence
+    if resolution.state is SemanticResolutionState.AMBIGUOUS:
+        return ResolutionAttemptStatus.CONFLICT, evidence_ids
+    if resolution.state in {
+        SemanticResolutionState.VALIDATION_REQUIRED,
+        SemanticResolutionState.CANDIDATE,
+    }:
+        return ResolutionAttemptStatus.NOT_APPLICABLE, evidence_ids
+    return ResolutionAttemptStatus.NOT_FOUND, evidence_ids
+
+
+def _structured_attempt_outcome(
+    *,
+    kind: ResolutionAttemptKind,
+    step: ResolutionStepResult,
+) -> tuple[ResolutionAttemptStatus, tuple[str, ...]]:
+    evidence_ids = _clean_evidence_ids(
+        (*step.evidence_ids, *_claim_evidence_ids(step.claims))
+    )
+    if any(claim.state is RequirementState.CONFLICT for claim in step.claims):
+        return ResolutionAttemptStatus.CONFLICT, evidence_ids
+
+    if kind is ResolutionAttemptKind.RULE and any(
+        claim.state is RequirementState.KNOWN for claim in step.claims
+    ):
+        if not evidence_ids:
+            raise ValueError("resolved RULE attempt requires governed evidence")
+        return ResolutionAttemptStatus.RESOLVED, evidence_ids
+
+    if kind is ResolutionAttemptKind.CALCULATION and any(
+        claim.state is RequirementState.CALCULATED for claim in step.claims
+    ):
+        if not evidence_ids:
+            raise ValueError("resolved CALCULATION attempt requires governed evidence")
+        return ResolutionAttemptStatus.RESOLVED, evidence_ids
+
+    if step.claims:
+        return ResolutionAttemptStatus.NOT_APPLICABLE, evidence_ids
+    return ResolutionAttemptStatus.NOT_FOUND, evidence_ids
+
+
+def _attempt_note(
+    *,
+    kind: ResolutionAttemptKind,
+    status: ResolutionAttemptStatus,
+) -> str:
+    """Produce bounded audit-safe notes rather than forwarding provider prose."""
+    return f"governed {kind.value.casefold()} attempt: {status.value.casefold()}"
+
+
+def audit_requirement_resolution(
+    result: RequirementResolutionResult,
+) -> Mapping[str, object]:
+    """Return an audit-safe trace for the requirement-resolution subflow."""
+    return {
+        "requirement_id": result.requirement_id,
+        "parameter": result.parameter,
+        "executed_order": tuple(kind.value for kind in result.executed_order),
+        "attempts": tuple(
+            {
+                "kind": attempt.kind.value,
+                "status": attempt.status.value,
+                "source_reference": attempt.source_reference,
+                "evidence_ids": _clean_evidence_ids(attempt.evidence_ids),
+            }
+            for attempt in result.attempts
+        ),
+        "final": {
+            "state": result.assessment.state.value,
+            "evidence_ids": _clean_evidence_ids(result.assessment.evidence_ids),
+            "confidence": result.assessment.confidence.value,
+            "human_validation_required": result.assessment.human_validation_required,
+        },
+    }
