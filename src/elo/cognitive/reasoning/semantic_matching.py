@@ -7,9 +7,9 @@ promotes similarity into canonical truth.
 
 Automatic resolution is deliberately narrow: only exact predicate identity or
 an explicitly supplied governed alias may bind validated, evidenced knowledge
-to a requirement as a ``RETRIEVED`` claim. When a requirement identifies an
-entity, applicability to that entity must also be exact or explicitly aliased.
-Token overlap is diagnostic only.
+to a requirement as a ``RETRIEVED`` claim. Entity and requirement-context
+applicability are independent gates. Cross-context reuse requires explicit
+applicability evidence. Token overlap is diagnostic only.
 """
 from __future__ import annotations
 
@@ -50,6 +50,8 @@ class SemanticMatch:
     matched_terms: tuple[str, ...]
     entity_compatible: bool = True
     entity_match_kind: SemanticMatchKind | None = None
+    context_compatible: bool = True
+    applicability_evidence_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.score <= 1.0:
@@ -103,13 +105,27 @@ def normalize_semantic_text(value: str) -> str:
 
     Accents and case are normalized, punctuation becomes spaces and repeated
     whitespace is collapsed. Unicode alphanumeric characters outside ASCII stay
-    comparable. This function is for labels/predicates/entities, not values.
+    comparable. This function is for semantic labels/predicates, not identifiers
+    or technical values.
     """
     if value is None:
         raise ValueError("semantic text is required")
     folded = _strip_diacritics(value).casefold()
     normalized = "".join(char if char.isalnum() else " " for char in folded)
     return " ".join(normalized.split())
+
+
+def normalize_semantic_identifier(value: str) -> str:
+    """Normalize identifier case/spacing while preserving punctuation identity.
+
+    Technical identifiers use punctuation as part of identity. Consequently
+    ``MLT/C08`` and ``MLT-C08`` remain distinct unless an explicit entity alias
+    relates them.
+    """
+    if value is None:
+        raise ValueError("semantic identifier is required")
+    folded = unicodedata.normalize("NFKC", _strip_diacritics(value)).casefold()
+    return " ".join(folded.split())
 
 
 def normalize_semantic_value(value: str) -> str:
@@ -125,15 +141,19 @@ def normalize_semantic_value(value: str) -> str:
     return " ".join(folded.split())
 
 
-def _alias_index(aliases: Mapping[str, Sequence[str]] | None) -> Mapping[str, str]:
+def _alias_index(
+    aliases: Mapping[str, Sequence[str]] | None,
+    *,
+    normalizer=normalize_semantic_text,
+) -> Mapping[str, str]:
     index: dict[str, str] = {}
     for canonical, members in (aliases or {}).items():
-        canonical_normalized = normalize_semantic_text(canonical)
+        canonical_normalized = normalizer(canonical)
         if not canonical_normalized:
             raise ValueError("alias canonical term cannot normalize to empty")
         group_terms = (canonical, *members)
         for term in group_terms:
-            normalized = normalize_semantic_text(term)
+            normalized = normalizer(term)
             if not normalized:
                 raise ValueError("alias term cannot normalize to empty")
             previous = index.get(normalized)
@@ -157,19 +177,42 @@ def _strong_term_equivalence(
     left: str,
     right: str,
     aliases: Mapping[str, Sequence[str]] | None,
+    *,
+    normalizer=normalize_semantic_text,
 ) -> SemanticMatchKind | None:
-    left_normalized = normalize_semantic_text(left)
-    right_normalized = normalize_semantic_text(right)
+    left_normalized = normalizer(left)
+    right_normalized = normalizer(right)
     if not left_normalized or not right_normalized:
         return None
     if left_normalized == right_normalized:
         return SemanticMatchKind.EXACT
-    alias_index = _alias_index(aliases)
+    alias_index = _alias_index(aliases, normalizer=normalizer)
     left_group = alias_index.get(left_normalized)
     right_group = alias_index.get(right_normalized)
     if left_group is not None and left_group == right_group:
         return SemanticMatchKind.GOVERNED_ALIAS
     return None
+
+
+def _requirement_context_id(requirement_id: str) -> str:
+    """Return the stable request/SO context for requirement-node identifiers."""
+    head, separator, tail = requirement_id.rpartition(":")
+    if separator and head and tail.upper().startswith("R"):
+        return head
+    return requirement_id
+
+
+def _context_is_compatible(
+    *,
+    required_requirement_id: str | None,
+    candidate_requirement_id: str,
+    applicability_evidence_ids: Sequence[str],
+) -> bool:
+    if required_requirement_id is None or not required_requirement_id.strip():
+        return True
+    if _requirement_context_id(required_requirement_id) == _requirement_context_id(candidate_requirement_id):
+        return True
+    return any(str(evidence_id).strip() for evidence_id in applicability_evidence_ids)
 
 
 def match_parameter_to_claim(
@@ -179,12 +222,14 @@ def match_parameter_to_claim(
     aliases: Mapping[str, Sequence[str]] | None = None,
     required_entity: str | None = None,
     entity_aliases: Mapping[str, Sequence[str]] | None = None,
+    required_requirement_id: str | None = None,
+    applicability_evidence_ids: Sequence[str] = (),
 ) -> SemanticMatch | None:
     """Compare one required parameter with one structured evidence claim.
 
-    Parameter equivalence and entity applicability are separate. A parameter may
-    match strongly while the candidate still remains inapplicable because its
-    subject has not been related to the requirement entity.
+    Predicate equivalence, entity identity and request-context applicability are
+    independent. Cross-context candidates remain consultative unless the caller
+    supplies explicit governed evidence that the candidate applies here.
     """
     parameter_normalized = normalize_semantic_text(parameter)
     predicate_normalized = normalize_semantic_text(candidate.predicate)
@@ -213,6 +258,7 @@ def match_parameter_to_claim(
             required_entity,
             candidate.subject,
             entity_aliases,
+            normalizer=normalize_semantic_identifier,
         )
         entity_compatible = entity_match_kind in {
             SemanticMatchKind.EXACT,
@@ -221,6 +267,17 @@ def match_parameter_to_claim(
         if not entity_compatible:
             entity_match_kind = None
 
+    explicit_applicability = tuple(
+        str(evidence_id).strip()
+        for evidence_id in applicability_evidence_ids
+        if str(evidence_id).strip()
+    )
+    context_compatible = _context_is_compatible(
+        required_requirement_id=required_requirement_id,
+        candidate_requirement_id=candidate.requirement_id,
+        applicability_evidence_ids=explicit_applicability,
+    )
+
     return SemanticMatch(
         candidate=candidate,
         kind=parameter_kind,
@@ -228,6 +285,8 @@ def match_parameter_to_claim(
         matched_terms=matched_terms,
         entity_compatible=entity_compatible,
         entity_match_kind=entity_match_kind,
+        context_compatible=context_compatible,
+        applicability_evidence_ids=explicit_applicability,
     )
 
 
@@ -259,7 +318,9 @@ def _bind_retrieved_claim(
         source_type=candidate.provenance.source_type,
         source_reference=candidate.provenance.source_reference,
         reasoning_method=f"semantic-match:{match.kind.value.casefold()}:v1",
-        evidence_ids=candidate.provenance.evidence_ids,
+        evidence_ids=tuple(dict.fromkeys(
+            (*candidate.provenance.evidence_ids, *match.applicability_evidence_ids)
+        )),
         validation_status=candidate.provenance.validation_status,
     )
     return RequirementClaim(
@@ -288,14 +349,15 @@ def resolve_requirement_parameter(
     candidates: Sequence[RequirementClaim],
     aliases: Mapping[str, Sequence[str]] | None = None,
     entity_aliases: Mapping[str, Sequence[str]] | None = None,
+    applicability_evidence: Mapping[str, Sequence[str]] | None = None,
 ) -> SemanticResolution:
     """Resolve a requirement parameter against already-governed evidence.
 
     Exact and explicitly aliased predicate matches are strong. A strong match
-    still cannot resolve automatically when entity applicability is unproven,
-    any applicable evidence is already conflicting, candidate values conflict,
-    or source claims lack governed validation/evidence. Token overlap remains a
-    non-authoritative candidate signal.
+    still cannot resolve automatically when entity or request-context
+    applicability is unproven, any applicable evidence is conflicting/pending
+    human validation, candidate values conflict, or source claims lack governed
+    validation/evidence. Token overlap remains non-authoritative.
     """
     if not parameter or not parameter.strip():
         raise ValueError("parameter is required")
@@ -311,6 +373,11 @@ def resolve_requirement_parameter(
                     aliases=aliases,
                     required_entity=node.entity,
                     entity_aliases=entity_aliases,
+                    required_requirement_id=node.requirement_id,
+                    applicability_evidence_ids=(applicability_evidence or {}).get(
+                        candidate.claim_id,
+                        (),
+                    ),
                 ))
                 is not None
             ),
@@ -342,14 +409,25 @@ def resolve_requirement_parameter(
             reasons=("only lexical overlap was found; similarity is not evidence of equivalence",),
         )
 
-    applicable = tuple(match for match in strong if match.entity_compatible)
-    if not applicable:
+    entity_applicable = tuple(match for match in strong if match.entity_compatible)
+    if not entity_applicable:
         return SemanticResolution(
             requirement_id=node.requirement_id,
             parameter=parameter,
             state=SemanticResolutionState.VALIDATION_REQUIRED,
             matches=matches,
             reasons=("parameter equivalence exists, but applicability to the requirement entity is not established",),
+            human_validation_required=True,
+        )
+
+    applicable = tuple(match for match in entity_applicable if match.context_compatible)
+    if not applicable:
+        return SemanticResolution(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            state=SemanticResolutionState.VALIDATION_REQUIRED,
+            matches=matches,
+            reasons=("entity equivalence exists, but applicability to the current requirement context is not evidenced",),
             human_validation_required=True,
         )
 
@@ -363,9 +441,20 @@ def resolve_requirement_parameter(
             human_validation_required=True,
         )
 
+    if any(match.candidate.requires_human_validation for match in applicable):
+        return SemanticResolution(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            state=SemanticResolutionState.VALIDATION_REQUIRED,
+            matches=matches,
+            reasons=("applicable semantic evidence still carries an explicit human-validation gate",),
+            human_validation_required=True,
+        )
+
     distinct_values = {
-        normalize_semantic_value(match.candidate.value)
+        normalized
         for match in applicable
+        if (normalized := normalize_semantic_value(match.candidate.value))
     }
     if len(distinct_values) > 1:
         return SemanticResolution(
@@ -426,6 +515,8 @@ def audit_semantic_resolution(resolution: SemanticResolution) -> Mapping[str, ob
                     if match.entity_match_kind is not None
                     else None
                 ),
+                "context_compatible": match.context_compatible,
+                "applicability_evidence_ids": match.applicability_evidence_ids,
                 "source_type": match.candidate.provenance.source_type.value,
                 "source_reference": match.candidate.provenance.source_reference,
                 "evidence_ids": match.candidate.provenance.evidence_ids,
