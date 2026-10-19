@@ -1,3 +1,5 @@
+from math import inf, nan
+
 from elo.cognitive.capacity_evidence_reconciliation import (
     CapacityReconciliationState,
     EmpiricalCapacityEvidence,
@@ -75,16 +77,17 @@ def test_unrelated_work_center_does_not_make_capacity_ready():
     assert result.work_center_ref is None
 
 
-def test_unmapped_repair_semantics_do_not_silently_become_tests_capacity():
+def test_partially_mapped_repair_semantics_remain_blocked():
     result = reconcile_capacity_evidence(
         ev("CAP-007", "módulos/dia", ("TESTES", "REPARO")),
         canonical_stage_codes=CANONICAL_STAGES,
+        stage_work_centers={"TESTES": "CT-QUALIDADE"},
     )
 
-    # Only TESTES exists in the canonical production flow. The reconciler can
-    # identify that stage, but without a mapped work center it still cannot persist it.
-    assert result.state is CapacityReconciliationState.NEEDS_WORK_CENTER
+    assert result.state is CapacityReconciliationState.NEEDS_STAGE_MAPPING
     assert result.matched_stage == "TESTES"
+    assert result.next_required_condition == "canonical_stage_mapping"
+    assert "REPARO" in result.detail
     assert result.canonical_mutation is False
 
 
@@ -130,7 +133,7 @@ def test_summary_exposes_next_semantic_conditions_without_mutation():
     assert summary["canonical_mutation"] is False
 
 
-def test_invalid_empirical_capacity_fails_closed():
+def test_non_positive_empirical_capacity_fails_closed():
     try:
         EmpiricalCapacityEvidence(
             evidence_id="CAP-NEG",
@@ -141,6 +144,23 @@ def test_invalid_empirical_capacity_fails_closed():
             source_ref=SOURCE,
         )
     except ValueError as exc:
-        assert "greater than zero" in str(exc)
+        assert "finite number greater than zero" in str(exc)
     else:
         raise AssertionError("non-positive capacity must fail closed")
+
+
+def test_non_finite_empirical_capacity_fails_closed():
+    for value in (nan, inf):
+        try:
+            EmpiricalCapacityEvidence(
+                evidence_id="CAP-NON-FINITE",
+                activity="invalid",
+                quantity_per_day=value,
+                unit="módulos/dia",
+                stage_codes=("ACABAMENTO",),
+                source_ref=SOURCE,
+            )
+        except ValueError as exc:
+            assert "finite number greater than zero" in str(exc)
+        else:
+            raise AssertionError("non-finite capacity must fail closed")
