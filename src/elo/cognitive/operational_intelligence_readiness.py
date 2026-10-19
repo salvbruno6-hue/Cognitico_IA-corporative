@@ -39,9 +39,9 @@ class OperationalIntelligenceSignals:
     modular_unit_rows: int
     learning_pcp_rows: int
     learning_flow_rows: int
+    evidence_ref: str = "supabase/health/elo_operational_intelligence_readiness.sql"
     governed_external_capacity_rows: int = 0
     governed_external_capacity_ref: str | None = None
-    evidence_ref: str = "supabase/health/elo_operational_intelligence_readiness.sql"
 
     def __post_init__(self) -> None:
         values = (
