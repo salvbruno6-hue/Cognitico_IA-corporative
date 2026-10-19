@@ -159,6 +159,32 @@ _REQUIRED_GAP_ATTEMPTS = {
     ResolutionAttemptKind.INFERENCE,
 }
 
+# Metadata is an extensibility surface and therefore cannot be copied wholesale
+# into audit output. Only fields with an explicit audit purpose are allowed.
+_AUDIT_SAFE_METADATA_KEYS = frozenset(
+    {
+        "source_reference",
+        "locator",
+        "origin_hash",
+        "extraction_mode",
+        "retrieval.record_id",
+        "retrieval.reported_source_type",
+        "retrieval.conversation_id",
+        "retrieval.classification",
+        "retrieval.uri",
+        "retrieval.tenant_id",
+        "retrieval.domain",
+        "retrieval.principal_id",
+        "retrieval.session_id",
+        "retrieval.request_id",
+        "retrieval.correlation_id",
+        "retrieval.source_id",
+        "retrieval.source_kind",
+        "retrieval.required_capability",
+        "retrieval.authorization_scope",
+    }
+)
+
 
 def confidence_for_claims(claims: Sequence[RequirementClaim]) -> ConfidenceBand:
     """Return an evidence-derived confidence band without trusting model self-score."""
@@ -291,6 +317,11 @@ def audit_requirement(node: RequirementNode) -> Mapping[str, object]:
     evidence_ids = tuple(dict.fromkeys(
         evidence for claim in node.claims for evidence in claim.provenance.evidence_ids
     ))
+    audit_metadata = {
+        key: value
+        for key, value in node.metadata.items()
+        if key in _AUDIT_SAFE_METADATA_KEYS
+    }
     return {
         "requirement_id": node.requirement_id,
         "source_claims": tuple(
@@ -307,5 +338,5 @@ def audit_requirement(node: RequirementNode) -> Mapping[str, object]:
         ),
         "evidence_ids": evidence_ids,
         "dependencies": node.dependencies,
-        "metadata": dict(node.metadata),
+        "metadata": audit_metadata,
     }
