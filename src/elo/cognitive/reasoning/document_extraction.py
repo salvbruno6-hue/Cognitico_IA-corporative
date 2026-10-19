@@ -194,10 +194,10 @@ def extract_documented_requirements(
 def _temporal_retrieval_metadata(record: TemporalRecord) -> Mapping[str, str]:
     """Select resolver-owned provenance and source location for audit metadata."""
     metadata: dict[str, str] = {
-        "retrieval.record_id": record.record_id,
+        "retrieval.record_id": record.record_id.strip(),
         # Temporal source_type is a source-reported classification; the trusted
         # resolver route is separately recorded as retrieval.source_kind.
-        "retrieval.reported_source_type": record.source_type,
+        "retrieval.reported_source_type": record.source_type.strip(),
         "retrieval.conversation_id": record.conversation_id,
         "retrieval.classification": record.classification,
     }
@@ -224,7 +224,7 @@ def extract_temporal_document_requirements(
     ``document_reference``. Raw adapter authority/capability assertions are not
     exposed as trusted audit provenance.
     """
-    if not record.record_id or not record.source_type:
+    if not str(record.record_id).strip() or not str(record.source_type).strip():
         raise ValueError("temporal source identity is required")
     if not record.content.strip():
         raise ValueError("temporal document content is required")
