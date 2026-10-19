@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass
-from typing import Iterable, Sequence
+from dataclasses import dataclass, replace
+from typing import Iterable, Mapping, Sequence
+
+from elo.core.source_resolver import RetrievedSource
 
 from .requirement_analysis import (
     ClaimProvenance,
@@ -46,6 +48,17 @@ class ExplicitRequirement:
 
 _KEY_VALUE = re.compile(r"^\s*([^:;]{2,120}?)\s*:\s*(.+?)\s*$")
 _BULLET = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$")
+_RETRIEVAL_PROVENANCE_KEYS = (
+    "uri",
+    "authority",
+    "adapter_capability",
+    "tenant_id",
+    "domain",
+    "principal_id",
+    "session_id",
+    "request_id",
+    "correlation_id",
+)
 
 
 def _stable_digest(*parts: str) -> str:
@@ -160,6 +173,57 @@ def extract_documented_requirements(
             )
         )
     return tuple(nodes)
+
+
+def _retrieval_metadata(retrieved: RetrievedSource) -> Mapping[str, str]:
+    """Select only auditable retrieval provenance; do not mirror arbitrary payload data."""
+    metadata: dict[str, str] = {
+        "retrieval.source_id": retrieved.source_id,
+        "retrieval.source_type": retrieved.source_type,
+    }
+    for key in _RETRIEVAL_PROVENANCE_KEYS:
+        value = retrieved.provenance.get(key)
+        if value is not None and str(value).strip():
+            metadata[f"retrieval.{key}"] = str(value)
+    return metadata
+
+
+def extract_retrieved_document_requirements(
+    *,
+    retrieved: RetrievedSource,
+    document_reference: str,
+    requirement_prefix: str,
+    subject: str,
+    evidence_ids: Sequence[str] = (),
+) -> tuple[RequirementNode, ...]:
+    """Bridge governed retrieval to explicit document extraction.
+
+    The caller must explicitly qualify the material as a document through
+    ``document_reference``. Provider/source type alone never grants document
+    semantics. This function preserves retrieval provenance in metadata while
+    delegating all claim construction to ``extract_documented_requirements``.
+    """
+    if not retrieved.source_id or not retrieved.source_type:
+        raise ValueError("retrieved source identity is required")
+    if not retrieved.content.strip():
+        raise ValueError("retrieved document content is required")
+    if not retrieved.provenance:
+        raise ValueError("retrieved document provenance is required")
+    if not document_reference.strip():
+        raise ValueError("document_reference is required")
+
+    nodes = extract_documented_requirements(
+        source_reference=document_reference,
+        text=retrieved.content,
+        requirement_prefix=requirement_prefix,
+        subject=subject,
+        evidence_ids=evidence_ids,
+    )
+    retrieval_metadata = _retrieval_metadata(retrieved)
+    return tuple(
+        replace(node, metadata={**node.metadata, **retrieval_metadata})
+        for node in nodes
+    )
 
 
 def iter_claims(nodes: Iterable[RequirementNode]) -> tuple[RequirementClaim, ...]:
