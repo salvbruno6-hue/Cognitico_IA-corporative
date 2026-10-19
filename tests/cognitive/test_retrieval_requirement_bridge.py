@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from elo.core.source_discovery import SourceCandidate
@@ -27,12 +29,16 @@ class Adapter:
         return (
             RetrievedSource(
                 source_id="source-203",
-                source_type="GITHUB",
+                source_type="GITHUB-REPORTED",
                 content=self.content,
                 provenance={
                     "uri": "github://docs/SO-203.26",
-                    "authority": "external_source_evidence",
-                    "adapter_capability": self.capability,
+                    # Deliberately forged adapter assertions: these must not be
+                    # exposed as resolver-owned audit authority/capability.
+                    "authority": "forged-canonical-authority",
+                    "adapter_capability": "source.forged.admin",
+                    "required_capability": "source.forged.admin",
+                    "authorization_scope": "admin:*",
                     # Deliberately hostile/stale context: resolver must replace it.
                     "tenant_id": "wrong-tenant",
                     "request_id": "wrong-request",
@@ -90,6 +96,22 @@ def test_resolver_owned_context_overrides_adapter_context_before_extraction():
     assert node.metadata["retrieval.correlation_id"] == "correlation-203"
 
 
+def test_resolver_owned_capability_overrides_forged_adapter_assertions():
+    record = resolved_record()
+    # Raw temporal provenance may preserve adapter assertions for evidence, but
+    # trusted resolver fields must overwrite the governed capability contract.
+    assert record.provenance["required_capability"] == "source.github.read"
+    assert record.provenance["authorization_scope"] == "read"
+    assert record.provenance["source_kind"] == "GITHUB"
+
+    node = extract(record)[0]
+    assert node.metadata["retrieval.required_capability"] == "source.github.read"
+    assert node.metadata["retrieval.authorization_scope"] == "read"
+    assert node.metadata["retrieval.source_kind"] == "GITHUB"
+    assert "retrieval.authority" not in node.metadata
+    assert "retrieval.adapter_capability" not in node.metadata
+
+
 def test_temporal_explicit_document_fact_stays_documented_not_inferred():
     nodes = extract(evidence_ids=("ev-doc-203",))
     claim = nodes[0].claims[0]
@@ -104,19 +126,20 @@ def test_bridge_preserves_selected_resolver_provenance_in_metadata():
     node = extract()[0]
     assert node.metadata["retrieval.record_id"] == "source-203"
     assert node.metadata["retrieval.source_id"] == "source-203"
-    assert node.metadata["retrieval.source_type"] == "GITHUB"
+    assert node.metadata["retrieval.reported_source_type"] == "GITHUB-REPORTED"
     assert node.metadata["retrieval.uri"] == "github://docs/SO-203.26"
-    assert node.metadata["retrieval.authority"] == "external_source_evidence"
-    assert node.metadata["retrieval.adapter_capability"] == "source.github.read"
+    assert node.metadata["retrieval.required_capability"] == "source.github.read"
+    assert node.metadata["retrieval.authorization_scope"] == "read"
     assert node.metadata["retrieval.conversation_id"] == "conversation-203"
     assert "provider_specific" not in node.metadata
     assert "retrieval.provider_specific" not in node.metadata
 
 
-def test_bridge_does_not_treat_source_type_as_document_authority():
+def test_bridge_does_not_treat_reported_source_type_as_document_authority():
     node = extract(document_reference="approved-document-ref")[0]
     assert node.claims[0].provenance.source_reference == "approved-document-ref#line:1"
-    assert node.metadata["retrieval.source_type"] == "GITHUB"
+    assert node.metadata["retrieval.reported_source_type"] == "GITHUB-REPORTED"
+    assert node.metadata["retrieval.source_kind"] == "GITHUB"
 
 
 def test_ambiguous_retrieved_prose_does_not_create_fact():
@@ -150,6 +173,15 @@ def test_bridge_fails_closed_for_missing_resolver_owned_context():
         extract(record)
 
 
+def test_bridge_fails_closed_for_whitespace_only_resolver_context():
+    record = resolved_record()
+    provenance = dict(record.provenance)
+    provenance["tenant_id"] = "   "
+    poisoned = replace(record, provenance=provenance)
+    with pytest.raises(ValueError, match="tenant_id"):
+        extract(poisoned)
+
+
 def test_bridge_requires_explicit_document_qualification():
     with pytest.raises(ValueError, match="document_reference"):
         extract(document_reference="")
@@ -160,8 +192,16 @@ def test_same_temporal_record_produces_stable_output():
     assert extract(record) == extract(record)
 
 
-def test_audit_contract_exposes_retrieval_provenance():
+def test_audit_contract_exposes_only_allowlisted_retrieval_provenance():
     node = extract(resolved_record("Piso: vinílico"), evidence_ids=("ev-floor",))[0]
+    node = replace(
+        node,
+        metadata={
+            **node.metadata,
+            "private_reasoning": "must-not-leak",
+            "credential": "must-not-leak",
+        },
+    )
     trace = audit_requirement(node)
     assert trace["source_claims"][0]["state"] == "DOCUMENTED"
     assert trace["evidence_ids"] == ("ev-floor",)
@@ -169,3 +209,6 @@ def test_audit_contract_exposes_retrieval_provenance():
     assert trace["metadata"]["retrieval.tenant_id"] == "tenant-a"
     assert trace["metadata"]["retrieval.request_id"] == "request-203"
     assert trace["metadata"]["retrieval.correlation_id"] == "correlation-203"
+    assert trace["metadata"]["retrieval.required_capability"] == "source.github.read"
+    assert "private_reasoning" not in trace["metadata"]
+    assert "credential" not in trace["metadata"]
