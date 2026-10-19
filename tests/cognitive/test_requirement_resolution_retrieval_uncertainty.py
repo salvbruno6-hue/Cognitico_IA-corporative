@@ -95,6 +95,30 @@ def test_strong_retrieval_pending_validation_blocks_gap_confirmation():
     assert "EV-PENDING" in result.assessment.evidence_ids
 
 
+def test_strong_retrieval_pending_validation_survives_missing_later_providers():
+    candidate = _candidate(
+        claim_id="PENDING-PARTIAL",
+        predicate="mdf.thickness",
+        validation_status="UNVERIFIED",
+    )
+    retrieval = Provider(
+        kind=ResolutionAttemptKind.RETRIEVAL,
+        result=ResolutionStepResult(
+            source_reference="source-resolver:pending-partial",
+            claims=(candidate,),
+        ),
+    )
+
+    result = RequirementResolutionFlow(
+        providers={ResolutionAttemptKind.RETRIEVAL: retrieval}
+    ).resolve(node=_node(), parameter="mdf.thickness")
+
+    assert result.executed_order == (ResolutionAttemptKind.RETRIEVAL,)
+    assert result.assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED
+    assert result.assessment.human_validation_required is True
+    assert "EV-PENDING-PARTIAL" in result.assessment.evidence_ids
+
+
 def test_weak_semantic_candidate_keeps_gap_as_candidate_after_all_attempts():
     candidate = _candidate(
         claim_id="WEAK",
