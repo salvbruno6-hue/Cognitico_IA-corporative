@@ -93,21 +93,36 @@ _GOVERNED_STATES = frozenset(
 )
 
 
-def normalize_semantic_text(value: str) -> str:
-    """Normalize text deterministically while preserving the original evidence.
+def _strip_diacritics(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", str(value))
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
 
-    Unicode accents are removed for comparison, text is case-folded, punctuation
-    becomes spaces and repeated whitespace is collapsed. Unicode alphanumeric
-    characters outside ASCII remain comparable. The normalized value is never
-    written back into source evidence.
+
+def normalize_semantic_text(value: str) -> str:
+    """Normalize labels deterministically without rewriting source evidence.
+
+    Accents and case are normalized, punctuation becomes spaces and repeated
+    whitespace is collapsed. Unicode alphanumeric characters outside ASCII stay
+    comparable. This function is for labels/predicates/entities, not values.
     """
     if value is None:
         raise ValueError("semantic text is required")
-    decomposed = unicodedata.normalize("NFKD", str(value))
-    without_marks = "".join(char for char in decomposed if not unicodedata.combining(char))
-    folded = without_marks.casefold()
+    folded = _strip_diacritics(value).casefold()
     normalized = "".join(char if char.isalnum() else " " for char in folded)
     return " ".join(normalized.split())
+
+
+def normalize_semantic_value(value: str) -> str:
+    """Normalize a candidate value while preserving technical punctuation.
+
+    Case, accents and whitespace are normalized, but punctuation and symbols are
+    retained so semantically different technical values such as ``1.2 mm`` and
+    ``1/2 mm`` cannot collapse into the same comparison key.
+    """
+    if value is None:
+        raise ValueError("semantic value is required")
+    folded = unicodedata.normalize("NFKC", _strip_diacritics(value)).casefold()
+    return " ".join(folded.split())
 
 
 def _alias_index(aliases: Mapping[str, Sequence[str]] | None) -> Mapping[str, str]:
@@ -220,6 +235,7 @@ def _candidate_is_governed(candidate: RequirementClaim) -> bool:
     return (
         candidate.state in _GOVERNED_STATES
         and candidate.provenance.source_type is not RequirementSourceType.LLM_INFERENCE
+        and not candidate.requires_human_validation
         and bool(str(candidate.value).strip())
         and bool(candidate.provenance.evidence_ids)
         and candidate.provenance.validation_status.upper() in _VALIDATION_OK
@@ -277,8 +293,9 @@ def resolve_requirement_parameter(
 
     Exact and explicitly aliased predicate matches are strong. A strong match
     still cannot resolve automatically when entity applicability is unproven,
-    candidate values conflict, or source claims lack governed validation and
-    evidence. Token overlap remains a non-authoritative candidate signal.
+    any applicable evidence is already conflicting, candidate values conflict,
+    or source claims lack governed validation/evidence. Token overlap remains a
+    non-authoritative candidate signal.
     """
     if not parameter or not parameter.strip():
         raise ValueError("parameter is required")
@@ -336,8 +353,18 @@ def resolve_requirement_parameter(
             human_validation_required=True,
         )
 
+    if any(match.candidate.state is RequirementState.CONFLICT for match in applicable):
+        return SemanticResolution(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            state=SemanticResolutionState.AMBIGUOUS,
+            matches=matches,
+            reasons=("applicable semantic evidence contains an explicit conflict state",),
+            human_validation_required=True,
+        )
+
     distinct_values = {
-        normalize_semantic_text(match.candidate.value)
+        normalize_semantic_value(match.candidate.value)
         for match in applicable
     }
     if len(distinct_values) > 1:
@@ -357,7 +384,7 @@ def resolve_requirement_parameter(
             parameter=parameter,
             state=SemanticResolutionState.VALIDATION_REQUIRED,
             matches=matches,
-            reasons=("semantic equivalence exists, but no applicable matched claim has governed validation, value and evidence",),
+            reasons=("semantic equivalence exists, but no applicable matched claim has governed validation, value, evidence and cleared human-validation state",),
             human_validation_required=True,
         )
 
@@ -385,7 +412,11 @@ def audit_semantic_resolution(resolution: SemanticResolution) -> Mapping[str, ob
         "matches": tuple(
             {
                 "candidate_claim_id": match.candidate.claim_id,
+                "candidate_requirement_id": match.candidate.requirement_id,
                 "candidate_subject": match.candidate.subject,
+                "recovered_value": match.candidate.value,
+                "candidate_state": match.candidate.state.value,
+                "candidate_requires_human_validation": match.candidate.requires_human_validation,
                 "kind": match.kind.value,
                 "score": match.score,
                 "matched_terms": match.matched_terms,
