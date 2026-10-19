@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, replace
 from typing import Iterable, Mapping, Sequence
 
-from elo.core.source_resolver import RetrievedSource
+from elo.core.temporal_memory import TemporalRecord
 
 from .requirement_analysis import (
     ClaimProvenance,
@@ -58,6 +58,7 @@ _RETRIEVAL_PROVENANCE_KEYS = (
     "session_id",
     "request_id",
     "correlation_id",
+    "source_id",
 )
 
 
@@ -175,51 +176,66 @@ def extract_documented_requirements(
     return tuple(nodes)
 
 
-def _retrieval_metadata(retrieved: RetrievedSource) -> Mapping[str, str]:
-    """Select only auditable retrieval provenance; do not mirror arbitrary payload data."""
+def _temporal_retrieval_metadata(record: TemporalRecord) -> Mapping[str, str]:
+    """Select resolver-enriched provenance from canonical temporal memory."""
     metadata: dict[str, str] = {
-        "retrieval.source_id": retrieved.source_id,
-        "retrieval.source_type": retrieved.source_type,
+        "retrieval.record_id": record.record_id,
+        "retrieval.source_type": record.source_type,
+        "retrieval.conversation_id": record.conversation_id,
+        "retrieval.classification": record.classification,
     }
     for key in _RETRIEVAL_PROVENANCE_KEYS:
-        value = retrieved.provenance.get(key)
+        value = record.provenance.get(key)
         if value is not None and str(value).strip():
             metadata[f"retrieval.{key}"] = str(value)
     return metadata
 
 
-def extract_retrieved_document_requirements(
+def extract_temporal_document_requirements(
     *,
-    retrieved: RetrievedSource,
+    record: TemporalRecord,
     document_reference: str,
     requirement_prefix: str,
     subject: str,
     evidence_ids: Sequence[str] = (),
 ) -> tuple[RequirementNode, ...]:
-    """Bridge governed retrieval to explicit document extraction.
+    """Bridge resolver-owned temporal evidence to explicit document extraction.
 
-    The caller must explicitly qualify the material as a document through
-    ``document_reference``. Provider/source type alone never grants document
-    semantics. This function preserves retrieval provenance in metadata while
-    delegating all claim construction to ``extract_documented_requirements``.
+    `SourceResolver` enriches temporal-record provenance with validated request
+    context before this function is called. The caller must still explicitly
+    qualify the material as a document through ``document_reference``. This
+    function does not consume raw adapter provenance as authoritative context.
     """
-    if not retrieved.source_id or not retrieved.source_type:
-        raise ValueError("retrieved source identity is required")
-    if not retrieved.content.strip():
-        raise ValueError("retrieved document content is required")
-    if not retrieved.provenance:
-        raise ValueError("retrieved document provenance is required")
+    if not record.record_id or not record.source_type:
+        raise ValueError("temporal source identity is required")
+    if not record.content.strip():
+        raise ValueError("temporal document content is required")
+    if not record.provenance:
+        raise ValueError("temporal document provenance is required")
     if not document_reference.strip():
         raise ValueError("document_reference is required")
 
+    required_context = (
+        "tenant_id",
+        "domain",
+        "principal_id",
+        "session_id",
+        "request_id",
+        "correlation_id",
+        "source_id",
+    )
+    missing = tuple(key for key in required_context if not record.provenance.get(key))
+    if missing:
+        raise ValueError(f"resolver-owned temporal provenance missing: {', '.join(missing)}")
+
     nodes = extract_documented_requirements(
         source_reference=document_reference,
-        text=retrieved.content,
+        text=record.content,
         requirement_prefix=requirement_prefix,
         subject=subject,
         evidence_ids=evidence_ids,
     )
-    retrieval_metadata = _retrieval_metadata(retrieved)
+    retrieval_metadata = _temporal_retrieval_metadata(record)
     return tuple(
         replace(node, metadata={**node.metadata, **retrieval_metadata})
         for node in nodes
