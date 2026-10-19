@@ -124,6 +124,10 @@ class SourceResolver:
         records: list[TemporalRecord] = []
         for item in retrieved:
             provenance = dict(item.provenance)
+            # Never allow adapter-supplied authorization claims to survive as
+            # resolver-owned provenance. A scope is reintroduced only after the
+            # selected adapter explicitly declares and validates that scope.
+            provenance.pop("authorization_scope", None)
             resolver_provenance = {
                 # Resolver-owned request context overrides adapter assertions.
                 "tenant_id": request.tenant_id,
