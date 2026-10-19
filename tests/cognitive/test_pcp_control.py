@@ -4,6 +4,9 @@ import pytest
 
 from elo.cognitive.pcp_control import (
     assess_data_readiness,
+    assess_demand_capacity,
+    assess_empirical_capacity_learning,
+    assess_material_availability,
     build_pcp_evidence,
     compare_date,
     compare_duration,
@@ -32,6 +35,88 @@ def test_planned_vs_actual_does_not_invent_missing_realized_data():
     result = compare_quantity(10, None)
     assert result.status == "NAO_LOCALIZADO"
     assert result.variance is None
+
+
+def test_demand_is_always_confronted_with_period_capacity():
+    result = assess_demand_capacity(
+        68,
+        capacity_per_day=2.5,
+        productive_days=22,
+    )
+    assert result.period_capacity == 55
+    assert result.deficit == 13
+    assert result.spillover_quantity == 13
+    assert result.utilization_pct == pytest.approx(123.6363, rel=1e-4)
+    assert result.status == "CAPACIDADE_INSUFICIENTE"
+
+
+def test_demand_capacity_preserves_missing_capacity_as_unknown():
+    result = assess_demand_capacity(
+        68,
+        capacity_per_day=None,
+        productive_days=22,
+    )
+    assert result.period_capacity is None
+    assert result.deficit is None
+    assert result.status == "CAPACIDADE_NAO_LOCALIZADA"
+
+
+def test_material_availability_uses_warehouse_quantity_and_purchase_lead_time():
+    result = assess_material_availability(
+        680,
+        300,
+        lead_time_days=12,
+        reference_date=date(2026, 10, 18),
+    )
+    assert result.shortage_quantity == 380
+    assert result.available_on == date(2026, 10, 30)
+    assert result.status == "REPOSICAO_NECESSARIA"
+
+
+def test_material_availability_does_not_invent_missing_lead_time():
+    result = assess_material_availability(
+        680,
+        300,
+        lead_time_days=None,
+        reference_date=date(2026, 10, 18),
+    )
+    assert result.available_on is None
+    assert result.status == "LEAD_TIME_NAO_LOCALIZADO"
+
+
+def test_recurrent_capacity_divergence_becomes_learning_candidate_only():
+    result = assess_empirical_capacity_learning(
+        4.0,
+        [3.2, 3.1, 3.3, 3.2],
+        min_samples=3,
+        tolerance_pct=10,
+    )
+    assert result.observed_capacity == pytest.approx(3.2)
+    assert result.deviation_pct == pytest.approx(-20.0)
+    assert result.direction == "ABAIXO"
+    assert result.confidence == 1.0
+    assert result.status == "CANDIDATO_AJUSTE"
+
+
+def test_capacity_learning_requires_repetition_before_candidate():
+    result = assess_empirical_capacity_learning(
+        4.0,
+        [3.1, 3.2],
+        min_samples=3,
+        tolerance_pct=10,
+    )
+    assert result.status == "EVIDENCIA_INSUFICIENTE"
+    assert result.confidence == pytest.approx(2 / 3)
+
+
+def test_capacity_learning_keeps_empirical_baseline_when_observed_is_stable():
+    result = assess_empirical_capacity_learning(
+        4.0,
+        [3.9, 4.0, 4.1],
+        min_samples=3,
+        tolerance_pct=10,
+    )
+    assert result.status == "ESTAVEL"
 
 
 def test_data_readiness_accepts_future_operational_feeding():
