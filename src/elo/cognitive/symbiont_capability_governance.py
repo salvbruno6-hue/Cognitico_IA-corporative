@@ -133,7 +133,12 @@ def build_global_capability_visibility(
     for view in implementation_views:
         views_by_capability.setdefault(view.capability, view)
 
-    ids = set(declared_capabilities) | set(snapshots) | set(views_by_capability)
+    ids = (
+        set(declared_capabilities)
+        | set(snapshots)
+        | set(views_by_capability)
+        | required_wiring
+    )
     records: list[CapabilityVisibilityRecord] = []
     for capability_id in sorted(item for item in ids if item):
         snapshot = snapshots.get(capability_id)
