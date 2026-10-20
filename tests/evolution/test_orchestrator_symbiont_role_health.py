@@ -134,3 +134,35 @@ def test_runtime_wiring_health_becomes_visible_only_with_explicit_evidence():
     assert record.canonical_route == "ExecutionRouter"
     assert record.execution_boundary == "ExecutionBoundary"
     assert result.blockers == ()
+
+
+def test_symbiont_prioritizes_internal_alignment_before_new_capability_work():
+    registry = _registry().snapshot()
+    result = build_global_capability_visibility(
+        registry_snapshot=registry,
+        implementation_views=(_view(),),
+        declared_capabilities=("REGISTERED-WITHOUT-VIEW",),
+        require_runtime_wiring=("EXT-ROLE-HEALTH", "MISSING-RUNTIME-CAPABILITY"),
+    )
+
+    candidates = result.improvement_candidates
+
+    assert candidates
+    assert candidates[0].state is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
+    assert [item.capability_id for item in candidates] == result.as_dict()["improvement_candidates"]
+    assert all(item.state is not CapabilityVisibilityState.REGISTERED_VISIBLE for item in candidates)
+
+
+def test_orchestrator_consumes_first_symbiont_improvement_candidate_without_self_authorizing():
+    visibility = build_global_capability_visibility(
+        registry_snapshot=_registry().snapshot(),
+        implementation_views=(_view(),),
+        require_runtime_wiring=("EXT-ROLE-HEALTH",),
+    )
+
+    first = visibility.improvement_candidates[0]
+    orientation = GovernedOrchestrator().advise_capability(visibility, first.capability_id)
+
+    assert first.capability_id == "EXT-ROLE-HEALTH"
+    assert orientation.action == "CONNECT_CANONICAL"
+    assert orientation.authorized is False
