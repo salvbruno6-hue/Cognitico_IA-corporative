@@ -91,7 +91,7 @@ def test_rule_claim_for_different_entity_requires_explicit_applicability_evidenc
     assert "EV-ENTITY-APPLIES" in result.attempts[0].evidence_ids
 
 
-def test_structured_claim_requires_entity_evidence_when_target_entity_is_absent():
+def test_structured_claim_requires_target_entity_when_target_entity_is_absent():
     claim = _rule_claim()
     provider = Provider(
         kind=ResolutionAttemptKind.RULE,
@@ -101,7 +101,7 @@ def test_structured_claim_requires_entity_evidence_when_target_entity_is_absent(
         ),
     )
 
-    with pytest.raises(ValueError, match="target entity is absent"):
+    with pytest.raises(ValueError, match="requires an explicit target entity"):
         RequirementResolutionFlow(
             providers={ResolutionAttemptKind.RULE: provider}
         ).resolve(node=_node(entity=None), parameter="mdf.thickness")
