@@ -10,7 +10,10 @@ from enum import StrEnum
 from typing import Mapping, Sequence
 
 from elo.agent_intake.implementation_loop_readiness import LoopReadiness
-from elo.agent_intake.symbiont_implementation_view import SymbiontImplementationView
+from elo.agent_intake.symbiont_implementation_view import (
+    ImplementationOwnership,
+    SymbiontImplementationView,
+)
 from elo.cognitive.symbiont_capability_evolution import (
     CapabilityEvolutionReview,
     CapabilityStatusReport,
@@ -82,9 +85,9 @@ class GlobalCapabilityVisibility:
         """Return proven internal alignment gaps in evolution-first order.
 
         The Symbiont observes and ranks only capabilities already evidenced by
-        the registry or an implementation view. A wholly absent capability can
-        remain visible as a blocker, but it is not an internal-alignment
-        candidate and must not outrank existing structures.
+        the registry or by a view that actually evidences an implementation.
+        Wholly absent capabilities and views explicitly classified as MISSING
+        remain visible as blockers, but are not internal-alignment candidates.
         """
         priority = {
             CapabilityVisibilityState.UNRESOLVED_OWNER: 0,
@@ -174,7 +177,9 @@ def build_global_capability_visibility(
         snapshot = snapshots.get(capability_id)
         view = views_by_capability.get(capability_id)
         registry_visible = snapshot is not None
-        implementation_visible = view is not None
+        implementation_visible = bool(
+            view is not None and view.ownership is not ImplementationOwnership.MISSING
+        )
         evidence_refs = tuple(dict.fromkeys(view.evidence_refs if view else ()))
         owner = view.owner if view and view.owner.strip() else None
         consumer = consumers.get(capability_id)
@@ -192,11 +197,11 @@ def build_global_capability_visibility(
                 missing.append("execution_boundary")
             missing_runtime_links = tuple(missing)
 
-        if view is not None and view.ownership.value == "UNRESOLVED":
+        if view is not None and view.ownership is ImplementationOwnership.UNRESOLVED:
             state = CapabilityVisibilityState.UNRESOLVED_OWNER
-        elif view is not None and snapshot is None:
+        elif implementation_visible and snapshot is None:
             state = CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED
-        elif snapshot is not None and view is None:
+        elif snapshot is not None and not implementation_visible:
             state = CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW
         elif snapshot is not None and missing_runtime_links:
             state = CapabilityVisibilityState.EXISTING_BUT_UNWIRED
