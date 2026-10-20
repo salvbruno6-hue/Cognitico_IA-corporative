@@ -340,5 +340,6 @@ def audit_requirement(node: RequirementNode) -> Mapping[str, object]:
         ),
         "evidence_ids": evidence_ids,
         "dependencies": node.dependencies,
+        "requirement_dependencies": node.requirement_dependencies,
         "metadata": audit_metadata,
     }
