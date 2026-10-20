@@ -163,6 +163,7 @@ def test_unverified_supporting_claim_reuses_canonical_trust_and_blocks_downstrea
     assert blocker.human_validation_required is False
     assert blocker.automatic_trust_failed is True
     assert result.resolution.attempts == ()
+    assert result.resolution.claims == ()
     assert result.resolution.assessment.state is RequirementState.BLOCKED
     assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
     assert result.resolution.assessment.human_validation_required is False
@@ -194,9 +195,11 @@ def test_llm_inference_cannot_supply_automatic_dependency_support():
     assert provider.calls == 0
     assert result.dependency_assessment.state is RequirementDependencyState.BLOCKED
     assert result.dependency_assessment.dependency_claim_ids == ()
-    assert result.dependency_assessment.evidence_ids == ()
+    assert result.dependency_assessment.evidence_ids == ("EV-R1-LLM",)
+    assert blocker.evidence_ids == ("EV-R1-LLM",)
     assert blocker.automatic_trust_failed is True
     assert result.resolution.attempts == ()
+    assert result.resolution.claims == ()
     assert result.resolution.assessment.state is RequirementState.BLOCKED
     assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
 
