@@ -18,6 +18,7 @@ TECH_TYPES = {"PAD", "EXC", "PRJ", "FOR", "CLI"}
 RESPONSAVEIS = {"ENG", "PLA", "FOR", "CONTRATADA", "FAB"}
 CURVAS = {"A", "B", "C"}
 STATUS = {"🟢", "🟡", "🔴"}
+IMPACTOS = {"ALTO", "MEDIO", "BAIXO"}
 
 
 class ValidationError(Exception):
@@ -99,9 +100,20 @@ def validate_tecnica(data):
     if data.get("contrato_maturidade") == "1.0":
         mature_top = ["vistoria", "pontos_grande_peso", "contradicoes_escopo", "premissas", "quantitativos"]
         require_keys(data, mature_top, "PTS Técnica madura")
-        mature_fields = ["origem", "quantidade_tr", "evidencia_layout", "atendimento_multiteiner", "tratamento_orcamentario", "associacao_orcamento", "validacao_associacao", "ponto_validacao", "impacto"]
+        mature_fields = [
+            "origem", "quantidade_tr", "evidencia_layout", "atendimento_multiteiner",
+            "tratamento_orcamentario", "associacao_orcamento", "validacao_associacao",
+            "responsabilidade", "ponto_validacao", "impacto",
+        ]
         for i, row in enumerate(data["matriz_tecnica"]):
-            require_keys(row, mature_fields, f"PTS Técnica madura.matriz_tecnica[{i}]")
+            where = f"PTS Técnica madura.matriz_tecnica[{i}]"
+            require_keys(row, mature_fields, where)
+            if row["responsabilidade"] not in RESPONSAVEIS:
+                raise ValidationError(
+                    f"{where}: responsabilidade inválida: {row['responsabilidade']}"
+                )
+            if row["impacto"] not in IMPACTOS:
+                raise ValidationError(f"{where}: impacto inválido: {row['impacto']}")
 
     return item_ids, consulta_ids
 
