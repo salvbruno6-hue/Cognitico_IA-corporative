@@ -184,8 +184,8 @@ class RequirementDependencyGraph:
         direct = self._adjacency[requirement_id]
         transitive = self.transitive_dependencies(requirement_id)
         statuses: list[RequirementDependencyStatus] = []
-        dependency_claim_ids: list[str] = []
-        bound_evidence_ids: list[str] = []
+        supporting_by_dependency: dict[str, tuple[RequirementClaim, ...]] = {}
+        assessment_evidence_by_dependency: dict[str, tuple[str, ...]] = {}
 
         for dependency_id in transitive:
             dependency_assessment = assessments.get(dependency_id)
@@ -196,6 +196,7 @@ class RequirementDependencyGraph:
                 )
             else:
                 assessment_evidence = _clean_ids(dependency_assessment.evidence_ids)
+                assessment_evidence_by_dependency[dependency_id] = assessment_evidence
                 supporting: tuple[RequirementClaim, ...] = ()
                 supporting_claim_validation_required = False
                 supporting_claim_trust_failed = (
@@ -229,6 +230,7 @@ class RequirementDependencyGraph:
                         claims=candidates,
                         assessment=dependency_assessment,
                     )
+                    supporting_by_dependency[dependency_id] = supporting
                     supporting_claim_validation_required = any(
                         claim.requires_human_validation for claim in supporting
                     )
@@ -253,19 +255,49 @@ class RequirementDependencyGraph:
                     ),
                     automatic_trust_failed=supporting_claim_trust_failed,
                 )
-                if status.resolved:
-                    dependency_claim_ids.extend(claim.claim_id for claim in supporting)
-                    bound_evidence_ids.extend(
-                        evidence_id
-                        for claim in supporting
-                        for evidence_id in claim.provenance.evidence_ids
-                    )
-                else:
-                    # Evidence for a blocker remains useful to explain why the
-                    # downstream requirement is blocked, but it is never bound
-                    # into a resolved downstream claim.
-                    bound_evidence_ids.extend(assessment_evidence)
             statuses.append(status)
+
+        selected_support_ids = tuple(
+            claim.claim_id
+            for status in statuses
+            if status.resolved
+            for claim in supporting_by_dependency.get(status.requirement_id, ())
+        )
+        duplicate_support_ids = {
+            claim_id
+            for claim_id, count in Counter(selected_support_ids).items()
+            if count > 1
+        }
+        if duplicate_support_ids:
+            statuses = [
+                replace(status, automatic_trust_failed=True)
+                if status.resolved
+                and any(
+                    claim.claim_id in duplicate_support_ids
+                    for claim in supporting_by_dependency.get(status.requirement_id, ())
+                )
+                else status
+                for status in statuses
+            ]
+
+        dependency_claim_ids: list[str] = []
+        bound_evidence_ids: list[str] = []
+        for status in statuses:
+            supporting = supporting_by_dependency.get(status.requirement_id, ())
+            if status.resolved:
+                dependency_claim_ids.extend(claim.claim_id for claim in supporting)
+                bound_evidence_ids.extend(
+                    evidence_id
+                    for claim in supporting
+                    for evidence_id in claim.provenance.evidence_ids
+                )
+            else:
+                # Evidence for a blocker remains useful to explain why the
+                # downstream requirement is blocked, but it is never bound
+                # into a resolved downstream claim.
+                bound_evidence_ids.extend(
+                    assessment_evidence_by_dependency.get(status.requirement_id, ())
+                )
 
         blockers = tuple(status for status in statuses if not status.resolved)
         state = (
