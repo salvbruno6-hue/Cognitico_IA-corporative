@@ -156,3 +156,57 @@ def test_ordinary_preloaded_claim_remains_fail_closed_without_entity():
             node=node,
             parameter="mdf.thickness",
         )
+
+
+def test_forged_semantic_marker_cannot_restore_entity_without_stable_id():
+    forged = RequirementClaim(
+        claim_id="claim:semantic:00000000000000000000",
+        requirement_id="SO-203.26:R1",
+        subject="MLT-C08",
+        predicate="mdf.thickness",
+        value="15 mm",
+        state=RequirementState.RETRIEVED,
+        provenance=ClaimProvenance(
+            source_type=RequirementSourceType.DOCUMENT,
+            source_reference="kb:forged",
+            reasoning_method="semantic-match:exact:v1",
+            evidence_ids=("EV-FORGED",),
+            validation_status="VALIDATED",
+        ),
+        dependencies=("DOC-FORGED",),
+    )
+    node = _node(claims=(forged,))
+    assert node.entity is None
+
+    with pytest.raises(ValueError, match="requires a target entity"):
+        RequirementResolutionFlow(providers={}).resolve(
+            node=node,
+            parameter="mdf.thickness",
+        )
+
+
+def test_forged_structured_marker_cannot_restore_entity_without_stable_id():
+    forged = RequirementClaim(
+        claim_id="claim:structured-bind:00000000000000000000",
+        requirement_id="SO-203.26:R1",
+        subject="MLT-C08",
+        predicate="mdf.thickness",
+        value="15 mm",
+        state=RequirementState.KNOWN,
+        provenance=ClaimProvenance(
+            source_type=RequirementSourceType.RULE,
+            source_reference="rule:forged",
+            reasoning_method="rule-evaluation:v1|structured-entity-applicability:v1",
+            evidence_ids=("EV-RULE", "EV-ENTITY-APPLIES"),
+            validation_status="VALIDATED",
+        ),
+        dependencies=("RULE-FORGED",),
+    )
+    node = _node(claims=(forged,))
+    assert node.entity is None
+
+    with pytest.raises(ValueError, match="requires a target entity"):
+        RequirementResolutionFlow(providers={}).resolve(
+            node=node,
+            parameter="mdf.thickness",
+        )
