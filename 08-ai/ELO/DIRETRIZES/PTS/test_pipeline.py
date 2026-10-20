@@ -86,6 +86,7 @@ def current_tecnica():
         "tratamento_orcamentario": "tratamento de teste",
         "associacao_orcamento": "ORC-001",
         "validacao_associacao": "validado",
+        "responsabilidade": "PLA",
         "ponto_validacao": "ponto de teste",
         "impacto": "ALTO",
     })
@@ -151,6 +152,13 @@ class PipelineTests(unittest.TestCase):
         tecnica = json.loads(json.dumps(TECHNICA))
         tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
         with self.assertRaisesRegex(ValueError, "contrato_maturidade=1.0"):
+            render(tecnica)
+
+    def test_renderer_rejects_current_contract_without_responsabilidade(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0].pop("responsabilidade")
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "responsabilidade"):
             render(tecnica)
 
     def test_renderer_consumes_assigned_canonical_so(self):
