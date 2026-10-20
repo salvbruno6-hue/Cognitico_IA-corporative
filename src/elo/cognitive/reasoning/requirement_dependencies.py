@@ -358,6 +358,10 @@ def audit_requirement_dependency_graph(
         "self_dependencies": validation.self_dependencies,
         "cycles": validation.cycles,
         "topological_order": validation.topological_order,
+        "adjacency": tuple(
+            (requirement_id, graph._adjacency[requirement_id])
+            for requirement_id in sorted(graph._adjacency)
+        ),
     }
 
 
@@ -407,25 +411,74 @@ def _bind_dependency_context(
     if not dependency_assessment.transitive_dependencies:
         return resolution
 
+    final_is_automatic = resolution.assessment.state in _RESOLVED_DEPENDENCY_STATES
+    assessment_evidence = set(_clean_ids(resolution.assessment.evidence_ids))
     bound_claims = tuple(
         _bind_claim_dependencies(
             claim=claim,
             parameter=resolution.parameter,
             dependency_assessment=dependency_assessment,
         )
+        if _claim_supports_final_assessment(
+            claim=claim,
+            parameter=resolution.parameter,
+            final_state=resolution.assessment.state,
+            assessment_evidence=assessment_evidence,
+        )
+        else claim
         for claim in resolution.claims
     )
-    bound_assessment = replace(
-        resolution.assessment,
-        evidence_ids=_clean_ids(
-            (*resolution.assessment.evidence_ids, *dependency_assessment.evidence_ids)
-        ),
+
+    bound_assessment = (
+        replace(
+            resolution.assessment,
+            evidence_ids=_clean_ids(
+                (
+                    *resolution.assessment.evidence_ids,
+                    *dependency_assessment.evidence_ids,
+                )
+            ),
+        )
+        if final_is_automatic
+        else resolution.assessment
     )
+
+    retrieval_resolution = resolution.retrieval_resolution
+    if retrieval_resolution is not None and retrieval_resolution.retrieved_claim is not None:
+        retrieved_claim_id = retrieval_resolution.retrieved_claim.claim_id
+        bound_retrieved = next(
+            (claim for claim in bound_claims if claim.claim_id == retrieved_claim_id),
+            None,
+        )
+        if bound_retrieved is not None:
+            retrieval_resolution = replace(
+                retrieval_resolution,
+                retrieved_claim=bound_retrieved,
+            )
+
     return replace(
         resolution,
         claims=bound_claims,
         assessment=bound_assessment,
+        retrieval_resolution=retrieval_resolution,
     )
+
+
+def _claim_supports_final_assessment(
+    *,
+    claim: RequirementClaim,
+    parameter: str,
+    final_state: RequirementState,
+    assessment_evidence: set[str],
+) -> bool:
+    if final_state not in _RESOLVED_DEPENDENCY_STATES:
+        return False
+    if claim.predicate != parameter or claim.state is not final_state:
+        return False
+    claim_evidence = set(_clean_ids(claim.provenance.evidence_ids))
+    if not assessment_evidence:
+        return True
+    return bool(claim_evidence.intersection(assessment_evidence))
 
 
 def _bind_claim_dependencies(
