@@ -232,8 +232,15 @@ class RequirementDependencyGraph:
                     supporting_claim_validation_required = any(
                         claim.requires_human_validation for claim in supporting
                     )
+                    supporting_claim_ids_canonical = all(
+                        bool(claim.claim_id.strip())
+                        and claim.claim_id == claim.claim_id.strip()
+                        for claim in supporting
+                    )
                     supporting_claim_trust_failed = (
-                        not automatic_trust_ok or not supporting
+                        not automatic_trust_ok
+                        or not supporting
+                        or not supporting_claim_ids_canonical
                     )
 
                 status = RequirementDependencyStatus(
