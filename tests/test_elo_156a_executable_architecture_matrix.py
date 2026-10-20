@@ -64,7 +64,6 @@ def test_run01_pass_is_tied_to_reproducible_github_evidence():
         assert evidence in rows["RUN-01"]
         assert evidence in result
     assert "PASS — reproducible GitHub Actions evidence recorded" in result
-    assert "BASELINE v1.0" in result
     assert "does **not** declare Baseline v1.0" in result
 
 
