@@ -249,9 +249,10 @@ def match_parameter_to_claim(
 
     Predicate equivalence, entity identity and request-context applicability are
     independent. Cross-context candidates remain consultative unless the caller
-    supplies explicit governed evidence that the candidate applies here. When a
-    target entity is absent, explicit entity-applicability evidence is mandatory
-    before the candidate subject can be rebound to the target requirement.
+    supplies explicit governed evidence that the candidate applies here. Entity
+    identity may be proven by exact/aliased identity or, when a target identity
+    exists, by explicit governed applicability evidence. When a target entity is
+    absent, entity applicability remains a separate caller-governed decision.
     """
     parameter_normalized = normalize_semantic_text(parameter)
     predicate_normalized = normalize_semantic_text(candidate.predicate)
@@ -284,12 +285,15 @@ def match_parameter_to_claim(
             entity_aliases,
             normalizer=normalize_semantic_identifier,
         )
-        entity_compatible = entity_match_kind in {
+        identity_compatible = entity_match_kind in {
             SemanticMatchKind.EXACT,
             SemanticMatchKind.GOVERNED_ALIAS,
         }
-        if not entity_compatible:
+        if identity_compatible:
+            entity_compatible = True
+        else:
             entity_match_kind = None
+            entity_compatible = bool(explicit_entity_applicability)
     else:
         # A candidate's subject cannot silently become the target subject when
         # the target requirement did not establish entity identity.
