@@ -1,0 +1,90 @@
+name: Rebase PR on main
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      confirm:
+        required: true
+        description: "type 'rebase' to confirm"
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  rebase:
+    if: inputs.confirm == 'rebase'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load PR metadata
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh pr view "${{ inputs.pr_number }}" \
+            --json number,baseRefName,headRefName,headRepositoryOwner \
+            > pr.json
+
+          cat pr.json
+
+          BASE=$(jq -r '.baseRefName' pr.json)
+          HEAD=$(jq -r '.headRefName' pr.json)
+          OWNER=$(jq -r '.headRepositoryOwner.login' pr.json)
+
+          test "$BASE" = "main"
+          test "$OWNER" = "${GITHUB_REPOSITORY_OWNER}"
+
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch current main
+        run: |
+          set -euo pipefail
+          git fetch origin main --prune
+
+      - name: Checkout PR branch
+        run: |
+          set -euo pipefail
+
+          BRANCH="${{ steps.pr.outputs.head }}"
+
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+
+      - name: Rebase PR branch
+        run: |
+          set -euo pipefail
+
+          git rebase origin/main
+
+          test -z "$(git status --porcelain)"
+
+      - name: Verify rebased ancestry
+        run: |
+          set -euo pipefail
+
+          BASE=$(git merge-base HEAD origin/main)
+
+          echo "main: $(git rev-parse origin/main)"
+          echo "head: $(git rev-parse HEAD)"
+          echo "merge-base: $BASE"
+
+          test "$BASE" = "$(git rev-parse origin/main)"
+
+      - name: Push rebased branch
+        run: |
+          set -euo pipefail
+
+          git push --force-with-lease origin \
+            "HEAD:${{ steps.pr.outputs.head }}"
