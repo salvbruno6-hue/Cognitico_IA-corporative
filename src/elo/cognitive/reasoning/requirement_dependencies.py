@@ -75,6 +75,7 @@ class RequirementDependencyStatus:
 
 @dataclass(frozen=True, slots=True)
 class RequirementDependencyValidation:
+    invalid_requirement_ids: tuple[str, ...] = ()
     duplicate_requirement_ids: tuple[str, ...] = ()
     duplicate_dependencies: tuple[tuple[str, str], ...] = ()
     unknown_dependencies: tuple[tuple[str, str], ...] = ()
@@ -86,6 +87,7 @@ class RequirementDependencyValidation:
     def valid(self) -> bool:
         return not any(
             (
+                self.invalid_requirement_ids,
                 self.duplicate_requirement_ids,
                 self.duplicate_dependencies,
                 self.unknown_dependencies,
@@ -383,6 +385,7 @@ def audit_requirement_dependency_graph(
     validation = graph.validation
     return {
         "valid": validation.valid,
+        "invalid_requirement_ids": validation.invalid_requirement_ids,
         "duplicate_requirement_ids": validation.duplicate_requirement_ids,
         "duplicate_dependencies": validation.duplicate_dependencies,
         "unknown_dependencies": validation.unknown_dependencies,
@@ -669,6 +672,15 @@ def _supporting_claims_pass_automatic_trust(
 def _build_and_validate_graph(
     nodes: Sequence[RequirementNode],
 ) -> tuple[dict[str, tuple[str, ...]], RequirementDependencyValidation]:
+    invalid_requirement_ids = tuple(
+        sorted(
+            set(
+                node.requirement_id
+                for node in nodes
+                if not node.requirement_id.strip()
+            )
+        )
+    )
     id_counts = Counter(node.requirement_id for node in nodes)
     duplicate_requirement_ids = tuple(
         sorted(
@@ -713,6 +725,7 @@ def _build_and_validate_graph(
     cycles = _find_cycles(adjacency=adjacency, known_ids=known_ids)
     invalid = any(
         (
+            invalid_requirement_ids,
             duplicate_requirement_ids,
             duplicate_dependencies,
             unknown_dependencies,
@@ -722,6 +735,7 @@ def _build_and_validate_graph(
     )
     topological_order = () if invalid else _topological_order(adjacency)
     validation = RequirementDependencyValidation(
+        invalid_requirement_ids=invalid_requirement_ids,
         duplicate_requirement_ids=duplicate_requirement_ids,
         duplicate_dependencies=tuple(sorted(duplicate_dependencies)),
         unknown_dependencies=tuple(sorted(unknown_dependencies)),
