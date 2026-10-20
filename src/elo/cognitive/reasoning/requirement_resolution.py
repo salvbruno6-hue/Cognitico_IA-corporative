@@ -186,9 +186,10 @@ class RequirementResolutionFlow:
 
     Providers are optional by construction. An absent provider is skipped and
     therefore cannot satisfy the four-attempt precondition for ``GAP_CONFIRMED``.
-    The mapping insertion order never affects execution order. Structured-stage
-    claims must belong to the target entity by identifier-safe equality or carry
-    explicit per-claim applicability evidence supplied by the caller.
+    The mapping insertion order never affects execution order. Automatic
+    structured resolution requires an explicit target entity. When a target is
+    known, a cross-entity claim may still use explicit per-claim applicability
+    evidence supplied by the caller.
     """
 
     providers: Mapping[ResolutionAttemptKind, RequirementResolutionProvider]
@@ -261,6 +262,7 @@ class RequirementResolutionFlow:
                 )
 
             if kind is ResolutionAttemptKind.RETRIEVAL:
+                target_has_entity = bool(node.entity and node.entity.strip())
                 retrieval_resolution = resolve_requirement_parameter(
                     node=node,
                     parameter=parameter,
@@ -270,6 +272,8 @@ class RequirementResolutionFlow:
                     applicability_evidence=self.semantic_policy.applicability_evidence,
                     entity_applicability_evidence=(
                         self.semantic_policy.entity_applicability_evidence
+                        if target_has_entity
+                        else {}
                     ),
                 )
                 status, evidence_ids = _retrieval_attempt_outcome(
@@ -485,17 +489,16 @@ def _validate_structured_entity(
         entity_applicability_evidence.get(claim.claim_id, ())
     )
     target_entity = node.entity.strip() if node.entity and node.entity.strip() else None
-    if target_entity is not None:
-        target_identity = normalize_semantic_identifier(target_entity)
-        claim_identity = normalize_semantic_identifier(claim.subject)
-        if target_identity == claim_identity:
-            return ()
-    if explicit:
-        return explicit
     if target_entity is None:
         raise ValueError(
-            f"{kind.value} claim requires explicit entity applicability because target entity is absent"
+            f"{kind.value} claim requires an explicit target entity before automatic resolution"
         )
+    target_identity = normalize_semantic_identifier(target_entity)
+    claim_identity = normalize_semantic_identifier(claim.subject)
+    if target_identity == claim_identity:
+        return ()
+    if explicit:
+        return explicit
     raise ValueError(
         f"{kind.value} claim entity does not match target entity and lacks explicit applicability evidence"
     )
