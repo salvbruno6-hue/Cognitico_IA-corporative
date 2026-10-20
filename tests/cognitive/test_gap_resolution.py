@@ -102,6 +102,29 @@ def test_gap_candidate_continues_only_unexecuted_canonical_attempts():
     assert plan.can_execute is False
 
 
+def test_gap_candidate_with_pending_human_gate_routes_to_handoff_before_continuation():
+    attempts = (_attempt(ResolutionAttemptKind.RETRIEVAL, evidence_ids=("EV-WEAK",)),)
+    plan = plan_gap_resolution(
+        _result(
+            RequirementState.GAP_CANDIDATE,
+            attempts=attempts,
+            evidence_ids=("EV-WEAK",),
+            human_validation_required=True,
+        )
+    )
+
+    assert plan.status is GapResolutionStatus.HANDOFF_REQUIRED
+    assert plan.action is GapResolutionAction.REVIEW_HUMAN_GATE
+    assert plan.human_validation_required is True
+    assert plan.executed_attempts == (ResolutionAttemptKind.RETRIEVAL,)
+    assert plan.unexecuted_attempts == (
+        ResolutionAttemptKind.RULE,
+        ResolutionAttemptKind.CALCULATION,
+        ResolutionAttemptKind.INFERENCE,
+    )
+    assert plan.can_execute is False
+
+
 def test_gap_candidate_after_all_attempts_is_rejected_as_inconsistent():
     attempts = tuple(_attempt(kind) for kind in ResolutionAttemptKind)
 
@@ -190,10 +213,25 @@ def test_confirmed_gap_rejects_any_resolved_attempt():
         plan_gap_resolution(result)
 
 
-def test_inference_requires_human_validation_handoff():
+def test_human_validation_required_uses_source_neutral_handoff():
     plan = plan_gap_resolution(
         _result(
             RequirementState.HUMAN_VALIDATION_REQUIRED,
+            evidence_ids=("EV-VALIDATION",),
+            human_validation_required=True,
+        )
+    )
+
+    assert plan.status is GapResolutionStatus.HANDOFF_REQUIRED
+    assert plan.action is GapResolutionAction.REVIEW_HUMAN_GATE
+    assert plan.human_validation_required is True
+    assert plan.can_execute is False
+
+
+def test_explicit_inferred_state_routes_to_inference_validation():
+    plan = plan_gap_resolution(
+        _result(
+            RequirementState.INFERRED,
             evidence_ids=("EV-INFERENCE",),
             human_validation_required=True,
         )
@@ -274,7 +312,7 @@ def test_audit_is_bounded_and_preserves_only_governed_resolution_context():
         "parameter": "base.width",
         "assessment_state": "HUMAN_VALIDATION_REQUIRED",
         "status": "HANDOFF_REQUIRED",
-        "action": "VALIDATE_INFERENCE",
+        "action": "REVIEW_HUMAN_GATE",
         "evidence_ids": ("EV-1", "EV-2"),
         "executed_attempts": (),
         "unexecuted_attempts": (
