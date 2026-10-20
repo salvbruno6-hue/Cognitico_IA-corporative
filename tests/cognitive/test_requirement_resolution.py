@@ -226,7 +226,7 @@ def test_cross_context_retrieval_resolves_only_with_explicit_applicability_evide
     assert "EV-APPLIES-SO203" in result.claims[-1].provenance.evidence_ids
 
 
-def test_missing_target_entity_requires_explicit_entity_applicability_evidence():
+def test_missing_target_entity_remains_pending_even_with_entity_applicability_evidence():
     candidate = _claim(
         claim_id="ENTITY-MDF",
         requirement_id="SO-203.26:R2",
@@ -241,23 +241,24 @@ def test_missing_target_entity_requires_explicit_entity_applicability_evidence()
         ),
     )
 
-    blocked = RequirementResolutionFlow(
-        providers={ResolutionAttemptKind.RETRIEVAL: retrieval}
-    ).resolve(node=_node(entity=None), parameter="mdf.thickness")
-    assert blocked.assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED
-    assert blocked.assessment.human_validation_required is True
-    assert blocked.attempts[0].status is ResolutionAttemptStatus.NOT_APPLICABLE
-
-    resolved = RequirementResolutionFlow(
-        providers={ResolutionAttemptKind.RETRIEVAL: retrieval},
-        semantic_policy=SemanticRetrievalPolicy(
+    for semantic_policy in (
+        SemanticRetrievalPolicy(),
+        SemanticRetrievalPolicy(
             entity_applicability_evidence={
                 "ENTITY-MDF": ("EV-ENTITY-APPLIES",),
             },
         ),
-    ).resolve(node=_node(entity=None), parameter="mdf.thickness")
-    assert resolved.assessment.state is RequirementState.RETRIEVED
-    assert "EV-ENTITY-APPLIES" in resolved.claims[-1].provenance.evidence_ids
+    ):
+        result = RequirementResolutionFlow(
+            providers={ResolutionAttemptKind.RETRIEVAL: retrieval},
+            semantic_policy=semantic_policy,
+        ).resolve(node=_node(entity=None), parameter="mdf.thickness")
+        assert result.assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED
+        assert result.assessment.human_validation_required is True
+        assert result.attempts[0].status is ResolutionAttemptStatus.NOT_APPLICABLE
+        assert not any(
+            claim.state is RequirementState.RETRIEVED for claim in result.claims
+        )
 
 
 def test_invalid_rule_claim_for_another_requirement_fails_closed():
