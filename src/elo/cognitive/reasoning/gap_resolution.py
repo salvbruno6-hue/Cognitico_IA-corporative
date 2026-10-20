@@ -165,6 +165,16 @@ def plan_gap_resolution(result: RequirementResolutionResult) -> GapResolutionPla
         )
 
     if assessment.state is RequirementState.GAP_CANDIDATE:
+        if assessment.human_validation_required:
+            return _handoff_plan(
+                result=result,
+                action=GapResolutionAction.REVIEW_HUMAN_GATE,
+                evidence_ids=evidence_ids,
+                executed=executed,
+                unexecuted=unexecuted,
+                human_validation_required=True,
+                scope_context=scope_context,
+            )
         if not unexecuted:
             raise ValueError(
                 "GAP_CANDIDATE is inconsistent after every canonical resolution attempt executes"
@@ -201,10 +211,18 @@ def plan_gap_resolution(result: RequirementResolutionResult) -> GapResolutionPla
             scope_context=scope_context,
         )
 
-    if assessment.state in {
-        RequirementState.HUMAN_VALIDATION_REQUIRED,
-        RequirementState.INFERRED,
-    }:
+    if assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED:
+        return _handoff_plan(
+            result=result,
+            action=GapResolutionAction.REVIEW_HUMAN_GATE,
+            evidence_ids=evidence_ids,
+            executed=executed,
+            unexecuted=unexecuted,
+            human_validation_required=True,
+            scope_context=scope_context,
+        )
+
+    if assessment.state is RequirementState.INFERRED:
         return _handoff_plan(
             result=result,
             action=GapResolutionAction.VALIDATE_INFERENCE,
