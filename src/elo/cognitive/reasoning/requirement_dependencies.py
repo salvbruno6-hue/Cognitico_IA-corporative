@@ -65,7 +65,10 @@ class RequirementDependencyStatus:
 
     @property
     def resolved(self) -> bool:
-        return self.state in _RESOLVED_DEPENDENCY_STATES
+        return (
+            self.state in _RESOLVED_DEPENDENCY_STATES
+            and not self.human_validation_required
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,7 +181,7 @@ class RequirementDependencyGraph:
         transitive = self.transitive_dependencies(requirement_id)
         statuses: list[RequirementDependencyStatus] = []
         dependency_claim_ids: list[str] = []
-        evidence_ids: list[str] = []
+        bound_evidence_ids: list[str] = []
 
         for dependency_id in transitive:
             dependency_assessment = assessments.get(dependency_id)
@@ -188,16 +191,15 @@ class RequirementDependencyGraph:
                     state=None,
                 )
             else:
-                cleaned_evidence = _clean_ids(dependency_assessment.evidence_ids)
+                assessment_evidence = _clean_ids(dependency_assessment.evidence_ids)
                 status = RequirementDependencyStatus(
                     requirement_id=dependency_id,
                     state=dependency_assessment.state,
-                    evidence_ids=cleaned_evidence,
+                    evidence_ids=assessment_evidence,
                     human_validation_required=(
                         dependency_assessment.human_validation_required
                     ),
                 )
-                evidence_ids.extend(cleaned_evidence)
                 if status.resolved:
                     candidates = tuple(
                         dict.fromkeys(
@@ -207,13 +209,22 @@ class RequirementDependencyGraph:
                             )
                         )
                     )
-                    dependency_claim_ids.extend(
-                        _supporting_claim_ids(
-                            requirement_id=dependency_id,
-                            claims=candidates,
-                            assessment=dependency_assessment,
-                        )
+                    supporting = _supporting_claims(
+                        requirement_id=dependency_id,
+                        claims=candidates,
+                        assessment=dependency_assessment,
                     )
+                    dependency_claim_ids.extend(claim.claim_id for claim in supporting)
+                    bound_evidence_ids.extend(
+                        evidence_id
+                        for claim in supporting
+                        for evidence_id in claim.provenance.evidence_ids
+                    )
+                else:
+                    # Evidence for a blocker remains useful to explain why the
+                    # downstream requirement is blocked, but it is never bound
+                    # into a resolved downstream claim.
+                    bound_evidence_ids.extend(assessment_evidence)
             statuses.append(status)
 
         blockers = tuple(status for status in statuses if not status.resolved)
@@ -230,7 +241,7 @@ class RequirementDependencyGraph:
             statuses=tuple(statuses),
             blockers=blockers,
             dependency_claim_ids=_clean_ids(dependency_claim_ids),
-            evidence_ids=_clean_ids(evidence_ids),
+            evidence_ids=_clean_ids(bound_evidence_ids),
         )
 
     def ready_requirements(
@@ -268,6 +279,7 @@ def resolve_requirement_with_dependencies(
     direct callers cannot bypass this gate, while legacy ``dependencies`` lineage
     remains intact.
     """
+    _require_runtime_graph_alignment(graph=graph, node=node)
     dependency_assessment = graph.assess(
         requirement_id=node.requirement_id,
         assessments=prerequisite_assessments,
@@ -456,6 +468,25 @@ def _bind_claim_dependencies(
     )
 
 
+def _require_runtime_graph_alignment(
+    *,
+    graph: RequirementDependencyGraph,
+    node: RequirementNode,
+) -> None:
+    graph._require_valid()
+    if node.requirement_id not in graph._nodes_by_id:
+        raise KeyError(node.requirement_id)
+
+    raw_edges = tuple(str(value).strip() for value in node.requirement_dependencies)
+    if any(not edge for edge in raw_edges):
+        raise ValueError("runtime requirement dependencies contain a blank identifier")
+    if len(raw_edges) != len(set(raw_edges)):
+        raise ValueError("runtime requirement dependencies contain duplicate edges")
+    runtime_edges = tuple(sorted(raw_edges))
+    if runtime_edges != graph._adjacency[node.requirement_id]:
+        raise ValueError("runtime requirement dependencies do not match dependency graph")
+
+
 def _validate_assessment_mapping(assessments: Mapping[str, GapAssessment]) -> None:
     for requirement_id, assessment in assessments.items():
         if assessment.requirement_id != requirement_id:
@@ -486,25 +517,33 @@ def _clean_ids(values: Sequence[str]) -> tuple[str, ...]:
     )
 
 
-def _supporting_claim_ids(
+def _supporting_claims(
     *,
     requirement_id: str,
     claims: Sequence[RequirementClaim],
     assessment: GapAssessment,
-) -> tuple[str, ...]:
+) -> tuple[RequirementClaim, ...]:
     evidence = set(_clean_ids(assessment.evidence_ids))
-    candidates = tuple(
-        claim
-        for claim in claims
-        if claim.requirement_id == requirement_id
-        and claim.predicate == assessment.parameter
-        and claim.state is assessment.state
-        and (
-            not evidence
-            or bool(evidence.intersection(_clean_ids(claim.provenance.evidence_ids)))
+    return tuple(
+        sorted(
+            (
+                claim
+                for claim in claims
+                if claim.requirement_id == requirement_id
+                and claim.predicate == assessment.parameter
+                and claim.state is assessment.state
+                and (
+                    not evidence
+                    or bool(
+                        evidence.intersection(
+                            _clean_ids(claim.provenance.evidence_ids)
+                        )
+                    )
+                )
+            ),
+            key=lambda claim: claim.claim_id,
         )
     )
-    return tuple(sorted({claim.claim_id for claim in candidates}))
 
 
 def _build_and_validate_graph(
