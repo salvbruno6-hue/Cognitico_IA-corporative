@@ -40,6 +40,7 @@ def _claim(
     predicate: str,
     value: str,
     requires_human_validation: bool = False,
+    validation_status: str = "VALIDATED",
 ) -> RequirementClaim:
     return RequirementClaim(
         claim_id=claim_id,
@@ -53,20 +54,13 @@ def _claim(
             source_reference=f"fixture:{claim_id}",
             reasoning_method="fixture",
             evidence_ids=(f"EV-{claim_id}",),
-            validation_status="VALIDATED",
+            validation_status=validation_status,
         ),
         requires_human_validation=requires_human_validation,
     )
 
 
-def test_pending_supporting_claim_blocks_dependency_before_provider_execution():
-    prerequisite_claim = _claim(
-        claim_id="R1-PENDING",
-        requirement_id="R1",
-        predicate="base.width",
-        value="2.44 m",
-        requires_human_validation=True,
-    )
+def _resolution_fixture(prerequisite_claim: RequirementClaim):
     prerequisite = RequirementNode(
         requirement_id="R1",
         text="base width",
@@ -97,8 +91,22 @@ def test_pending_supporting_claim_blocks_dependency_before_provider_execution():
         parameter="base.width",
         state=RequirementState.KNOWN,
         reasons=("fixture assessment appears resolved",),
-        evidence_ids=("EV-R1-PENDING",),
+        evidence_ids=(f"EV-{prerequisite_claim.claim_id}",),
         human_validation_required=False,
+    )
+    return downstream, provider, graph, prerequisite_assessment
+
+
+def test_pending_supporting_claim_blocks_dependency_before_provider_execution():
+    prerequisite_claim = _claim(
+        claim_id="R1-PENDING",
+        requirement_id="R1",
+        predicate="base.width",
+        value="2.44 m",
+        requires_human_validation=True,
+    )
+    downstream, provider, graph, prerequisite_assessment = _resolution_fixture(
+        prerequisite_claim
     )
 
     result = resolve_requirement_with_dependencies(
@@ -119,3 +127,37 @@ def test_pending_supporting_claim_blocks_dependency_before_provider_execution():
     assert result.resolution.assessment.state is RequirementState.BLOCKED
     assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
     assert result.resolution.assessment.human_validation_required is True
+
+
+def test_unverified_supporting_claim_reuses_canonical_trust_and_blocks_downstream():
+    prerequisite_claim = _claim(
+        claim_id="R1-UNVERIFIED",
+        requirement_id="R1",
+        predicate="base.width",
+        value="2.44 m",
+        validation_status="UNVERIFIED",
+    )
+    downstream, provider, graph, prerequisite_assessment = _resolution_fixture(
+        prerequisite_claim
+    )
+
+    result = resolve_requirement_with_dependencies(
+        flow=RequirementResolutionFlow(
+            providers={ResolutionAttemptKind.RULE: provider}
+        ),
+        graph=graph,
+        node=downstream,
+        parameter="output.value",
+        prerequisite_assessments={"R1": prerequisite_assessment},
+    )
+
+    blocker = result.dependency_assessment.blockers[0]
+    assert provider.calls == 0
+    assert result.dependency_assessment.state is RequirementDependencyState.BLOCKED
+    assert result.dependency_assessment.dependency_claim_ids == ()
+    assert blocker.human_validation_required is False
+    assert blocker.automatic_trust_failed is True
+    assert result.resolution.attempts == ()
+    assert result.resolution.assessment.state is RequirementState.BLOCKED
+    assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
+    assert result.resolution.assessment.human_validation_required is False
