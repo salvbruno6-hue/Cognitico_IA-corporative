@@ -235,3 +235,57 @@ def test_documented_extraction_exception_remains_valid_dependency_support():
     assert result.dependency_assessment.dependency_claim_ids == ("R1-DOCUMENTED",)
     assert result.dependency_assessment.evidence_ids == ()
     assert result.resolution.assessment.state is RequirementState.KNOWN
+
+
+def test_claimless_resolved_assessment_cannot_unlock_downstream_provider():
+    prerequisite = RequirementNode(requirement_id="R1", text="base width")
+    downstream = RequirementNode(
+        requirement_id="R2",
+        text="dependent requirement",
+        entity="MLT-C08",
+        requirement_dependencies=("R1",),
+    )
+    downstream_claim = _claim(
+        claim_id="R2-RULE",
+        requirement_id="R2",
+        predicate="output.value",
+        value="approved",
+    )
+    provider = CountingProvider(
+        kind=ResolutionAttemptKind.RULE,
+        result=ResolutionStepResult(
+            source_reference="fixture:rule",
+            claims=(downstream_claim,),
+        ),
+    )
+    graph = RequirementDependencyGraph((prerequisite, downstream))
+    forged_summary = GapAssessment(
+        requirement_id="R1",
+        parameter="base.width",
+        state=RequirementState.KNOWN,
+        reasons=("summary without factual supporting claim",),
+        evidence_ids=("EV-SUMMARY",),
+        human_validation_required=False,
+    )
+
+    result = resolve_requirement_with_dependencies(
+        flow=RequirementResolutionFlow(
+            providers={ResolutionAttemptKind.RULE: provider}
+        ),
+        graph=graph,
+        node=downstream,
+        parameter="output.value",
+        prerequisite_assessments={"R1": forged_summary},
+    )
+
+    blocker = result.dependency_assessment.blockers[0]
+    assert provider.calls == 0
+    assert result.dependency_assessment.state is RequirementDependencyState.BLOCKED
+    assert result.dependency_assessment.dependency_claim_ids == ()
+    assert result.dependency_assessment.evidence_ids == ("EV-SUMMARY",)
+    assert blocker.automatic_trust_failed is True
+    assert blocker.evidence_ids == ("EV-SUMMARY",)
+    assert result.resolution.attempts == ()
+    assert result.resolution.claims == ()
+    assert result.resolution.assessment.state is RequirementState.BLOCKED
+    assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
