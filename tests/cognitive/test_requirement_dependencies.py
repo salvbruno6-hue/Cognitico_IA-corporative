@@ -277,6 +277,87 @@ def test_current_prerequisite_claim_mapping_fails_closed_on_wrong_requirement():
         )
 
 
+def test_resolved_state_with_pending_human_validation_still_blocks():
+    graph = RequirementDependencyGraph(
+        (
+            RequirementNode(requirement_id="R1", text="base"),
+            RequirementNode(
+                requirement_id="R2",
+                text="dependent",
+                requirement_dependencies=("R1",),
+            ),
+        )
+    )
+
+    result = graph.assess(
+        requirement_id="R2",
+        assessments={
+            "R1": _assessment(
+                requirement_id="R1",
+                parameter="base.width",
+                state=RequirementState.KNOWN,
+                evidence_ids=("EV-PENDING",),
+                human_validation_required=True,
+            )
+        },
+    )
+
+    assert result.state is RequirementDependencyState.BLOCKED
+    assert result.blockers[0].requirement_id == "R1"
+    assert result.human_validation_required is True
+
+
+def test_only_selected_supporting_claim_evidence_is_bound_downstream():
+    governed = _claim(
+        claim_id="R1-KNOWN",
+        requirement_id="R1",
+        predicate="base.width",
+        value="2.44 m",
+        state=RequirementState.KNOWN,
+        source_type=RequirementSourceType.RULE,
+        evidence_ids=("EV-KNOWN",),
+    )
+    hypothesis = _claim(
+        claim_id="R1-HYPOTHESIS",
+        requirement_id="R1",
+        predicate="base.width",
+        value="2.50 m",
+        state=RequirementState.ASSUMPTION_REQUIRED,
+        source_type=RequirementSourceType.RULE,
+        evidence_ids=("EV-HYPOTHESIS",),
+    )
+    graph = RequirementDependencyGraph(
+        (
+            RequirementNode(
+                requirement_id="R1",
+                text="base",
+                claims=(governed, hypothesis),
+            ),
+            RequirementNode(
+                requirement_id="R2",
+                text="dependent",
+                requirement_dependencies=("R1",),
+            ),
+        )
+    )
+
+    result = graph.assess(
+        requirement_id="R2",
+        assessments={
+            "R1": _assessment(
+                requirement_id="R1",
+                parameter="base.width",
+                state=RequirementState.KNOWN,
+                evidence_ids=("EV-KNOWN", "EV-HYPOTHESIS"),
+            )
+        },
+    )
+
+    assert result.state is RequirementDependencyState.READY
+    assert result.dependency_claim_ids == ("R1-KNOWN",)
+    assert result.evidence_ids == ("EV-KNOWN",)
+
+
 @pytest.mark.parametrize(
     ("state", "human_validation_required"),
     (
@@ -354,6 +435,34 @@ def test_direct_resolution_rejects_typed_requirement_dependencies():
             node=node,
             parameter="output.value",
         )
+
+
+def test_runtime_node_dependencies_must_match_graph_before_gate_is_cleared():
+    graph = RequirementDependencyGraph(
+        (
+            RequirementNode(requirement_id="R1", text="base"),
+            RequirementNode(requirement_id="R2", text="graph says independent"),
+        )
+    )
+    runtime_node = RequirementNode(
+        requirement_id="R2",
+        text="runtime says dependent",
+        entity="MLT-C08",
+        requirement_dependencies=("R1",),
+    )
+    provider = _empty_provider(ResolutionAttemptKind.RETRIEVAL)
+
+    with pytest.raises(ValueError, match="do not match dependency graph"):
+        resolve_requirement_with_dependencies(
+            flow=RequirementResolutionFlow(
+                providers={ResolutionAttemptKind.RETRIEVAL: provider}
+            ),
+            graph=graph,
+            node=runtime_node,
+            parameter="output.value",
+            prerequisite_assessments={},
+        )
+    assert provider.calls == []
 
 
 def test_so203_unresolved_dependency_stops_all_attempts_and_false_gap():
