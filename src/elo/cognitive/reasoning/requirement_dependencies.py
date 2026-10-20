@@ -487,16 +487,20 @@ def _bind_dependency_context(
 
     retrieval_resolution = resolution.retrieval_resolution
     if retrieval_resolution is not None and retrieval_resolution.retrieved_claim is not None:
-        retrieved_claim_id = retrieval_resolution.retrieved_claim.claim_id
-        bound_retrieved = next(
-            (claim for claim in bound_claims if claim.claim_id == retrieved_claim_id),
-            None,
+        retrieved_claim = retrieval_resolution.retrieved_claim
+        retrieved_positions = tuple(
+            index
+            for index, claim in enumerate(resolution.claims)
+            if claim is retrieved_claim
         )
-        if bound_retrieved is not None:
-            retrieval_resolution = replace(
-                retrieval_resolution,
-                retrieved_claim=bound_retrieved,
+        if len(retrieved_positions) != 1:
+            raise ValueError(
+                "retrieval resolution claim must appear exactly once in canonical resolution claims"
             )
+        retrieval_resolution = replace(
+            retrieval_resolution,
+            retrieved_claim=bound_claims[retrieved_positions[0]],
+        )
 
     return replace(
         resolution,
@@ -714,7 +718,10 @@ def _build_and_validate_graph(
             set(
                 node.requirement_id
                 for node in nodes
-                if not node.requirement_id.strip()
+                if (
+                    not node.requirement_id.strip()
+                    or node.requirement_id != node.requirement_id.strip()
+                )
             )
         )
     )
