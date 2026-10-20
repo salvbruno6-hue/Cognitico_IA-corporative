@@ -39,6 +39,9 @@ def _claim(
     requirement_id: str,
     predicate: str,
     value: str,
+    state: RequirementState = RequirementState.KNOWN,
+    source_type: RequirementSourceType = RequirementSourceType.RULE,
+    evidence_ids: tuple[str, ...] | None = None,
     requires_human_validation: bool = False,
     validation_status: str = "VALIDATED",
 ) -> RequirementClaim:
@@ -48,12 +51,14 @@ def _claim(
         subject="MLT-C08",
         predicate=predicate,
         value=value,
-        state=RequirementState.KNOWN,
+        state=state,
         provenance=ClaimProvenance(
-            source_type=RequirementSourceType.RULE,
+            source_type=source_type,
             source_reference=f"fixture:{claim_id}",
             reasoning_method="fixture",
-            evidence_ids=(f"EV-{claim_id}",),
+            evidence_ids=(
+                (f"EV-{claim_id}",) if evidence_ids is None else evidence_ids
+            ),
             validation_status=validation_status,
         ),
         requires_human_validation=requires_human_validation,
@@ -89,9 +94,9 @@ def _resolution_fixture(prerequisite_claim: RequirementClaim):
     prerequisite_assessment = GapAssessment(
         requirement_id="R1",
         parameter="base.width",
-        state=RequirementState.KNOWN,
+        state=prerequisite_claim.state,
         reasons=("fixture assessment appears resolved",),
-        evidence_ids=(f"EV-{prerequisite_claim.claim_id}",),
+        evidence_ids=prerequisite_claim.provenance.evidence_ids,
         human_validation_required=False,
     )
     return downstream, provider, graph, prerequisite_assessment
@@ -161,3 +166,69 @@ def test_unverified_supporting_claim_reuses_canonical_trust_and_blocks_downstrea
     assert result.resolution.assessment.state is RequirementState.BLOCKED
     assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
     assert result.resolution.assessment.human_validation_required is False
+
+
+def test_llm_inference_cannot_supply_automatic_dependency_support():
+    prerequisite_claim = _claim(
+        claim_id="R1-LLM",
+        requirement_id="R1",
+        predicate="base.width",
+        value="2.44 m",
+        source_type=RequirementSourceType.LLM_INFERENCE,
+    )
+    downstream, provider, graph, prerequisite_assessment = _resolution_fixture(
+        prerequisite_claim
+    )
+
+    result = resolve_requirement_with_dependencies(
+        flow=RequirementResolutionFlow(
+            providers={ResolutionAttemptKind.RULE: provider}
+        ),
+        graph=graph,
+        node=downstream,
+        parameter="output.value",
+        prerequisite_assessments={"R1": prerequisite_assessment},
+    )
+
+    blocker = result.dependency_assessment.blockers[0]
+    assert provider.calls == 0
+    assert result.dependency_assessment.state is RequirementDependencyState.BLOCKED
+    assert result.dependency_assessment.dependency_claim_ids == ()
+    assert result.dependency_assessment.evidence_ids == ()
+    assert blocker.automatic_trust_failed is True
+    assert result.resolution.attempts == ()
+    assert result.resolution.assessment.state is RequirementState.BLOCKED
+    assert result.resolution.assessment.state is not RequirementState.GAP_CONFIRMED
+
+
+def test_documented_extraction_exception_remains_valid_dependency_support():
+    prerequisite_claim = _claim(
+        claim_id="R1-DOCUMENTED",
+        requirement_id="R1",
+        predicate="base.width",
+        value="2.44 m",
+        state=RequirementState.DOCUMENTED,
+        source_type=RequirementSourceType.DOCUMENT,
+        evidence_ids=(),
+        validation_status="EXTRACTED",
+    )
+    downstream, provider, graph, prerequisite_assessment = _resolution_fixture(
+        prerequisite_claim
+    )
+
+    result = resolve_requirement_with_dependencies(
+        flow=RequirementResolutionFlow(
+            providers={ResolutionAttemptKind.RULE: provider}
+        ),
+        graph=graph,
+        node=downstream,
+        parameter="output.value",
+        prerequisite_assessments={"R1": prerequisite_assessment},
+    )
+
+    assert provider.calls == 1
+    assert result.dependency_assessment.state is RequirementDependencyState.READY
+    assert result.dependency_assessment.blockers == ()
+    assert result.dependency_assessment.dependency_claim_ids == ("R1-DOCUMENTED",)
+    assert result.dependency_assessment.evidence_ids == ()
+    assert result.resolution.assessment.state is RequirementState.KNOWN
