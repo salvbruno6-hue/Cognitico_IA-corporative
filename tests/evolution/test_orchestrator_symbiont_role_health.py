@@ -81,6 +81,7 @@ def test_required_only_capability_is_not_invisible_when_wholly_missing():
         "execution_boundary",
     )
     assert result.blockers
+    assert result.improvement_candidates == ()
 
 
 def test_orchestrator_applies_symbiont_observation_but_does_not_self_authorize_fix():
@@ -146,11 +147,14 @@ def test_symbiont_prioritizes_internal_alignment_before_new_capability_work():
     )
 
     candidates = result.improvement_candidates
+    candidate_ids = [item.capability_id for item in candidates]
 
     assert candidates
     assert candidates[0].state is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
-    assert [item.capability_id for item in candidates] == result.as_dict()["improvement_candidates"]
-    assert all(item.state is not CapabilityVisibilityState.REGISTERED_VISIBLE for item in candidates)
+    assert "EXT-ROLE-HEALTH" in candidate_ids
+    assert "MISSING-RUNTIME-CAPABILITY" not in candidate_ids
+    assert candidate_ids == result.as_dict()["improvement_candidates"]
+    assert all(item.registry_visible or item.implementation_visible for item in candidates)
 
 
 def test_orchestrator_consumes_first_symbiont_improvement_candidate_without_self_authorizing():
