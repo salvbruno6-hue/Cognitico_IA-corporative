@@ -11,6 +11,7 @@ inventing conversions or silently ignoring required constraints.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from math import isfinite
 from typing import Mapping, Sequence
 
@@ -37,9 +38,55 @@ class ELDayProjection:
     closing_el: float
 
 
+@dataclass(frozen=True, slots=True)
+class SystemicCapacityDay:
+    """Governed daily snapshot supplied to first-constraint reasoning."""
+
+    reference_date: date
+    demand_modules: float
+    constraint_capacities: Mapping[str, float | None]
+
+
+@dataclass(frozen=True, slots=True)
+class FirstConstraintAssessment:
+    """Earliest confirmed systemic constraint or an explicit evidence gap."""
+
+    first_constraint_date: date | None
+    limiting_constraints: tuple[str, ...]
+    evidence_gap_date: date | None
+    missing_constraints: tuple[str, ...]
+    evaluated_dates: tuple[date, ...]
+    status: str
+    canonical_mutation: bool = False
+
+
 def _validate_non_negative(value: float, field: str) -> None:
     if not isfinite(value) or value < 0:
         raise ValueError(f"{field} must be finite and non-negative")
+
+
+def _normalize_required_constraints(required_constraints: Sequence[str]) -> tuple[str, ...]:
+    required = tuple(
+        dict.fromkeys(
+            name.strip().upper()
+            for name in required_constraints
+            if name and name.strip()
+        )
+    )
+    if not required:
+        raise ValueError("required_constraints must contain at least one constraint")
+    return required
+
+
+def _validate_capacity_day_order(days: Sequence[SystemicCapacityDay]) -> None:
+    """Validate the complete daily chronology before early-returning reasoning."""
+    previous_date: date | None = None
+    for day in days:
+        if type(day.reference_date) is not date:
+            raise TypeError("reference_date must be datetime.date without a time component")
+        if previous_date is not None and day.reference_date <= previous_date:
+            raise ValueError("days must be strictly ordered by unique reference_date")
+        previous_date = day.reference_date
 
 
 def assess_systemic_capacity(
@@ -65,9 +112,13 @@ def assess_systemic_capacity(
             _validate_non_negative(value, f"constraint {name}")
         normalized[name] = value
 
-    required = tuple(dict.fromkeys(
-        name.strip().upper() for name in (required_constraints or normalized.keys()) if name.strip()
-    ))
+    required = tuple(
+        dict.fromkeys(
+            name.strip().upper()
+            for name in (required_constraints or normalized.keys())
+            if name.strip()
+        )
+    )
     missing = tuple(name for name in required if normalized.get(name) is None)
     if missing:
         return SystemicCapacityAssessment(
@@ -100,11 +151,16 @@ def assess_systemic_capacity(
             status="SEM_RESTRICAO_FORNECIDA",
         )
 
-    minimum_capacity = min(float(value) for value in capacities.values() if value is not None)
+    minimum_capacity = min(
+        float(value) for value in capacities.values() if value is not None
+    )
     executable = min(demand_modules, minimum_capacity)
     limiting = tuple(
-        name for name, value in capacities.items()
-        if value is not None and float(value) == minimum_capacity and minimum_capacity < demand_modules
+        name
+        for name, value in capacities.items()
+        if value is not None
+        and float(value) == minimum_capacity
+        and minimum_capacity < demand_modules
     )
 
     return SystemicCapacityAssessment(
@@ -114,6 +170,76 @@ def assess_systemic_capacity(
         missing_constraints=(),
         constraint_capacities=normalized,
         status="CAPACIDADE_SISTEMICA_CALCULADA",
+    )
+
+
+def find_first_constraint_date(
+    days: Sequence[SystemicCapacityDay],
+    *,
+    required_constraints: Sequence[str],
+) -> FirstConstraintAssessment:
+    """Return the earliest confirmed systemic bottleneck in a governed series.
+
+    The constraint universe must be explicit. The complete date sequence is
+    validated before capacity reasoning so an early bottleneck/evidence gap
+    cannot hide malformed later chronology. Missing or indeterminate required
+    evidence on an earlier date blocks the answer instead of being interpreted
+    as evidence that no constraint existed.
+    """
+    required = _normalize_required_constraints(required_constraints)
+    _validate_capacity_day_order(days)
+    if not days:
+        return FirstConstraintAssessment(
+            first_constraint_date=None,
+            limiting_constraints=(),
+            evidence_gap_date=None,
+            missing_constraints=required,
+            evaluated_dates=(),
+            status="EVIDENCIA_INSUFICIENTE",
+        )
+
+    evaluated_dates: list[date] = []
+    for day in days:
+        assessment = assess_systemic_capacity(
+            day.demand_modules,
+            day.constraint_capacities,
+            required_constraints=required,
+        )
+        evaluated_dates.append(day.reference_date)
+
+        if (
+            assessment.status == "ANALISE_BLOQUEADA"
+            or assessment.executable_modules is None
+        ):
+            return FirstConstraintAssessment(
+                first_constraint_date=None,
+                limiting_constraints=(),
+                evidence_gap_date=day.reference_date,
+                missing_constraints=assessment.missing_constraints,
+                evaluated_dates=tuple(evaluated_dates),
+                status="EVIDENCIA_INSUFICIENTE",
+            )
+
+        if (
+            assessment.executable_modules < day.demand_modules
+            and assessment.limiting_constraints
+        ):
+            return FirstConstraintAssessment(
+                first_constraint_date=day.reference_date,
+                limiting_constraints=assessment.limiting_constraints,
+                evidence_gap_date=None,
+                missing_constraints=(),
+                evaluated_dates=tuple(evaluated_dates),
+                status="PRIMEIRA_RESTRICAO_CONFIRMADA",
+            )
+
+    return FirstConstraintAssessment(
+        first_constraint_date=None,
+        limiting_constraints=(),
+        evidence_gap_date=None,
+        missing_constraints=(),
+        evaluated_dates=tuple(evaluated_dates),
+        status="SEM_RESTRICAO_CONFIRMADA",
     )
 
 
@@ -158,7 +284,10 @@ def project_el(
 
 __all__ = [
     "ELDayProjection",
+    "FirstConstraintAssessment",
     "SystemicCapacityAssessment",
+    "SystemicCapacityDay",
     "assess_systemic_capacity",
+    "find_first_constraint_date",
     "project_el",
 ]
