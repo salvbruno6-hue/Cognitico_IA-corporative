@@ -19,10 +19,17 @@ from elo.cognitive.reasoning.requirement_analysis import (
 from elo.cognitive.reasoning.requirement_resolution import RequirementResolutionResult
 
 
-def _attempt(kind: ResolutionAttemptKind, *, evidence_ids: tuple[str, ...] = ()) -> ResolutionAttempt:
+def _attempt(
+    kind: ResolutionAttemptKind,
+    *,
+    evidence_ids: tuple[str, ...] = (),
+    status: ResolutionAttemptStatus = ResolutionAttemptStatus.NOT_FOUND,
+) -> ResolutionAttempt:
+    if status is ResolutionAttemptStatus.RESOLVED and not evidence_ids:
+        evidence_ids = (f"EV-{kind.value}",)
     return ResolutionAttempt(
         kind=kind,
-        status=ResolutionAttemptStatus.NOT_FOUND,
+        status=status,
         source_reference=f"fixture:{kind.value.lower()}",
         evidence_ids=evidence_ids,
     )
@@ -95,18 +102,37 @@ def test_gap_candidate_continues_only_unexecuted_canonical_attempts():
     assert plan.can_execute is False
 
 
-def test_candidate_without_remaining_attempts_fails_closed_to_new_evidence_handoff():
+def test_gap_candidate_after_all_attempts_is_rejected_as_inconsistent():
     attempts = tuple(_attempt(kind) for kind in ResolutionAttemptKind)
 
-    plan = plan_gap_resolution(
-        _result(RequirementState.GAP_CANDIDATE, attempts=attempts)
+    with pytest.raises(ValueError, match="GAP_CANDIDATE is inconsistent"):
+        plan_gap_resolution(
+            _result(RequirementState.GAP_CANDIDATE, attempts=attempts)
+        )
+
+
+def test_noncanonical_attempt_order_is_rejected_before_planning():
+    attempts = (
+        _attempt(ResolutionAttemptKind.RULE),
+        _attempt(ResolutionAttemptKind.RETRIEVAL),
     )
 
-    assert plan.status is GapResolutionStatus.HANDOFF_REQUIRED
-    assert plan.action is GapResolutionAction.REQUEST_NEW_EVIDENCE
-    assert plan.unexecuted_attempts == ()
-    assert plan.handoff_required is True
-    assert plan.can_execute is False
+    with pytest.raises(ValueError, match="not in canonical order"):
+        plan_gap_resolution(
+            _result(RequirementState.GAP_CANDIDATE, attempts=attempts)
+        )
+
+
+def test_duplicate_attempt_kind_is_rejected_instead_of_silently_normalized():
+    attempts = (
+        _attempt(ResolutionAttemptKind.RETRIEVAL),
+        _attempt(ResolutionAttemptKind.RETRIEVAL),
+    )
+
+    with pytest.raises(ValueError, match="duplicate canonical attempt kinds"):
+        plan_gap_resolution(
+            _result(RequirementState.GAP_CANDIDATE, attempts=attempts)
+        )
 
 
 def test_confirmed_gap_requests_new_evidence_after_all_attempts_are_exhausted():
@@ -141,6 +167,26 @@ def test_confirmed_gap_before_all_attempts_is_rejected_as_inconsistent():
     )
 
     with pytest.raises(ValueError, match="before every canonical resolution attempt"):
+        plan_gap_resolution(result)
+
+
+def test_confirmed_gap_rejects_any_resolved_attempt():
+    attempts = (
+        _attempt(ResolutionAttemptKind.RETRIEVAL),
+        _attempt(
+            ResolutionAttemptKind.RULE,
+            status=ResolutionAttemptStatus.RESOLVED,
+        ),
+        _attempt(ResolutionAttemptKind.CALCULATION),
+        _attempt(ResolutionAttemptKind.INFERENCE),
+    )
+    result = _result(
+        RequirementState.GAP_CONFIRMED,
+        attempts=attempts,
+        human_validation_required=True,
+    )
+
+    with pytest.raises(ValueError, match="attempt is RESOLVED"):
         plan_gap_resolution(result)
 
 
