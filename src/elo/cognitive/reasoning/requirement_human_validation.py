@@ -239,11 +239,22 @@ def _validate_target_alignment(
 
 
 def _candidate_pool(resolution: RequirementResolutionResult) -> tuple[RequirementClaim, ...]:
-    claims = list(resolution.claims)
+    claims = [
+        claim
+        for claim in resolution.claims
+        if claim.predicate == resolution.parameter and str(claim.value).strip()
+    ]
     semantic = resolution.retrieval_resolution
     if semantic is not None:
-        claims.extend(match.candidate for match in semantic.matches)
-    return tuple(claim for claim in claims if str(claim.value).strip())
+        claims.extend(
+            match.candidate
+            for match in semantic.matches
+            if str(match.candidate.value).strip()
+        )
+    # The same candidate may legitimately be exposed through more than one
+    # result surface. Collapse structurally identical objects, but keep distinct
+    # claims sharing an ID so _select_candidate can fail closed on ambiguity.
+    return tuple(dict.fromkeys(claims))
 
 
 def _select_candidate(
@@ -283,8 +294,9 @@ def _require_canonical_evidence_ids(values: Sequence[str]) -> None:
 
 def _canonical_ids(values: Sequence[str]) -> tuple[str, ...]:
     materialized = tuple(str(value) for value in values)
-    _require_canonical_evidence_ids(materialized)
-    return tuple(sorted(materialized))
+    for value in materialized:
+        _require_canonical_id(value, field="reference_id")
+    return tuple(sorted(set(materialized)))
 
 
 def _decision_evidence_id(decision: HumanValidationDecision) -> str:
