@@ -27,7 +27,7 @@ Status vocabulary:
 | BND-03 | Boundary | Forge specialists use shared Core faculty and cannot redefine canonical identity | PASS | Specialist registry and adversarial closure evidence; retain regression coverage. |
 | BND-04 | Boundary | Application and infrastructure remain replaceable means | DEFINED | Requires explicit replacement simulation/evidence under ELO-156. |
 | BND-05 | Boundary | No duplicate scenario authority exists | PASS | Canonical scenario consolidation and adversarial scenario evidence are merged. |
-| RUN-01 | Runtime | Intent → Context → Evidence → Reasoning → Decision → Next Action completes with governed boundaries | DEFINED | Requires end-to-end executable critical-path evidence. |
+| RUN-01 | Runtime | Intent → Context → Evidence → Reasoning → Decision → Next Action completes with governed boundaries | PASS | Reproducible GitHub Actions evidence: PR #517 head `e11f0959b3fa7d4469ba6e20a60c4c31c5d8d8a1`, Baseline Evidence Gate run `34916707206`, job `104215791138`; RUN-01 critical-path step and canonical boundary tests succeeded. |
 | RUN-02 | Runtime | Authorization and provenance survive source discovery and provider handoff | PASS | Source-adapter and provenance/authorization closure evidence is merged. |
 | RUN-03 | Runtime | Provider unavailable/degraded path produces governed fallback rather than fabricated evidence | PASS | Adversarial provider/degradation validation is merged; retain regression coverage. |
 | RUN-04 | Runtime | Incomplete evidence remains visible and cannot silently become confidence | PASS | Adversarial evidence/provenance coverage is merged. |
