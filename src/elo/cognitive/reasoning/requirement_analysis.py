@@ -127,6 +127,7 @@ class RequirementNode:
     claims: tuple[RequirementClaim, ...] = ()
     dependencies: tuple[str, ...] = ()
     metadata: Mapping[str, str] = field(default_factory=dict)
+    requirement_dependencies: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.requirement_id or not self.text:
