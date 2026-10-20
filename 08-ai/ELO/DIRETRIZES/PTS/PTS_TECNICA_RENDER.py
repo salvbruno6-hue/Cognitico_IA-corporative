@@ -82,13 +82,17 @@ def main() -> int:
     parser.add_argument("dados", type=Path)
     parser.add_argument("-o", "--out", type=Path)
     args = parser.parse_args()
-    markdown = render(carregar_json(args.dados))
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(markdown, encoding="utf-8")
-    else:
-        print(markdown)
-    return 0
+    try:
+        markdown = render(carregar_json(args.dados))
+        if args.out:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(markdown, encoding="utf-8")
+        else:
+            print(markdown)
+        return 0
+    except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
+        print(f"[ERRO] {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
