@@ -30,6 +30,25 @@ def _view():
     )
 
 
+def _missing_view():
+    return create_implementation_view(
+        implementation_id="impl-missing-role-health",
+        phase=ImplementationViewPhase.END,
+        candidate_id="MISSING-ROLE-HEALTH",
+        owner="canonical-owner",
+        functional_branch="cognitive/evolution",
+        capability="MISSING-ROLE-HEALTH",
+        source_ref="src:missing-role-health",
+        source_commit="commit:missing-role-health",
+        loop_stage="OBSERVED",
+        ownership=ImplementationOwnership.MISSING,
+        evidence_refs=("impl-view:missing-role-health",),
+        evolution_gate_status="NOT_EVALUATED",
+        governance_status="NOT_EVALUATED",
+        runtime_status="NOT_DEPLOYED",
+    )
+
+
 def _registry():
     return CapabilityRegistry((
         CapabilityProbe(
@@ -81,6 +100,20 @@ def test_required_only_capability_is_not_invisible_when_wholly_missing():
         "execution_boundary",
     )
     assert result.blockers
+    assert result.improvement_candidates == ()
+
+
+def test_missing_implementation_view_is_not_treated_as_implementation_evidence():
+    result = build_global_capability_visibility(
+        registry_snapshot=(),
+        implementation_views=(_missing_view(),),
+    )
+
+    record = result.records[0]
+    assert record.capability_id == "MISSING-ROLE-HEALTH"
+    assert record.registry_visible is False
+    assert record.implementation_visible is False
+    assert record.state is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
     assert result.improvement_candidates == ()
 
 
