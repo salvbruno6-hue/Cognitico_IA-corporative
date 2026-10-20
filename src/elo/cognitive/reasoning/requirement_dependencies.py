@@ -192,15 +192,12 @@ class RequirementDependencyGraph:
                 )
             else:
                 assessment_evidence = _clean_ids(dependency_assessment.evidence_ids)
-                status = RequirementDependencyStatus(
-                    requirement_id=dependency_id,
-                    state=dependency_assessment.state,
-                    evidence_ids=assessment_evidence,
-                    human_validation_required=(
-                        dependency_assessment.human_validation_required
-                    ),
-                )
-                if status.resolved:
+                supporting: tuple[RequirementClaim, ...] = ()
+                supporting_claim_validation_required = False
+                if (
+                    dependency_assessment.state in _RESOLVED_DEPENDENCY_STATES
+                    and not dependency_assessment.human_validation_required
+                ):
                     candidates = tuple(
                         dict.fromkeys(
                             (
@@ -214,6 +211,20 @@ class RequirementDependencyGraph:
                         claims=candidates,
                         assessment=dependency_assessment,
                     )
+                    supporting_claim_validation_required = any(
+                        claim.requires_human_validation for claim in supporting
+                    )
+
+                status = RequirementDependencyStatus(
+                    requirement_id=dependency_id,
+                    state=dependency_assessment.state,
+                    evidence_ids=assessment_evidence,
+                    human_validation_required=(
+                        dependency_assessment.human_validation_required
+                        or supporting_claim_validation_required
+                    ),
+                )
+                if status.resolved:
                     dependency_claim_ids.extend(claim.claim_id for claim in supporting)
                     bound_evidence_ids.extend(
                         evidence_id
