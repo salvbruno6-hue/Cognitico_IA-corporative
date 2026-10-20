@@ -1,0 +1,141 @@
+id: ELO-SCAN-ORCHESTRATOR
+title: Governed ELO source and learning scan orchestrator
+status: READY
+risk: MEDIUM
+owner: ELO
+executor: ELO Cognitivo
+repository: salvbruno6-hue/Cognitico_IA-corporative
+base_branch: main
+
+objective: >-
+  Run a single governed scan orchestrator that periodically inspects accessible
+  ELO sources and existing learning structures, feeds evidence into the
+  autocorrection/execution loop, and identifies extraction, correction,
+  arbitration, pattern, specialization and Evolution Gate work without
+  creating a parallel memory or orchestration authority.
+
+integration:
+  parent_task: ELO-AUTO-001
+  cognitive_owner: ELO Cognitivo
+  execution_supervision: native
+  persistence_authority: existing Supabase ELO structures
+  external_sources_are_authority: false
+  discovery_is_learning: false
+  single_success_is_generalization: false
+  canonical_mutation_by_scan: false
+
+schedule:
+  daily:
+    - SCAN-001-source-inventory
+    - SCAN-002-new-experiences
+    - SCAN-003-errors-corrections
+    - SCAN-004-arbitrated-decisions
+    - SCAN-005-budget
+  weekly:
+    - SCAN-006-repeated-patterns
+    - SCAN-007-specializations
+    - SCAN-008-evolution-gate
+    - SCAN-009-unprocessed-sources
+
+missions:
+  - id: SCAN-001-source-inventory
+    question: Are there new or changed registered sources since the last successful scan?
+    action: Inspect active learning sources and register evidence of source changes without promoting knowledge.
+  - id: SCAN-002-new-experiences
+    question: Which new experiences exist and have not yet completed extraction?
+    action: Find unprocessed experiences and route them to the existing extraction pipeline.
+  - id: SCAN-003-errors-corrections
+    question: Which errors have a correction, failed hypothesis or repeatable corrective pattern?
+    action: Correlate execution evidence, corrections and regressions; create learning candidates only when evidence supports them.
+  - id: SCAN-004-arbitrated-decisions
+    question: Which decisions were arbitrated since the previous scan and what reusable reasoning do they contain?
+    action: Extract decision evidence and route validated candidates through governance; never learn from raw chat alone.
+  - id: SCAN-005-budget
+    question: What new evidence, calculations, similarities, associations or decisions exist in Orçamento?
+    action: Inspect existing Orçamento memory structures and feed only supported evidence into the cognitive learning path.
+  - id: SCAN-006-repeated-patterns
+    question: Which patterns recur across sufficiently evidenced experiences?
+    action: Detect repetition, compare evidence and identify candidates for reasoning-pattern refinement.
+  - id: SCAN-007-specializations
+    question: Which specializations have accumulated sufficient evidence for review?
+    action: Review specialization evidence and identify governed candidates; do not promote automatically.
+  - id: SCAN-008-evolution-gate
+    question: Which learning candidates satisfy the evidence, consistency, validation and governance prerequisites for Evolution Gate?
+    action: Prepare the candidate set for the existing Evolution Gate; do not bypass it.
+  - id: SCAN-009-unprocessed-sources
+    question: Which active sources or extractions remain pending, stale or blocked?
+    action: Audit extraction backlog, preserve provenance, diagnose blockers and create bounded corrective actions.
+
+correction_integration:
+  on_scan_failure: CORRECT_OR_REPLAN
+  on_stale_source: CORRECT
+  on_extraction_gap: CORRECT
+  on_repeated_failure: REPLAN
+  on_scope_or_authority_conflict: ESCALATE
+  on_evidence_insufficient: BLOCKED
+  on_candidate_ready: EVOLUTION_GATE
+  max_correction_cycles: 3
+
+execution_loop:
+  - READ_TASK_STATE
+  - IDENTIFY_DUE_MISSIONS
+  - READ_CANONICAL_CONSTRAINTS
+  - READ_SCOPED_SOURCES
+  - EXTRACT_EVIDENCE
+  - DEDUPLICATE_BY_PROVENANCE
+  - DETECT_GAPS_ERRORS_AND_PATTERNS
+  - CLASSIFY_CONTINUE_CORRECT_REPLAN_ESCALATE
+  - EXECUTE_BOUNDED_CORRECTION_WHEN_ALLOWED
+  - REVALIDATE
+  - ROUTE_LEARNING_CANDIDATES_TO_GOVERNED_PATH
+  - RECORD_EXECUTION_EVIDENCE
+  - UPDATE_NEXT_ACTION
+
+source_policy:
+  accessible_sources_only: true
+  supported_examples:
+    - GitHub
+    - Supabase
+    - connected_files
+    - connected_external_sources
+    - ELO Web records
+    - explicitly ingested ChatGPT project exports
+  chatgpt_projects_direct_access_assumed: false
+  inaccessible_source_action: record_ingestion_gap
+
+persistence:
+  reuse_existing_tables: true
+  prohibited_new_parallel_memory: true
+  provenance_required: true
+  historical_records_immutable: true
+  idempotent_scans: true
+  execution_audit: true
+
+learning_path:
+  source: elo_aprendizado_fontes
+  extraction: elo_aprendizado_extracoes
+  experience: elo_experience_records_and_elo_aprendizado_experiencias
+  reasoning: elo_reasoning_patterns_and_elo_aprendizado_padroes_raciocinio
+  specialization: elo_specializations_and_elo_aprendizado_especializacoes
+  relations: elo_aprendizado_relacoes
+  budget: elo_orcamento_memoria_and_related_existing_structures
+  evolution: elo_evolution_events
+  gate: existing_evolution_gate
+
+report:
+  required:
+    - scan_id
+    - execution_timestamp
+    - missions_due
+    - missions_executed
+    - source_coverage
+    - new_evidence
+    - extraction_backlog
+    - corrections
+    - replans
+    - learning_candidates
+    - evolution_gate_candidates
+    - blocked_items
+    - ingestion_gaps
+    - next_actions
+    - provenance

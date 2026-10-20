@@ -10,8 +10,8 @@ base_branch: main
 objective: >-
   Enable ELO to continue executable objectives through implementation,
   specialist review, architectural review, correction, validation, gated merge,
-  post-merge verification and terminal reporting without creating parallel
-  cognitive authorities.
+  post-merge verification, governed source/learning scans and terminal
+  reporting without creating parallel cognitive authorities.
 
 scope:
   include:
@@ -21,6 +21,7 @@ scope:
     - internal Forge constructor plane and promotion boundary
     - merge and correction gates
     - cognitive execution supervision state and evidence
+    - governed ELO scan orchestrator and its source/learning missions
   exclude:
     - new Cognitive Core
     - new memory authority
@@ -52,6 +53,11 @@ acceptance_criteria:
   - Existing ELO-014+ governance is reused rather than duplicated.
   - Post-merge verification is part of the terminal state.
   - Every active task has a recoverable state, next action, evidence trail, cycle count and escalation condition.
+  - The scan orchestrator is part of the existing Cognitivo execution loop and does not introduce a second supervisor or scheduler authority.
+  - Daily and weekly scan missions are idempotent, scoped and provenance-preserving.
+  - Scan discovery does not become learning without evidence, consistency, validation, governance and Evolution Gate.
+  - Scan failures, stale sources and extraction gaps feed CONTINUE/CORRECT/REPLAN/ESCALATE decisions.
+  - Inaccessible ChatGPT Project content is recorded as an ingestion gap rather than being treated as directly readable.
 
 validation:
   - validate YAML task structure
@@ -61,6 +67,9 @@ validation:
   - confirm AGENTS and bridge contract agree on autonomous merge policy
   - confirm Cognitivo execution supervision is represented without a parallel supervisor component
   - confirm Forge is represented only as the internal constructor plane
+  - validate ELO-SCAN-ORCHESTRATOR mission definitions and frequencies
+  - validate scan-to-autocorrection transition rules
+  - validate idempotence, provenance and source-scope constraints
 
 autonomy:
   mode: agentic
@@ -104,4 +113,32 @@ evidence:
     - merge_result
     - final_verification
     - learning
+    - scan_results
+    - ingestion_gaps
     - blockers
+
+scan_integration:
+  orchestrator: ELO-SCAN-ORCHESTRATOR
+  daily_missions:
+    - SCAN-001-source-inventory
+    - SCAN-002-new-experiences
+    - SCAN-003-errors-corrections
+    - SCAN-004-arbitrated-decisions
+    - SCAN-005-budget
+  weekly_missions:
+    - SCAN-006-repeated-patterns
+    - SCAN-007-specializations
+    - SCAN-008-evolution-gate
+    - SCAN-009-unprocessed-sources
+  correction_actions:
+    stale_source: CORRECT
+    extraction_gap: CORRECT
+    repeated_failure: REPLAN
+    authority_or_scope_conflict: ESCALATE
+    insufficient_evidence: BLOCKED
+    candidate_ready: EVOLUTION_GATE
+  persistence_policy:
+    reuse_existing_learning_structures: true
+    historical_records_immutable: true
+    canonical_mutation_by_scan: false
+    automatic_learning_promotion: false
