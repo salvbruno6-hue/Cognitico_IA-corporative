@@ -196,7 +196,10 @@ class RequirementDependencyGraph:
                 assessment_evidence = _clean_ids(dependency_assessment.evidence_ids)
                 supporting: tuple[RequirementClaim, ...] = ()
                 supporting_claim_validation_required = False
-                supporting_claim_trust_failed = False
+                supporting_claim_trust_failed = (
+                    dependency_assessment.state in _RESOLVED_DEPENDENCY_STATES
+                    and not dependency_assessment.human_validation_required
+                )
                 if (
                     dependency_assessment.state in _RESOLVED_DEPENDENCY_STATES
                     and not dependency_assessment.human_validation_required
