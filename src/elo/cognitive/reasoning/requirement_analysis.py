@@ -10,6 +10,7 @@ pending validation), never private model chain-of-thought.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Mapping, Sequence
@@ -119,35 +120,95 @@ class ResolutionAttempt:
 
 
 _REPLAY_BINDING_VALIDATION_OK = frozenset({"VALIDATED", "APPROVED", "CONFIRMED"})
+_SEMANTIC_REPLAY_METHODS = frozenset(
+    {
+        "semantic-match:exact:v1",
+        "semantic-match:governed_alias:v1",
+    }
+)
+_STRUCTURED_REPLAY_SUFFIX = "|structured-entity-applicability:v1"
+
+
+def _clean_replay_values(values: Sequence[str]) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            cleaned
+            for value in values
+            if (cleaned := str(value).strip())
+        )
+    )
+
+
+def _semantic_replay_id_matches(claim: RequirementClaim) -> bool:
+    if claim.provenance.reasoning_method.strip() not in _SEMANTIC_REPLAY_METHODS:
+        return False
+    for dependency in _clean_replay_values(claim.dependencies):
+        material = "\x1f".join(
+            part.strip()
+            for part in (
+                claim.requirement_id,
+                claim.predicate,
+                dependency,
+                claim.value,
+                claim.provenance.source_reference,
+            )
+        )
+        digest = hashlib.sha256(material.encode("utf-8")).hexdigest()
+        if claim.claim_id == f"claim:semantic:{digest[:20]}":
+            return True
+    return False
+
+
+def _structured_replay_id_matches(claim: RequirementClaim) -> bool:
+    method = claim.provenance.reasoning_method.strip()
+    if not method.endswith(_STRUCTURED_REPLAY_SUFFIX):
+        return False
+
+    dependencies = _clean_replay_values(claim.dependencies)
+    evidence_ids = _clean_replay_values(claim.provenance.evidence_ids)
+    if not dependencies or not evidence_ids:
+        return False
+
+    # The structured binder appends applicability evidence after source evidence.
+    # Trying each nonempty suffix revalidates that the stored claim ID can be
+    # reproduced from a real upstream dependency plus evidence carried by the
+    # claim itself; no caller-provided prefix is trusted on its own.
+    for dependency in dependencies:
+        for offset in range(len(evidence_ids)):
+            applicability = evidence_ids[offset:]
+            material = "\x1f".join(
+                (
+                    claim.requirement_id,
+                    "",
+                    dependency,
+                    *applicability,
+                )
+            )
+            digest = hashlib.sha256(material.encode("utf-8")).hexdigest()
+            if claim.claim_id == f"claim:structured-bind:{digest[:20]}":
+                return True
+    return False
 
 
 def _governed_replay_subject(claim: RequirementClaim) -> str | None:
     """Recover only entity bindings previously materialized by governed flows.
 
-    Ordinary preloaded claims remain fail-closed. A replayable binding must carry
-    the generated claim-id family, the matching reasoning-method marker,
-    governed validation, evidence, and an upstream dependency proving that the
-    result was derived from another claim rather than asserted directly.
+    Ordinary preloaded claims remain fail-closed. A replayable binding must
+    revalidate the exact emitted method family, stable generated claim ID,
+    governed validation, evidence, and upstream dependency provenance.
     """
     subject = claim.subject.strip()
     if not subject or claim.requires_human_validation:
         return None
     if not str(claim.value).strip() or not claim.dependencies:
         return None
-    if not tuple(
-        evidence_id.strip()
-        for evidence_id in claim.provenance.evidence_ids
-        if str(evidence_id).strip()
-    ):
+    if not _clean_replay_values(claim.provenance.evidence_ids):
         return None
     if claim.provenance.validation_status.strip().upper() not in _REPLAY_BINDING_VALIDATION_OK:
         return None
 
-    method = claim.provenance.reasoning_method.strip()
     structured_binding = (
-        claim.claim_id.startswith("claim:structured-bind:")
-        and method.endswith("|structured-entity-applicability:v1")
-        and (
+        (
             (
                 claim.state == RequirementState.KNOWN
                 and claim.provenance.source_type == RequirementSourceType.RULE
@@ -157,13 +218,12 @@ def _governed_replay_subject(claim: RequirementClaim) -> str | None:
                 and claim.provenance.source_type == RequirementSourceType.CALCULATION
             )
         )
+        and _structured_replay_id_matches(claim)
     )
     semantic_binding = (
-        claim.claim_id.startswith("claim:semantic:")
-        and claim.state == RequirementState.RETRIEVED
-        and method.startswith("semantic-match:")
-        and method.endswith(":v1")
+        claim.state == RequirementState.RETRIEVED
         and claim.provenance.source_type != RequirementSourceType.LLM_INFERENCE
+        and _semantic_replay_id_matches(claim)
     )
     if structured_binding or semantic_binding:
         return subject
