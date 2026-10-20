@@ -79,11 +79,11 @@ def _normalize_required_constraints(required_constraints: Sequence[str]) -> tupl
 
 
 def _validate_capacity_day_order(days: Sequence[SystemicCapacityDay]) -> None:
-    """Validate the complete chronology before any early-returning reasoning."""
+    """Validate the complete daily chronology before early-returning reasoning."""
     previous_date: date | None = None
     for day in days:
-        if not isinstance(day.reference_date, date):
-            raise TypeError("reference_date must be datetime.date")
+        if type(day.reference_date) is not date:
+            raise TypeError("reference_date must be datetime.date without a time component")
         if previous_date is not None and day.reference_date <= previous_date:
             raise ValueError("days must be strictly ordered by unique reference_date")
         previous_date = day.reference_date
