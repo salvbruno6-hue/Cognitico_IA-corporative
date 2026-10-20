@@ -12,9 +12,10 @@ prerequisites are not ready.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import Mapping, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from .requirement_analysis import (
     ConfidenceBand,
@@ -23,6 +24,12 @@ from .requirement_analysis import (
     RequirementNode,
     RequirementState,
 )
+
+if TYPE_CHECKING:
+    from .requirement_resolution import (
+        RequirementResolutionFlow,
+        RequirementResolutionResult,
+    )
 
 
 class RequirementDependencyState(StrEnum):
@@ -38,6 +45,7 @@ _RESOLVED_DEPENDENCY_STATES = frozenset(
         RequirementState.CALCULATED,
     }
 )
+_DEPENDENCY_REASONING_MARKER = "requirement-dependencies:v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +108,18 @@ class RequirementDependencyAssessment:
     @property
     def human_validation_required(self) -> bool:
         return any(blocker.human_validation_required for blocker in self.blockers)
+
+
+@dataclass(frozen=True, slots=True)
+class DependencyAwareRequirementResolutionResult:
+    """Requirement-resolution result paired with the dependency gate evidence."""
+
+    dependency_assessment: RequirementDependencyAssessment
+    resolution: RequirementResolutionResult
+
+    def __post_init__(self) -> None:
+        if self.dependency_assessment.requirement_id != self.resolution.requirement_id:
+            raise ValueError("dependency and resolution results must belong to one requirement")
 
 
 class RequirementDependencyGraph:
@@ -214,6 +234,55 @@ class RequirementDependencyGraph:
         )
 
 
+def resolve_requirement_with_dependencies(
+    *,
+    flow: RequirementResolutionFlow,
+    graph: RequirementDependencyGraph,
+    node: RequirementNode,
+    parameter: str,
+    prerequisite_assessments: Mapping[str, GapAssessment],
+) -> DependencyAwareRequirementResolutionResult:
+    """Gate the existing resolution flow on semantic prerequisite readiness.
+
+    The canonical ``RequirementResolutionFlow`` still owns retrieval/rule/
+    calculation/inference ordering. This function only decides whether that flow
+    is allowed to run and binds prerequisite IDs/evidence to its returned claims.
+    """
+    dependency_assessment = graph.assess(
+        requirement_id=node.requirement_id,
+        assessments=prerequisite_assessments,
+    )
+
+    from .requirement_resolution import (
+        RequirementResolutionResult,
+        _audit_scope_context,
+    )
+
+    if dependency_assessment.state is RequirementDependencyState.BLOCKED:
+        resolution = RequirementResolutionResult(
+            requirement_id=node.requirement_id,
+            parameter=parameter,
+            claims=node.claims,
+            attempts=(),
+            assessment=blocked_gap_assessment(
+                dependency_assessment=dependency_assessment,
+                parameter=parameter,
+            ),
+            scope_context=_audit_scope_context(node.metadata),
+        )
+    else:
+        resolution = flow.resolve(node=node, parameter=parameter)
+        resolution = _bind_dependency_context(
+            resolution=resolution,
+            dependency_assessment=dependency_assessment,
+        )
+
+    return DependencyAwareRequirementResolutionResult(
+        dependency_assessment=dependency_assessment,
+        resolution=resolution,
+    )
+
+
 def blocked_gap_assessment(
     *,
     dependency_assessment: RequirementDependencyAssessment,
@@ -282,6 +351,89 @@ def audit_requirement_dependency_assessment(
     }
 
 
+def audit_dependency_aware_resolution(
+    result: DependencyAwareRequirementResolutionResult,
+) -> Mapping[str, object]:
+    """Combine bounded dependency and canonical resolution audits."""
+    from .requirement_resolution import audit_requirement_resolution
+
+    return {
+        "dependencies": audit_requirement_dependency_assessment(
+            result.dependency_assessment
+        ),
+        "resolution": audit_requirement_resolution(result.resolution),
+    }
+
+
+def _bind_dependency_context(
+    *,
+    resolution: RequirementResolutionResult,
+    dependency_assessment: RequirementDependencyAssessment,
+) -> RequirementResolutionResult:
+    if not dependency_assessment.transitive_dependencies:
+        return resolution
+
+    bound_claims = tuple(
+        _bind_claim_dependencies(
+            claim=claim,
+            parameter=resolution.parameter,
+            dependency_assessment=dependency_assessment,
+        )
+        for claim in resolution.claims
+    )
+    bound_assessment = replace(
+        resolution.assessment,
+        evidence_ids=_clean_ids(
+            (*resolution.assessment.evidence_ids, *dependency_assessment.evidence_ids)
+        ),
+    )
+    return replace(
+        resolution,
+        claims=bound_claims,
+        assessment=bound_assessment,
+    )
+
+
+def _bind_claim_dependencies(
+    *,
+    claim: RequirementClaim,
+    parameter: str,
+    dependency_assessment: RequirementDependencyAssessment,
+) -> RequirementClaim:
+    if claim.predicate != parameter:
+        return claim
+
+    dependencies = _clean_ids(
+        (
+            *claim.dependencies,
+            *dependency_assessment.transitive_dependencies,
+            *dependency_assessment.dependency_claim_ids,
+        )
+    )
+    evidence_ids = _clean_ids(
+        (*claim.provenance.evidence_ids, *dependency_assessment.evidence_ids)
+    )
+    reasoning_parts = tuple(
+        part.strip()
+        for part in claim.provenance.reasoning_method.split("|")
+        if part.strip()
+    )
+    reasoning_method = (
+        claim.provenance.reasoning_method
+        if _DEPENDENCY_REASONING_MARKER in reasoning_parts
+        else f"{claim.provenance.reasoning_method}|{_DEPENDENCY_REASONING_MARKER}"
+    )
+    return replace(
+        claim,
+        dependencies=dependencies,
+        provenance=replace(
+            claim.provenance,
+            reasoning_method=reasoning_method,
+            evidence_ids=evidence_ids,
+        ),
+    )
+
+
 def _clean_ids(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(
         dict.fromkeys(
@@ -310,9 +462,13 @@ def _supporting_claim_ids(
 
 
 def _validate_graph(nodes: Sequence[RequirementNode]) -> RequirementDependencyValidation:
-    ids = [node.requirement_id for node in nodes]
+    id_counts = Counter(node.requirement_id for node in nodes)
     duplicate_requirement_ids = tuple(
-        sorted({requirement_id for requirement_id in ids if ids.count(requirement_id) > 1})
+        sorted(
+            requirement_id
+            for requirement_id, count in id_counts.items()
+            if count > 1
+        )
     )
 
     unique_nodes: dict[str, RequirementNode] = {}
@@ -327,15 +483,17 @@ def _validate_graph(nodes: Sequence[RequirementNode]) -> RequirementDependencyVa
 
     for requirement_id, node in unique_nodes.items():
         dependencies = tuple(str(value).strip() for value in node.dependencies)
-        seen: set[str] = set()
+        dependency_counts = Counter(dependencies)
+        duplicate_dependencies.update(
+            (requirement_id, dependency_id)
+            for dependency_id, count in dependency_counts.items()
+            if dependency_id and count > 1
+        )
         normalized: list[str] = []
         for dependency_id in dependencies:
             if not dependency_id:
                 unknown_dependencies.add((requirement_id, dependency_id))
                 continue
-            if dependency_id in seen:
-                duplicate_dependencies.add((requirement_id, dependency_id))
-            seen.add(dependency_id)
             normalized.append(dependency_id)
             if dependency_id == requirement_id:
                 self_dependencies.add(requirement_id)
