@@ -175,6 +175,29 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "evidencia_layout.*tipo inválido"):
             render(tecnica)
 
+    def test_renderer_rejects_malformed_id_before_legacy_set_operations(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["id"] = ["T-001"]
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, r"\.id.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_rejects_malformed_query_items_before_relationship_checks(self):
+        tecnica = current_tecnica()
+        tecnica["consultas"][0]["item_ids"] = None
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "item_ids.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_preserves_distinct_responsavel_and_responsabilidade(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["responsavel"] = "PLA"
+        tecnica["matriz_tecnica"][0]["responsabilidade"] = "ENG"
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        rendered = render(tecnica)
+        self.assertIn("| Responsável | Responsabilidade |", rendered)
+        self.assertIn("| PLA | ENG |", rendered)
+
     def test_renderer_consumes_assigned_canonical_so(self):
         tecnica = current_tecnica()
         tecnica["identificacao"] = {"so_resolvida": "SO 001.27", "cliente": "teste"}
