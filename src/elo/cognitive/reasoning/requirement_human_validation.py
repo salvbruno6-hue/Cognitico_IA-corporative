@@ -54,6 +54,8 @@ class HumanValidationDecision:
     evidence_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        if not isinstance(self.action, HumanValidationAction):
+            raise ValueError("human validation action must use HumanValidationAction")
         for name, value in (
             ("decision_id", self.decision_id),
             ("reviewer_id", self.reviewer_id),
@@ -72,7 +74,7 @@ class HumanValidationDecision:
             if self.value is not None:
                 raise ValueError("APPROVE uses candidate value and cannot supply value")
         elif self.action is HumanValidationAction.REVISE:
-            if self.value is None or not self.value.strip():
+            if not isinstance(self.value, str) or not self.value.strip():
                 raise ValueError("REVISE requires a nonblank human value")
             if len(self.value.strip()) > _MAX_HUMAN_VALUE_CHARS:
                 raise ValueError("REVISE value exceeds bounded size")
@@ -152,7 +154,7 @@ def apply_human_validation(
         if not value:
             raise ValueError("approved candidate requires a nonblank value")
     elif decision.action is HumanValidationAction.REVISE:
-        assert decision.value is not None
+        assert isinstance(decision.value, str)
         value = decision.value.strip()
     else:  # pragma: no cover - enum exhaustiveness guard
         raise ValueError(f"unsupported human validation action: {decision.action}")
@@ -308,7 +310,7 @@ def _decision_evidence_id(decision: HumanValidationDecision) -> str:
             decision.parameter,
             decision.action.value,
             decision.target_claim_id or "",
-            decision.value.strip() if decision.value is not None else "",
+            decision.value.strip() if isinstance(decision.value, str) else "",
             *sorted(decision.evidence_ids),
         )
     )
