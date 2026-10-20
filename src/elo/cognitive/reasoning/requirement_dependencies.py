@@ -214,6 +214,16 @@ class RequirementDependencyGraph:
                             )
                         )
                     )
+                    automatic_candidates = _automatic_claims_for_parameter(
+                        requirement_id=dependency_id,
+                        parameter=dependency_assessment.parameter,
+                        claims=candidates,
+                    )
+                    automatic_trust_ok = bool(automatic_candidates) and _supporting_claims_pass_automatic_trust(
+                        node=self._nodes_by_id[dependency_id],
+                        assessment=dependency_assessment,
+                        claims=automatic_candidates,
+                    )
                     supporting = _supporting_claims(
                         requirement_id=dependency_id,
                         claims=candidates,
@@ -222,12 +232,9 @@ class RequirementDependencyGraph:
                     supporting_claim_validation_required = any(
                         claim.requires_human_validation for claim in supporting
                     )
-                    if supporting:
-                        supporting_claim_trust_failed = not _supporting_claims_pass_automatic_trust(
-                            node=self._nodes_by_id[dependency_id],
-                            assessment=dependency_assessment,
-                            claims=supporting,
-                        )
+                    supporting_claim_trust_failed = (
+                        not automatic_trust_ok or not supporting
+                    )
 
                 status = RequirementDependencyStatus(
                     requirement_id=dependency_id,
@@ -513,6 +520,8 @@ def _claim_supports_final_assessment(
     claim_evidence = set(_clean_ids(claim.provenance.evidence_ids))
     if not assessment_evidence:
         return True
+    if _is_evidence_free_documented_claim(claim):
+        return True
     return bool(claim_evidence.intersection(assessment_evidence))
 
 
@@ -605,6 +614,33 @@ def _clean_ids(values: Sequence[str]) -> tuple[str, ...]:
     )
 
 
+def _is_evidence_free_documented_claim(claim: RequirementClaim) -> bool:
+    return (
+        claim.state is RequirementState.DOCUMENTED
+        and not _clean_ids(claim.provenance.evidence_ids)
+    )
+
+
+def _automatic_claims_for_parameter(
+    *,
+    requirement_id: str,
+    parameter: str,
+    claims: Sequence[RequirementClaim],
+) -> tuple[RequirementClaim, ...]:
+    return tuple(
+        sorted(
+            (
+                claim
+                for claim in claims
+                if claim.requirement_id == requirement_id
+                and claim.predicate == parameter
+                and claim.state in _RESOLVED_DEPENDENCY_STATES
+            ),
+            key=lambda claim: claim.claim_id,
+        )
+    )
+
+
 def _supporting_claims(
     *,
     requirement_id: str,
@@ -622,6 +658,7 @@ def _supporting_claims(
                 and claim.state is assessment.state
                 and (
                     not evidence
+                    or _is_evidence_free_documented_claim(claim)
                     or bool(
                         evidence.intersection(
                             _clean_ids(claim.provenance.evidence_ids)
