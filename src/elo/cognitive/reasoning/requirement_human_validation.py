@@ -76,7 +76,9 @@ class HumanValidationDecision:
         elif self.action is HumanValidationAction.REVISE:
             if not isinstance(self.value, str) or not self.value.strip():
                 raise ValueError("REVISE requires a nonblank human value")
-            if len(self.value.strip()) > _MAX_HUMAN_VALUE_CHARS:
+            if self.value != self.value.strip():
+                raise ValueError("REVISE value must be canonical without surrounding whitespace")
+            if len(self.value) > _MAX_HUMAN_VALUE_CHARS:
                 raise ValueError("REVISE value exceeds bounded size")
         elif self.action is HumanValidationAction.REJECT:
             if self.value is not None:
@@ -143,19 +145,20 @@ def apply_human_validation(
             validated_claim=None,
         )
 
-    if not node.entity or not node.entity.strip():
-        raise ValueError("human validation requires an explicit target entity")
+    _require_canonical_target_entity(node)
 
     if decision.action is HumanValidationAction.APPROVE:
         assert candidate is not None
         if candidate.state is RequirementState.CONFLICT:
             raise ValueError("CONFLICT candidate cannot be approved as a fact; use REVISE")
-        value = str(candidate.value).strip()
-        if not value:
-            raise ValueError("approved candidate requires a nonblank value")
+        if not isinstance(candidate.value, str) or not candidate.value.strip():
+            raise ValueError("approved candidate requires a nonblank string value")
+        if candidate.value != candidate.value.strip():
+            raise ValueError("approved candidate value must be canonical without surrounding whitespace")
+        value = candidate.value
     elif decision.action is HumanValidationAction.REVISE:
         assert isinstance(decision.value, str)
-        value = decision.value.strip()
+        value = decision.value
     else:  # pragma: no cover - enum exhaustiveness guard
         raise ValueError(f"unsupported human validation action: {decision.action}")
 
@@ -166,6 +169,7 @@ def apply_human_validation(
             *((source_claim_id,) if source_claim_id is not None else ()),
         )
     )
+    assert node.entity is not None
     claim = RequirementClaim(
         claim_id=_validated_claim_id(
             decision=decision,
@@ -174,7 +178,7 @@ def apply_human_validation(
             evidence_ids=evidence_ids,
         ),
         requirement_id=node.requirement_id,
-        subject=node.entity.strip(),
+        subject=node.entity,
         predicate=resolution.parameter,
         value=value,
         state=RequirementState.KNOWN,
@@ -238,6 +242,13 @@ def _validate_target_alignment(
         raise ValueError("assessment does not belong to target requirement")
     if resolution.assessment.parameter != resolution.parameter:
         raise ValueError("assessment parameter mismatch")
+
+
+def _require_canonical_target_entity(node: RequirementNode) -> None:
+    if not node.entity or not node.entity.strip():
+        raise ValueError("human validation requires an explicit target entity")
+    if node.entity != node.entity.strip():
+        raise ValueError("human validation target entity must be canonical without surrounding whitespace")
 
 
 def _candidate_pool(resolution: RequirementResolutionResult) -> tuple[RequirementClaim, ...]:
@@ -310,7 +321,7 @@ def _decision_evidence_id(decision: HumanValidationDecision) -> str:
             decision.parameter,
             decision.action.value,
             decision.target_claim_id or "",
-            decision.value.strip() if isinstance(decision.value, str) else "",
+            decision.value if isinstance(decision.value, str) else "",
             *sorted(decision.evidence_ids),
         )
     )
@@ -330,7 +341,7 @@ def _validated_claim_id(
             decision.decision_id,
             decision.requirement_id,
             decision.parameter,
-            entity.strip(),
+            entity,
             value,
             *sorted(evidence_ids),
         )
