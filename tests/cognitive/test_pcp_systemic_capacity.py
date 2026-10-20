@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -214,6 +214,25 @@ def test_first_constraint_validates_later_chronology_before_early_bottleneck_ret
                     reference_date=date(2026, 10, 20),
                     demand_modules=4,
                     constraint_capacities={"EL": 4},
+                ),
+            ],
+            required_constraints=["EL"],
+        )
+
+
+def test_first_constraint_rejects_datetime_snapshots_even_on_same_calendar_day():
+    with pytest.raises(TypeError):
+        find_first_constraint_date(
+            [
+                SystemicCapacityDay(
+                    reference_date=datetime(2026, 10, 20, 8, 0),
+                    demand_modules=4,
+                    constraint_capacities={"EL": 4},
+                ),
+                SystemicCapacityDay(
+                    reference_date=datetime(2026, 10, 20, 16, 0),
+                    demand_modules=4,
+                    constraint_capacities={"EL": 1},
                 ),
             ],
             required_constraints=["EL"],
