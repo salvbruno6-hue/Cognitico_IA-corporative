@@ -77,6 +77,31 @@ class GlobalCapabilityVisibility:
             }
         )
 
+    @property
+    def improvement_candidates(self) -> tuple[CapabilityVisibilityRecord, ...]:
+        """Return existing internal gaps in evolution-first priority order.
+
+        The Symbiont only observes and ranks already-known gaps. The Orchestrator
+        remains responsible for deciding the next governed action through the
+        existing ``advise_capability`` boundary; no mutation is authorized here.
+
+        Priority deliberately starts with internal alignment before creation:
+        ownership ambiguity, missing canonical wiring, implementation/registry
+        mismatch, then missing implementation visibility.
+        """
+        priority = {
+            CapabilityVisibilityState.UNRESOLVED_OWNER: 0,
+            CapabilityVisibilityState.EXISTING_BUT_UNWIRED: 1,
+            CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED: 2,
+            CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW: 3,
+        }
+        return tuple(
+            sorted(
+                self.isolated,
+                key=lambda record: (priority[record.state], record.capability_id),
+            )
+        )
+
     def as_dict(self) -> dict[str, object]:
         return {
             "capability_count": self.capability_count,
@@ -97,6 +122,9 @@ class GlobalCapabilityVisibility:
                     "state": item.state.value,
                 }
                 for item in self.records
+            ],
+            "improvement_candidates": [
+                item.capability_id for item in self.improvement_candidates
             ],
             "blockers": list(self.blockers),
             "canonical_mutation": self.canonical_mutation,
