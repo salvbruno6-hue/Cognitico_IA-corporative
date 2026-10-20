@@ -212,3 +212,20 @@ Só consolidar quando:
 A mesma lógica pode ser reutilizada em outros setores e camadas sem criar uma arquitetura paralela:
 
 **OBSERVAR → CRITICAR → PERGUNTAR → INVESTIGAR → ENTENDER → RELACIONAR → VALIDAR → MATURAR → APLICAR**
+
+
+## 13. Recuperação automática de aprendizados candidatos
+
+Aprendizado originado de uma SO não precisa ter o mesmo número, nome ou cliente da SO atual para ser consultado.
+
+O ELO ANALISAR deve recuperar automaticamente aprendizados candidatos quando houver correspondência relevante de conteúdo, estrutura, requisito, função, produto, processo, código técnico, configuração ou padrão de decisão.
+
+A recuperação é consultiva e ocorre antes do fechamento da solução atual:
+
+SO/TR atual → compreensão do requisito → recuperação de aprendizados candidatos relacionados → comparação de condições → validação da evidência atual → decisão da SO atual.
+
+O aprendizado candidato deve aparecer como sugestão, alerta, precedente ou pergunta de verificação. Ele não deve ser aplicado automaticamente, nem transformar sua origem histórica em requisito da SO atual.
+
+O número/nome da SO de origem permanece como proveniência e não como gatilho exclusivo de recuperação.
+
+A promoção para conhecimento canônico continua dependente de evidência, validação e governança.
