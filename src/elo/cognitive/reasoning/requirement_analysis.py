@@ -118,6 +118,58 @@ class ResolutionAttempt:
             raise ValueError("resolved attempt requires evidence")
 
 
+_REPLAY_BINDING_VALIDATION_OK = frozenset({"VALIDATED", "APPROVED", "CONFIRMED"})
+
+
+def _governed_replay_subject(claim: RequirementClaim) -> str | None:
+    """Recover only entity bindings previously materialized by governed flows.
+
+    Ordinary preloaded claims remain fail-closed. A replayable binding must carry
+    the generated claim-id family, the matching reasoning-method marker,
+    governed validation, evidence, and an upstream dependency proving that the
+    result was derived from another claim rather than asserted directly.
+    """
+    subject = claim.subject.strip()
+    if not subject or claim.requires_human_validation:
+        return None
+    if not str(claim.value).strip() or not claim.dependencies:
+        return None
+    if not tuple(
+        evidence_id.strip()
+        for evidence_id in claim.provenance.evidence_ids
+        if str(evidence_id).strip()
+    ):
+        return None
+    if claim.provenance.validation_status.strip().upper() not in _REPLAY_BINDING_VALIDATION_OK:
+        return None
+
+    method = claim.provenance.reasoning_method.strip()
+    structured_binding = (
+        claim.claim_id.startswith("claim:structured-bind:")
+        and method.endswith("|structured-entity-applicability:v1")
+        and (
+            (
+                claim.state == RequirementState.KNOWN
+                and claim.provenance.source_type == RequirementSourceType.RULE
+            )
+            or (
+                claim.state == RequirementState.CALCULATED
+                and claim.provenance.source_type == RequirementSourceType.CALCULATION
+            )
+        )
+    )
+    semantic_binding = (
+        claim.claim_id.startswith("claim:semantic:")
+        and claim.state == RequirementState.RETRIEVED
+        and method.startswith("semantic-match:")
+        and method.endswith(":v1")
+        and claim.provenance.source_type != RequirementSourceType.LLM_INFERENCE
+    )
+    if structured_binding or semantic_binding:
+        return subject
+    return None
+
+
 @dataclass(frozen=True, slots=True)
 class RequirementNode:
     requirement_id: str
@@ -132,6 +184,15 @@ class RequirementNode:
             raise ValueError("requirement_id and text are required")
         if any(claim.requirement_id != self.requirement_id for claim in self.claims):
             raise ValueError("all claims must belong to the requirement node")
+
+        if self.entity is None or not self.entity.strip():
+            bound_subjects = {
+                subject
+                for claim in self.claims
+                if (subject := _governed_replay_subject(claim)) is not None
+            }
+            if len(bound_subjects) == 1:
+                object.__setattr__(self, "entity", next(iter(bound_subjects)))
 
 
 @dataclass(frozen=True, slots=True)
