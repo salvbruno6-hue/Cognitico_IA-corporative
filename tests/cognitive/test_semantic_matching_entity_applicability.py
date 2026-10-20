@@ -104,3 +104,42 @@ def test_missing_target_entity_can_resolve_only_with_explicit_entity_applicabili
     assert trace["matches"][0]["entity_applicability_evidence_ids"] == (
         "decision:SO-203.26:R5:PRODUCT-A-applicable",
     )
+
+
+def test_explicit_cross_entity_target_resolves_only_with_governed_applicability_evidence():
+    evidence = _candidate()
+    target = RequirementNode(
+        requirement_id="SO-203.26:R5",
+        text="Requisito para PRODUCT-B",
+        entity="PRODUCT-B",
+    )
+
+    blocked = resolve_requirement_parameter(
+        node=target,
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+    )
+    assert blocked.state is SemanticResolutionState.VALIDATION_REQUIRED
+    assert blocked.matches[0].entity_compatible is False
+    assert blocked.retrieved_claim is None
+
+    resolved = resolve_requirement_parameter(
+        node=target,
+        parameter="mdf.thickness",
+        candidates=(evidence,),
+        entity_applicability_evidence={
+            evidence.claim_id: ("decision:PRODUCT-A-applies-to-PRODUCT-B",),
+        },
+    )
+
+    assert resolved.state is SemanticResolutionState.RESOLVED
+    assert resolved.matches[0].entity_compatible is True
+    assert resolved.matches[0].entity_match_kind is None
+    assert resolved.matches[0].entity_applicability_evidence_ids == (
+        "decision:PRODUCT-A-applies-to-PRODUCT-B",
+    )
+    assert resolved.retrieved_claim is not None
+    assert resolved.retrieved_claim.subject == "PRODUCT-B"
+    assert "decision:PRODUCT-A-applies-to-PRODUCT-B" in (
+        resolved.retrieved_claim.provenance.evidence_ids
+    )
