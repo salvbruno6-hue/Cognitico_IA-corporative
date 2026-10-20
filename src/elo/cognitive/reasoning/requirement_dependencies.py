@@ -1,9 +1,13 @@
 """Governed semantic dependency analysis for ELO requirements.
 
-This module interprets ``RequirementNode.dependencies`` inside the canonical
-Reasoning owner. It does not execute providers, persist edges, create a second
-relation engine, or replace ``TaskPlan``. Persistent relation ownership remains
-with the existing ELO/Supabase relation surfaces.
+This module interprets the explicit ``RequirementNode.requirement_dependencies``
+contract inside the canonical Reasoning owner. The legacy ``dependencies`` field
+keeps its existing generic lineage/provenance meaning and is deliberately not
+reinterpreted as a RequirementNode graph edge.
+
+The module does not execute providers, persist edges, create a second relation
+engine, or replace ``TaskPlan``. Persistent relation ownership remains with the
+existing ELO/Supabase relation surfaces.
 
 The dependency boundary is epistemic and fail-closed: malformed graphs are
 invalid, unresolved prerequisites block downstream resolution, and a blocked
@@ -123,14 +127,14 @@ class DependencyAwareRequirementResolutionResult:
 
 
 class RequirementDependencyGraph:
-    """Validate and evaluate semantic requirement dependencies deterministically."""
+    """Validate and evaluate typed requirement dependencies deterministically."""
 
     def __init__(self, nodes: Sequence[RequirementNode]):
         self.nodes = tuple(nodes)
-        self.validation = _validate_graph(self.nodes)
         self._nodes_by_id: dict[str, RequirementNode] = {}
         for node in self.nodes:
             self._nodes_by_id.setdefault(node.requirement_id, node)
+        self._adjacency, self.validation = _build_and_validate_graph(self.nodes)
 
     def _require_valid(self) -> None:
         if not self.validation.valid:
@@ -144,8 +148,7 @@ class RequirementDependencyGraph:
         collected: set[str] = set()
 
         def visit(current_id: str) -> None:
-            node = self._nodes_by_id[current_id]
-            for dependency_id in sorted(set(node.dependencies)):
+            for dependency_id in self._adjacency[current_id]:
                 if dependency_id in collected:
                     continue
                 visit(dependency_id)
@@ -162,13 +165,16 @@ class RequirementDependencyGraph:
         *,
         requirement_id: str,
         assessments: Mapping[str, GapAssessment],
+        current_claims: Mapping[str, Sequence[RequirementClaim]] | None = None,
     ) -> RequirementDependencyAssessment:
         self._require_valid()
         if requirement_id not in self._nodes_by_id:
             raise KeyError(requirement_id)
 
-        node = self._nodes_by_id[requirement_id]
-        direct = tuple(sorted(set(node.dependencies)))
+        _validate_assessment_mapping(assessments)
+        normalized_current_claims = _validate_current_claim_mapping(current_claims or {})
+
+        direct = self._adjacency[requirement_id]
         transitive = self.transitive_dependencies(requirement_id)
         statuses: list[RequirementDependencyStatus] = []
         dependency_claim_ids: list[str] = []
@@ -193,9 +199,18 @@ class RequirementDependencyGraph:
                 )
                 evidence_ids.extend(cleaned_evidence)
                 if status.resolved:
+                    candidates = tuple(
+                        dict.fromkeys(
+                            (
+                                *self._nodes_by_id[dependency_id].claims,
+                                *normalized_current_claims.get(dependency_id, ()),
+                            )
+                        )
+                    )
                     dependency_claim_ids.extend(
                         _supporting_claim_ids(
-                            node=self._nodes_by_id[dependency_id],
+                            requirement_id=dependency_id,
+                            claims=candidates,
                             assessment=dependency_assessment,
                         )
                     )
@@ -221,6 +236,7 @@ class RequirementDependencyGraph:
     def ready_requirements(
         self,
         assessments: Mapping[str, GapAssessment],
+        current_claims: Mapping[str, Sequence[RequirementClaim]] | None = None,
     ) -> tuple[str, ...]:
         self._require_valid()
         return tuple(
@@ -229,6 +245,7 @@ class RequirementDependencyGraph:
             if self.assess(
                 requirement_id=requirement_id,
                 assessments=assessments,
+                current_claims=current_claims,
             ).state
             is RequirementDependencyState.READY
         )
@@ -241,16 +258,20 @@ def resolve_requirement_with_dependencies(
     node: RequirementNode,
     parameter: str,
     prerequisite_assessments: Mapping[str, GapAssessment],
+    prerequisite_claims: Mapping[str, Sequence[RequirementClaim]] | None = None,
 ) -> DependencyAwareRequirementResolutionResult:
-    """Gate the existing resolution flow on semantic prerequisite readiness.
+    """Gate the existing resolution flow on typed prerequisite readiness.
 
-    The canonical ``RequirementResolutionFlow`` still owns retrieval/rule/
-    calculation/inference ordering. This function only decides whether that flow
-    is allowed to run and binds prerequisite IDs/evidence to its returned claims.
+    ``RequirementResolutionFlow`` continues to own retrieval/rule/calculation/
+    inference ordering. This boundary only proves that typed prerequisite edges
+    are READY. The typed edge field is cleared on the copy passed to the flow so
+    direct callers cannot bypass this gate, while legacy ``dependencies`` lineage
+    remains intact.
     """
     dependency_assessment = graph.assess(
         requirement_id=node.requirement_id,
         assessments=prerequisite_assessments,
+        current_claims=prerequisite_claims,
     )
 
     from .requirement_resolution import (
@@ -271,7 +292,8 @@ def resolve_requirement_with_dependencies(
             scope_context=_audit_scope_context(node.metadata),
         )
     else:
-        resolution = flow.resolve(node=node, parameter=parameter)
+        resolution_node = replace(node, requirement_dependencies=())
+        resolution = flow.resolve(node=resolution_node, parameter=parameter)
         resolution = _bind_dependency_context(
             resolution=resolution,
             dependency_assessment=dependency_assessment,
@@ -288,7 +310,7 @@ def blocked_gap_assessment(
     dependency_assessment: RequirementDependencyAssessment,
     parameter: str,
 ) -> GapAssessment:
-    """Represent dependency blocking without turning it into a downstream gap."""
+    """Represent prerequisite blocking without turning it into a downstream gap."""
     if dependency_assessment.state is not RequirementDependencyState.BLOCKED:
         raise ValueError("blocked gap assessment requires BLOCKED dependencies")
     if not parameter or not parameter.strip():
@@ -434,6 +456,28 @@ def _bind_claim_dependencies(
     )
 
 
+def _validate_assessment_mapping(assessments: Mapping[str, GapAssessment]) -> None:
+    for requirement_id, assessment in assessments.items():
+        if assessment.requirement_id != requirement_id:
+            raise ValueError(
+                "dependency assessment key does not match embedded requirement_id"
+            )
+
+
+def _validate_current_claim_mapping(
+    current_claims: Mapping[str, Sequence[RequirementClaim]],
+) -> Mapping[str, tuple[RequirementClaim, ...]]:
+    normalized: dict[str, tuple[RequirementClaim, ...]] = {}
+    for requirement_id, claims in current_claims.items():
+        materialized = tuple(claims)
+        if any(claim.requirement_id != requirement_id for claim in materialized):
+            raise ValueError(
+                "prerequisite claim key does not match embedded requirement_id"
+            )
+        normalized[requirement_id] = materialized
+    return normalized
+
+
 def _clean_ids(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(
         dict.fromkeys(
@@ -444,24 +488,28 @@ def _clean_ids(values: Sequence[str]) -> tuple[str, ...]:
 
 def _supporting_claim_ids(
     *,
-    node: RequirementNode,
+    requirement_id: str,
+    claims: Sequence[RequirementClaim],
     assessment: GapAssessment,
 ) -> tuple[str, ...]:
     evidence = set(_clean_ids(assessment.evidence_ids))
     candidates = tuple(
         claim
-        for claim in node.claims
-        if claim.predicate == assessment.parameter
+        for claim in claims
+        if claim.requirement_id == requirement_id
+        and claim.predicate == assessment.parameter
         and claim.state is assessment.state
         and (
             not evidence
             or bool(evidence.intersection(_clean_ids(claim.provenance.evidence_ids)))
         )
     )
-    return tuple(sorted(claim.claim_id for claim in candidates))
+    return tuple(sorted({claim.claim_id for claim in candidates}))
 
 
-def _validate_graph(nodes: Sequence[RequirementNode]) -> RequirementDependencyValidation:
+def _build_and_validate_graph(
+    nodes: Sequence[RequirementNode],
+) -> tuple[dict[str, tuple[str, ...]], RequirementDependencyValidation]:
     id_counts = Counter(node.requirement_id for node in nodes)
     duplicate_requirement_ids = tuple(
         sorted(
@@ -482,24 +530,26 @@ def _validate_graph(nodes: Sequence[RequirementNode]) -> RequirementDependencyVa
     adjacency: dict[str, tuple[str, ...]] = {}
 
     for requirement_id, node in unique_nodes.items():
-        dependencies = tuple(str(value).strip() for value in node.dependencies)
-        dependency_counts = Counter(dependencies)
+        normalized = tuple(
+            str(value).strip() for value in node.requirement_dependencies
+        )
+        dependency_counts = Counter(normalized)
         duplicate_dependencies.update(
             (requirement_id, dependency_id)
             for dependency_id, count in dependency_counts.items()
             if dependency_id and count > 1
         )
-        normalized: list[str] = []
-        for dependency_id in dependencies:
+        accepted: list[str] = []
+        for dependency_id in normalized:
             if not dependency_id:
                 unknown_dependencies.add((requirement_id, dependency_id))
                 continue
-            normalized.append(dependency_id)
+            accepted.append(dependency_id)
             if dependency_id == requirement_id:
                 self_dependencies.add(requirement_id)
             elif dependency_id not in known_ids:
                 unknown_dependencies.add((requirement_id, dependency_id))
-        adjacency[requirement_id] = tuple(sorted(set(normalized)))
+        adjacency[requirement_id] = tuple(sorted(set(accepted)))
 
     cycles = _find_cycles(adjacency=adjacency, known_ids=known_ids)
     invalid = any(
@@ -512,7 +562,7 @@ def _validate_graph(nodes: Sequence[RequirementNode]) -> RequirementDependencyVa
         )
     )
     topological_order = () if invalid else _topological_order(adjacency)
-    return RequirementDependencyValidation(
+    validation = RequirementDependencyValidation(
         duplicate_requirement_ids=duplicate_requirement_ids,
         duplicate_dependencies=tuple(sorted(duplicate_dependencies)),
         unknown_dependencies=tuple(sorted(unknown_dependencies)),
@@ -520,6 +570,7 @@ def _validate_graph(nodes: Sequence[RequirementNode]) -> RequirementDependencyVa
         cycles=cycles,
         topological_order=topological_order,
     )
+    return adjacency, validation
 
 
 def _find_cycles(
