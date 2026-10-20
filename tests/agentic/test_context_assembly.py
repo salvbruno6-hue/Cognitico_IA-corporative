@@ -84,3 +84,36 @@ def test_assembly_does_not_promote_or_mutate_source_rows() -> None:
     context = ELOContextAssembler(adapter).assemble(intent, ("calculation_memory",))
     assert row == {"memoria_id": "cm-1", "premissa": "immutable"}
     assert all(candidate.metadata.get("promotion_state") is None for candidate in context.candidates)
+
+
+def test_context_assembly_resolves_registered_resource_before_provider_read() -> None:
+    from elo.agentic.context_assembly import ELOContextAssembler
+    from elo.core.resource_locator import ResourceLocator, ResourceRecord
+
+    rows = {
+        "excedentes": [{"id": "ex-1", "descricao": "Abertura adicional", "scope": "GLOBAL"}],
+        "excedente_itens": [{"id": "item-1", "descricao": "Perfil adicional", "scope": "GLOBAL"}],
+    }
+    locator = ResourceLocator((
+        ResourceRecord(
+            resource_id="ELO.DB.TABLE.EXCEDENTES",
+            resource_type="database_table",
+            provider="supabase",
+            logical_name="excedentes",
+            physical_address="public.excedentes",
+            aliases=("tabela excedente",),
+        ),
+    ))
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(
+        question="conferir tabela excedente",
+        intent="read",
+        domain="orçamento",
+        metadata={"scope": "GLOBAL"},
+    )
+    context = ELOContextAssembler(adapter, resource_locator=locator).assemble(
+        intent, ("tabela excedente",)
+    )
+
+    assert [item.source_id for item in context.candidates] == ["supabase:excedentes:ex-1"]
+    assert context.provenance["supabase:excedentes:ex-1"]["table"] == "excedentes"
