@@ -20,3 +20,18 @@ def test_whitespace_only_requirement_id_invalidates_graph_before_assessment():
 
     with pytest.raises(ValueError, match="requirement dependency graph is invalid"):
         graph.assess(requirement_id="   ", assessments={})
+
+
+def test_surrounding_whitespace_requirement_id_invalidates_graph_before_assessment():
+    node = RequirementNode(requirement_id=" R1 ", text="noncanonical identifier")
+    graph = RequirementDependencyGraph((node,))
+
+    assert graph.validation.valid is False
+    assert graph.validation.invalid_requirement_ids == (" R1 ",)
+
+    audit = audit_requirement_dependency_graph(graph)
+    assert audit["valid"] is False
+    assert audit["invalid_requirement_ids"] == (" R1 ",)
+
+    with pytest.raises(ValueError, match="requirement dependency graph is invalid"):
+        graph.assess(requirement_id=" R1 ", assessments={})
