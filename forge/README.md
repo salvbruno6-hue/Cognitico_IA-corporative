@@ -90,3 +90,22 @@ Projetos externos, inclusive o antigo `ELO-Forge` e o antigo `Elo_mature`, podem
 ## Exclusão deliberada
 
 O plano construtor não promove automaticamente SQL operacional, migrations, dados operacionais ou implementações legadas apenas porque existem em fontes históricas. Esses artefatos podem conter divergências e devem permanecer fora da promoção cognitiva salvo decisão específica posterior.
+
+## Modelo de execução fechado
+
+A construção do Forge está organizada em quatro artefatos complementares:
+
+- `FORGE_EXECUTION_MODEL.md` — ciclo operacional do construtor;
+- `FORGE_DECISION_LOOP.md` — tratamento de alternativas, evidência, incerteza e decisão;
+- `FORGE_VALIDATION_MATRIX.md` — gates mínimos de validação;
+- `FORGE_PROMOTION_PACKAGE.yaml` — contrato estruturado do pacote de promoção.
+
+Esses artefatos não criam uma nova autoridade. Eles operacionalizam o contrato já definido para que o Forge consiga construir, testar, comparar, corrigir e preparar promoção de forma rastreável.
+
+### Fechamento do Forge
+
+O Forge deve ser considerado **plano construtor completo** quando uma construção consegue percorrer:
+
+`OBJETIVO → RESTRIÇÕES → PLANO → CONSTRUÇÃO → TESTE → EVIDÊNCIA → COMPARAÇÃO → DIVERGÊNCIA → CORREÇÃO/DECISÃO → VALIDAÇÃO → PROMOÇÃO`
+
+A capacidade posterior de utilização ampla do conhecimento corporativo pelo CORE será tratada separadamente, como etapa própria, sem ser incorporada a este fechamento.
