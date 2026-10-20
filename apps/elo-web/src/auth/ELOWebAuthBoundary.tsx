@@ -147,5 +147,5 @@ export function ELOWebAuthBoundary() {
     return <main className="grid min-h-screen place-items-center bg-[var(--elo-bg)] p-6 text-[var(--elo-ink)]"><section className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm"><div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-950 text-xl font-bold text-white">E</div><div className="mt-5 text-[10px] font-bold uppercase tracking-[.22em] text-slate-400">WORKSPACE OPERACIONAL</div><h1 className="mt-2 text-2xl font-semibold tracking-tight">Acesso autorizado</h1><p className="mt-3 text-sm leading-6 text-slate-500">Autenticação Google, sessão Supabase e autorização ELO concluídas.</p><button type="button" onClick={() => setWorkspaceOpen(true)} className="mt-6 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">Abrir Workspace Operacional</button></section></main>;
   }
 
-  return <EloDashboard accessToken={session.access_token} onSignOut={() => void signOut()} />;
+  return <EloDashboard displayName={session.user.user_metadata?.full_name ?? session.user.email} accessToken={session.access_token} onSignOut={() => void signOut()} />;
 }
