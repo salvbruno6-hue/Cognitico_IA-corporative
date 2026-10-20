@@ -107,7 +107,7 @@ def validate_tecnica(data):
             ("curva", CURVAS),
             ("status", STATUS),
         ]:
-            if row[key] not in allowed:
+            if not isinstance(row[key], str) or row[key] not in allowed:
                 raise ValidationError(f"{where}: {key} inválido: {row[key]}")
 
     consulta_ids = set()
@@ -133,11 +133,11 @@ def validate_tecnica(data):
         for i, row in enumerate(data["matriz_tecnica"]):
             where = f"PTS Técnica madura.matriz_tecnica[{i}]"
             require_keys(row, MATURE_ROW_FIELDS, where)
-            if row["responsabilidade"] not in RESPONSAVEIS:
+            if not isinstance(row["responsabilidade"], str) or row["responsabilidade"] not in RESPONSAVEIS:
                 raise ValidationError(
                     f"{where}: responsabilidade inválida: {row['responsabilidade']}"
                 )
-            if row["impacto"] not in IMPACTOS:
+            if not isinstance(row["impacto"], str) or row["impacto"] not in IMPACTOS:
                 raise ValidationError(f"{where}: impacto inválido: {row['impacto']}")
 
     return item_ids, consulta_ids
@@ -276,7 +276,10 @@ def main():
         tecnica = load(args.pts_tecnica)
         pos = load(args.pts_pos)
 
-        tecnica_ids, consulta_ids = validate_tecnica(tecnica)
+        if isinstance(tecnica, dict) and tecnica.get("contrato_maturidade") == "1.0":
+            tecnica_ids, consulta_ids = validate_current_tecnica(tecnica)
+        else:
+            tecnica_ids, consulta_ids = validate_tecnica(tecnica)
         open_queries = validate_pos(pos, tecnica_ids)
 
         unknown_queries = sorted(open_queries - consulta_ids)
