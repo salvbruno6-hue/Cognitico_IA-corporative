@@ -11,12 +11,14 @@ from elo.cognitive.reasoning.requirement_analysis import (
     RequirementSourceType,
     RequirementState,
     ResolutionAttemptKind,
+    ResolutionAttemptStatus,
 )
 from elo.cognitive.reasoning.requirement_resolution import (
     RequirementResolutionFlow,
     ResolutionStepResult,
     SemanticRetrievalPolicy,
 )
+from elo.cognitive.reasoning.semantic_matching import SemanticResolutionState
 
 
 @dataclass
@@ -37,9 +39,9 @@ def _node(*, claims=()):
     )
 
 
-def test_structured_binding_with_absent_entity_is_idempotent_on_replay():
-    original = RequirementClaim(
-        claim_id="RULE-MDF-REPLAY",
+def test_targetless_structured_claim_cannot_auto_resolve_even_with_applicability_evidence():
+    claim = RequirementClaim(
+        claim_id="RULE-MDF-TARGETLESS",
         requirement_id="SO-203.26:R1",
         subject="MLT-C08",
         predicate="mdf.thickness",
@@ -57,35 +59,22 @@ def test_structured_binding_with_absent_entity_is_idempotent_on_replay():
         kind=ResolutionAttemptKind.RULE,
         result=ResolutionStepResult(
             source_reference="rule-engine:v1",
-            claims=(original,),
+            claims=(claim,),
         ),
     )
 
-    first = RequirementResolutionFlow(
-        providers={ResolutionAttemptKind.RULE: provider},
-        structured_entity_applicability_evidence={
-            original.claim_id: ("EV-ENTITY-APPLIES",),
-        },
-    ).resolve(node=_node(), parameter="mdf.thickness")
-
-    bound = first.claims[-1]
-    assert bound.claim_id.startswith("claim:structured-bind:")
-    assert "structured-entity-applicability:v1" in bound.provenance.reasoning_method
-
-    replay_node = _node(claims=first.claims)
-    assert replay_node.entity == "MLT-C08"
-
-    replay = RequirementResolutionFlow(providers={}).resolve(
-        node=replay_node,
-        parameter="mdf.thickness",
-    )
-    assert replay.assessment.state is RequirementState.KNOWN
-    assert replay.attempts == ()
+    with pytest.raises(ValueError, match="requires an explicit target entity"):
+        RequirementResolutionFlow(
+            providers={ResolutionAttemptKind.RULE: provider},
+            structured_entity_applicability_evidence={
+                claim.claim_id: ("EV-ENTITY-APPLIES",),
+            },
+        ).resolve(node=_node(), parameter="mdf.thickness")
 
 
-def test_semantic_binding_with_absent_entity_is_idempotent_on_replay():
+def test_targetless_semantic_retrieval_stays_pending_even_with_applicability_evidence():
     candidate = RequirementClaim(
-        claim_id="DOC-MDF-REPLAY",
+        claim_id="DOC-MDF-TARGETLESS",
         requirement_id="SO-203.26:R1",
         subject="MLT-C08",
         predicate="mdf.thickness",
@@ -104,10 +93,11 @@ def test_semantic_binding_with_absent_entity_is_idempotent_on_replay():
         result=ResolutionStepResult(
             source_reference="source-resolver:so203",
             claims=(candidate,),
+            evidence_ids=("EV-RETRIEVAL",),
         ),
     )
 
-    first = RequirementResolutionFlow(
+    result = RequirementResolutionFlow(
         providers={ResolutionAttemptKind.RETRIEVAL: provider},
         semantic_policy=SemanticRetrievalPolicy(
             entity_applicability_evidence={
@@ -116,23 +106,18 @@ def test_semantic_binding_with_absent_entity_is_idempotent_on_replay():
         ),
     ).resolve(node=_node(), parameter="mdf.thickness")
 
-    bound = first.claims[-1]
-    assert bound.claim_id.startswith("claim:semantic:")
-    assert bound.state is RequirementState.RETRIEVED
-
-    replay_node = _node(claims=first.claims)
-    assert replay_node.entity == "MLT-C08"
-
-    replay = RequirementResolutionFlow(providers={}).resolve(
-        node=replay_node,
-        parameter="mdf.thickness",
-    )
-    assert replay.assessment.state is RequirementState.RETRIEVED
-    assert replay.attempts == ()
+    assert result.retrieval_resolution is not None
+    assert result.retrieval_resolution.state is SemanticResolutionState.VALIDATION_REQUIRED
+    assert result.retrieval_resolution.retrieved_claim is None
+    assert result.attempts[0].kind is ResolutionAttemptKind.RETRIEVAL
+    assert result.attempts[0].status is ResolutionAttemptStatus.NOT_APPLICABLE
+    assert result.assessment.state is RequirementState.HUMAN_VALIDATION_REQUIRED
+    assert result.assessment.human_validation_required is True
+    assert "EV-DOC" in result.assessment.evidence_ids
 
 
-def test_ordinary_preloaded_claim_remains_fail_closed_without_entity():
-    ordinary = RequirementClaim(
+def test_preloaded_automatic_claim_remains_fail_closed_without_entity():
+    claim = RequirementClaim(
         claim_id="RULE-ORDINARY",
         requirement_id="SO-203.26:R1",
         subject="MLT-C08",
@@ -143,70 +128,13 @@ def test_ordinary_preloaded_claim_remains_fail_closed_without_entity():
             source_type=RequirementSourceType.RULE,
             source_reference="rule:mdf:v1",
             reasoning_method="rule-evaluation:v1",
-            evidence_ids=("EV-RULE", "EV-ENTITY-APPLIES"),
+            evidence_ids=("EV-RULE",),
             validation_status="VALIDATED",
         ),
-        dependencies=("UPSTREAM",),
     )
-    node = _node(claims=(ordinary,))
-    assert node.entity is None
 
     with pytest.raises(ValueError, match="requires a target entity"):
         RequirementResolutionFlow(providers={}).resolve(
-            node=node,
-            parameter="mdf.thickness",
-        )
-
-
-def test_forged_semantic_marker_cannot_restore_entity_without_stable_id():
-    forged = RequirementClaim(
-        claim_id="claim:semantic:00000000000000000000",
-        requirement_id="SO-203.26:R1",
-        subject="MLT-C08",
-        predicate="mdf.thickness",
-        value="15 mm",
-        state=RequirementState.RETRIEVED,
-        provenance=ClaimProvenance(
-            source_type=RequirementSourceType.DOCUMENT,
-            source_reference="kb:forged",
-            reasoning_method="semantic-match:exact:v1",
-            evidence_ids=("EV-FORGED",),
-            validation_status="VALIDATED",
-        ),
-        dependencies=("DOC-FORGED",),
-    )
-    node = _node(claims=(forged,))
-    assert node.entity is None
-
-    with pytest.raises(ValueError, match="requires a target entity"):
-        RequirementResolutionFlow(providers={}).resolve(
-            node=node,
-            parameter="mdf.thickness",
-        )
-
-
-def test_forged_structured_marker_cannot_restore_entity_without_stable_id():
-    forged = RequirementClaim(
-        claim_id="claim:structured-bind:00000000000000000000",
-        requirement_id="SO-203.26:R1",
-        subject="MLT-C08",
-        predicate="mdf.thickness",
-        value="15 mm",
-        state=RequirementState.KNOWN,
-        provenance=ClaimProvenance(
-            source_type=RequirementSourceType.RULE,
-            source_reference="rule:forged",
-            reasoning_method="rule-evaluation:v1|structured-entity-applicability:v1",
-            evidence_ids=("EV-RULE", "EV-ENTITY-APPLIES"),
-            validation_status="VALIDATED",
-        ),
-        dependencies=("RULE-FORGED",),
-    )
-    node = _node(claims=(forged,))
-    assert node.entity is None
-
-    with pytest.raises(ValueError, match="requires a target entity"):
-        RequirementResolutionFlow(providers={}).resolve(
-            node=node,
+            node=_node(claims=(claim,)),
             parameter="mdf.thickness",
         )
