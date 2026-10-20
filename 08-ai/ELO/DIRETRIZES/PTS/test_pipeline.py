@@ -161,6 +161,20 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "responsabilidade"):
             render(tecnica)
 
+    def test_renderer_rejects_schema_invalid_origem_type(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["origem"] = "TR"
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "origem.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_rejects_schema_invalid_nullable_string(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["evidencia_layout"] = None
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "evidencia_layout.*tipo inválido"):
+            render(tecnica)
+
     def test_renderer_consumes_assigned_canonical_so(self):
         tecnica = current_tecnica()
         tecnica["identificacao"] = {"so_resolvida": "SO 001.27", "cliente": "teste"}
