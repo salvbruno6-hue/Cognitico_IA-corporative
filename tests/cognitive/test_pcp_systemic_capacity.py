@@ -199,3 +199,22 @@ def test_first_constraint_rejects_duplicate_or_unsorted_dates():
             [day, day],
             required_constraints=["EL"],
         )
+
+
+def test_first_constraint_validates_later_chronology_before_early_bottleneck_return():
+    with pytest.raises(ValueError):
+        find_first_constraint_date(
+            [
+                SystemicCapacityDay(
+                    reference_date=date(2026, 10, 21),
+                    demand_modules=4,
+                    constraint_capacities={"EL": 1},
+                ),
+                SystemicCapacityDay(
+                    reference_date=date(2026, 10, 20),
+                    demand_modules=4,
+                    constraint_capacities={"EL": 4},
+                ),
+            ],
+            required_constraints=["EL"],
+        )
