@@ -130,6 +130,14 @@ class PipelineTests(unittest.TestCase):
         result = self.run_pipeline(POS, tecnica)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_pipeline_current_contract_rejects_unhashable_responsabilidade_cleanly(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["responsabilidade"] = ["ENG"]
+        result = self.run_pipeline(POS, tecnica)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("responsabilidade", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_maturity_is_additive_to_legacy_fields(self):
         tecnica = current_tecnica()
         result = self.run_pipeline(POS, tecnica)
