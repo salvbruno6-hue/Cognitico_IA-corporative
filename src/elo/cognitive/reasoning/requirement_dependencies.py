@@ -58,6 +58,7 @@ class RequirementDependencyStatus:
     state: RequirementState | None
     evidence_ids: tuple[str, ...] = ()
     human_validation_required: bool = False
+    automatic_trust_failed: bool = False
 
     def __post_init__(self) -> None:
         if not self.requirement_id or not self.requirement_id.strip():
@@ -68,6 +69,7 @@ class RequirementDependencyStatus:
         return (
             self.state in _RESOLVED_DEPENDENCY_STATES
             and not self.human_validation_required
+            and not self.automatic_trust_failed
         )
 
 
@@ -194,6 +196,7 @@ class RequirementDependencyGraph:
                 assessment_evidence = _clean_ids(dependency_assessment.evidence_ids)
                 supporting: tuple[RequirementClaim, ...] = ()
                 supporting_claim_validation_required = False
+                supporting_claim_trust_failed = False
                 if (
                     dependency_assessment.state in _RESOLVED_DEPENDENCY_STATES
                     and not dependency_assessment.human_validation_required
@@ -214,6 +217,12 @@ class RequirementDependencyGraph:
                     supporting_claim_validation_required = any(
                         claim.requires_human_validation for claim in supporting
                     )
+                    if supporting:
+                        supporting_claim_trust_failed = not _supporting_claims_pass_automatic_trust(
+                            node=self._nodes_by_id[dependency_id],
+                            assessment=dependency_assessment,
+                            claims=supporting,
+                        )
 
                 status = RequirementDependencyStatus(
                     requirement_id=dependency_id,
@@ -223,6 +232,7 @@ class RequirementDependencyGraph:
                         dependency_assessment.human_validation_required
                         or supporting_claim_validation_required
                     ),
+                    automatic_trust_failed=supporting_claim_trust_failed,
                 )
                 if status.resolved:
                     dependency_claim_ids.extend(claim.claim_id for claim in supporting)
@@ -340,11 +350,18 @@ def blocked_gap_assessment(
         raise ValueError("parameter is required")
 
     reasons = ["requirement resolution is blocked by unresolved prerequisites"]
-    reasons.extend(
-        f"dependency {blocker.requirement_id} is "
-        f"{blocker.state.value if blocker.state is not None else 'UNASSESSED'}"
-        for blocker in dependency_assessment.blockers
-    )
+    for blocker in dependency_assessment.blockers:
+        state = blocker.state.value if blocker.state is not None else "UNASSESSED"
+        if blocker.automatic_trust_failed:
+            reasons.append(
+                f"dependency {blocker.requirement_id} is {state} but its automatic support is not governed/trusted"
+            )
+        elif blocker.human_validation_required:
+            reasons.append(
+                f"dependency {blocker.requirement_id} is {state} with pending human validation"
+            )
+        else:
+            reasons.append(f"dependency {blocker.requirement_id} is {state}")
     return GapAssessment(
         requirement_id=dependency_assessment.requirement_id,
         parameter=parameter,
@@ -391,6 +408,7 @@ def audit_requirement_dependency_assessment(
                 "state": status.state.value if status.state is not None else "UNASSESSED",
                 "evidence_ids": status.evidence_ids,
                 "human_validation_required": status.human_validation_required,
+                "automatic_trust_failed": status.automatic_trust_failed,
             }
             for status in assessment.statuses
         ),
@@ -608,6 +626,41 @@ def _supporting_claims(
             key=lambda claim: claim.claim_id,
         )
     )
+
+
+def _supporting_claims_pass_automatic_trust(
+    *,
+    node: RequirementNode,
+    assessment: GapAssessment,
+    claims: Sequence[RequirementClaim],
+) -> bool:
+    """Reuse the canonical resolver trust boundary for dependency support.
+
+    A dependency node may legitimately omit ``entity`` because it is not being
+    resolved here. In that case the supporting claim's own subject becomes the
+    temporary target solely for canonical trust validation. This does not infer
+    cross-entity applicability: if multiple selected claims disagree on subject,
+    the canonical validator rejects the set against that target.
+    """
+    materialized = tuple(claims)
+    if not materialized:
+        return True
+
+    from .requirement_resolution import _validate_preloaded_usable_claims
+
+    validation_node = node
+    if not node.entity or not node.entity.strip():
+        validation_node = replace(node, entity=materialized[0].subject)
+
+    try:
+        conflict = _validate_preloaded_usable_claims(
+            node=validation_node,
+            parameter=assessment.parameter,
+            claims=materialized,
+        )
+    except ValueError:
+        return False
+    return conflict is None
 
 
 def _build_and_validate_graph(
