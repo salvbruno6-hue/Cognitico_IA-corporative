@@ -106,6 +106,21 @@ def validate_tecnica(data):
     return item_ids, consulta_ids
 
 
+def validate_current_tecnica(data):
+    """Validate the current canonical PTS Técnica contract used for new output.
+
+    Historical/legacy PTS data can still be inspected with ``validate_tecnica``.
+    New render/output must use the additive maturity contract so the technical
+    PTS remains structurally aligned with PTS Pós and the canonical pipeline.
+    """
+    if data.get("contrato_maturidade") != "1.0":
+        raise ValidationError(
+            "PTS Técnica atual exige contrato_maturidade=1.0; "
+            "estrutura legada é apenas consultiva e não pode gerar nova PTS"
+        )
+    return validate_tecnica(data)
+
+
 def validate_pos(data, tecnica_ids):
     require_keys(
         data,
