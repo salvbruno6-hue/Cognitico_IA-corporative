@@ -150,7 +150,8 @@ class PipelineTests(unittest.TestCase):
         tecnica["contrato_maturidade"] = "1.0"
         result = self.run_pipeline(POS, tecnica)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("PTS Técnica madura", result.stderr)
+        self.assertIn("PTS Técnica atual", result.stderr)
+        self.assertIn("campos obrigatórios ausentes", result.stderr)
 
     def test_legacy_contract_remains_accepted_for_historical_pipeline_inspection(self):
         result = self.run_pipeline(POS)
