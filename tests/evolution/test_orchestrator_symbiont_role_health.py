@@ -30,6 +30,25 @@ def _view():
     )
 
 
+def _missing_view():
+    return create_implementation_view(
+        implementation_id="impl-missing-role-health",
+        phase=ImplementationViewPhase.END,
+        candidate_id="MISSING-ROLE-HEALTH",
+        owner="canonical-owner",
+        functional_branch="cognitive/evolution",
+        capability="MISSING-ROLE-HEALTH",
+        source_ref="src:missing-role-health",
+        source_commit="commit:missing-role-health",
+        loop_stage="OBSERVED",
+        ownership=ImplementationOwnership.MISSING,
+        evidence_refs=("impl-view:missing-role-health",),
+        evolution_gate_status="NOT_EVALUATED",
+        governance_status="NOT_EVALUATED",
+        runtime_status="NOT_DEPLOYED",
+    )
+
+
 def _registry():
     return CapabilityRegistry((
         CapabilityProbe(
@@ -81,6 +100,21 @@ def test_required_only_capability_is_not_invisible_when_wholly_missing():
         "execution_boundary",
     )
     assert result.blockers
+    assert result.improvement_candidates == ()
+
+
+def test_missing_implementation_view_is_not_treated_as_implementation_evidence():
+    result = build_global_capability_visibility(
+        registry_snapshot=(),
+        implementation_views=(_missing_view(),),
+    )
+
+    record = result.records[0]
+    assert record.capability_id == "MISSING-ROLE-HEALTH"
+    assert record.registry_visible is False
+    assert record.implementation_visible is False
+    assert record.state is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
+    assert result.improvement_candidates == ()
 
 
 def test_orchestrator_applies_symbiont_observation_but_does_not_self_authorize_fix():
@@ -134,3 +168,38 @@ def test_runtime_wiring_health_becomes_visible_only_with_explicit_evidence():
     assert record.canonical_route == "ExecutionRouter"
     assert record.execution_boundary == "ExecutionBoundary"
     assert result.blockers == ()
+
+
+def test_symbiont_prioritizes_internal_alignment_before_new_capability_work():
+    registry = _registry().snapshot()
+    result = build_global_capability_visibility(
+        registry_snapshot=registry,
+        implementation_views=(_view(),),
+        declared_capabilities=("REGISTERED-WITHOUT-VIEW",),
+        require_runtime_wiring=("EXT-ROLE-HEALTH", "MISSING-RUNTIME-CAPABILITY"),
+    )
+
+    candidates = result.improvement_candidates
+    candidate_ids = [item.capability_id for item in candidates]
+
+    assert candidates
+    assert candidates[0].state is CapabilityVisibilityState.EXISTING_BUT_UNWIRED
+    assert "EXT-ROLE-HEALTH" in candidate_ids
+    assert "MISSING-RUNTIME-CAPABILITY" not in candidate_ids
+    assert candidate_ids == result.as_dict()["improvement_candidates"]
+    assert all(item.registry_visible or item.implementation_visible for item in candidates)
+
+
+def test_orchestrator_consumes_first_symbiont_improvement_candidate_without_self_authorizing():
+    visibility = build_global_capability_visibility(
+        registry_snapshot=_registry().snapshot(),
+        implementation_views=(_view(),),
+        require_runtime_wiring=("EXT-ROLE-HEALTH",),
+    )
+
+    first = visibility.improvement_candidates[0]
+    orientation = GovernedOrchestrator().advise_capability(visibility, first.capability_id)
+
+    assert first.capability_id == "EXT-ROLE-HEALTH"
+    assert orientation.action == "CONNECT_CANONICAL"
+    assert orientation.authorized is False

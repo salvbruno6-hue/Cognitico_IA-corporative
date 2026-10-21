@@ -74,6 +74,42 @@ A PTS Pós é evidência estruturada. Ela não altera automaticamente orçamento
 
 Não criar implementação paralela em `pts-pos-orcamento/` ou em outra pasta. Estender este owner canônico.
 
+### Governança de alinhamento interno — Symbiont + Orchestrator
+
+Antes de criar, renderizar, estender ou substituir qualquer estrutura de PTS, o ELO deve procurar primeiro o que já existe internamente e verificar se owner, contrato, implementação, consumidor, rota canônica e fronteira de execução estão alinhados.
+
+O fluxo obrigatório é:
+
+```text
+ESTRUTURA/NECESSIDADE
+        ↓
+SIMBIONTE OBSERVA O ESTADO INTERNO
+        ↓
+PRIORIZA GAPS INTERNOS JÁ EXISTENTES
+        ↓
+ORCHESTRATOR ORIENTA A AÇÃO CANÔNICA
+        ↓
+REUSE / CONNECT / REGISTER / RECONCILE / RESOLVE OWNER
+        ↓
+VALIDAÇÃO DO OWNER E DO CONTRATO
+        ↓
+EXECUÇÃO SOMENTE COM AUTORIZAÇÃO EXPLÍCITA
+        ↓
+EVOLUTION GATE QUANDO HOUVER EVOLUÇÃO
+```
+
+O Symbiont deve priorizar estruturas internas desalinhadas antes de sugerir nova capacidade ou novo artefato. Essa priorização é observacional: não autoriza mutação. O Orchestrator consome a observação e escolhe a ação governada existente; autorização continua externa e explícita.
+
+Para PTS, o owner canônico é esta pasta. Se houver tentativa de produzir uma PTS Técnica fora do contrato atual, o renderer deve bloquear a saída em vez de gerar uma variante livre. Registros históricos legados permanecem consultáveis, mas não podem ser usados como contrato para nova PTS.
+
+### Regra de melhoria contínua
+
+Quando o ELO identificar uma estrutura interna que já possui partes corretas, mas ainda não está alinhada ao owner/contrato vigente, a ordem é:
+
+`INSPECT → REUSE → ALIGN → EXTEND → TEST → EVOLUTION GATE → PROMOTE`.
+
+Criar algo novo é a última opção. A melhoria deve começar pelo que já existe internamente, preservar proveniência e eliminar desalinhamento sem duplicar capacidades.
+
 ## Contrato de maturidade da PTS Técnica
 
 A matriz preserva separadamente requisito documental, evidência de layout/projeto, atendimento sugerido pela Multiteiner, tratamento orçamentário e validação. A solução sugerida não é requisito do cliente.
@@ -84,10 +120,15 @@ A PTS identifica necessidade e tratamento para orçamento; cotação continua se
 
 Cadeia: FONTE → REQUISITO → EVIDÊNCIA → INTERPRETAÇÃO → SOLUÇÃO → QUANTITATIVO → ASSOCIAÇÃO ORÇAMENTÁRIA → VALIDAÇÃO → PTS PÓS.
 
-
 ### Regra de complementaridade
 O contrato de maturidade é uma extensão aditiva da PTS Técnica canônica. A leitura da análise pode acrescentar evidências, interpretações, soluções, validações e pontos de grande peso, mas não apaga nem substitui os campos e seções existentes. A PTS continua sendo uma única estrutura canônica.
 
+### Regra de emissão atual
+
+- `validate_tecnica` continua aceitando estrutura histórica para inspeção e compatibilidade.
+- `validate_current_tecnica` representa o contrato vigente de nova emissão.
+- `PTS_TECNICA_RENDER.py` somente renderiza nova PTS quando `contrato_maturidade=1.0` e todos os complementos obrigatórios do contrato vigente estiverem presentes.
+- Falha de alinhamento bloqueia a emissão e deve retornar ao ciclo Symbiont → Orchestrator → correção → teste.
 
 ## Vínculo à SO atribuída no projeto
 

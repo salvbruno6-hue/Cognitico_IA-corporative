@@ -18,6 +18,28 @@ TECH_TYPES = {"PAD", "EXC", "PRJ", "FOR", "CLI"}
 RESPONSAVEIS = {"ENG", "PLA", "FOR", "CONTRATADA", "FAB"}
 CURVAS = {"A", "B", "C"}
 STATUS = {"🟢", "🟡", "🔴"}
+IMPACTOS = {"ALTO", "MEDIO", "BAIXO"}
+ORIGENS = {
+    "TR", "LAYOUT", "PROJETO", "VISTORIA", "CONSULTA_CLIENTE",
+    "PADRAO_MULTITEINER", "SOLUCAO_TECNICA", "PREMISSA_COMERCIAL",
+}
+BASE_TOP_FIELDS = (
+    "identificacao", "objetivo", "escopo", "matriz_tecnica", "consultas",
+    "resumo_executivo", "legenda", "rastreabilidade",
+)
+MATURE_TOP_FIELDS = (
+    "vistoria", "pontos_grande_peso", "contradicoes_escopo", "premissas",
+    "quantitativos",
+)
+BASE_ROW_FIELDS = (
+    "id", "item_tr", "trecho_tr", "exigencia", "tipo", "adequacao",
+    "status", "curva", "motivo", "responsavel", "consulta_id",
+)
+MATURE_ROW_FIELDS = (
+    "origem", "quantidade_tr", "evidencia_layout", "atendimento_multiteiner",
+    "tratamento_orcamentario", "associacao_orcamento", "validacao_associacao",
+    "responsabilidade", "ponto_validacao", "impacto",
+)
 
 
 class ValidationError(Exception):
@@ -30,9 +52,29 @@ def load(path: Path):
 
 
 def require_keys(obj, keys, where):
+    if not isinstance(obj, dict):
+        raise ValidationError(f"{where}: tipo inválido; esperado dict")
     missing = [k for k in keys if k not in obj]
     if missing:
         raise ValidationError(f"{where}: campos obrigatórios ausentes: {', '.join(missing)}")
+
+
+def require_type(value, expected, where):
+    if not isinstance(value, expected):
+        name = expected.__name__ if isinstance(expected, type) else "/".join(t.__name__ for t in expected)
+        raise ValidationError(f"{where}: tipo inválido; esperado {name}")
+
+
+def require_string(value, where, *, nonempty=False):
+    require_type(value, str, where)
+    if nonempty and not value:
+        raise ValidationError(f"{where}: texto vazio não permitido")
+
+
+def require_enum(value, allowed, where):
+    require_string(value, where)
+    if value not in allowed:
+        raise ValidationError(f"{where}: valor inválido: {value}")
 
 
 def as_ids(value, field):
@@ -46,12 +88,7 @@ def as_ids(value, field):
 
 
 def validate_tecnica(data):
-    require_keys(
-        data,
-        ["identificacao", "objetivo", "escopo", "matriz_tecnica", "consultas",
-         "resumo_executivo", "legenda", "rastreabilidade"],
-        "PTS Técnica",
-    )
+    require_keys(data, BASE_TOP_FIELDS, "PTS Técnica")
     if not isinstance(data["matriz_tecnica"], list):
         raise ValidationError("PTS Técnica: matriz_tecnica deve ser lista")
     if not isinstance(data["consultas"], list):
@@ -60,12 +97,7 @@ def validate_tecnica(data):
     item_ids = set()
     for i, row in enumerate(data["matriz_tecnica"]):
         where = f"PTS Técnica.matriz_tecnica[{i}]"
-        require_keys(
-            row,
-            ["id", "item_tr", "trecho_tr", "exigencia", "tipo", "adequacao",
-             "status", "curva", "motivo", "responsavel", "consulta_id"],
-            where,
-        )
+        require_keys(row, BASE_ROW_FIELDS, where)
         if row["id"] in item_ids:
             raise ValidationError(f"{where}: ID duplicado {row['id']}")
         item_ids.add(row["id"])
@@ -75,7 +107,7 @@ def validate_tecnica(data):
             ("curva", CURVAS),
             ("status", STATUS),
         ]:
-            if row[key] not in allowed:
+            if not isinstance(row[key], str) or row[key] not in allowed:
                 raise ValidationError(f"{where}: {key} inválido: {row[key]}")
 
     consulta_ids = set()
@@ -97,13 +129,88 @@ def validate_tecnica(data):
             raise ValidationError(f"PTS Técnica: consulta_id órfão: {cid}")
 
     if data.get("contrato_maturidade") == "1.0":
-        mature_top = ["vistoria", "pontos_grande_peso", "contradicoes_escopo", "premissas", "quantitativos"]
-        require_keys(data, mature_top, "PTS Técnica madura")
-        mature_fields = ["origem", "quantidade_tr", "evidencia_layout", "atendimento_multiteiner", "tratamento_orcamentario", "associacao_orcamento", "validacao_associacao", "ponto_validacao", "impacto"]
+        require_keys(data, MATURE_TOP_FIELDS, "PTS Técnica madura")
         for i, row in enumerate(data["matriz_tecnica"]):
-            require_keys(row, mature_fields, f"PTS Técnica madura.matriz_tecnica[{i}]")
+            where = f"PTS Técnica madura.matriz_tecnica[{i}]"
+            require_keys(row, MATURE_ROW_FIELDS, where)
+            if not isinstance(row["responsabilidade"], str) or row["responsabilidade"] not in RESPONSAVEIS:
+                raise ValidationError(
+                    f"{where}: responsabilidade inválida: {row['responsabilidade']}"
+                )
+            if not isinstance(row["impacto"], str) or row["impacto"] not in IMPACTOS:
+                raise ValidationError(f"{where}: impacto inválido: {row['impacto']}")
 
     return item_ids, consulta_ids
+
+
+def validate_current_schema_types(data):
+    """Enforce the type/enum constraints declared by PTS_TECNICA_SCHEMA.json."""
+    require_type(data, dict, "PTS Técnica atual")
+    require_keys(data, (*BASE_TOP_FIELDS, *MATURE_TOP_FIELDS), "PTS Técnica atual")
+    require_type(data["identificacao"], dict, "PTS Técnica atual.identificacao")
+    require_string(data["objetivo"], "PTS Técnica atual.objetivo")
+    require_type(data["escopo"], list, "PTS Técnica atual.escopo")
+    require_type(data["matriz_tecnica"], list, "PTS Técnica atual.matriz_tecnica")
+    require_type(data["consultas"], list, "PTS Técnica atual.consultas")
+    require_type(data["resumo_executivo"], list, "PTS Técnica atual.resumo_executivo")
+    require_type(data["legenda"], dict, "PTS Técnica atual.legenda")
+    require_type(data["rastreabilidade"], list, "PTS Técnica atual.rastreabilidade")
+
+    for key in MATURE_TOP_FIELDS:
+        require_type(data[key], list, f"PTS Técnica atual.{key}")
+
+    for i, row in enumerate(data["matriz_tecnica"]):
+        where = f"PTS Técnica atual.matriz_tecnica[{i}]"
+        require_type(row, dict, where)
+        require_keys(row, (*BASE_ROW_FIELDS, *MATURE_ROW_FIELDS), where)
+        for key in (
+            "id", "item_tr", "trecho_tr", "exigencia", "evidencia_layout",
+            "atendimento_multiteiner", "tratamento_orcamentario",
+            "associacao_orcamento", "validacao_associacao", "ponto_validacao",
+            "adequacao", "motivo",
+        ):
+            require_string(row[key], f"{where}.{key}", nonempty=(key == "id"))
+        require_enum(row["tipo"], TECH_TYPES, f"{where}.tipo")
+        require_enum(row["status"], STATUS, f"{where}.status")
+        require_enum(row["curva"], CURVAS, f"{where}.curva")
+        require_enum(row["responsavel"], RESPONSAVEIS, f"{where}.responsavel")
+        require_enum(row["responsabilidade"], RESPONSAVEIS, f"{where}.responsabilidade")
+        require_enum(row["impacto"], IMPACTOS, f"{where}.impacto")
+
+        require_type(row["origem"], list, f"{where}.origem")
+        for j, item in enumerate(row["origem"]):
+            require_enum(item, ORIGENS, f"{where}.origem[{j}]")
+
+        if row["consulta_id"] is not None:
+            require_string(row["consulta_id"], f"{where}.consulta_id")
+
+    for i, query in enumerate(data["consultas"]):
+        where = f"PTS Técnica atual.consultas[{i}]"
+        require_type(query, dict, where)
+        require_keys(query, ("id", "texto", "item_ids"), where)
+        require_string(query["id"], f"{where}.id")
+        require_string(query["texto"], f"{where}.texto")
+        require_type(query["item_ids"], list, f"{where}.item_ids")
+        for j, item in enumerate(query["item_ids"]):
+            require_string(item, f"{where}.item_ids[{j}]")
+
+
+def validate_current_tecnica(data):
+    """Validate the current canonical PTS Técnica contract used for new output.
+
+    Historical/legacy PTS data can still be inspected with ``validate_tecnica``.
+    New render/output must use the additive maturity contract so the technical
+    PTS remains structurally aligned with PTS Pós and the canonical pipeline.
+    """
+    if not isinstance(data, dict) or data.get("contrato_maturidade") != "1.0":
+        raise ValidationError(
+            "PTS Técnica atual exige contrato_maturidade=1.0; "
+            "estrutura legada é apenas consultiva e não pode gerar nova PTS"
+        )
+    # Type/schema validation runs first so malformed current data cannot leak
+    # TypeError/KeyError through legacy relationship checks.
+    validate_current_schema_types(data)
+    return validate_tecnica(data)
 
 
 def validate_pos(data, tecnica_ids):
@@ -169,7 +276,10 @@ def main():
         tecnica = load(args.pts_tecnica)
         pos = load(args.pts_pos)
 
-        tecnica_ids, consulta_ids = validate_tecnica(tecnica)
+        if isinstance(tecnica, dict) and tecnica.get("contrato_maturidade") == "1.0":
+            tecnica_ids, consulta_ids = validate_current_tecnica(tecnica)
+        else:
+            tecnica_ids, consulta_ids = validate_tecnica(tecnica)
         open_queries = validate_pos(pos, tecnica_ids)
 
         unknown_queries = sorted(open_queries - consulta_ids)

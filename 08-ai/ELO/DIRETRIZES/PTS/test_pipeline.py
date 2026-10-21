@@ -68,6 +68,31 @@ POS = {
 }
 
 
+def current_tecnica():
+    tecnica = json.loads(json.dumps(TECHNICA))
+    tecnica.update({
+        "contrato_maturidade": "1.0",
+        "vistoria": [],
+        "pontos_grande_peso": [],
+        "contradicoes_escopo": [],
+        "premissas": [],
+        "quantitativos": [],
+    })
+    tecnica["matriz_tecnica"][0].update({
+        "origem": ["TR"],
+        "quantidade_tr": 1,
+        "evidencia_layout": "evidência de teste",
+        "atendimento_multiteiner": "solução de teste",
+        "tratamento_orcamentario": "tratamento de teste",
+        "associacao_orcamento": "ORC-001",
+        "validacao_associacao": "validado",
+        "responsabilidade": "PLA",
+        "ponto_validacao": "ponto de teste",
+        "impacto": "ALTO",
+    })
+    return tecnica
+
+
 class PipelineTests(unittest.TestCase):
     def run_pipeline(self, pos, tecnica_data=None):
         with tempfile.TemporaryDirectory() as td:
@@ -101,31 +126,20 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("consultas_abertas", result.stderr)
 
     def test_mature_contract_requires_traceability_fields(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
-        tecnica["contrato_maturidade"] = "1.0"
-        tecnica["vistoria"] = []
-        tecnica["pontos_grande_peso"] = []
-        tecnica["contradicoes_escopo"] = []
-        tecnica["premissas"] = []
-        tecnica["quantitativos"] = []
-        tecnica["matriz_tecnica"][0].update({
-            "origem": ["TR"],
-            "quantidade_tr": 1,
-            "evidencia_layout": "evidência de teste",
-            "atendimento_multiteiner": "solução de teste",
-            "tratamento_orcamentario": "tratamento de teste",
-            "associacao_orcamento": "ORC-001",
-            "validacao_associacao": "validado",
-            "ponto_validacao": "ponto de teste",
-            "impacto": "ALTO"
-        })
+        tecnica = current_tecnica()
         result = self.run_pipeline(POS, tecnica)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_pipeline_current_contract_rejects_unhashable_responsabilidade_cleanly(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["responsabilidade"] = ["ENG"]
+        result = self.run_pipeline(POS, tecnica)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("responsabilidade", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_maturity_is_additive_to_legacy_fields(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
-        tecnica.update({"contrato_maturidade":"1.0", "vistoria":[], "pontos_grande_peso":[], "contradicoes_escopo":[], "premissas":[], "quantitativos":[]})
-        tecnica["matriz_tecnica"][0].update({"origem":["TR"],"quantidade_tr":1,"evidencia_layout":"evidência","atendimento_multiteiner":"solução","tratamento_orcamentario":"tratamento","associacao_orcamento":"ORC-001","validacao_associacao":"validado","ponto_validacao":"ponto","impacto":"ALTO"})
+        tecnica = current_tecnica()
         result = self.run_pipeline(POS, tecnica)
         self.assertEqual(result.returncode, 0, result.stderr)
         for key in ["id","item_tr","trecho_tr","exigencia","tipo","adequacao","status","curva","motivo","responsavel","consulta_id"]:
@@ -136,42 +150,92 @@ class PipelineTests(unittest.TestCase):
         tecnica["contrato_maturidade"] = "1.0"
         result = self.run_pipeline(POS, tecnica)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("PTS Técnica madura", result.stderr)
+        self.assertIn("PTS Técnica atual", result.stderr)
+        self.assertIn("campos obrigatórios ausentes", result.stderr)
 
-    def test_legacy_contract_remains_accepted(self):
+    def test_legacy_contract_remains_accepted_for_historical_pipeline_inspection(self):
         result = self.run_pipeline(POS)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_renderer_rejects_legacy_structure_for_new_output(self):
+        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "contrato_maturidade=1.0"):
+            render(tecnica)
+
+    def test_renderer_rejects_current_contract_without_responsabilidade(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0].pop("responsabilidade")
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "responsabilidade"):
+            render(tecnica)
+
+    def test_renderer_rejects_schema_invalid_origem_type(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["origem"] = "TR"
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "origem.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_rejects_schema_invalid_nullable_string(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["evidencia_layout"] = None
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "evidencia_layout.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_rejects_malformed_id_before_legacy_set_operations(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["id"] = ["T-001"]
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, r"\.id.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_rejects_malformed_query_items_before_relationship_checks(self):
+        tecnica = current_tecnica()
+        tecnica["consultas"][0]["item_ids"] = None
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        with self.assertRaisesRegex(ValueError, "item_ids.*tipo inválido"):
+            render(tecnica)
+
+    def test_renderer_preserves_distinct_responsavel_and_responsabilidade(self):
+        tecnica = current_tecnica()
+        tecnica["matriz_tecnica"][0]["responsavel"] = "PLA"
+        tecnica["matriz_tecnica"][0]["responsabilidade"] = "ENG"
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        rendered = render(tecnica)
+        self.assertIn("| Responsável | Responsabilidade |", rendered)
+        self.assertIn("| PLA | ENG |", rendered)
 
     def test_renderer_consumes_assigned_canonical_so(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica = current_tecnica()
         tecnica["identificacao"] = {"so_resolvida": "SO 001.27", "cliente": "teste"}
         tecnica["contexto_projeto"] = {"so": "SO 001.27"}
         rendered = render(tecnica)
         self.assertIn("# PTS TÉCNICA — SO 001.27", rendered)
 
     def test_renderer_rejects_noncanonical_so_instead_of_correcting_identity(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica = current_tecnica()
         tecnica["identificacao"] = {"cliente": "teste"}
         tecnica["contexto_projeto"] = {"so": "SO 1.26"}
         with self.assertRaisesRegex(ValueError, "SO inválida"):
             render(tecnica)
 
     def test_renderer_preserves_canonical_zero_mask(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica = current_tecnica()
         tecnica["identificacao"] = {"so_resolvida": "SO 000.27"}
         rendered = render(tecnica)
         self.assertIn("# PTS TÉCNICA — SO 000.27", rendered)
 
     def test_renderer_does_not_generate_so_from_number_and_year(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica = current_tecnica()
         tecnica["identificacao"] = {"cliente": "teste", "numero_so": 1, "ano": 2027}
         tecnica["contexto_projeto"] = {"numero_so": 1, "ano": 2027}
         with self.assertRaisesRegex(ValueError, "SO atribuída"):
             render(tecnica)
 
     def test_renderer_rejects_missing_assigned_so(self):
-        tecnica = json.loads(json.dumps(TECHNICA))
+        tecnica = current_tecnica()
         tecnica["identificacao"] = {"cliente": "teste"}
         tecnica.pop("contexto_projeto", None)
         with self.assertRaisesRegex(ValueError, "SO atribuída"):

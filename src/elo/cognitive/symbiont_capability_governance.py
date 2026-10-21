@@ -10,7 +10,10 @@ from enum import StrEnum
 from typing import Mapping, Sequence
 
 from elo.agent_intake.implementation_loop_readiness import LoopReadiness
-from elo.agent_intake.symbiont_implementation_view import SymbiontImplementationView
+from elo.agent_intake.symbiont_implementation_view import (
+    ImplementationOwnership,
+    SymbiontImplementationView,
+)
 from elo.cognitive.symbiont_capability_evolution import (
     CapabilityEvolutionReview,
     CapabilityStatusReport,
@@ -77,6 +80,33 @@ class GlobalCapabilityVisibility:
             }
         )
 
+    @property
+    def improvement_candidates(self) -> tuple[CapabilityVisibilityRecord, ...]:
+        """Return proven internal alignment gaps in evolution-first order.
+
+        The Symbiont observes and ranks only capabilities already evidenced by
+        the registry or by a view that actually evidences an implementation.
+        Wholly absent capabilities and views explicitly classified as MISSING
+        remain visible as blockers, but are not internal-alignment candidates.
+        """
+        priority = {
+            CapabilityVisibilityState.UNRESOLVED_OWNER: 0,
+            CapabilityVisibilityState.EXISTING_BUT_UNWIRED: 1,
+            CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED: 2,
+            CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW: 3,
+        }
+        internal = (
+            record
+            for record in self.isolated
+            if record.registry_visible or record.implementation_visible
+        )
+        return tuple(
+            sorted(
+                internal,
+                key=lambda record: (priority[record.state], record.capability_id),
+            )
+        )
+
     def as_dict(self) -> dict[str, object]:
         return {
             "capability_count": self.capability_count,
@@ -97,6 +127,9 @@ class GlobalCapabilityVisibility:
                     "state": item.state.value,
                 }
                 for item in self.records
+            ],
+            "improvement_candidates": [
+                item.capability_id for item in self.improvement_candidates
             ],
             "blockers": list(self.blockers),
             "canonical_mutation": self.canonical_mutation,
@@ -144,7 +177,9 @@ def build_global_capability_visibility(
         snapshot = snapshots.get(capability_id)
         view = views_by_capability.get(capability_id)
         registry_visible = snapshot is not None
-        implementation_visible = view is not None
+        implementation_visible = bool(
+            view is not None and view.ownership is not ImplementationOwnership.MISSING
+        )
         evidence_refs = tuple(dict.fromkeys(view.evidence_refs if view else ()))
         owner = view.owner if view and view.owner.strip() else None
         consumer = consumers.get(capability_id)
@@ -162,11 +197,11 @@ def build_global_capability_visibility(
                 missing.append("execution_boundary")
             missing_runtime_links = tuple(missing)
 
-        if view is not None and view.ownership.value == "UNRESOLVED":
+        if view is not None and view.ownership is ImplementationOwnership.UNRESOLVED:
             state = CapabilityVisibilityState.UNRESOLVED_OWNER
-        elif view is not None and snapshot is None:
+        elif implementation_visible and snapshot is None:
             state = CapabilityVisibilityState.IMPLEMENTED_NOT_REGISTERED
-        elif snapshot is not None and view is None:
+        elif snapshot is not None and not implementation_visible:
             state = CapabilityVisibilityState.REGISTERED_WITHOUT_IMPLEMENTATION_VIEW
         elif snapshot is not None and missing_runtime_links:
             state = CapabilityVisibilityState.EXISTING_BUT_UNWIRED

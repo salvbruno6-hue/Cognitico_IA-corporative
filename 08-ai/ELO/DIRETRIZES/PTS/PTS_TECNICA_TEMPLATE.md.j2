@@ -16,10 +16,10 @@
 {% endfor %}
 
 ## 4. MATRIZ TÉCNICA
-| ID | Item TR | Trecho TR | Exigência | Tipo | Adequação | Status | Curva | Motivo | Responsável | Consulta ID | Origem | Qtd TR | Evidência Layout/Projeto | Atendimento Multiteiner | Tratamento Orçamentário | Associação Orçamento | Validação | Ponto de Validação | Impacto |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ID | Item TR | Trecho TR | Exigência | Tipo | Adequação | Status | Curva | Motivo | Responsável | Responsabilidade | Consulta ID | Origem | Qtd TR | Evidência Layout/Projeto | Atendimento Multiteiner | Tratamento Orçamentário | Associação Orçamento | Validação | Ponto de Validação | Impacto |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 {% for r in matriz_tecnica -%}
-| {{ r.id }} | {{ r.item_tr }} | {{ r.trecho_tr }} | {{ r.exigencia }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.motivo }} | {{ r.responsavel }} | {{ r.consulta_id | default("—") }} | {{ r.origem | default([]) | join(", ") }} | {{ r.quantidade_tr | default("—") }} | {{ r.evidencia_layout | default("—") }} | {{ r.atendimento_multiteiner | default("—") }} | {{ r.tratamento_orcamentario | default("—") }} | {{ r.associacao_orcamento | default("—") }} | {{ r.validacao_associacao | default("—") }} | {{ r.ponto_validacao | default("—") }} | {{ r.impacto | default("—") }} |
+| {{ r.id }} | {{ r.item_tr }} | {{ r.trecho_tr }} | {{ r.exigencia }} | {{ r.tipo }} | {{ r.adequacao }} | {{ r.status }} | {{ r.curva }} | {{ r.motivo }} | {{ r.responsavel }} | {{ r.responsabilidade | default("—") }} | {{ r.consulta_id | default("—") }} | {{ r.origem | default([]) | join(", ") }} | {{ r.quantidade_tr | default("—") }} | {{ r.evidencia_layout | default("—") }} | {{ r.atendimento_multiteiner | default("—") }} | {{ r.tratamento_orcamentario | default("—") }} | {{ r.associacao_orcamento | default("—") }} | {{ r.validacao_associacao | default("—") }} | {{ r.ponto_validacao | default("—") }} | {{ r.impacto | default("—") }} |
 {% endfor %}
 
 ## 5. CONSULTAS
