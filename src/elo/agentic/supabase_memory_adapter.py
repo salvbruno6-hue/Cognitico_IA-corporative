@@ -197,8 +197,11 @@ class SupabaseLearningMemoryAdapter:
         if raw in reference:
             return "REFERENCE"
 
+        # A concept-level validation marker is consultative unless the same row
+        # also carries explicit merged governance evidence. This prevents
+        # incomplete/legacy rows from bypassing the VALIDATED_LEARNING guard.
         if concept_status in {"VALIDATED", "VALIDADO", "VALIDADA"}:
-            return "GOVERNED"
+            return "GOVERNED" if governance == "MERGED_APPROVED" else "REFERENCE"
         if concept_status in reference or concept_status == "ATIVO":
             return "REFERENCE"
 
