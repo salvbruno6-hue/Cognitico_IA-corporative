@@ -156,14 +156,55 @@ class SupabaseLearningMemoryAdapter:
             or row.get("status_validacao")
             or row.get("validation_status")
             or row.get("promotion_status")
-            or "UNVERIFIED"
-        ).upper()
-        if raw in {"VALIDATED", "CANONICAL", "INCORPORATED", "CURRENT", "VALIDADO", "APROVADO"}:
-            return "GOVERNED"
-        if raw in {"CANDIDATE", "OBSERVED", "PROVISORIO", "EM_ANALISE", "PENDENTE"}:
-            return "REFERENCE"
-        if raw in {"REJECTED", "DESCARTADO", "OUTDATED", "REPROVADO"}:
+            or ""
+        ).strip().upper()
+        classification = str(row.get("classificacao") or "").strip().upper()
+        concept_status = str(row.get("status_conceito") or "").strip().upper()
+        governance = str(row.get("decisao_governanca") or "").strip().upper()
+
+        outdated = {"REJECTED", "DESCARTADO", "OUTDATED", "REPROVADO", "INATIVO", "SUSPENSO"}
+        if raw in outdated or concept_status in outdated:
             return "OUTDATED"
+
+        # The persistent budget-memory guard requires MERGED_APPROVED for
+        # VALIDATED_LEARNING. Preserve legacy inconsistencies as conflicts
+        # instead of silently elevating them to governed knowledge.
+        if classification == "VALIDATED_LEARNING":
+            if governance == "MERGED_APPROVED":
+                return "GOVERNED"
+            return "CONFLICTING"
+
+        # A case, precedent or candidate stays consultative even when stored,
+        # active or accompanied by an operational decision.
+        if classification in {"LEARNING_CANDIDATE", "PRECEDENT", "PRECEDENTE", "CASE", "CASO"}:
+            return "REFERENCE"
+
+        governed = {
+            "VALIDATED", "CANONICAL", "INCORPORATED", "CURRENT",
+            "VALIDADO", "VALIDADA", "APROVADO",
+        }
+        reference = {
+            "CANDIDATE", "CANDIDATA", "CANDIDATO",
+            "OBSERVED", "OBSERVADA",
+            "PROVISORIO", "PROVISÓRIO",
+            "EM_ANALISE", "EM ANÁLISE",
+            "PENDENTE", "PRECEDENT", "PRECEDENTE",
+            "LEARNING_CANDIDATE", "CASE", "CASO", "CONSOLIDADO",
+        }
+
+        if raw in governed:
+            return "GOVERNED"
+        if raw in reference:
+            return "REFERENCE"
+
+        if concept_status in {"VALIDATED", "VALIDADO", "VALIDADA"}:
+            return "GOVERNED"
+        if concept_status in reference or concept_status == "ATIVO":
+            return "REFERENCE"
+
+        # Governance text alone cannot elevate an otherwise unclassified row.
+        if governance in {"VALIDAR", "PENDENTE"}:
+            return "REFERENCE"
         return "UNVERIFIED"
 
     @staticmethod
@@ -191,6 +232,13 @@ class SupabaseLearningMemoryAdapter:
             if row.get(key):
                 result["source_reference"] = str(row[key])
                 break
+        for key, output_key in (
+            ("origem_so", "origin_so"),
+            ("origem_documento", "origin_document"),
+            ("origem_referencia", "origin_reference"),
+        ):
+            if row.get(key):
+                result[output_key] = str(row[key])
         return result
 
     @staticmethod
