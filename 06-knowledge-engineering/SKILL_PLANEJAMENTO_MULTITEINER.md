@@ -1197,3 +1197,160 @@ O ciclo de crescimento permanece condicionado ao gate de referência histórica 
 - `PCP_ELO_INTEGRACAO_REPAROS.md`
 
 Demais seções desta skill devem ser interpretadas como aplicação metodológica e evidência contextual, nunca como uma segunda instrução PCP.
+
+## 34. Processo Comercial → Demanda → Retorno → Estoque → PCP
+
+O processo especializado fica associado a esta Skill por:
+
+`06-knowledge-engineering/PCP_COMERCIAL_DEMANDA_RETORNO_ESTOQUE.md`.
+
+Ele é subordinado às regras da seção 33 e à governança PCP. Não cria uma segunda autoridade de demanda ou estoque.
+
+### 34.1 Gatilhos de acionamento
+
+Esta extensão deve ser recuperada quando a solicitação envolver um ou mais dos seguintes temas:
+
+- demanda Comercial por mês/ano;
+- separação de `MODULO` e `CONTEINER`;
+- demanda por modelo;
+- SPOT, EVENTO ou sazonalidade;
+- crescimento/redução MoM ou YoY;
+- previsão-base de demanda;
+- retorno previsto de locações;
+- quarentena, inspeção, reparo e liberação de retornos;
+- estoque mínimo;
+- estoque de segurança;
+- estoque-alvo;
+- reserva para EVENTO;
+- cobertura/déficit de estoque;
+- alerta cognitivo ao PCP/Diretoria;
+- contexto externo Comercial;
+- SWOT e 5W2H ligados à decisão PCP.
+
+### 34.2 Ordem de recuperação
+
+Para esses gatilhos, consultar nesta ordem:
+
+1. `PCP_INSTRUCOES_GERAIS_GOVERNANCA.md`;
+2. `PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md`;
+3. `PCP_COMERCIAL_DEMANDA_RETORNO_ESTOQUE.md`;
+4. `public.v_elo_diretoria_comercial_estoque`;
+5. `public.v_elo_pcp_cobertura_demanda_externa` quando houver unidade física, tenant e modelo reconciliados;
+6. fontes operacionais específicas de devolução, estoque, reparo e produção.
+
+Se houver conflito entre as fontes, registrar `DIVERGENCIA_DE_FONTES` e não escolher silenciosamente uma delas.
+
+### 34.3 Read-model executivo incorporado ao catálogo
+
+A view abaixo está pronta e deve ser preferida para a análise executiva deste processo:
+
+| View | Finalidade | Principais informações |
+|---|---|---|
+| `v_elo_diretoria_comercial_estoque` | Comercial → demanda → retorno → estoque para Diretoria/PCP | família/modelo, SPOT/EVENTO, crescimento, retorno previsto, mínimo/segurança/alvo, reserva EVENTO, proteção comercial e alertas cognitivos |
+
+Pedidos compatíveis incluem:
+
+- **“Mostre a visão da Diretoria por família e modelo.”**
+- **“Mostre o estoque mínimo e de segurança por mês.”**
+- **“Separe MÓDULO de CONTÊINER.”**
+- **“Mostre SPOT e EVENTO por modelo.”**
+- **“Compare crescimento/queda mensal e anual.”**
+- **“Mostre os retornos previstos por modelo e mês.”**
+- **“Mostre quais modelos podem gerar déficit para o PCP.”**
+
+### 34.4 Regras de estoque
+
+A política V1 incorporada é:
+
+```text
+ESTOQUE_MINIMO_SPOT = ceil(P75(demanda mensal SPOT histórica))
+ESTOQUE_SEGURANCA_SPOT = max(ceil(P90) - ceil(P75), 0)
+ESTOQUE_ALVO_SPOT = ceil(P90)
+RESERVA_EVENTO = ceil(P90(demanda mensal EVENTO histórica))
+PROTECAO_COMERCIAL = ESTOQUE_ALVO_SPOT + RESERVA_EVENTO
+```
+
+EVENTO permanece separado da proteção permanente SPOT.
+
+P75/P90 são política V1, não verdade universal. Devem ser recalibrados quando existirem nível de serviço, lead time e histórico físico válidos.
+
+### 34.5 Regra de retorno
+
+Para locações cujo `Período` esteja comprovadamente em meses:
+
+```text
+DATA_RETORNO_PREVISTA = DATA_PREVISTA_SAIDA + PERIODO_MESES
+```
+
+Não aplicar automaticamente essa regra a EVENTO enquanto a semântica de `Período` não estiver validada.
+
+Regra obrigatória:
+
+```text
+RETORNO PREVISTO != ESTOQUE LIVRE
+```
+
+O retorno somente pode integrar oferta operacional depois dos gates aplicáveis de quarentena, inspeção, reparo e liberação.
+
+### 34.6 Fail-closed de unidade física
+
+Quando a fonte possuir apenas `REGISTRO_EQUIVALENTE`, a Skill pode mostrar tendência e referência estatística, mas não deve declarar o número como quantidade física.
+
+Enquanto a quantidade física não estiver reconciliada:
+
+```text
+estado_estoque = GAP_QUANTIDADE_FISICA
+```
+
+Não calcular déficit/excesso físico misturando unidades incompatíveis.
+
+### 34.7 Cognição e contexto externo
+
+Ao detectar crescimento, queda, concentração de retorno ou cobertura crítica, a Skill deve orientar investigação de sinais externos, por exemplo:
+
+- perda de contrato;
+- renovação frágil;
+- renovação confirmada;
+- campanha de novos clientes;
+- evento confirmado/cancelado;
+- aumento/redução da concorrência;
+- mudança de preço;
+- mudança relevante de mercado.
+
+Esses sinais devem ser apresentados como evidência ou hipótese identificada. Não declarar causa sem prova.
+
+Quando aplicável:
+
+`evidência → impacto/risco → SWOT → decisão governada → 5W2H`.
+
+### 34.8 Contrato de alerta
+
+O alerta cognitivo deste processo deve separar:
+
+1. `FATO`;
+2. `RISCO`;
+3. `IMPACTO`;
+4. `AÇÃO/ANÁLISE RECOMENDADA`.
+
+A Skill não executa fabricação, compra, contratação ou alteração de estoque somente com base em baseline estatística.
+
+### 34.9 Handoff operacional
+
+O handoff associado está em:
+
+`docs/audits/ELO_PCP_KPI_MCP_EXECUTION_HANDOFF.md`.
+
+Ele deve carregar os GAPs abertos e preservar a unidade, fonte, período, fórmula, versão, evidência e limitações da conclusão.
+
+### 34.10 GAPs conhecidos desta extensão
+
+No estado documentado em 2026-10-21:
+
+- quantidade física por linha Comercial não está disponível;
+- `tenant_id` canônico da carga ainda não está estabelecido;
+- modelos de CONTÊINER da fonte ainda não estão todos reconciliados ao catálogo canônico;
+- `Período` de EVENTO ainda exige validação semântica para retorno;
+- backfill histórico linha a linha da view executiva permanece pendente;
+- `PREVISAO_BASE` não substitui `mt_previsoes_demanda`.
+
+Esses GAPs devem sobreviver a qualquer handoff e não podem ser preenchidos por inferência.
