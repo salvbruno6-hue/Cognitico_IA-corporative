@@ -58,3 +58,96 @@ def test_adapter_does_not_create_persistence_or_learning_promotion():
     result = adapter.retrieve(intent, KnowledgeRequirement("standards", "standards"))
     assert result[0].status == "REFERENCE"
     assert "promotion" not in result[0].metadata
+
+
+def test_real_learning_statuses_remain_reference():
+    rows = {
+        "elo_aprendizado_experiencias": [
+            {"id": "candidate", "objetivo": "candidate", "status_validacao": "CANDIDATA"},
+            {"id": "observed", "objetivo": "observed", "status_validacao": "OBSERVADA"},
+        ]
+    }
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(question="x", intent="x", domain="x")
+    result = adapter.retrieve(intent, KnowledgeRequirement("requirements", "requirements"))
+    assert {item.source_id: item.status for item in result} == {
+        "supabase:elo_aprendizado_experiencias:candidate": "REFERENCE",
+        "supabase:elo_aprendizado_experiencias:observed": "REFERENCE",
+    }
+
+
+def test_budget_memory_requires_merged_approval_for_validated_learning():
+    rows = {
+        "elo_orcamento_memoria": [
+            {
+                "id": "candidate",
+                "premissa": "candidate",
+                "classificacao": "LEARNING_CANDIDATE",
+                "status_conceito": "CANDIDATO",
+                "decisao_governanca": "VALIDAR",
+                "origem_so": "SO 182.26",
+            },
+            {
+                "id": "precedent",
+                "premissa": "precedent",
+                "classificacao": "PRECEDENT",
+                "status_conceito": "VALIDADA",
+                "decisao_governanca": "DETERMINADA",
+                "origem_so": "SO 178.26",
+            },
+            {
+                "id": "validated",
+                "premissa": "validated",
+                "classificacao": "VALIDATED_LEARNING",
+                "status_conceito": "VALIDATED_LEARNING",
+                "decisao_governanca": "MERGED_APPROVED",
+                "origem_so": "SO 178.26",
+                "origem_documento": "PTS Pós-Orçamento",
+            },
+            {
+                "id": "legacy-conflict",
+                "premissa": "legacy",
+                "classificacao": "VALIDATED_LEARNING",
+                "status_conceito": "ATIVO",
+                "decisao_governanca": "DETERMINADA",
+                "origem_so": "SO 178.26",
+            },
+            {
+                "id": "inactive",
+                "premissa": "inactive",
+                "classificacao": "VALIDATED_LEARNING",
+                "status_conceito": "INATIVO",
+                "decisao_governanca": "MERGED_APPROVED",
+                "origem_so": "SO 178.26",
+            },
+        ]
+    }
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento")
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+    by_id = {item.source_id.rsplit(":", 1)[-1]: item for item in result}
+
+    assert by_id["candidate"].status == "REFERENCE"
+    assert by_id["precedent"].status == "REFERENCE"
+    assert by_id["validated"].status == "GOVERNED"
+    assert by_id["legacy-conflict"].status == "CONFLICTING"
+    assert by_id["inactive"].status == "OUTDATED"
+    assert by_id["validated"].provenance["origin_so"] == "SO 178.26"
+    assert by_id["validated"].provenance["origin_document"] == "PTS Pós-Orçamento"
+
+
+def test_governance_text_alone_cannot_promote_memory():
+    adapter = SupabaseLearningMemoryAdapter(
+        {
+            "elo_orcamento_memoria": [
+                {
+                    "id": "not-promoted",
+                    "premissa": "x",
+                    "decisao_governanca": "MERGED_APPROVED",
+                }
+            ]
+        }
+    )
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento")
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+    assert result[0].status == "UNVERIFIED"
