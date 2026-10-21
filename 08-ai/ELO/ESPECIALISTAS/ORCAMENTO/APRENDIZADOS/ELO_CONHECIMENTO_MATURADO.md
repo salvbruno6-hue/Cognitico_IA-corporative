@@ -38,15 +38,30 @@ O ELO deve guardar a condição e a função, não transformar o material em reg
 
 ### Associação construtiva
 
-Exemplo:
+#### Regra canônica — Guia U e Perfil Z em paredes/divisórias com painel PIR
 
-**PAINEL PIR ↔ GUIA U**
+**Gatilhos obrigatórios:**
 
-Função entendida: componente de fixação dos painéis e acabamento associado ao reforço estrutural.
+1. existir parede ou divisória em painel PIR na solução atual; ou
+2. o módulo estiver sendo orçado do zero e sua composição incluir paredes/divisórias em painel PIR.
 
-Em uma nova composição de painel PIR, a ausência da guia U deve gerar **ALERTA DE VERIFICAÇÃO**, quando a configuração atual indicar sua necessidade.
+**PAINEL PIR DE PAREDE/DIVISÓRIA ↔ GUIA U**
 
-O alerta não autoriza inclusão automática.
+Função entendida: componente de fixação, apoio e arremate associado à montagem dos painéis PIR de parede e divisória.
+
+Regra de composição: toda parede ou divisória em painel PIR deve provocar a verificação e inclusão da **Guia U** correspondente na composição do orçamento. A ausência da Guia U deve ser tratada como **ALERTA DE COMPOSIÇÃO INCOMPLETA**.
+
+**PAINEL PIR EM PAREDE EXTERNA ↔ PERFIL Z DE FIXAÇÃO**
+
+Função entendida: perfil de fixação dos painéis PIR aplicado às paredes externas.
+
+Regra de composição: sempre que houver parede externa executada com painel PIR, a composição deve verificar e incluir também o **Perfil Z de fixação** correspondente. A ausência do Perfil Z em parede externa com painel PIR deve ser tratada como **ALERTA DE COMPOSIÇÃO INCOMPLETA**.
+
+**Regra para orçamento do zero:** ao montar um módulo sem composição prévia consolidada, o ELO não deve considerar a parede/divisória apenas pelo painel. Deve decompor o sistema construtivo e verificar, no mínimo, o painel PIR e seus perfis obrigatórios associados conforme a condição de aplicação: **Guia U para paredes/divisórias** e **Perfil Z para paredes externas**.
+
+**Quantificação:** esta regra determina a obrigatoriedade dos componentes, mas não autoriza inventar metragem. O quantitativo deve ser obtido a partir das dimensões, perímetros, comprimentos de paredes/divisórias e detalhes construtivos efetivamente disponíveis na SO, TR, layout, projeto, composição ou memória de cálculo aplicável. Na ausência dessas dimensões, registrar **GAP DE QUANTIFICAÇÃO**.
+
+**Exceção:** somente deixar de aplicar um desses componentes quando houver solução construtiva diferente, tecnicamente comprovada e registrada para a SO atual, preservando o motivo da exceção.
 
 ### Cálculo aprendido
 
