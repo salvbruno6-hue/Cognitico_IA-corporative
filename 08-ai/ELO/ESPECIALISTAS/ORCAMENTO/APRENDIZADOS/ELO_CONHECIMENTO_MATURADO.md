@@ -43,7 +43,8 @@ O ELO deve guardar a condição e a função, não transformar o material em reg
 **Gatilhos obrigatórios:**
 
 1. existir parede ou divisória em painel PIR na solução atual; ou
-2. o módulo estiver sendo orçado do zero e sua composição incluir paredes/divisórias em painel PIR.
+2. o módulo estiver sendo orçado do zero e sua composição incluir paredes/divisórias em painel PIR; ou
+3. existir forração interna em painel PIR, especialmente quando aplicada no interior de contêiner marítimo.
 
 **PAINEL PIR DE PAREDE/DIVISÓRIA ↔ GUIA U**
 
@@ -51,15 +52,23 @@ Função entendida: componente de fixação, apoio e arremate associado à monta
 
 Regra de composição: toda parede ou divisória em painel PIR deve provocar a verificação e inclusão da **Guia U** correspondente na composição do orçamento. A ausência da Guia U deve ser tratada como **ALERTA DE COMPOSIÇÃO INCOMPLETA**.
 
+**FORRAÇÃO INTERNA EM PAINEL PIR ↔ GUIA U DE ACABAMENTO**
+
+Condição típica: revestimento/forração interna em painel PIR aplicado no interior de **contêiner marítimo**, aproveitando a estrutura metálica existente como envoltória externa.
+
+Função entendida: a **Guia U** atua também como perfil de acabamento, arremate e apoio da forração interna em painel PIR, devendo acompanhar a composição do revestimento interno.
+
+Regra de composição: sempre que houver **forração interna em painel PIR**, o ELO deve verificar e incluir a **Guia U necessária ao acabamento e arremate dos painéis**, ainda que o painel não constitua uma parede estrutural independente. A ausência da Guia U em uma composição de forração interna PIR deve ser tratada como **ALERTA DE COMPOSIÇÃO INCOMPLETA**.
+
 **PAINEL PIR EM PAREDE EXTERNA ↔ PERFIL Z DE FIXAÇÃO**
 
 Função entendida: perfil de fixação dos painéis PIR aplicado às paredes externas.
 
 Regra de composição: sempre que houver parede externa executada com painel PIR, a composição deve verificar e incluir também o **Perfil Z de fixação** correspondente. A ausência do Perfil Z em parede externa com painel PIR deve ser tratada como **ALERTA DE COMPOSIÇÃO INCOMPLETA**.
 
-**Regra para orçamento do zero:** ao montar um módulo sem composição prévia consolidada, o ELO não deve considerar a parede/divisória apenas pelo painel. Deve decompor o sistema construtivo e verificar, no mínimo, o painel PIR e seus perfis obrigatórios associados conforme a condição de aplicação: **Guia U para paredes/divisórias** e **Perfil Z para paredes externas**.
+**Regra para orçamento do zero:** ao montar um módulo sem composição prévia consolidada, o ELO não deve considerar a parede/divisória ou a forração interna apenas pelo painel. Deve decompor o sistema construtivo e verificar, no mínimo, o painel PIR e seus perfis obrigatórios associados conforme a condição de aplicação: **Guia U para paredes/divisórias**, **Guia U de acabamento para forração interna PIR** e **Perfil Z para paredes externas**.
 
-**Quantificação:** esta regra determina a obrigatoriedade dos componentes, mas não autoriza inventar metragem. O quantitativo deve ser obtido a partir das dimensões, perímetros, comprimentos de paredes/divisórias e detalhes construtivos efetivamente disponíveis na SO, TR, layout, projeto, composição ou memória de cálculo aplicável. Na ausência dessas dimensões, registrar **GAP DE QUANTIFICAÇÃO**.
+**Quantificação:** esta regra determina a obrigatoriedade dos componentes, mas não autoriza inventar metragem. O quantitativo deve ser obtido a partir das dimensões, perímetros, comprimentos de paredes/divisórias/forrações e detalhes construtivos efetivamente disponíveis na SO, TR, layout, projeto, composição ou memória de cálculo aplicável. Na ausência dessas dimensões, registrar **GAP DE QUANTIFICAÇÃO**.
 
 **Exceção:** somente deixar de aplicar um desses componentes quando houver solução construtiva diferente, tecnicamente comprovada e registrada para a SO atual, preservando o motivo da exceção.
 
