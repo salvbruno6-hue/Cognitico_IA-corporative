@@ -151,3 +151,29 @@ def test_governance_text_alone_cannot_promote_memory():
     intent = IntentSpec(question="x", intent="budget", domain="orçamento")
     result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
     assert result[0].status == "UNVERIFIED"
+
+
+def test_concept_validation_marker_requires_merged_governance_evidence():
+    rows = {
+        "elo_orcamento_memoria": [
+            {
+                "id": "legacy-concept",
+                "premissa": "legacy concept status",
+                "status_conceito": "VALIDADA",
+                "decisao_governanca": "DETERMINADA",
+            },
+            {
+                "id": "merged-concept",
+                "premissa": "merged concept status",
+                "status_conceito": "VALIDADA",
+                "decisao_governanca": "MERGED_APPROVED",
+            },
+        ]
+    }
+    adapter = SupabaseLearningMemoryAdapter(rows)
+    intent = IntentSpec(question="x", intent="budget", domain="orçamento")
+    result = adapter.retrieve(intent, KnowledgeRequirement("calculation_memory", "memory"))
+    by_id = {item.source_id.rsplit(":", 1)[-1]: item.status for item in result}
+
+    assert by_id["legacy-concept"] == "REFERENCE"
+    assert by_id["merged-concept"] == "GOVERNED"
