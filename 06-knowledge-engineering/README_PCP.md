@@ -8,6 +8,7 @@ Nenhum documento abaixo deve ser interpretado isoladamente.
 |---|---|---|
 | 1 | PCP_INSTRUCOES_GERAIS_GOVERNANCA.md | Autoridade geral, hierarquia, evidência, gates e governança |
 | 2 | PCP_DEMANDA_CRESCIMENTO_REFERENCIA_COMPARAVEL.md | Processo de demanda, comparabilidade e fator |
+| 2 | PCP_DEMANDA_FLUXO_MODULAR_DISPONIBILIDADE_PATIO.md | Relação governada entre demanda/eventos, fabricação, fluxo modular, expedição/retorno/reparo e disponibilidade física de pátio |
 | 3 | PCP_VINCULO_REPARO_UNIDADE_MODULAR.md | Especialização para vínculo físico dos reparos |
 | 3 | PCP_ELO_INTEGRACAO_REPAROS.md | Especialização da interpretação do ELO sobre reparos |
 | 2 | PCP_DEMANDA_CRESCIMENTO_FLUXO.md | Apoio visual do processo de demanda; não cria regra própria |
