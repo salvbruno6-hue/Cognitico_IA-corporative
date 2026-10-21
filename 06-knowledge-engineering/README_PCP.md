@@ -37,6 +37,7 @@ Se a alteração for apenas operacional e específica, pode permanecer no docume
 | Documento | Papel |
 |---|---|
 | `docs/pcp/PCP_AUDITORIA_TABELAS_REFERENCIA_COMPARAVEL.md` | Evidência/auditoria técnica; não é autoridade normativa |
+| `06-knowledge-engineering/PCP_REQUISITO_FISICO_M01_EVENTOS_JAN2027.md` | Evidência de planejamento confirmada: 300 unidades físicas M01 para EVENTO até 31/01/2027; não substitui AF/pedido/plano/OP |
 | `06-knowledge-engineering/SKILL_PLANEJAMENTO_MULTITEINER.md` | Conhecimento aplicado/metodológico; deve obedecer à governança PCP quando usado no domínio |
 | `docs/forge/skills/PCP_SKILL_UDEMY_APPLIED_KNOWLEDGE.md` | Fonte de aprendizado externo do Forge; não é regra canônica do PCP |
 
