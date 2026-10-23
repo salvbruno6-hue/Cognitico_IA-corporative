@@ -1,9 +1,11 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
 from elo.cognitive.pcp_systemic_capacity import (
     DailyConstraintSnapshot,
+    ELOperationalEvent,
+    assess_el_event_balance,
     assess_systemic_capacity,
     first_constraint_date,
     project_el,
@@ -48,6 +50,85 @@ def test_el_projection_is_cumulative_across_days():
     assert [day.opening_el for day in projection] == [3, 3, 3]
     assert [day.realizable_assembly for day in projection] == [4, 4, 3]
     assert [day.closing_el for day in projection] == [3, 3, 0]
+
+
+def test_el_event_balance_uses_only_explicit_canonical_events():
+    events = (
+        ELOperationalEvent("ENTRADA_EL", 5, datetime(2026, 10, 23, 8, tzinfo=timezone.utc), "ev-1"),
+        ELOperationalEvent("BLOQUEIO", 1, datetime(2026, 10, 23, 9, tzinfo=timezone.utc), "ev-2"),
+        ELOperationalEvent("SAIDA_EL", 2, datetime(2026, 10, 23, 10, tzinfo=timezone.utc), "ev-3"),
+        ELOperationalEvent("DESBLOQUEIO", 1, datetime(2026, 10, 23, 11, tzinfo=timezone.utc), "ev-4"),
+    )
+
+    result = assess_el_event_balance(events)
+
+    assert result.available_quantity == 3
+    assert result.blocked_quantity == 0
+    assert result.entered_quantity == 5
+    assert result.exited_quantity == 2
+    assert result.blocked_total == 1
+    assert result.unblocked_total == 1
+    assert result.status == "SALDO_EL_POR_EVENTOS"
+    assert result.evidence_refs == ("ev-1", "ev-2", "ev-3", "ev-4")
+
+
+def test_el_event_balance_respects_as_of_cutoff():
+    events = (
+        ELOperationalEvent("ENTRADA_EL", 3, datetime(2026, 10, 23, 8, tzinfo=timezone.utc)),
+        ELOperationalEvent("ENTRADA_EL", 2, datetime(2026, 10, 24, 8, tzinfo=timezone.utc)),
+    )
+
+    result = assess_el_event_balance(
+        events,
+        as_of=datetime(2026, 10, 23, 23, 59, tzinfo=timezone.utc),
+    )
+
+    assert result.available_quantity == 3
+    assert result.event_count == 1
+
+
+def test_structure_completion_is_not_an_el_event_type():
+    with pytest.raises(ValueError, match="unsupported EL event type"):
+        assess_el_event_balance(
+            (
+                ELOperationalEvent(
+                    "ESTRUTURA_CONCLUIDA",
+                    1,
+                    datetime(2026, 10, 23, 8, tzinfo=timezone.utc),
+                ),
+            )
+        )
+
+
+def test_el_event_sequence_fails_closed_when_stock_is_impossible():
+    with pytest.raises(ValueError, match="SAIDA_EL cannot exceed available EL"):
+        assess_el_event_balance(
+            (
+                ELOperationalEvent(
+                    "SAIDA_EL",
+                    1,
+                    datetime(2026, 10, 23, 8, tzinfo=timezone.utc),
+                ),
+            )
+        )
+
+    with pytest.raises(ValueError, match="DESBLOQUEIO cannot exceed blocked EL"):
+        assess_el_event_balance(
+            (
+                ELOperationalEvent(
+                    "DESBLOQUEIO",
+                    1,
+                    datetime(2026, 10, 23, 8, tzinfo=timezone.utc),
+                ),
+            )
+        )
+
+
+def test_el_event_balance_without_events_does_not_invent_initial_stock():
+    result = assess_el_event_balance(())
+    assert result.available_quantity == 0
+    assert result.event_count == 0
+    assert result.status == "SEM_EVENTOS_EL"
 
 
 def test_first_constraint_date_reuses_systemic_capacity_and_returns_first_break():
