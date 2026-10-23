@@ -22,7 +22,9 @@ Fora do escopo:
 
 ## Implementação
 
-Migration: `supabase/migrations/20261023105700_tenant_multiteiner_requisito_m01.sql`.
+Migration reconciliada com a versão registrada em produção:
+
+`supabase/migrations/20261023105854_tenant_multiteiner_requisito_m01.sql`.
 
 A migration:
 1. cria `MULTITEINER / Multiteiner / ativo=true` de forma idempotente;
@@ -40,12 +42,13 @@ A migration:
 - requisito M01/300: associado a `MULTITEINER`;
 - proveniência do requisito preservada;
 - reparos: 133 total, 133 sem tenant, 0 com tenant;
-- memberships `ENTERPRISE/MULTITEINER`: 0.
+- memberships `ENTERPRISE/MULTITEINER`: 0;
+- migration live: `20261023105854 / tenant_multiteiner_requisito_m01`.
 
 O Security Advisor mantém apenas findings preexistentes do projeto; não foi observada nova superfície de autorização decorrente desta mudança.
 
 ## Gate
 
-Estado: `VALIDADO PARA PR`.
+Estado: `VALIDADO / RECONCILIADO`.
 
 Os reparos e a autorização de identidades permanecem fail-closed e exigem ciclos próprios de proveniência/governança.
