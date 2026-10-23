@@ -42,6 +42,34 @@ PTS PÓS-ORÇAMENTO
 
 A PTS Técnica prepara o orçamento. A PTS Pós confronta o orçamento realizado com a PTS Técnica. A validação é uma etapa cruzada entre as duas, e não uma terceira PTS.
 
+### Regra de execução exclusiva da PTS Pós
+
+O comando, intenção ou endpoint equivalente a `elo pts pos` possui **uma única rota de nova emissão**:
+
+```text
+elo pts pos [SO]
+        ↓
+SO / contexto resolvido
+        ↓
+PTS Técnica + orçamento atual
+        ↓
+POS_ORCAMENTO_SCHEMA.json
+        ↓
+POS_ORCAMENTO_RENDER.py
+        ↓
+POS_ORCAMENTO_TEMPLATE.md.j2
+        ↓
+pipeline.py / validação
+        ↓
+PTS PÓS CANÔNICA
+```
+
+É proibido emitir PTS Pós por template livre, resposta ad hoc do agente, renderer alternativo, estrutura histórica ou implementação paralela. O adapter de interface pode somente transportar os dados para `POS_ORCAMENTO_RENDER.py`; não pode possuir template, regra de composição ou fallback próprios.
+
+Se o owner, schema, template, PTS Técnica de referência, orçamento ou contrato exigido não puder ser resolvido, a emissão deve **falhar fechada e registrar o GAP**. Nunca improvisar uma PTS Pós substituta.
+
+Registros históricos permanecem consultáveis como evidência, mas não são rota de execução para nova emissão.
+
 ## Regra de referência
 
 A PTS Pós usa `ref_tecnica` para apontar para um ID comprovável da PTS Técnica. Também preserva `pts_tecnica_ref`, `itens_herdados` e `consultas_abertas`.
