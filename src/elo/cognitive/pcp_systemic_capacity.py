@@ -11,7 +11,7 @@ inventing conversions or silently ignoring required constraints.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from math import isfinite
 from typing import Mapping, Sequence
 
@@ -39,6 +39,31 @@ class ELDayProjection:
 
 
 @dataclass(frozen=True, slots=True)
+class ELOperationalEvent:
+    """Provider-neutral projection of one canonical ``mt_eventos_el`` row."""
+
+    event_type: str
+    quantity: float
+    occurred_at: datetime
+    evidence_ref: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ELBalanceAssessment:
+    """Actual EL balance derived only from explicit operational events."""
+
+    available_quantity: float
+    blocked_quantity: float
+    entered_quantity: float
+    exited_quantity: float
+    blocked_total: float
+    unblocked_total: float
+    event_count: int
+    evidence_refs: tuple[str, ...]
+    status: str
+
+
+@dataclass(frozen=True, slots=True)
 class DailyConstraintSnapshot:
     day: date
     constraint_capacities: Mapping[str, float | None]
@@ -52,6 +77,9 @@ class FirstConstraint:
     requested_quantity: float
     executable_quantity: float | None
     status: str
+
+
+_EL_EVENT_TYPES = frozenset({"ENTRADA_EL", "SAIDA_EL", "BLOQUEIO", "DESBLOQUEIO"})
 
 
 def _validate_non_negative(value: float, field: str) -> None:
@@ -131,6 +159,78 @@ def assess_systemic_capacity(
         missing_constraints=(),
         constraint_capacities=normalized,
         status="CAPACIDADE_SISTEMICA_CALCULADA",
+    )
+
+
+def assess_el_event_balance(
+    events: Sequence[ELOperationalEvent],
+    *,
+    as_of: datetime | None = None,
+) -> ELBalanceAssessment:
+    """Derive actual available/blocked EL solely from canonical EL events.
+
+    Supported event types mirror the existing database contract exactly:
+    ``ENTRADA_EL``, ``SAIDA_EL``, ``BLOQUEIO`` and ``DESBLOQUEIO``.
+
+    The calculation is intentionally strict. A withdrawal cannot exceed available
+    EL, a block cannot exceed available EL, and an unblock cannot exceed blocked
+    EL. Invalid event sequences are rejected instead of being normalized or
+    inferred. Structure completion, painting, curing, quality or any other event
+    never enters EL unless an explicit ``ENTRADA_EL`` is supplied.
+    """
+    available = 0.0
+    blocked = 0.0
+    entered = 0.0
+    exited = 0.0
+    blocked_total = 0.0
+    unblocked_total = 0.0
+    evidence_refs: list[str] = []
+    processed = 0
+
+    for event in sorted(events, key=lambda item: item.occurred_at):
+        if as_of is not None and event.occurred_at > as_of:
+            continue
+        event_type = event.event_type.strip().upper()
+        if event_type not in _EL_EVENT_TYPES:
+            raise ValueError(f"unsupported EL event type: {event.event_type}")
+        _validate_non_negative(event.quantity, f"EL event {event_type} quantity")
+        quantity = float(event.quantity)
+
+        if event_type == "ENTRADA_EL":
+            available += quantity
+            entered += quantity
+        elif event_type == "SAIDA_EL":
+            if quantity > available:
+                raise ValueError("SAIDA_EL cannot exceed available EL")
+            available -= quantity
+            exited += quantity
+        elif event_type == "BLOQUEIO":
+            if quantity > available:
+                raise ValueError("BLOQUEIO cannot exceed available EL")
+            available -= quantity
+            blocked += quantity
+            blocked_total += quantity
+        else:  # DESBLOQUEIO
+            if quantity > blocked:
+                raise ValueError("DESBLOQUEIO cannot exceed blocked EL")
+            blocked -= quantity
+            available += quantity
+            unblocked_total += quantity
+
+        processed += 1
+        if event.evidence_ref and event.evidence_ref.strip():
+            evidence_refs.append(event.evidence_ref.strip())
+
+    return ELBalanceAssessment(
+        available_quantity=available,
+        blocked_quantity=blocked,
+        entered_quantity=entered,
+        exited_quantity=exited,
+        blocked_total=blocked_total,
+        unblocked_total=unblocked_total,
+        event_count=processed,
+        evidence_refs=tuple(dict.fromkeys(evidence_refs)),
+        status="SEM_EVENTOS_EL" if processed == 0 else "SALDO_EL_POR_EVENTOS",
     )
 
 
@@ -218,9 +318,12 @@ def first_constraint_date(
 
 __all__ = [
     "DailyConstraintSnapshot",
+    "ELBalanceAssessment",
     "ELDayProjection",
+    "ELOperationalEvent",
     "FirstConstraint",
     "SystemicCapacityAssessment",
+    "assess_el_event_balance",
     "assess_systemic_capacity",
     "first_constraint_date",
     "project_el",
