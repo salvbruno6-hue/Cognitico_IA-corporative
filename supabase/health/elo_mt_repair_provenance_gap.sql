@@ -1,7 +1,7 @@
 -- ELO MT repair provenance and reconciliation readiness probe
 -- Read-only. This query does not create provenance, assign tenants, link units,
--- create models, or mutate repair records. It distinguishes contextual identity
--- evidence from canonical persistence readiness.
+-- create models, or mutate repair records. It distinguishes contextual identity,
+-- tenant reconciliation, physical-unit reconciliation and provenance readiness.
 
 WITH repair_identity AS (
   SELECT
@@ -89,7 +89,18 @@ SELECT
   'public'::text AS schema_name,
   'mt_ordens_reparo'::text AS object_name,
   'GAP_HIGH'::text AS severity,
-  'CONTEXT_CONFIRMED_PERSISTENCE_PENDING'::text AS reconciliation_state,
+  CASE
+    WHEN repair_rows_without_tenant = 0
+     AND repair_rows_without_unit = 0
+     AND repair_rows_without_provenance > 0
+      THEN 'TENANT_UNIT_RECONCILED_PROVENANCE_PENDING'
+    WHEN repair_rows_without_tenant = 0
+     AND repair_rows_without_unit > 0
+      THEN 'TENANT_RECONCILED_UNIT_PARTIAL_PROVENANCE_PENDING'
+    WHEN repair_rows_without_tenant > 0
+      THEN 'CONTEXT_CONFIRMED_TENANT_PERSISTENCE_PENDING'
+    ELSE 'RECONCILIATION_PENDING'
+  END::text AS reconciliation_state,
   format(
     'repair_rows=%s with_container=%s mltm_numeric_id=%s six_digit_id=%s distinct_mltm_identifiers=%s rows_with_registered_model=%s distinct_ids_with_registered_model=%s rows_without_registered_model=%s distinct_ids_without_registered_model=%s identifier_model_codes=%s registered_identifier_model_codes=%s modular_unit_rows=%s exact_unit_match=%s ambiguous_unit_match=%s without_unit_match=%s without_unit_fk=%s without_tenant=%s with_provenance=%s without_provenance=%s',
     repair_rows,
