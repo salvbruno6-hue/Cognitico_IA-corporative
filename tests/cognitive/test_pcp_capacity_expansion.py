@@ -22,6 +22,29 @@ def test_mix_explosion_respects_model_specific_components():
     assert by_component["CUBA_P"].net_required == 3
 
 
+def test_aliases_are_not_merged_without_explicit_canonical_normalization():
+    result = explode_mix_requirements(
+        {"M01": 1},
+        {"M01": {"PIR40": 14, "MAT-PIR-40": 1}},
+        available_components={"PIR40": 0, "MAT-PIR-40": 0},
+    )
+    by_component = {item.component: item for item in result}
+    assert by_component["PIR40"].gross_required == 14
+    assert by_component["MAT-PIR-40"].gross_required == 1
+    assert len(result) == 2
+
+
+def test_aluminum_door_kit_and_complete_social_door_remain_distinct():
+    result = explode_mix_requirements(
+        {"M02": 1},
+        {"M02": {"COMP-KIT-PORTA-ALUMINIO": 1, "PORTA_SOCIAL_COMPLETA": 1}},
+        available_components={"COMP-KIT-PORTA-ALUMINIO": 0, "PORTA_SOCIAL_COMPLETA": 0},
+    )
+    by_component = {item.component: item for item in result}
+    assert by_component["COMP-KIT-PORTA-ALUMINIO"].gross_required == 1
+    assert by_component["PORTA_SOCIAL_COMPLETA"].gross_required == 1
+
+
 def test_missing_bom_quantity_blocks_definitive_requirement():
     result = explode_mix_requirements(
         {"M01": 4},
@@ -31,6 +54,17 @@ def test_missing_bom_quantity_blocks_definitive_requirement():
     assert result[0].status == "BOM_INCOMPLETA"
     assert result[0].gross_required is None
     assert result[0].net_required is None
+
+
+def test_sufficient_stock_yields_zero_net_requirement():
+    result = explode_mix_requirements(
+        {"M01": 4},
+        {"M01": {"PIR40": 14}},
+        available_components={"PIR40": 56},
+    )
+    assert result[0].gross_required == 56
+    assert result[0].net_required == 0
+    assert result[0].status == "COBERTO"
 
 
 def test_expansion_does_not_invent_headcount_without_marginal_productivity():
