@@ -11,6 +11,7 @@ inventing conversions or silently ignoring required constraints.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from math import isfinite
 from typing import Mapping, Sequence
 
@@ -35,6 +36,22 @@ class ELDayProjection:
     planned_assembly: float
     realizable_assembly: float
     closing_el: float
+
+
+@dataclass(frozen=True, slots=True)
+class DailyConstraintSnapshot:
+    day: date
+    constraint_capacities: Mapping[str, float | None]
+    required_constraints: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class FirstConstraint:
+    day: date | None
+    resource_codes: tuple[str, ...]
+    requested_quantity: float
+    executable_quantity: float | None
+    status: str
 
 
 def _validate_non_negative(value: float, field: str) -> None:
@@ -156,9 +173,55 @@ def project_el(
     return tuple(result)
 
 
+def first_constraint_date(
+    *,
+    requested_by_day: Mapping[date, float],
+    snapshots: Sequence[DailyConstraintSnapshot],
+) -> FirstConstraint:
+    """Return the first date where complete planned quantity is not executable.
+
+    Missing daily evidence fails closed. The function reuses the canonical
+    systemic-capacity calculation and does not introduce a second capacity model.
+    """
+    by_day = {snapshot.day: snapshot for snapshot in snapshots}
+    for day in sorted(requested_by_day):
+        requested = requested_by_day[day]
+        _validate_non_negative(requested, f"requested {day.isoformat()}")
+        snapshot = by_day.get(day)
+        if snapshot is None:
+            return FirstConstraint(day, (), requested, None, "EVIDENCIA_INSUFICIENTE")
+
+        assessment = assess_systemic_capacity(
+            requested,
+            snapshot.constraint_capacities,
+            required_constraints=snapshot.required_constraints or None,
+        )
+        if assessment.executable_modules is None:
+            return FirstConstraint(
+                day,
+                assessment.missing_constraints,
+                requested,
+                None,
+                "EVIDENCIA_INSUFICIENTE",
+            )
+        if assessment.executable_modules < requested:
+            return FirstConstraint(
+                day,
+                assessment.limiting_constraints,
+                requested,
+                assessment.executable_modules,
+                "PRIMEIRA_RESTRICAO",
+            )
+
+    return FirstConstraint(None, (), 0.0, None, "SEM_RUPTURA_IDENTIFICADA")
+
+
 __all__ = [
+    "DailyConstraintSnapshot",
     "ELDayProjection",
+    "FirstConstraint",
     "SystemicCapacityAssessment",
     "assess_systemic_capacity",
+    "first_constraint_date",
     "project_el",
 ]
