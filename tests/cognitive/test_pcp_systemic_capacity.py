@@ -1,6 +1,13 @@
+from datetime import date
+
 import pytest
 
-from elo.cognitive.pcp_systemic_capacity import assess_systemic_capacity, project_el
+from elo.cognitive.pcp_systemic_capacity import (
+    DailyConstraintSnapshot,
+    assess_systemic_capacity,
+    first_constraint_date,
+    project_el,
+)
 
 
 def test_el_two_caps_planned_assembly_four_at_two():
@@ -41,6 +48,39 @@ def test_el_projection_is_cumulative_across_days():
     assert [day.opening_el for day in projection] == [3, 3, 3]
     assert [day.realizable_assembly for day in projection] == [4, 4, 3]
     assert [day.closing_el for day in projection] == [3, 3, 0]
+
+
+def test_first_constraint_date_reuses_systemic_capacity_and_returns_first_break():
+    d1 = date(2026, 10, 23)
+    d2 = date(2026, 10, 24)
+    result = first_constraint_date(
+        requested_by_day={d1: 4, d2: 4},
+        snapshots=(
+            DailyConstraintSnapshot(
+                d1,
+                {"ESTRUTURA": 4, "FIBRA": 4},
+                ("ESTRUTURA", "FIBRA"),
+            ),
+            DailyConstraintSnapshot(
+                d2,
+                {"ESTRUTURA": 4, "FIBRA": 2},
+                ("ESTRUTURA", "FIBRA"),
+            ),
+        ),
+    )
+
+    assert result.day == d2
+    assert result.resource_codes == ("FIBRA",)
+    assert result.executable_quantity == 2
+    assert result.status == "PRIMEIRA_RESTRICAO"
+
+
+def test_first_constraint_date_fails_closed_when_snapshot_is_missing():
+    d1 = date(2026, 10, 23)
+    result = first_constraint_date(requested_by_day={d1: 4}, snapshots=())
+    assert result.day == d1
+    assert result.executable_quantity is None
+    assert result.status == "EVIDENCIA_INSUFICIENTE"
 
 
 def test_invalid_negative_capacity_is_rejected():
