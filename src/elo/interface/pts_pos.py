@@ -19,7 +19,7 @@ _CANONICAL_SCHEMA = _PTS_ROOT / "POS_ORCAMENTO_SCHEMA.json"
 
 
 def _assert_canonical_owner() -> None:
-    """Falha fechada se o contrato canônico não estiver disponível."""
+    """Falha fechada somente durante uma emissão de PTS Pós."""
     missing = [
         str(path.relative_to(_REPO_ROOT))
         for path in (_CANONICAL_RENDERER, _CANONICAL_TEMPLATE, _CANONICAL_SCHEMA)
@@ -32,7 +32,6 @@ def _assert_canonical_owner() -> None:
         )
 
 
-_assert_canonical_owner()
 if str(_PTS_ROOT) not in sys.path:
     sys.path.insert(0, str(_PTS_ROOT))
 
