@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 from elo.interface.api import app
+
 
 def _base_document() -> dict:
     return {
@@ -14,12 +17,24 @@ def _base_document() -> dict:
         "divergencias": [], "riscos": [], "pendencias": [], "checklist": {},
     }
 
+
 def test_pts_pos_renderer_direct_smoke() -> None:
     from elo.interface.pts_pos import render_pts_pos
 
     markdown, integracao = render_pts_pos(_base_document())
     assert "PTS PÓS-ORÇAMENTO" in markdown
     assert integracao["resultado_arbitrado"]["status"] == "AGUARDANDO_ARBITRAGEM"
+
+
+def test_pts_pos_interface_points_only_to_canonical_owner() -> None:
+    import elo.interface.pts_pos as adapter
+
+    expected_root = Path(__file__).resolve().parents[2] / "08-ai" / "ELO" / "DIRETRIZES" / "PTS"
+    assert adapter._PTS_ROOT.resolve() == expected_root.resolve()
+    assert adapter._CANONICAL_RENDERER.resolve() == (expected_root / "POS_ORCAMENTO_RENDER.py").resolve()
+    assert adapter._CANONICAL_TEMPLATE.resolve() == (expected_root / "POS_ORCAMENTO_TEMPLATE.md.j2").resolve()
+    assert adapter._CANONICAL_SCHEMA.resolve() == (expected_root / "POS_ORCAMENTO_SCHEMA.json").resolve()
+
 
 def test_pts_pos_endpoint_uses_canonical_renderer() -> None:
     response = TestClient(app).post("/pts-pos", json={
@@ -31,8 +46,10 @@ def test_pts_pos_endpoint_uses_canonical_renderer() -> None:
     assert "PTS PÓS-ORÇAMENTO" in payload["markdown"]
     assert payload["integracao"]["resultado_arbitrado"]["status"] == "AGUARDANDO_ARBITRAGEM"
     assert payload["integracao"]["elo_aprender"]["status"] == "CANDIDATA"
+    assert payload["provenance"]["owner"] == "08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO_RENDER.py"
     assert payload["provenance"]["persisted"] is False
     assert payload["provenance"]["arbitrated_automatically"] is False
+
 
 def test_pts_pos_endpoint_rejects_missing_tenant() -> None:
     response = TestClient(app).post("/pts-pos", json={"tenant_id": "", "dados": _base_document()})
