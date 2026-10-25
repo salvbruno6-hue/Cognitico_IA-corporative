@@ -10,8 +10,6 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from elo.cognitive import CognitiveCore
-from elo.cognitive.response.elo_gpt_dialogue import AuthorizationState, EvidenceState
-from .chat_prefinalization import ChatPreFinalizationCommand, run_chat_prefinalization
 from .contracts import CognitiveRequest, CognitiveResponse, ErrorContract
 from .response import ResponseBuilder
 from .session import SessionManager
@@ -30,27 +28,6 @@ class PTSPosRequest(BaseModel):
     tenant_id: str
     principal_id: str | None = None
     dados: dict[str, Any]
-
-
-class ChatPreFinalizationRequest(BaseModel):
-    tenant_id: str
-    objective_id: str
-    objective_title: str
-    workstream_id: str
-    expected_checkpoint_version: int | None = None
-    chat_draft: str = ""
-    progress_token: str
-    evidence_refs: list[str]
-    proposed_next_action: str
-    objective_evidence_refs: list[str]
-    authorization_state: AuthorizationState
-    continuation_permitted: bool = True
-    objective_satisfied: bool = False
-    within_scope: bool = True
-    authority_available: bool = True
-    risk_level: str = "LOW"
-    evidence_state: EvidenceState = EvidenceState.OBSERVED
-    max_cycles: int = 12
 
 
 @app.get("/")
@@ -78,40 +55,6 @@ def cognitive_endpoint(request: CognitiveRequest) -> CognitiveResponse:
 @app.post("/cognitive", response_model=CognitiveResponse)
 def cognitive(request: CognitiveRequest) -> CognitiveResponse:
     return cognitive_endpoint(request)
-
-
-@app.post("/elo/chat/prefinalize")
-def elo_chat_prefinalize(request: ChatPreFinalizationRequest) -> dict[str, object]:
-    """Run exactly one governed ELO objective cycle before a GPT final response."""
-    try:
-        return run_chat_prefinalization(
-            ChatPreFinalizationCommand(
-                tenant_id=request.tenant_id,
-                objective_id=request.objective_id,
-                objective_title=request.objective_title,
-                workstream_id=request.workstream_id,
-                expected_checkpoint_version=request.expected_checkpoint_version,
-                chat_draft=request.chat_draft,
-                progress_token=request.progress_token,
-                evidence_refs=tuple(request.evidence_refs),
-                proposed_next_action=request.proposed_next_action,
-                objective_evidence_refs=tuple(request.objective_evidence_refs),
-                authorization_state=request.authorization_state,
-                continuation_permitted=request.continuation_permitted,
-                objective_satisfied=request.objective_satisfied,
-                within_scope=request.within_scope,
-                authority_available=request.authority_available,
-                risk_level=request.risk_level,
-                evidence_state=request.evidence_state,
-                max_cycles=request.max_cycles,
-            )
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail="ELO chat pre-finalization failed") from exc
 
 
 @app.post("/pts-pos")
