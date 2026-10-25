@@ -72,6 +72,11 @@ class EloChatPreFinalizationLoop:
     ) -> EloPreFinalizationResult:
         self._validate_request(request)
 
+        if continuation_permitted and persistence_state is not PersistenceState.PERSISTED:
+            raise ValueError("automatic continuation requires canonical persisted checkpoint")
+        if continuation_permitted and authorization_state is not AuthorizationState.VALID:
+            raise ValueError("automatic continuation requires valid canonical authorization")
+
         # Strictly one canonical replay per ChatGPT turn.
         result = self._cycle_runner(request)
         self._validate_checkpoint_binding(request, result)
