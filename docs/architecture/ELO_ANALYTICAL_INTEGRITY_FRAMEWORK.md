@@ -1,14 +1,14 @@
-# ELO Analytical Integrity Framework — EAIF v1.1
+# ELO Analytical Integrity Framework — EAIF v1.2
 
 ## Status
 
 Governed implementation aligned to existing ELO reasoning/governance. It does not create a second Cognitive Core, a new source of truth, or a new promotion authority.
 
-EAIF v1.0 introduced evidence-use guards and behavioral conformance. EAIF v1.1 adds contextual activation so refinement is applied only when structured risk signals justify it.
+EAIF v1.0 introduced evidence-use guards and behavioral conformance. EAIF v1.1 added contextual activation. EAIF v1.2 closes the feedback loop from observed analytical behavior into governed learning candidates.
 
 ## Purpose
 
-Reduce analytical error by detecting when valid evidence is used in an invalid way and by selectively increasing analytical scrutiny when a decision context is materially riskier.
+Reduce analytical error by detecting invalid evidence use, selectively increasing analytical scrutiny, and learning from repeated observed divergences without automatically promoting them into canonical rules.
 
 The framework complements, rather than replaces:
 
@@ -78,40 +78,21 @@ Possible levels:
 | `TARGETED` | verify only the integrity dimensions implicated by the context |
 | `DEEP` | perform explicit counterevidence / falsification-oriented challenge before recommendation |
 
-Structured signals currently include:
-
-- active decision boundary;
-- contemplated consequential action;
-- unresolved context/evidence integrity gaps;
-- material uncertainties;
-- explicit conflicts;
-- explicitly classified historical/theoretical/stale temporal evidence;
-- evidence below the sufficiency threshold.
+Structured signals currently include active decision boundary, contemplated consequential action, integrity gaps, material uncertainties, explicit conflicts, historical/theoretical/stale evidence and evidence below the sufficiency threshold.
 
 Selection rules are deterministic:
 
 ```text
-no relevant signal
-=> NONE
-
-ordinary integrity risk
-=> TARGETED
-
-explicit conflict
-=> DEEP
-
-consequential action + another integrity risk
-=> DEEP
-
-three or more independent risk families
-=> DEEP
+no relevant signal => NONE
+ordinary integrity risk => TARGETED
+explicit conflict => DEEP
+consequential action + another integrity risk => DEEP
+three or more independent risk families => DEEP
 ```
 
 A consequential action alone activates `TARGETED`, because evidence and action authority must remain distinct even when the underlying evidence appears clean.
 
 ### Orchestration boundary
-
-The canonical consultative path prepares the refinement decision before the specialist handoff:
 
 ```text
 ContextPack
@@ -129,7 +110,7 @@ The legacy `elo-virtual-core/regras/orquestrador.py` simulation is not used as t
 
 ## Behavioral conformance
 
-EAIF also supports a minimal deterministic comparison:
+EAIF supports a deterministic comparison:
 
 ```text
 declared control
@@ -140,11 +121,49 @@ observed behavior
 
 This is evidence for Symbiont/Evolution analysis. It is not itself a promotion decision.
 
+## Feedback and governed learning — v1.2
+
+EAIF now distinguishes two runtime feedback outcomes:
+
+- `ERROR_AVOIDED`: an integrity finding was detected and corrected before the analytical output crossed the decision boundary;
+- `DIVERGENCE_OCCURRED`: the protected anti-pattern was still observed in the resulting behavior.
+
+Observations are recorded in an append-only runtime ledger. The ledger is not canonical memory; persistent learning remains owned by the existing governed learning path.
+
+### Recurrence rule
+
+A single divergence is evidence, not a new rule. By default, three divergences with the same tenant/domain/control/anti-pattern combination are required to create an `AntiPatternCandidate`.
+
+Avoided errors do not independently trigger a candidate, but they are retained as supporting evidence for the same pattern.
+
+```text
+EAIF finding
+ -> error avoided | divergence occurred
+ -> append-only observations
+ -> recurring divergence detection
+ -> AntiPatternCandidate
+ -> LearningMemoryRouter
+ -> existing EVOLUTION_MEMORY owner
+ -> Symbiont Memory/Learning Bridge
+ -> Symbiont Lab
+ -> Evolution Gate
+ -> Governed Learning
+ -> candidate only
+```
+
+### Duplicate behavior
+
+Before entering the Lab, the existing `LearningMemoryRouter` checks whether the concept already exists. If a matching governed memory exists, routing returns `REUSE` instead of creating a parallel candidate.
+
+### Promotion boundary
+
+Recurring divergence does **not** authorize canonical promotion. The feedback bridge can produce a governed learning candidate, but promotion still requires the existing validation/evaluation and human approval path in `GovernedLearningService`.
+
 ## PCP examples
 
 ### Historical capacity
 
-Known historical fiber capacity cannot be reported as current capacity without revalidation. A consultative request carrying that temporal classification receives targeted refinement.
+Known historical fiber capacity cannot be reported as current capacity without revalidation. Repeated violations of that control may become an EAIF anti-pattern candidate only after recurring runtime evidence.
 
 ### Theoretical capacity
 
@@ -168,14 +187,15 @@ EAIF does not:
 
 - choose a winner between conflicting sources;
 - create business facts;
-- retrieve or persist operational data;
 - execute purchases, production orders or other business actions;
 - select AI models or tools;
 - replace domain skills;
 - replace the Orchestrator;
 - replace Symbiont or Evolution Gate;
 - turn external methodological references into canonical authority;
-- infer risk merely from words present in a user question.
+- infer risk merely from words present in a user question;
+- promote a recurring anti-pattern automatically;
+- create a second memory owner or learning registry.
 
 ## Integration direction
 
@@ -189,8 +209,10 @@ objective
 -> recommendation
 -> authorization gate when action is requested
 -> observed behavior
+-> EAIF feedback capture
+-> recurring divergence candidate
 -> Symbiont/Evolution validation
 -> governed learning
 ```
 
-The implementation remains deterministic and side-effect free so it can be reused across PCP, Commercial, Budgeting, Engineering and other analytical domains without creating parallel authority.
+The implementation remains deterministic and keeps canonical promotion under the existing ELO governance boundaries.
