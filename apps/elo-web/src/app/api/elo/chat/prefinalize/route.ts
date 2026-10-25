@@ -56,6 +56,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "INVALID_REQUEST", message: "tenant_id, objective_id, workstream_id, progress_token, proposed_next_action e evidence_refs são obrigatórios." }, { status: 400 });
   }
 
+  // Autonomous continuation is never self-authorized by the GPT or this route.
+  // elo-authz must confirm an explicit, unexpired execution grant whose operation
+  // is bound to this exact objective id.
+  const operation = `continue_objective:${objectiveId}`;
   const authzUrl = (process.env.ELO_FORGE_SUPABASE_URL ?? publicUrl).trim();
   const requestId = request.headers.get("x-elo-request-id")?.trim() || crypto.randomUUID();
   const authzResponse = await fetch(`${authzUrl}/functions/v1/elo-authz`, {
@@ -66,8 +70,9 @@ export async function POST(request: Request) {
       "x-elo-request-id": requestId,
     },
     body: JSON.stringify({
-      action: "continue_objective",
-      capability: "OBJECTIVE_CONTINUE",
+      action: "check_authorization_state",
+      authorization_state: "elo-execution-authorized",
+      operation,
       repository: CANONICAL_REPOSITORY,
       resource_id: objectiveId,
     }),
@@ -77,8 +82,9 @@ export async function POST(request: Request) {
   if (!authzResponse.ok || authz.authorized !== true) {
     return NextResponse.json({
       code: "FORBIDDEN",
-      message: "O elo-authz não autorizou a continuidade autônoma deste objetivo.",
+      message: "O elo-authz não confirmou grant autônomo válido para este objetivo.",
       reason: authz.reason ?? "authorization_denied",
+      operation,
       request_id: requestId,
     }, { status: authzResponse.status >= 400 ? authzResponse.status : 403 });
   }
@@ -111,6 +117,7 @@ export async function POST(request: Request) {
       ...result,
       authorization_authority: "elo-authz",
       authorization_evidence_ref: authorizationEvidenceRef,
+      authorization_operation: operation,
       request_id: requestId,
     }, { status: 200, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
