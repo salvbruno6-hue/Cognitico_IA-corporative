@@ -86,11 +86,17 @@ _UNRESOLVED_STATES = {
     RequirementState.MISSING,
     RequirementState.GAP_CANDIDATE,
     RequirementState.GAP_CONFIRMED,
+    RequirementState.HUMAN_VALIDATION_REQUIRED,
 }
 
 _WEAK_STATES = {
     RequirementState.INFERRED,
     RequirementState.ASSUMPTION_REQUIRED,
+}
+
+_DECISIVE_USES = {
+    EvidenceUse.CURRENT_STATE_CLAIM,
+    EvidenceUse.ACTION_AUTHORIZATION,
 }
 
 
@@ -119,6 +125,15 @@ def assess_evidence_usage(usage: EvidenceUsage) -> tuple[IntegrityFinding, ...]:
             subject=usage.subject,
             message="Inference or assumption is being used without an explicit uncertainty label.",
             corrective_action="Label it as inference/assumption and preserve the validation boundary.",
+        ))
+
+    if usage.state in _WEAK_STATES and usage.use in _DECISIVE_USES:
+        findings.append(IntegrityFinding(
+            code="ELO-AI-007-WEAK-EVIDENCE-AS-DECISIVE",
+            severity=IntegritySeverity.BLOCK,
+            subject=usage.subject,
+            message="Inference or assumption cannot establish current fact or authorize an action.",
+            corrective_action="Keep it analytical/recommendatory until governed evidence validates the claim.",
         ))
 
     if usage.state == RequirementState.CONFLICT and usage.use != EvidenceUse.ANALYSIS:
