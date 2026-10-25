@@ -13,6 +13,7 @@ from .maturity_engine import MaturityAssessment
 
 
 HandoffMode = Literal["DISCOVERY_ASSIST", "SPECIALIST_VALIDATION"]
+AnalyticalRefinementMode = Literal["NONE", "TARGETED", "DEEP"]
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,9 @@ class GPTDecisionHandoff:
     context_uncertainties: tuple[str, ...] = ()
     context_gaps: tuple[str, ...] = ()
     decision_required: bool = False
+    analytical_refinement: AnalyticalRefinementMode = "NONE"
+    analytical_refinement_reasons: tuple[str, ...] = ()
+    analytical_checks: tuple[str, ...] = ()
     correlation_id: str = ""
     tenant_id: str | None = None
     domain: str | None = None
@@ -68,6 +72,9 @@ class GPTDecisionHandoff:
         dimensions_to_check: tuple[str, ...] = (),
         evidence_ids: tuple[str, ...] = (),
         decision_required: bool = False,
+        analytical_refinement: AnalyticalRefinementMode = "NONE",
+        analytical_refinement_reasons: tuple[str, ...] = (),
+        analytical_checks: tuple[str, ...] = (),
         correlation_id: str = "",
     ) -> "GPTDecisionHandoff":
         return cls(
@@ -78,6 +85,9 @@ class GPTDecisionHandoff:
             dimensions_to_check=dimensions_to_check,
             evidence_ids=evidence_ids,
             decision_required=decision_required,
+            analytical_refinement=analytical_refinement,
+            analytical_refinement_reasons=analytical_refinement_reasons,
+            analytical_checks=analytical_checks,
             correlation_id=correlation_id,
         )
 
@@ -90,6 +100,9 @@ class GPTDecisionHandoff:
         maturity: MaturityAssessment,
         elo_analysis: tuple[str, ...] = (),
         decision_required: bool = False,
+        analytical_refinement: AnalyticalRefinementMode = "NONE",
+        analytical_refinement_reasons: tuple[str, ...] = (),
+        analytical_checks: tuple[str, ...] = (),
         correlation_id: str = "",
     ) -> "GPTDecisionHandoff":
         if not context.discovery_plan:
@@ -108,6 +121,9 @@ class GPTDecisionHandoff:
             context_uncertainties=context.uncertainties,
             context_gaps=context.integrity_gaps(),
             decision_required=decision_required or bool(context.integrity_gaps()),
+            analytical_refinement=analytical_refinement,
+            analytical_refinement_reasons=analytical_refinement_reasons,
+            analytical_checks=analytical_checks,
             correlation_id=correlation_id or (context.query.correlation_id or ""),
             tenant_id=context.query.tenant_id,
             domain=context.query.domain,
@@ -128,6 +144,9 @@ class GPTDecisionHandoff:
             "context_uncertainties": self.context_uncertainties,
             "context_gaps": self.context_gaps,
             "decision_required": self.decision_required,
+            "analytical_refinement": self.analytical_refinement,
+            "analytical_refinement_reasons": self.analytical_refinement_reasons,
+            "analytical_checks": self.analytical_checks,
             "tenant_id": self.tenant_id,
             "domain": self.domain,
             "principal_id": self.principal_id,
@@ -138,12 +157,30 @@ class GPTDecisionHandoff:
 
     def specialist_instruction(self) -> str:
         if self.mode == "SPECIALIST_VALIDATION":
-            return (
+            base = (
                 "Answer only the specialist question, then identify risks, assumptions, "
                 "contradictions, evidence gaps and implications that the ELO should evaluate "
                 "across other decision dimensions. Do not make or authorize the final decision."
             )
+        else:
+            base = (
+                "Provide discovery-oriented analysis and identify missing context, evidence and "
+                "specialist considerations. Do not treat the response as canonical knowledge."
+            )
+
+        if self.analytical_refinement == "NONE":
+            return base
+        if self.analytical_refinement == "TARGETED":
+            return (
+                base
+                + " Apply only the requested analytical-integrity checks: "
+                + "; ".join(self.analytical_checks)
+                + ". Keep uncertainty explicit and do not expand action authority."
+            )
         return (
-            "Provide discovery-oriented analysis and identify missing context, evidence and "
-            "specialist considerations. Do not treat the response as canonical knowledge."
+            base
+            + " Perform deep analytical challenge using these governed checks: "
+            + "; ".join(self.analytical_checks)
+            + ". Actively search for counterevidence, state what could falsify the conclusion, "
+              "and keep evidence, recommendation and authorization separate."
         )
