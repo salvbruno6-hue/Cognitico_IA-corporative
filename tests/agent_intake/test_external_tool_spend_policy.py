@@ -34,3 +34,18 @@ def test_malformed_or_negative_policy_fails_closed():
     negative = evaluate_external_tool_spend(declared_cost=-1, running_total=0, spend_limit=1, unattended=False)
     assert malformed.allowed is False and malformed.reason == "invalid_spend_policy"
     assert negative.allowed is False and negative.reason == "invalid_spend_policy"
+
+
+def test_non_finite_policy_values_fail_closed():
+    cases = (
+        {"declared_cost": "NaN", "running_total": 0, "spend_limit": 1},
+        {"declared_cost": "Infinity", "running_total": 0, "spend_limit": "Infinity"},
+        {"declared_cost": 1, "running_total": "NaN", "spend_limit": 2},
+        {"declared_cost": 1, "running_total": 0, "spend_limit": "-Infinity"},
+    )
+    for policy in cases:
+        decision = evaluate_external_tool_spend(**policy, unattended=True)
+        assert decision.allowed is False
+        assert decision.requires_human_approval is False
+        assert decision.reason == "invalid_spend_policy"
+        assert decision.projected_total is None
