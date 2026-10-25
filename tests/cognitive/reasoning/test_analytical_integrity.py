@@ -23,6 +23,15 @@ def test_missing_evidence_cannot_be_promoted_to_current_fact():
     assert "ELO-AI-001-UNRESOLVED-AS-FACT" in _codes(usage)
 
 
+def test_human_validation_required_cannot_be_promoted_to_current_fact():
+    usage = EvidenceUsage(
+        subject="capacidade",
+        state=RequirementState.HUMAN_VALIDATION_REQUIRED,
+        use=EvidenceUse.CURRENT_STATE_CLAIM,
+    )
+    assert "ELO-AI-001-UNRESOLVED-AS-FACT" in _codes(usage)
+
+
 def test_inference_requires_explicit_label():
     usage = EvidenceUsage(
         subject="causa_atraso",
@@ -33,7 +42,7 @@ def test_inference_requires_explicit_label():
     assert "ELO-AI-002-UNLABELED-INFERENCE" in _codes(usage)
 
 
-def test_labeled_inference_is_not_blocked_by_label_rule():
+def test_labeled_inference_is_not_blocked_by_label_rule_for_analysis():
     usage = EvidenceUsage(
         subject="causa_atraso",
         state=RequirementState.INFERRED,
@@ -41,6 +50,28 @@ def test_labeled_inference_is_not_blocked_by_label_rule():
         explicit_label=True,
     )
     assert "ELO-AI-002-UNLABELED-INFERENCE" not in _codes(usage)
+    assert "ELO-AI-007-WEAK-EVIDENCE-AS-DECISIVE" not in _codes(usage)
+
+
+def test_labeled_inference_still_cannot_become_current_fact():
+    usage = EvidenceUsage(
+        subject="capacidade_atual",
+        state=RequirementState.INFERRED,
+        use=EvidenceUse.CURRENT_STATE_CLAIM,
+        explicit_label=True,
+    )
+    assert "ELO-AI-007-WEAK-EVIDENCE-AS-DECISIVE" in _codes(usage)
+
+
+def test_assumption_cannot_authorize_action_even_when_labeled():
+    usage = EvidenceUsage(
+        subject="emitir_compra",
+        state=RequirementState.ASSUMPTION_REQUIRED,
+        use=EvidenceUse.ACTION_AUTHORIZATION,
+        source_role=SourceRole.AUTHORITY,
+        explicit_label=True,
+    )
+    assert "ELO-AI-007-WEAK-EVIDENCE-AS-DECISIVE" in _codes(usage)
 
 
 def test_conflict_must_remain_unresolved_outside_analysis():
@@ -82,7 +113,7 @@ def test_evidence_source_cannot_grant_action_authorization():
     assert "ELO-AI-006-EVIDENCE-AS-AUTHORIZATION" in _codes(usage)
 
 
-def test_authority_source_may_pass_authorization_boundary_check():
+def test_authority_source_may_pass_authorization_boundary_check_for_known_fact():
     usage = EvidenceUsage(
         subject="acao_autorizada",
         state=RequirementState.KNOWN,
@@ -90,6 +121,7 @@ def test_authority_source_may_pass_authorization_boundary_check():
         source_role=SourceRole.AUTHORITY,
     )
     assert "ELO-AI-006-EVIDENCE-AS-AUTHORIZATION" not in _codes(usage)
+    assert "ELO-AI-007-WEAK-EVIDENCE-AS-DECISIVE" not in _codes(usage)
 
 
 def test_behavioral_conformance_detects_declared_vs_observed_divergence():
