@@ -55,12 +55,13 @@ A reliable external source may prove a fact without granting authority to execut
 
 | Code | Anti-pattern | Correct behavior |
 |---|---|---|
-| ELO-AI-001 | unresolved/missing evidence used as fact | remain unresolved and request next evidence |
+| ELO-AI-001 | unresolved/missing/human-validation-required evidence used as fact | remain unresolved and request the next evidence/validation |
 | ELO-AI-002 | inference/assumption used without label | label uncertainty and preserve validation boundary |
 | ELO-AI-003 | conflict silently resolved | preserve contradiction until governed resolution |
 | ELO-AI-004 | historical evidence promoted to current state | revalidate current state or retain historical label |
 | ELO-AI-005 | theoretical value promoted to realized performance | compare theory with observed evidence |
 | ELO-AI-006 | evidence used as action authorization | resolve authorization through governed authority boundary |
+| ELO-AI-007 | inference/assumption used to establish current fact or authorize action | keep it analytical/recommendatory until governed validation |
 
 ## Behavioral conformance
 
