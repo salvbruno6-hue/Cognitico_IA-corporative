@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 
 const ALLOWED_ACTIONS = new Set([
   "establish_session","revoke_session","read","consult","search","inspect",
-  "portal_access","authorize_area","lista_mae_insert","check_authorization_state","create_operator_binding","issue_authorization_grant",
+  "portal_access","authorize_area","lista_mae_insert","continue_objective","check_authorization_state","create_operator_binding","issue_authorization_grant",
 ]);
 
 type AuthorizationBody = {
-  action?: unknown; capability?: unknown; repository?: unknown;
+  action?: unknown; capability?: unknown; repository?: unknown; resource_id?: unknown;
   area_code?: unknown; operation?: unknown; authorization_state?: unknown;
   identity_id?: unknown; github_user_id?: unknown; github_login?: unknown;
   operation_class?: unknown; binding_id?: unknown; expires_in_seconds?: unknown;
@@ -29,6 +29,7 @@ export async function POST(request:Request){
       action,
       capability:typeof body.capability==="string"?body.capability.trim():undefined,
       repository:typeof body.repository==="string"?body.repository.trim():undefined,
+      resource_id:typeof body.resource_id==="string"?body.resource_id.trim():undefined,
       area_code:typeof body.area_code==="string"?body.area_code.trim():undefined,
       operation:typeof body.operation==="string"?body.operation.trim():undefined,
       authorization_state:typeof body.authorization_state==="string"?body.authorization_state.trim():undefined,
