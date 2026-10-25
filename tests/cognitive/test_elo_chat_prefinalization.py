@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from elo.cognitive.objective_continuity import ObjectiveContinuityAdapter
 from elo.cognitive.response.elo_chat_prefinalization import (
     EloChatPreFinalizationLoop,
@@ -138,7 +140,6 @@ def test_chat_prefinalization_rejects_stale_or_unadvanced_result(tmp_path) -> No
             no_progress_streak=0,
         )
 
-    import pytest
     with pytest.raises(ValueError, match="did not advance"):
         EloChatPreFinalizationLoop(runner).run(
             EloPreFinalizationRequest(
@@ -152,3 +153,35 @@ def test_chat_prefinalization_rejects_stale_or_unadvanced_result(tmp_path) -> No
             continuation_permitted=True,
         )
     store.close()
+
+
+def test_chat_prefinalization_does_not_enter_runner_without_persisted_authorized_continuation() -> None:
+    calls = {"count": 0}
+
+    def runner(_request: EloPreFinalizationRequest):
+        calls["count"] += 1
+        raise AssertionError("runner must not execute")
+
+    loop = EloChatPreFinalizationLoop(runner)
+    request = EloPreFinalizationRequest(
+        objective_id="objective-1",
+        workstream_id="workstream-1",
+        expected_checkpoint_version=1,
+        chat_draft="rascunho",
+    )
+
+    with pytest.raises(ValueError, match="persisted checkpoint"):
+        loop.run(
+            request,
+            persistence_state=PersistenceState.EPHEMERAL,
+            authorization_state=AuthorizationState.VALID,
+            continuation_permitted=True,
+        )
+    with pytest.raises(ValueError, match="valid canonical authorization"):
+        loop.run(
+            request,
+            persistence_state=PersistenceState.PERSISTED,
+            authorization_state=AuthorizationState.MISSING,
+            continuation_permitted=True,
+        )
+    assert calls["count"] == 0
