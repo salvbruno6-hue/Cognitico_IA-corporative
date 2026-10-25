@@ -6,8 +6,10 @@ import { callELOAuthorization } from "@/auth/eloAuthorization";
 
 type TestResult = {
   authorized?: boolean;
+  stage?: string;
   code?: string;
   reason?: string;
+  message?: string;
   objective_id?: string;
   workstream_id?: string;
   operation?: string;
@@ -18,6 +20,8 @@ type TestResult = {
     authorization_authority?: string;
   };
   cycle?: {
+    code?: string;
+    message?: string;
     decision?: string;
     checkpoint_version?: number;
     progress_token?: string;
@@ -33,6 +37,19 @@ type TestResult = {
 
 function getSupabaseClient() {
   try { return createClient(); } catch { return null; }
+}
+
+function describeFailure(payload: TestResult | null) {
+  if (!payload) return "O teste governado não pôde ser concluído.";
+  const parts = [
+    payload.stage ? `estágio=${payload.stage}` : null,
+    payload.code ? `código=${payload.code}` : null,
+    payload.reason ? `motivo=${payload.reason}` : null,
+    payload.message ? `mensagem=${payload.message}` : null,
+    payload.cycle?.code ? `cycle=${payload.cycle.code}` : null,
+    payload.cycle?.message ? `cycle_message=${payload.cycle.message}` : null,
+  ].filter(Boolean);
+  return parts.join(" · ") || "O teste governado não pôde ser concluído.";
 }
 
 export default function ObjectiveContinuityTestPage() {
@@ -83,7 +100,7 @@ export default function ObjectiveContinuityTestPage() {
       });
       const payload = await response.json().catch(() => null) as TestResult | null;
       if (!response.ok || !payload) {
-        throw new Error(payload?.reason || payload?.code || "O teste governado não pôde ser concluído.");
+        throw new Error(describeFailure(payload));
       }
       setResult(payload);
     } catch (runError) {
