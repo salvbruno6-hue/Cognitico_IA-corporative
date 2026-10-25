@@ -1,12 +1,12 @@
 # SKILL — ELO DIALOGUE HANDOFF
 
-**skill_id:** `ELO_DIALOGUE_HANDOFF`
-**domain_family:** `PROCESS_ANALYSIS`
-**maturity:** `DEFINED`
-**version:** `0.1.0`
-**owner:** `Forge`
-**canonical_authority:** `ELO_COGNITIVO`
-**authorization_authority:** `elo-authz`
+**skill_id:** `ELO_DIALOGUE_HANDOFF`  
+**domain_family:** `PROCESS_ANALYSIS`  
+**maturity:** `DEFINED`  
+**version:** `0.1.1`  
+**owner:** `Forge`  
+**canonical_authority:** `ELO_COGNITIVO`  
+**authorization_authority:** `elo-authz`  
 **runtime_boundary:** `ELO Web`
 
 ## 1. Finalidade
@@ -30,7 +30,7 @@ A skill NÃO pode:
 - decidir `CONTINUE`, `CORRECT`, `REPLAN`, `ESCALATE` ou `COMPLETE` por conta própria;
 - emitir autorização;
 - tratar texto conversacional como checkpoint;
-- inventar `progress_token`, evidência ou `state_version`;
+- inventar `tenant_id`, `objective_id`, `workstream_id`, `progress_token`, evidência ou `state_version`;
 - substituir `Objective Continuity`;
 - substituir `elo-authz`;
 - executar mais de um replay/ciclo por turno sem novo handoff governado;
@@ -38,7 +38,7 @@ A skill NÃO pode:
 
 ## 4. Pré-requisitos
 
-- objetivo e workstream identificados;
+- tenant, objetivo e workstream identificados;
 - endpoint canônico ELO Web disponível;
 - persistência durável disponível;
 - autorização verificável pelo `elo-authz`;
@@ -49,6 +49,7 @@ A skill NÃO pode:
 
 - mensagem atual do usuário;
 - contexto conversacional necessário;
+- `tenant_id`;
 - `objective_id`;
 - `workstream_id`;
 - `expected_checkpoint_version`;
@@ -56,6 +57,8 @@ A skill NÃO pode:
 - `evidence_refs` reais;
 - `proposed_next_action`;
 - estado retornado por fontes canônicas.
+
+A mensagem e o contexto conversacional auxiliam a montagem do handoff, mas somente campos aceitos pelo contrato do ELO Web são enviados ao runtime.
 
 ## 6. Fontes autorizadas
 
@@ -68,13 +71,13 @@ A skill NÃO pode:
 ## 7. Procedimento obrigatório
 
 1. Identificar se a solicitação pertence a um objetivo governado.
-2. Resolver `objective_id` e `workstream_id` sem inventar valores.
+2. Resolver `tenant_id`, `objective_id` e `workstream_id` sem inventar valores.
 3. Ler o checkpoint persistente quando houver execução existente.
 4. Exigir `expected_checkpoint_version` ao retomar um checkpoint existente.
-5. Montar o pacote `GPT_TO_ELO` conforme `HANDOFF_GPT_TO_ELO.md`.
+5. Montar o pacote conforme `HANDOFF_GPT_TO_ELO.md`, usando exatamente o contrato aceito pelo ELO Web.
 6. Enviar ao runtime canônico.
-7. Receber `ELO_RETURN`.
-8. Validar o retorno conforme `HANDOFF_ELO_TO_GPT.md`.
+7. Receber a resposta do ELO Web.
+8. Validar o retorno conforme `HANDOFF_ELO_TO_GPT.md`, preservando localmente a identidade da requisição para correlação.
 9. Comunicar ao usuário a decisão do ELO sem alterá-la.
 10. Se `should_continue_automatically=true`, preparar somente o próximo handoff permitido.
 11. Se houver `human_required=true`, interromper a continuidade automática.
@@ -83,7 +86,7 @@ A skill NÃO pode:
 
 Toda continuidade exige:
 
-- identidade objetiva/workstream consistente;
+- identidade tenant/objetivo/workstream consistente;
 - checkpoint monotônico;
 - autorização observada e rastreável;
 - pelo menos uma referência de evidência;
@@ -92,11 +95,11 @@ Toda continuidade exige:
 
 ## 9. Incerteza
 
-Na ausência de checkpoint, autorização, evidência ou runtime disponível, usar estado explícito de GAP e não inferir sucesso.
+Na ausência de checkpoint quando exigido, autorização, evidência ou runtime disponível, usar estado explícito de GAP e não inferir sucesso.
 
 ## 10. Escalonamento
 
-Escalar quando:
+Escalar ou bloquear quando:
 
 - `elo-authz` negar ou expirar autorização;
 - houver checkpoint stale;
@@ -108,7 +111,7 @@ Escalar quando:
 
 ## 11. Saídas
 
-- `ELO_RETURN` validado;
+- resposta do ELO Web validada;
 - mensagem GPT baseada no retorno do ELO;
 - `next_trigger` somente quando permitido;
 - registro explícito de GAP quando o ciclo não puder ser executado.
@@ -119,17 +122,20 @@ A autoridade permanece no `ELO_COGNITIVO` e no owner de `Objective Continuity`. 
 
 ## 13. Testes de referência
 
+- tenant ausente → handoff inválido;
 - rejeição de checkpoint stale;
 - ausência de autorização → fail-closed;
 - ausência de persistência → fail-closed;
 - `ESCALATE` → sem próximo trigger;
 - `COMPLETE` → sem próximo trigger;
 - `CONTINUE/CORRECT/REPLAN` → no máximo um próximo trigger por turno;
-- identidade objetivo/workstream preservada.
+- identidade tenant/objetivo/workstream preservada por correlação;
+- campos da resposta devem corresponder ao contrato real do ELO Web.
 
 ## 14. Histórico
 
 - `0.1.0` — contrato inicial de handoff GPT↔ELO.
+- `0.1.1` — alinhamento do handoff ao contrato real do ELO Web após teste funcional: inclusão de `tenant_id` e correlação request/response sem exigir eco de identidade no topo da resposta.
 
 ## 15. Contextual parameters
 
