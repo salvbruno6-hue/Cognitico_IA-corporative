@@ -1,5 +1,6 @@
 -- Durable Objective Continuity checkpoint store for the canonical ELO Web runtime.
 -- Cognitive decisions remain in ELO Web; this table is persistence only.
+-- Authorization remains exclusively owned by elo-authz / elo_authorization_grants.
 
 create table if not exists public.elo_objective_continuity_checkpoints (
   tenant_id text not null,
@@ -28,27 +29,8 @@ create index if not exists idx_elo_objective_continuity_updated_at
 
 alter table public.elo_objective_continuity_checkpoints enable row level security;
 
+-- The browser/user roles never access this persistence table directly. The ELO Web
+-- server writes only after elo-authz has verified an explicit, unexpired objective
+-- continuation grant for operation continue_objective:<objective_id>.
 revoke all on table public.elo_objective_continuity_checkpoints from anon, authenticated;
 grant select, insert, update, delete on table public.elo_objective_continuity_checkpoints to service_role;
-
--- Autonomous objective continuation is an explicit ELO capability. It is granted
--- only to the canonical administrative role at this stage; elo-authz remains the
--- authority that evaluates the authenticated identity on every cycle.
-insert into public.elo_capabilities (code, name, description, active)
-values (
-  'OBJECTIVE_CONTINUE',
-  'Continuar objetivo ELO',
-  'Permite executar um ciclo governado de Objective Continuity sem nova aprovação conversacional.',
-  true
-)
-on conflict (code) do update
-set name = excluded.name,
-    description = excluded.description,
-    active = true;
-
-insert into public.elo_role_capabilities (role_id, capability_id)
-select r.role_id, c.capability_id
-from public.elo_roles r
-join public.elo_capabilities c on c.code = 'OBJECTIVE_CONTINUE'
-where r.code = 'CANONICAL_ADMIN' and r.active = true
-on conflict do nothing;
