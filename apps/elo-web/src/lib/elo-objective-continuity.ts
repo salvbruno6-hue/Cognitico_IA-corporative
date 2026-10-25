@@ -136,7 +136,14 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     .maybeSingle();
   if (readError) throw new ObjectiveContinuityError("STORE_READ_FAILED", "Falha ao ler checkpoint persistente do ELO.", 503);
 
-  if (existing && input.expectedCheckpointVersion != null && existing.state_version !== input.expectedCheckpointVersion) {
+  if (existing && input.expectedCheckpointVersion == null) {
+    throw new ObjectiveContinuityError(
+      "CHECKPOINT_VERSION_REQUIRED",
+      `expected_checkpoint_version é obrigatório para retomar o checkpoint ${existing.state_version}.`,
+      409,
+    );
+  }
+  if (existing && existing.state_version !== input.expectedCheckpointVersion) {
     throw new ObjectiveContinuityError(
       "STALE_CHECKPOINT",
       `Checkpoint stale: esperado ${input.expectedCheckpointVersion}, observado ${existing.state_version}.`,
