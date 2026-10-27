@@ -1,6 +1,6 @@
 # ELO — Skill de Orçamento
 
-**Versão:** 1.1  
+**Versão:** 1.2  
 **Status:** Candidato canônico — sujeito ao Evolution Gate  
 **Domínio:** Orçamento  
 **Autoridade:** ELO/Governance  
@@ -32,6 +32,7 @@ Fontes canônicas relacionadas:
 - `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
 - `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`
 - `docs/orcamento/ELO_ORCAMENTO_EXECUTION_ARCHITECTURE.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/CATALOGO_SERVICOS_ITENS_RECORRENTES.md`
 
 ## 2. Regra anti-duplicidade
 
@@ -58,17 +59,23 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 6. **Logística** — mobilização, desmobilização, transporte, hospedagem, alimentação, combustível e deslocamentos sustentados por evidência.
 7. **Premissas** — classificar origem e impacto; nunca ocultar informação não confirmada.
 8. **Questionamentos/vistoria** — preferir vistoria quando a lacuna puder ser resolvida em campo.
-9. **Conferência** — PTS Técnica × Orçamento.
-10. **PTS Pós-Orçamento** — identificar divergências, omissões, inclusões sem origem e responsabilidades indefinidas.
-11. **Aprendizado** — extrair padrões somente após validação, preservando evidência e contexto.
-12. **Memória de cálculo** — preservar fórmula, parâmetros, origem, resultado e evidência sem substituir o sistema persistente.
+9. **Varredura de recorrências** — reconhecer serviços/itens recorrentes, suas aplicações e relações; recorrência gera verificação, nunca inclusão automática.
+10. **Conferência** — PTS Técnica × Orçamento.
+11. **PTS Pós-Orçamento** — identificar divergências, omissões, inclusões sem origem e responsabilidades indefinidas.
+12. **Aprendizado** — extrair padrões somente após validação, preservando evidência e contexto.
+13. **Memória de cálculo** — preservar fórmula, parâmetros, origem, resultado e evidência sem substituir o sistema persistente.
 
 ## 4. Encadeamento operacional canônico
 
 ```text
 DOCUMENTAÇÃO VIGENTE
       ↓
-ELO ANALISAR / PTS TÉCNICA
+ELO ANALISAR
+      ↓
+PTS TÉCNICA
+      ↓
+[VARRER RECORRÊNCIAS — OBRIGATÓRIO]
+requisito → aplicação → item/serviço recorrente → dependências → memória/precedente → alerta
       ↓
 DIRECIONAMENTO / CHECKLIST
       ↓
@@ -80,9 +87,19 @@ ORÇAMENTO + MEMÓRIAS DE CÁLCULO
       ↓
 PTS PÓS-ORÇAMENTO
       ↓
+[VARRER RECORRÊNCIAS — OBRIGATÓRIO NOVAMENTE]
+orçado → esperado → omitido → duplicado → associação nova → candidato a aprendizado
+      ↓
 ELO CONFERE
    ├─ OK → fechamento
-   └─ CONTESTAÇÃO → Especialista corrige → nova conferência
+   └─ CONTESTAÇÃO → Especialista corrige
+                      ↓
+                    ORÇAMENTO REV.N
+                      ↓
+                    PTS PÓS REV.N
+                      ↓
+                    VARRER RECORRÊNCIAS
+                      └──────────────► nova conferência
       ↓
 APRENDIZADO CANDIDATO
       ↓
@@ -92,6 +109,65 @@ MEMÓRIA COGNITIVA E ESTRUTURAS PERSISTENTES CANÔNICAS
 ```
 
 A Skill não executa composição/precificação em paralelo ao Especialista e não grava diretamente em memória canônica fora do fluxo autorizado.
+
+## 4.1 Loop obrigatório de recorrências
+
+A varredura de serviços e itens recorrentes é uma etapa **obrigatória e repetível** do orçamento.
+
+### Entrada pela PTS Técnica
+
+Sempre que uma PTS Técnica for criada ou revisada, executar:
+
+`REQUISITOS → DISCIPLINAS → CATÁLOGO DE RECORRÊNCIAS → APLICAÇÃO → DEPENDÊNCIAS → PRECEDENTES/MEMÓRIAS → ALERTAS PARA ORÇAMENTO`
+
+A varredura deve perguntar, conforme aplicabilidade:
+
+- o requisito costuma gerar abertura/reforço/acabamento de vão?
+- há fabricação e instalação separadas?
+- há item complementar de fixação, acabamento, proteção ou conexão?
+- há elétrica, hidráulica, dados, climatização, drenagem ou SPDA associados?
+- há mobilização, carro de apoio, hospedagem, pedágio, transporte ou Munck?
+- há projeto, ART/RRT, teste, comissionamento ou documentação?
+- há manutenção ou periodicidade?
+
+O resultado é **alerta de verificação**. Nunca ampliar escopo automaticamente.
+
+### Entrada pela PTS Pós-Orçamento
+
+Sempre que uma PTS Pós for criada ou revisada, repetir a varredura:
+
+`PTS TÉCNICA → ORÇAMENTO → ITENS RECORRENTES ESPERADOS → ITENS ORÇADOS → OMISSÕES → DUPLICIDADES → NOVAS ASSOCIAÇÕES → APRENDIZADO`
+
+A PTS Pós deve classificar cada associação como:
+
+- `ATENDIDA`;
+- `NÃO APLICÁVEL`;
+- `OMITIDA`;
+- `DUPLICADA`;
+- `PENDENTE DE VALIDAÇÃO`;
+- `NOVA ASSOCIAÇÃO CANDIDATA`.
+
+### Reentrada
+
+Se a PTS Pós encontrar erro ou lacuna que altere o orçamento:
+
+`PTS PÓS → CORREÇÃO DO ORÇAMENTO → NOVA PTS PÓS → NOVA VARREDURA`
+
+O loop só encerra quando divergências materiais estiverem resolvidas, justificadas ou explicitamente arbitradas.
+
+## 4.2 Catálogo cognitivo recorrente
+
+A skill deve consultar o catálogo do Especialista:
+
+`08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/CATALOGO_SERVICOS_ITENS_RECORRENTES.md`
+
+O catálogo responde **o que procurar e quando procurar**. Valores, quantidades e fórmulas reais devem vir da fonte vigente e das memórias estruturadas correspondentes.
+
+Regra:
+
+`RECORRÊNCIA ≠ INCLUSÃO AUTOMÁTICA`
+
+`RECORRÊNCIA → VERIFICAR APLICAÇÃO → CONSULTAR MEMÓRIA → RECALCULAR → VALIDAR → ORÇAR`
 
 ## 5. Regras de decisão
 
@@ -104,6 +180,8 @@ A Skill não executa composição/precificação em paralelo ao Especialista e n
 - Toda precificação relevante deve manter origem identificável.
 - Premissa crítica deve gerar pendência/questionamento quando alterar materialmente custo ou atendimento.
 - Resultado de uma única SO não vira regra geral sem validação.
+- Toda PTS Técnica e toda PTS Pós deve executar a varredura de recorrências antes de ser considerada completa.
+- Uma associação recorrente ausente gera alerta; não autoriza inclusão automática.
 
 ## 6. Contrato de aprendizado
 
@@ -124,6 +202,18 @@ Status permitidos:
 
 Somente `VALIDADO` pode alimentar regra permanente, e ainda assim pelo mecanismo canônico de memória/governança.
 
+O loop deve aprender prioritariamente:
+
+- serviços e itens recorrentes;
+- gatilhos de aplicação;
+- associações entre itens;
+- sequência executiva;
+- separação fabricação × instalação × campo;
+- quantitativos e produtividade;
+- dependências logísticas;
+- responsabilidade por fornecimento de valores;
+- causas de omissão e duplicidade encontradas na PTS Pós.
+
 ## 7. Relação com a memória persistente
 
 A skill não cria memória paralela. Os registros de orçamento devem utilizar as estruturas canônicas existentes, incluindo as famílias de:
@@ -135,18 +225,23 @@ A skill não cria memória paralela. Os registros de orçamento devem utilizar a
 - decisões;
 - associações.
 
+Método, aplicação e relação recorrente ficam na camada documental do Especialista; memória quantitativa real permanece na persistência estruturada canônica.
+
 O `ELO_MEMORIA_ORCAMENTOS.md` é camada textual de contexto/índice e não substitui a persistência estruturada nem cria uma nova autoridade.
 
 ## 8. Fail-closed
 
 Bloquear ou marcar como não confirmado quando houver:
 
+- PTS Técnica sem varredura de recorrências;
+- PTS Pós sem segunda varredura de recorrências;
 - evidência ausente para requisito crítico;
 - cálculo sem parâmetros suficientes;
 - origem de custo não demonstrável;
 - conflito documental não resolvido;
 - responsabilidade indefinida com impacto material;
 - tentativa de transformar experiência isolada em regra;
+- associação recorrente incluída automaticamente sem confirmação de aplicabilidade;
 - segredo/token/chave em evidência ou proveniência;
 - tentativa de alterar memória canônica fora do fluxo autorizado.
 
@@ -156,9 +251,13 @@ A execução só é considerada rastreável quando cada custo relevante puder re
 
 `POR QUE → DE ONDE → COMO → QUANTO → PREMISSA → RISCO → VALIDAÇÃO`
 
+E cada recorrência relevante puder responder:
+
+`QUAL GATILHO → QUAL APLICAÇÃO → QUAL DEPENDÊNCIA → QUAL MEMÓRIA → FOI VERIFICADA? → QUAL RESULTADO?`
+
 ## 10. Potencialização para o ELO
 
-Esta skill transforma o domínio de orçamento em uma capacidade estruturada de raciocínio operacional **sem duplicar capacidades existentes**: conecta requisito, solução, composição, custo, evidência, decisão, resultado pós-orçamento e aprendizado, mantendo a autoridade nas estruturas canônicas já existentes.
+Esta skill transforma o domínio de orçamento em uma capacidade estruturada de raciocínio operacional **sem duplicar capacidades existentes**: conecta requisito, solução, composição, custo, evidência, decisão, recorrências, resultado pós-orçamento e aprendizado, mantendo a autoridade nas estruturas canônicas já existentes.
 
 ## 11. Regra de manutenção
 
