@@ -9,7 +9,7 @@ than becoming parallel Core owners.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping, Any
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,22 +22,42 @@ class ProviderBoundaryDecision:
     canonical_mutation: bool = False
 
 
+def _nonempty_string(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 def classify_external_provider(metadata: Mapping[str, Any]) -> ProviderBoundaryDecision:
     """Classify a provider declaration without activating it.
 
-    Fail closed when identity/owner/boundary metadata is incomplete. A provider
-    explicitly declaring itself as Core or routing authority is rejected: an
-    external provider may adapt the gateway, never become a parallel authority.
+    Fail closed unless identity, owner, boundary and authority are explicit
+    strings from the bounded adapter vocabulary. External providers may adapt
+    the existing gateway; they never become parallel Core authorities.
     """
-    provider_id = str(metadata.get("provider_id") or "").strip()
-    owner = str(metadata.get("owner") or "").strip()
-    boundary = str(metadata.get("boundary") or "").strip().lower()
-    authority = str(metadata.get("authority") or "").strip().lower()
+    provider_id = _nonempty_string(metadata.get("provider_id"))
+    owner = _nonempty_string(metadata.get("owner"))
+    boundary_raw = _nonempty_string(metadata.get("boundary"))
+    authority_raw = _nonempty_string(metadata.get("authority"))
 
-    if not provider_id or not owner or not boundary:
-        return ProviderBoundaryDecision(provider_id, owner, "candidate", False, "incomplete_provider_metadata")
+    display_provider_id = provider_id or ""
+    display_owner = owner or ""
+    if provider_id is None or owner is None or boundary_raw is None or authority_raw is None:
+        return ProviderBoundaryDecision(
+            display_provider_id,
+            display_owner,
+            "candidate",
+            False,
+            "incomplete_or_malformed_provider_metadata",
+        )
+
+    boundary = boundary_raw.lower()
+    authority = authority_raw.lower()
     if authority in {"core", "router", "routing", "memory", "evolution_gate"}:
         return ProviderBoundaryDecision(provider_id, owner, "candidate", False, "parallel_authority_forbidden")
+    if authority not in {"execution_adapter"}:
+        return ProviderBoundaryDecision(provider_id, owner, "candidate", False, "unsupported_provider_authority")
     if boundary not in {"adapter", "external_process", "plugin"}:
         return ProviderBoundaryDecision(provider_id, owner, "candidate", False, "unsupported_provider_boundary")
     if owner != "ELO External Capability Gateway":
