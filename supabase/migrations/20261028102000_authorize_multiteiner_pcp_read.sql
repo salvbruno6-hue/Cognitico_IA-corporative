@@ -12,7 +12,6 @@ DECLARE
   v_role uuid;
   v_role_identity_count integer;
   v_pcp_read uuid;
-  v_correlation uuid := gen_random_uuid();
 BEGIN
   SELECT count(*) INTO v_identity_count
   FROM public.elo_identity_registry i
@@ -83,34 +82,23 @@ BEGIN
   VALUES (v_role, v_pcp_read)
   ON CONFLICT DO NOTHING;
 
-  INSERT INTO public.elo_audit_log(
-    correlation_id, actor_type, operation, entity_type, entity_id,
-    request_summary, status, metadata
+  INSERT INTO public.elo_authorization_audit(
+    identity_id, action, resource, decision, reason, request_id
   )
   SELECT
-    v_correlation,
-    'HUMAN_AUTHORIZATION',
-    'AUTHORIZE_MT_PCP_READ',
-    'elo_identity_registry',
     v_identity,
-    'Explicit authorization for ENTERPRISE/MULTITEINER + DOMAIN/PCP-LISTA-MAE + PCP_READ',
-    'SUCCESS',
-    jsonb_build_object(
-      'enterprise_scope', 'MULTITEINER',
-      'domain_scope', 'PCP-LISTA-MAE',
-      'capability', 'PCP_READ',
-      'role', 'ELO_ADMIN',
-      'authorized_in_chat', true
-    )
+    'AUTHORIZE_MT_PCP_READ',
+    'ENTERPRISE/MULTITEINER|DOMAIN/PCP-LISTA-MAE',
+    'ALLOW',
+    'Explicit chat authorization; least privilege via existing ELO_ADMIN + PCP_READ',
+    'chat://2026-10-28/authorize-multiteiner-pcp-read'
   WHERE NOT EXISTS (
     SELECT 1
-    FROM public.elo_audit_log a
-    WHERE a.operation = 'AUTHORIZE_MT_PCP_READ'
-      AND a.entity_type = 'elo_identity_registry'
-      AND a.entity_id = v_identity
-      AND a.status = 'SUCCESS'
-      AND a.metadata ->> 'enterprise_scope' = 'MULTITEINER'
-      AND a.metadata ->> 'domain_scope' = 'PCP-LISTA-MAE'
-      AND a.metadata ->> 'capability' = 'PCP_READ'
+    FROM public.elo_authorization_audit a
+    WHERE a.identity_id = v_identity
+      AND a.action = 'AUTHORIZE_MT_PCP_READ'
+      AND a.resource = 'ENTERPRISE/MULTITEINER|DOMAIN/PCP-LISTA-MAE'
+      AND a.decision = 'ALLOW'
+      AND a.request_id = 'chat://2026-10-28/authorize-multiteiner-pcp-read'
   );
 END $$;
