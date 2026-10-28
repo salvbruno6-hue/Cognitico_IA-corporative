@@ -22,8 +22,11 @@ select
     from public.elo_identity_registry i
     join public.elo_identity_roles ir
       on ir.identity_id = i.identity_id
+    join public.elo_roles r
+      on r.role_id = ir.role_id
+     and r.active
     join public.elo_role_capabilities rc
-      on rc.role_id = ir.role_id
+      on rc.role_id = r.role_id
     join public.elo_capabilities c
       on c.capability_id = rc.capability_id
      and c.active
@@ -66,7 +69,7 @@ revoke all on function elo_private.can_read_pcp_tenant(uuid) from public;
 grant execute on function elo_private.can_read_pcp_tenant(uuid) to authenticated;
 
 comment on function elo_private.can_read_pcp_tenant(uuid) is
-'Fail-closed PCP read predicate: active identity + explicit PCP_READ capability + enterprise scope matching tenant code + DOMAIN/PCP-LISTA-MAE. No write authority.';
+'Fail-closed PCP read predicate: active identity + active role with explicit PCP_READ capability + enterprise scope matching tenant code + DOMAIN/PCP-LISTA-MAE. No write authority.';
 
 drop policy if exists p_mt_planos_pcp_read on public.mt_planos_pcp;
 create policy p_mt_planos_pcp_read
