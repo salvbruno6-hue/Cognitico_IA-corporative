@@ -3,18 +3,20 @@
 This module closes domain-side capabilities that can be developed without
 operational PCP records: planned-vs-actual comparison, data-readiness checks,
 demand/capacity confrontation, material lead-time constraints, empirical
-capacity learning candidates, evidence packaging, and canonical Evolution Gate
-evaluation.
+capacity learning candidates, governed mix/component explosion, systemic
+capacity reasoning, EL projection, staffing ramp candidates, evidence packaging,
+and canonical Evolution Gate evaluation.
 
-It does not create a lifecycle, memory, router, learning service, or Evolution
-Gate. It only composes existing authorities and produces deterministic domain
-evidence.
+It does not create a lifecycle, memory, router, learning service, hiring
+authority, or Evolution Gate. It only composes existing authorities and produces
+deterministic domain evidence.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from math import ceil
 from statistics import fmean
 from typing import Mapping, Sequence
 
@@ -136,6 +138,250 @@ def assess_demand_capacity(
         utilization_pct=utilization,
         spillover_quantity=deficit,
         status=status,
+    )
+
+
+@dataclass(frozen=True)
+class MixRequirementAssessment:
+    requirements: Mapping[str, float]
+    missing_bom_models: tuple[str, ...]
+    status: str
+
+
+def calculate_mix_component_requirements(
+    model_quantities: Mapping[str, float],
+    bom_by_model: Mapping[str, Mapping[str, float]],
+) -> MixRequirementAssessment:
+    """Explode a model mix into component demand without filling missing BOMs."""
+    requirements: dict[str, float] = {}
+    missing: list[str] = []
+
+    for model, quantity in model_quantities.items():
+        if quantity < 0:
+            raise ValueError("model quantities cannot be negative")
+        if quantity == 0:
+            continue
+        bom = bom_by_model.get(model)
+        if bom is None:
+            missing.append(model)
+            continue
+        for component, consumption in bom.items():
+            if consumption < 0:
+                raise ValueError("BOM consumption cannot be negative")
+            requirements[component] = requirements.get(component, 0.0) + quantity * consumption
+
+    missing_tuple = tuple(dict.fromkeys(missing))
+    if missing_tuple and requirements:
+        status = "RESPOSTA_PARCIAL"
+    elif missing_tuple:
+        status = "ANALISE_BLOQUEADA"
+    else:
+        status = "CALCULADO"
+    return MixRequirementAssessment(requirements, missing_tuple, status)
+
+
+@dataclass(frozen=True)
+class SystemicCapacityAssessment:
+    demanded_units: float
+    executable_units: float | None
+    limiting_constraints: tuple[str, ...]
+    unknown_constraints: tuple[str, ...]
+    status: str
+
+
+def assess_systemic_capacity(
+    demanded_units: float,
+    constraint_capacities: Mapping[str, float | None],
+    *,
+    required_constraints: Sequence[str] | None = None,
+) -> SystemicCapacityAssessment:
+    """Apply the system bottleneck principle using only supplied constraints.
+
+    Unknown required constraints are preserved as unknown. A known bottleneck can
+    still establish an upper bound, but the result remains partial while any
+    required constraint is unknown.
+    """
+    if demanded_units < 0:
+        raise ValueError("demanded_units cannot be negative")
+
+    required = tuple(dict.fromkeys(required_constraints or constraint_capacities.keys()))
+    unknown: list[str] = []
+    known: dict[str, float] = {}
+    for name in required:
+        capacity = constraint_capacities.get(name)
+        if capacity is None:
+            unknown.append(name)
+            continue
+        if capacity < 0:
+            raise ValueError("constraint capacities cannot be negative")
+        known[name] = capacity
+
+    if not known:
+        return SystemicCapacityAssessment(
+            demanded_units, None, (), tuple(unknown), "ANALISE_BLOQUEADA"
+        )
+
+    min_capacity = min(known.values())
+    executable = min(demanded_units, min_capacity)
+    limiting = tuple(name for name, capacity in known.items() if capacity == min_capacity)
+
+    if unknown:
+        status = (
+            "LIMITADO_COM_EVIDENCIA_PARCIAL"
+            if executable < demanded_units
+            else "RESPOSTA_PARCIAL"
+        )
+    elif executable < demanded_units:
+        status = "CAPACIDADE_SISTEMICA_INSUFICIENTE"
+    else:
+        status = "CAPACIDADE_SISTEMICA_SUFICIENTE"
+
+    return SystemicCapacityAssessment(
+        demanded_units,
+        executable,
+        limiting,
+        tuple(unknown),
+        status,
+    )
+
+
+@dataclass(frozen=True)
+class StaffingRampAssessment:
+    required_units_per_day: float
+    output_per_team_per_day: float | None
+    current_teams: int
+    required_teams: int | None
+    additional_teams: int | None
+    workers_per_team: int | None
+    additional_workers: int | None
+    status: str
+
+
+def assess_staffing_ramp(
+    required_units_per_day: float,
+    *,
+    output_per_team_per_day: float | None,
+    current_teams: int,
+    workers_per_team: int | None = None,
+) -> StaffingRampAssessment:
+    """Calculate an evidence-bound staffing capacity candidate, not a hiring order."""
+    if required_units_per_day < 0:
+        raise ValueError("required_units_per_day cannot be negative")
+    if current_teams < 0:
+        raise ValueError("current_teams cannot be negative")
+    if workers_per_team is not None and workers_per_team <= 0:
+        raise ValueError("workers_per_team must be greater than zero")
+    if output_per_team_per_day is None:
+        return StaffingRampAssessment(
+            required_units_per_day,
+            None,
+            current_teams,
+            None,
+            None,
+            workers_per_team,
+            None,
+            "PRODUTIVIDADE_EQUIPE_NAO_LOCALIZADA",
+        )
+    if output_per_team_per_day <= 0:
+        raise ValueError("output_per_team_per_day must be greater than zero")
+
+    required_teams = ceil(required_units_per_day / output_per_team_per_day)
+    additional_teams = max(required_teams - current_teams, 0)
+    additional_workers = (
+        additional_teams * workers_per_team if workers_per_team is not None else None
+    )
+    status = "CAPACITY_RAMP_CANDIDATE" if additional_teams > 0 else "EQUIPE_ATUAL_SUFICIENTE"
+    return StaffingRampAssessment(
+        required_units_per_day,
+        output_per_team_per_day,
+        current_teams,
+        required_teams,
+        additional_teams,
+        workers_per_team,
+        additional_workers,
+        status,
+    )
+
+
+@dataclass(frozen=True)
+class ELDayProjection:
+    day_index: int
+    opening_el: float
+    releases: float
+    available_before_consumption: float
+    planned_assembly: float
+    realizable_assembly: float
+    closing_el: float
+    status: str
+
+
+@dataclass(frozen=True)
+class ELProjectionAssessment:
+    days: tuple[ELDayProjection, ...]
+    first_constraint_day: int | None
+    status: str
+
+
+def project_el_balance(
+    initial_el: float,
+    daily_releases: Sequence[float],
+    daily_assembly_plan: Sequence[float],
+    *,
+    minimum_el: float = 3.0,
+    target_el: float = 4.0,
+    maximum_el: float = 5.0,
+) -> ELProjectionAssessment:
+    """Project cumulative EL and cap assembly by structures available before use."""
+    if initial_el < 0:
+        raise ValueError("initial_el cannot be negative")
+    if len(daily_releases) != len(daily_assembly_plan):
+        raise ValueError("daily_releases and daily_assembly_plan must have equal length")
+    if not (0 <= minimum_el <= target_el <= maximum_el):
+        raise ValueError("EL thresholds must satisfy 0 <= minimum <= target <= maximum")
+    if any(v < 0 for v in daily_releases) or any(v < 0 for v in daily_assembly_plan):
+        raise ValueError("EL releases and assembly plan cannot be negative")
+
+    opening = initial_el
+    rows: list[ELDayProjection] = []
+    first_constraint: int | None = None
+    for index, (releases, planned) in enumerate(
+        zip(daily_releases, daily_assembly_plan), start=1
+    ):
+        available = opening + releases
+        realizable = min(planned, available)
+        closing = available - realizable
+        if realizable < planned:
+            status = "MONTAGEM_LIMITADA_POR_EL"
+            if first_constraint is None:
+                first_constraint = index
+        elif closing < minimum_el:
+            status = "EL_ABAIXO_MINIMO"
+            if first_constraint is None:
+                first_constraint = index
+        elif closing > maximum_el:
+            status = "EL_ACIMA_MAXIMO"
+        elif closing == target_el:
+            status = "EL_NO_ALVO"
+        else:
+            status = "EL_DENTRO_FAIXA"
+        rows.append(
+            ELDayProjection(
+                index,
+                opening,
+                releases,
+                available,
+                planned,
+                realizable,
+                closing,
+                status,
+            )
+        )
+        opening = closing
+
+    return ELProjectionAssessment(
+        tuple(rows),
+        first_constraint,
+        "RESTRICAO_LOCALIZADA" if first_constraint is not None else "SEM_RESTRICAO_EL",
     )
 
 
