@@ -21,29 +21,23 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           fn = Path('supabase/functions/elo-mcp/index.ts')
           source = fn.read_text()
+          route_pattern = re.compile(r'  const pathname = new URL\(req\.url\)\.pathname\.replace\(/\\/\$/, ""\);\n  if \(req\.method === "GET" && \(\n    pathname === RESOURCE_METADATA_PATH \|\|\n    pathname === `\$\{RESOURCE_PATH\}/\.well-known/oauth-protected-resource`\n  \)\) \{\n    return protectedResourceMetadata\(\);\n  \}')
+          new_route = '\n'.join([
+              '  const pathname = new URL(req.url).pathname.replace(/\\/$/, "");',
+              '  if (req.method === "GET" && pathname.endsWith("/oauth-protected-resource")) {',
+              '    return protectedResourceMetadata();',
+              '  }',
+          ])
+          source, count = route_pattern.subn(new_route, source, count=1)
+          if count != 1:
+              raise SystemExit(f'route contract replacements={count}')
 
-          old_route = '''  const pathname = new URL(req.url).pathname.replace(/\\/$/, "");
-          if (req.method === "GET" && (
-            pathname === RESOURCE_METADATA_PATH ||
-            pathname === `${RESOURCE_PATH}/.well-known/oauth-protected-resource`
-          )) {
-            return protectedResourceMetadata();
-          }
-          '''
-          new_route = '''  const pathname = new URL(req.url).pathname.replace(/\\/$/, "");
-          if (req.method === "GET" && pathname.endsWith("/oauth-protected-resource")) {
-            return protectedResourceMetadata();
-          }
-          '''
-          if source.count(old_route) != 1:
-              raise SystemExit(f'route contract occurrence count={source.count(old_route)}')
-          source = source.replace(old_route, new_route)
-
-          old_challenge = '''        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${new URL(RESOURCE_METADATA_PATH, new URL(req.url).origin).toString()}"`,'''
-          new_challenge = '''        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${SUPABASE_URL}${RESOURCE_METADATA_PATH}"`,'''
+          old_challenge = '        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${new URL(RESOURCE_METADATA_PATH, new URL(req.url).origin).toString()}"`,'
+          new_challenge = '        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${SUPABASE_URL}${RESOURCE_METADATA_PATH}"`,'
           if source.count(old_challenge) != 1:
               raise SystemExit(f'challenge contract occurrence count={source.count(old_challenge)}')
           source = source.replace(old_challenge, new_challenge)
@@ -51,57 +45,53 @@ jobs:
 
           test_file = Path('supabase/tests/elo-mcp-oauth.test.mjs')
           tests = test_file.read_text()
-          old_test = '''test('discovery works without a bearer token at both supported paths', async () => {
-            for (const suffix of ['/oauth-protected-resource', '/.well-known/oauth-protected-resource']) {
-              const res = await handler()(new Request(endpoint + suffix));
-              assert.equal(res.status, 200);
-              const metadata = await res.json();
-              assert.equal(metadata.resource, endpoint);
-              assert.deepEqual(metadata.authorization_servers, [base + '/auth/v1']);
-            }
-          });'''
-          new_test = '''test('discovery works across public and gateway-rewritten paths', async () => {
-            const requestUrls = [
-              endpoint + '/oauth-protected-resource',
-              endpoint + '/.well-known/oauth-protected-resource',
-              base + '/oauth-protected-resource',
-              base + '/.well-known/oauth-protected-resource',
-              base + '/elo-mcp/oauth-protected-resource',
-              base + '/elo-mcp/.well-known/oauth-protected-resource',
-            ];
-            for (const requestUrl of requestUrls) {
-              const res = await handler()(new Request(requestUrl));
-              assert.equal(res.status, 200);
-              const metadata = await res.json();
-              assert.equal(metadata.resource, endpoint);
-              assert.deepEqual(metadata.authorization_servers, [base + '/auth/v1']);
-            }
-          });'''
-          if tests.count(old_test) != 1:
-              raise SystemExit(f'discovery test occurrence count={tests.count(old_test)}')
-          tests = tests.replace(old_test, new_test)
+          discovery_pattern = re.compile(r"test\('discovery works without a bearer token at both supported paths', async \(\) => \{\n.*?\n\}\);", re.S)
+          new_discovery = '\n'.join([
+              "test('discovery works across public and gateway-rewritten paths', async () => {",
+              '  const requestUrls = [',
+              "    endpoint + '/oauth-protected-resource',",
+              "    endpoint + '/.well-known/oauth-protected-resource',",
+              "    base + '/oauth-protected-resource',",
+              "    base + '/.well-known/oauth-protected-resource',",
+              "    base + '/elo-mcp/oauth-protected-resource',",
+              "    base + '/elo-mcp/.well-known/oauth-protected-resource',",
+              '  ];',
+              '  for (const requestUrl of requestUrls) {',
+              '    const res = await handler()(new Request(requestUrl));',
+              '    assert.equal(res.status, 200);',
+              '    const metadata = await res.json();',
+              '    assert.equal(metadata.resource, endpoint);',
+              "    assert.deepEqual(metadata.authorization_servers, [base + '/auth/v1']);",
+              '  }',
+              '});',
+          ])
+          tests, count = discovery_pattern.subn(lambda _: new_discovery, tests, count=1)
+          if count != 1:
+              raise SystemExit(f'discovery test replacements={count}')
 
-          old_assertion = '''      assert.match(res.headers.get('WWW-Authenticate'), /resource_metadata="https:\\/\\/.+\\/oauth-protected-resource"/);'''
-          new_assertion = '''      assert.equal(res.headers.get('WWW-Authenticate'), `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`);'''
+          old_assertion = '      assert.match(res.headers.get(\'WWW-Authenticate\'), /resource_metadata="https:\\/\\/.+\\/oauth-protected-resource"/);'
+          new_assertion = '      assert.equal(res.headers.get(\'WWW-Authenticate\'), `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`);'
           if tests.count(old_assertion) != 1:
               raise SystemExit(f'challenge assertion occurrence count={tests.count(old_assertion)}')
           tests = tests.replace(old_assertion, new_assertion)
 
-          marker = '''test('deploy configuration delegates authentication only for elo-mcp', () => {'''
-          extra = '''test('challenge stays canonical when the gateway rewrites the request origin', async () => {
-            const res = await handler()(new Request('https://edge-runtime.internal/elo-mcp', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
-            }));
-            assert.equal(res.status, 401);
-            assert.equal(
-              res.headers.get('WWW-Authenticate'),
-              `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`,
-            );
-          });
-
-          '''
+          marker = "test('deploy configuration delegates authentication only for elo-mcp', () => {"
+          extra = '\n'.join([
+              "test('challenge stays canonical when the gateway rewrites the request origin', async () => {",
+              "  const res = await handler()(new Request('https://edge-runtime.internal/elo-mcp', {",
+              "    method: 'POST',",
+              "    headers: { 'Content-Type': 'application/json' },",
+              "    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),",
+              '  }));',
+              '  assert.equal(res.status, 401);',
+              '  assert.equal(',
+              "    res.headers.get('WWW-Authenticate'),",
+              '    `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`,',
+              '  );',
+              '});',
+              '',
+              '',
+          ])
           if tests.count(marker) != 1:
               raise SystemExit(f'test marker occurrence count={tests.count(marker)}')
           tests = tests.replace(marker, extra + marker)
