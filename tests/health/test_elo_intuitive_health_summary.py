@@ -43,6 +43,7 @@ def test_health_summary_reuses_existing_owners() -> None:
         "elo_conhecimento_itens",
         "elo_conhecimento_vinculos",
         "elo_cognitive_relations",
+        "elo_aprendizado_relacoes",
         "elo_experience_level_transitions",
         "elo_experiencia_transicoes",
     )
@@ -61,3 +62,10 @@ def test_experience_conflict_is_detected_from_material_thresholds() -> None:
         "profundidade_minima",
     ):
         assert field in SUMMARY
+
+
+def test_cognitive_relation_health_counts_candidates_and_evidence() -> None:
+    assert "candidate_relations" in SUMMARY
+    assert "evidence_backed_candidates" in SUMMARY
+    assert "STRENGTHEN" in SUMMARY
+    assert "Symbiont generalization and Evolution Gate" in SUMMARY
