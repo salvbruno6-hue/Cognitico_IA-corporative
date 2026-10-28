@@ -32,13 +32,17 @@ def test_grants_only_read_capability_through_existing_role() -> None:
     assert "insert into public.elo_scopes" not in source
 
 
-def test_is_fail_closed_and_idempotent() -> None:
+def test_is_fail_closed_idempotent_and_audited_by_authz_owner() -> None:
     source = MIGRATION.lower()
     assert "expected exactly 1 eligible verified google identity" in source
     assert "elo_admin is not exclusively bound" in source
     assert source.count("on conflict do nothing") == 2
     assert "where not exists" in source
+    assert "insert into public.elo_authorization_audit" in source
     assert "authorize_mt_pcp_read" in source
+    assert "decision, reason, request_id" in source
+    assert "'allow'" in source
+    assert "insert into public.elo_audit_log" not in source
 
 
 def test_contains_no_hardcoded_uuid_or_rls_rewrite() -> None:
