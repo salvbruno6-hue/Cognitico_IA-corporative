@@ -6,13 +6,5 @@ interface:
   brand_color: "#4F46E5"
   default_prompt: "Use $elo-operador para consultar o estado governado do ELO e relatar evidências, lacunas e próxima ação autorizada."
 
-dependencies:
-  tools:
-    - type: "mcp"
-      value: "elo_mcp"
-      description: "Fronteira MCP autenticada, auditável e de leitura do ELO"
-      transport: "streamable_http"
-      url: "https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-mcp"
-
 policy:
   allow_implicit_invocation: false

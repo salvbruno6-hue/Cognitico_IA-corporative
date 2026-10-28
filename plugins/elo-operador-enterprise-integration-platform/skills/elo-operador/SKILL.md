@@ -1,30 +1,34 @@
 ---
 name: elo-operador
-description: Consulta governada e auditável da Enterprise Integration Platform do ELO. Use para verificar estado, dados canônicos permitidos, pendências PCP, indicadores, Decision Outcome Loop, calibração e precedentes.
+description: Consulte o banco ELO no Supabase e o sistema cognitivo no GitHub para verificar evidências, estado das fontes, memória e implementação, sem depender do frontend ELO.
 ---
 
 # ELO Operador
 
-Use as ferramentas expostas pelo servidor MCP `elo_mcp` para consultar o ELO por meio da fronteira autenticada e auditável. Para consultar o status, chame `elo_status` com argumentos vazios (`{}`). `elo_mcp` identifica o servidor, não uma ferramenta.
+## Fontes e escopo
 
-Se `elo_status` ou as demais ferramentas não estiverem disponíveis na conversa, informe que a conexão não está carregada ou autenticada e solicite a conexão do plugin. Não simule resultados nem apresente o estado do repositório como status operacional do ELO.
+- Banco: projeto Supabase `Elo-forge`, ID `fxbpevjrkwhbicpmecow`.
+- Sistema: `salvbruno6-hue/Cognitico_IA-corporative`, branch canônico `main`.
+- Reutilize as ferramentas dos conectores autenticados Supabase e GitHub declarados neste plugin.
+- Não exija abrir páginas do ELO, Vercel, GitHub Pages ou autenticar o ELO-MCP para este fluxo.
+- Este modo consulta fontes por acesso delegado do usuário; não representa uma sessão de runtime autorizada por `elo-authz`. Não simule `elo_status`, gates ou permissões.
 
-## Limite de autoridade
+## Limites
 
-- O ELO continua sendo o orquestrador cognitivo e a autoridade de admissão, decisão e evolução.
-- Esta integração é de leitura. Não proponha escrita de dados, alterações de schema, promoção de conhecimento, mudança de regra ou liberação de gate.
-- Trate o resultado como evidência consultada, não como fato independente: preserve fonte, contexto, lacunas, incerteza e próximos passos.
-- Quando dados estiverem ausentes, declare o GAP; nunca estime ou preencha por inferência.
+Esta versão executa somente consultas. No GitHub, use busca e leitura de arquivos, commits, issues, PRs e checks. No Supabase, use leitura de metadados, logs e SELECTs estritamente de consulta. Para várias consultas relacionadas, use transação READ ONLY quando suportada. Nunca execute DML, DDL, funções com efeitos colaterais, migrations, deploy, merge, grants ou promoção de conhecimento neste fluxo.
 
-## Fluxo operacional
+Os conectores podem expor ferramentas de escrita: a presença delas não autoriza seu uso por esta habilidade. A instrução de leitura não altera as permissões técnicas das contas. Não use acesso administrativo para contornar RLS, tenant, scopes ou decisões de negócio; se a consulta depender de autorização canônica não comprovada, relate o GAP e pare essa consulta. Não leia segredos, tokens ou dados pessoais desnecessários.
 
-1. Estabeleça o objetivo, o contexto e o escopo autorizado.
-2. Chame `elo_status` antes da primeira leitura quando for necessário confirmar identidade, papéis e limite de acesso.
-3. Escolha a tool mais específica disponível; use `elo_read` somente para tabelas explicitamente permitidas.
-4. Para PCP, siga as perguntas devolvidas por `elo_pcp_dados_pendentes`, `elo_pcp_demanda_crossing_status` e `elo_pcp_decisao_externa_status` antes de calcular ou recomendar.
-5. Não chame um indicador de KPI formal sem confirmação de `elo_pcp_indicadores_status`.
-6. Diferencie evidência, hipótese, recomendação e decisão humana no retorno.
+## Fluxo
 
-## Resposta
+1. Identifique objetivo, fonte e escopo. Para uma análise integrada, consulte ambas as fontes antes da conclusão.
+2. No GitHub, leia `AGENTS.md`, as regras de navegação e os contratos pertinentes antes de interpretar o sistema. Busque implementações existentes em vez de inventar capacidades.
+3. No banco, confirme o projeto. Inspecione o schema e as fontes consultivas existentes antes de SELECTs limitados e pertinentes ao pedido. Preserve contexto e proveniência.
+4. GitHub é a fonte operacional canônica; Supabase fornece memória e evidências persistentes consultivas. O ELO permanece o orquestrador cognitivo. Conflitos geram GAP e investigação, nunca prevalência silenciosa.
+5. Para "status do ELO", apresente separadamente conectividade do banco, evidências persistentes e estado observado no repositório. Não converta esses resultados em prova de saúde do runtime ou de acesso a todas as tabelas.
+6. Não estime dados faltantes, não promova experiências a regras e não denomine indicador como KPI formal sem definição e evidência.
+7. Se um conector não estiver disponível, informe qual está ausente. Não substitua por páginas do ELO nem invente resultados.
 
-Apresente, de forma objetiva: objetivo, evidências consultadas, lacunas/limites, análise e próxima ação autorizada. Não exponha dados não necessários nem credenciais.
+## Retorno
+
+Informe evidências com projeto/tabela ou arquivo/branch/commit, lacunas, análise e próxima ação autorizada. Relacione os achados das duas fontes sem criar autoridade paralela.
