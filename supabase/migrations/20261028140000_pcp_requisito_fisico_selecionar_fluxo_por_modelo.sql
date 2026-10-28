@@ -78,7 +78,7 @@ cross join lateral (
     where fp.ativo=true
       and (fp.modelo_id=r.modelo_id or fp.modelo_id is null)
     order by
-      (fp.modelo_id=r.modelo_id) desc,
+      (fp.modelo_id=r.modelo_id) desc nulls last,
       fp.versao desc nulls last,
       fp.codigo
     limit 1
