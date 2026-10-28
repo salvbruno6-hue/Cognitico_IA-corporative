@@ -24,7 +24,8 @@ def test_relation_health_is_fail_closed_for_blocked_candidates() -> None:
 
 def test_confirmed_relations_route_to_review_not_auto_promotion() -> None:
     assert "when ready_for_symbiont_review>0 then 'promotion_review'" in SUMMARY
-    assert "symbiont -> evolution gate -> governed learning" in SUMMARY
+    assert "symbiont generalization and evolution gate" in SUMMARY
+    assert "governed learning" in SUMMARY
     assert "do not auto-promote" in SUMMARY
 
 
