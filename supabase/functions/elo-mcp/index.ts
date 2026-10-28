@@ -224,10 +224,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const pathname = new URL(req.url).pathname.replace(/\/$/, "");
-  if (req.method === "GET" && (
-    pathname === RESOURCE_METADATA_PATH ||
-    pathname === `${RESOURCE_PATH}/.well-known/oauth-protected-resource`
-  )) {
+  if (req.method === "GET" && pathname.endsWith("/oauth-protected-resource")) {
     return protectedResourceMetadata();
   }
 
@@ -251,7 +248,7 @@ Deno.serve(async (req: Request) => {
     await audit(auth.user?.id ?? null, "authentication", "denied", { reason: auth.reason });
     if (auth.reason === "missing_bearer" || auth.reason === "invalid_token") {
       return json({ error: "unauthorized", reason: auth.reason }, 401, {
-        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${new URL(RESOURCE_METADATA_PATH, new URL(req.url).origin).toString()}"`,
+        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${SUPABASE_URL}${RESOURCE_METADATA_PATH}"`,
       });
     }
     return json({ error: "forbidden", reason: auth.reason }, 403);

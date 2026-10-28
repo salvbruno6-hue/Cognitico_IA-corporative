@@ -23,9 +23,17 @@ function handler() {
   return serve;
 }
 
-test('discovery works without a bearer token at both supported paths', async () => {
-  for (const suffix of ['/oauth-protected-resource', '/.well-known/oauth-protected-resource']) {
-    const res = await handler()(new Request(endpoint + suffix));
+test('discovery works across public and gateway-rewritten paths', async () => {
+  const requestUrls = [
+    endpoint + '/oauth-protected-resource',
+    endpoint + '/.well-known/oauth-protected-resource',
+    base + '/oauth-protected-resource',
+    base + '/.well-known/oauth-protected-resource',
+    base + '/elo-mcp/oauth-protected-resource',
+    base + '/elo-mcp/.well-known/oauth-protected-resource',
+  ];
+  for (const requestUrl of requestUrls) {
+    const res = await handler()(new Request(requestUrl));
     assert.equal(res.status, 200);
     const metadata = await res.json();
     assert.equal(metadata.resource, endpoint);
@@ -41,10 +49,23 @@ test('missing and invalid tokens cannot initialize, list or call tools', async (
         body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { name: 'elo_status' } }),
       }));
       assert.equal(res.status, 401);
-      assert.match(res.headers.get('WWW-Authenticate'), /resource_metadata="https:\/\/.+\/oauth-protected-resource"/);
+      assert.equal(res.headers.get('WWW-Authenticate'), `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`);
       assert.equal((await res.json()).error, 'unauthorized');
     }
   }
+});
+
+test('challenge stays canonical when the gateway rewrites the request origin', async () => {
+  const res = await handler()(new Request('https://edge-runtime.internal/elo-mcp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+  }));
+  assert.equal(res.status, 401);
+  assert.equal(
+    res.headers.get('WWW-Authenticate'),
+    `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`,
+  );
 });
 
 test('deploy configuration delegates authentication only for elo-mcp', () => {
