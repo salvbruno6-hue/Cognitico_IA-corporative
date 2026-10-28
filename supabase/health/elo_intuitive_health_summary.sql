@@ -207,8 +207,8 @@ SELECT * FROM (
                 unconfirmed_relations,partial_relations,confirmed_relations,ready_for_symbiont_review,strengthen_relations,blocked_relations),
          CASE
            WHEN blocked_relations>0 THEN 'repair invalid/inactive relation endpoints before any promotion review'
-           WHEN ready_for_symbiont_review>0 THEN 'route confirmed relations to the existing Symbiont -> Evolution Gate -> Governed Learning review; do not auto-promote'
-           WHEN partial_relations>0 OR unconfirmed_relations>0 THEN 'collect and validate independent experiences explicitly referencing both relation endpoints'
+           WHEN ready_for_symbiont_review>0 THEN 'route confirmed relations through Symbiont generalization and Evolution Gate -> Governed Learning review; do not auto-promote'
+           WHEN partial_relations>0 OR unconfirmed_relations>0 THEN 'collect and validate independent experiences explicitly referencing both relation endpoints, then route through Symbiont generalization and Evolution Gate'
            WHEN cognitive_relations>0 OR knowledge_links>0 THEN 'monitor canonical relation evidence and validity'
            WHEN learning_relations>0 THEN 'repair missing evidence before any promotion review'
            ELSE 'materialize relations only from governed evidence; do not synthesize links to fill counts'
