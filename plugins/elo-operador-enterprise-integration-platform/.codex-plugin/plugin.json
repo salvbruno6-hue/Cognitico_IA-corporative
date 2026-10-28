@@ -1,0 +1,15 @@
+{
+  "name": "elo-operador-enterprise-integration-platform",
+  "version": "0.1.0",
+  "description": "Acesso governado e somente leitura à Enterprise Integration Platform do ELO.",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ELO Operador",
+    "shortDescription": "Integração empresarial ELO",
+    "longDescription": "ELO Operador — Enterprise Integration Platform conecta o ChatGPT à fronteira MCP autenticada e auditável do ELO. Este MVP consulta estado, evidências e projeções permitidas, incluindo dados canônicos, PCP, indicadores, Decision Outcome Loop, calibração e precedentes. O plugin opera somente para leitura: não grava dados, não altera regras ou schema e não promove conhecimento.",
+    "category": "Productivity",
+    "capabilities": ["Read"],
+    "defaultPrompt": "Use $elo-operador para consultar o estado governado do ELO e relatar evidências, lacunas e próxima ação autorizada."
+  }
+}
