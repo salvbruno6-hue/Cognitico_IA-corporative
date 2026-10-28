@@ -8,6 +8,30 @@ Operations: read-only.
 
 Protected Resource Metadata is exposed under `/oauth-protected-resource` for MCP OAuth discovery.
 
+### ChatGPT OAuth setup
+
+`supabase/config.toml` sets `functions.elo-mcp.verify_jwt=false` so discovery
+and the OAuth challenge reach the handler without an existing token. This is
+gateway configuration only: every MCP POST still requires `auth.getUser`, an
+active ELO identity and an ALLOW decision from `elo-authz` before dispatch.
+The appended `/.well-known/oauth-protected-resource` route returns the same
+metadata. Do not select "No authentication" in ChatGPT.
+
+The Supabase project's **Authentication → OAuth Server** must also be enabled.
+Reuse Supabase Auth rather than creating another identity authority. Configure
+Site URL `https://salvbruno6-hue.github.io` and Authorization Path
+`/Cognitico_IA-corporative/oauth/consent` (existing frontend route). Preserve the
+existing login callback allowlist. For automatic ChatGPT client registration,
+enable dynamic registration only after reviewing the project access settings;
+otherwise register a dedicated client with the exact callback shown by ChatGPT.
+
+Verify public discovery at:
+`https://fxbpevjrkwhbicpmecow.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
+A `feature_disabled` response means the provider is not enabled; entering
+authorization/token URLs manually will not enable it.
+
+Regression checks: `node --test supabase/tests/elo-mcp-oauth.test.mjs` (Node 24).
+
 ---
 
 ## Contrato de Autoridade

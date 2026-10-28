@@ -1,0 +1,4 @@
+# Discovery must reach the handler before a token exists.
+# Every MCP POST authenticates with auth.getUser and elo-authz in the handler.
+[functions.elo-mcp]
+verify_jwt = false

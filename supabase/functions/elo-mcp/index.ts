@@ -36,10 +36,9 @@ function rpcError(id: unknown, code: number, message: string) {
   return json({ jsonrpc: "2.0", id, error: { code, message } });
 }
 
-function protectedResourceMetadata(req: Request) {
-  const origin = new URL(req.url).origin;
+function protectedResourceMetadata() {
   return json({
-    resource: `${origin}${RESOURCE_PATH}`,
+    resource: `${SUPABASE_URL}${RESOURCE_PATH}`,
     authorization_servers: [`${SUPABASE_URL}/auth/v1`],
     bearer_methods_supported: ["header"],
   });
@@ -225,8 +224,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const pathname = new URL(req.url).pathname.replace(/\/$/, "");
-  if (req.method === "GET" && pathname.endsWith(RESOURCE_METADATA_PATH)) {
-    return protectedResourceMetadata(req);
+  if (req.method === "GET" && (
+    pathname === RESOURCE_METADATA_PATH ||
+    pathname === `${RESOURCE_PATH}/.well-known/oauth-protected-resource`
+  )) {
+    return protectedResourceMetadata();
   }
 
   if (req.method === "GET") {
