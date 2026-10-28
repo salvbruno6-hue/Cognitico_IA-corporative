@@ -4,10 +4,12 @@ from pathlib import Path
 SQL = Path("supabase/migrations/20261028152000_harden_pcp_read_rls_batch1.sql").read_text(encoding="utf-8").lower()
 
 
-def test_predicate_requires_identity_capability_enterprise_and_domain() -> None:
+def test_predicate_requires_identity_active_role_capability_enterprise_and_domain() -> None:
     for token in (
         "elo_private.can_read_pcp_tenant",
         "i.auth_user_id = auth.uid()",
+        "join public.elo_roles r",
+        "and r.active",
         "c.code = 'pcp_read'",
         "s.scope_type = 'enterprise'",
         "s.scope_key = t.codigo",
