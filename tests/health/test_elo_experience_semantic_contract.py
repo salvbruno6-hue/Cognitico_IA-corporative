@@ -4,6 +4,9 @@ from pathlib import Path
 MIGRATION = Path(
     "supabase/migrations/20261028111500_elo_experience_semantic_contract.sql"
 ).read_text(encoding="utf-8").lower()
+HEALTH = Path(
+    "supabase/health/elo_experience_semantic_health.sql"
+).read_text(encoding="utf-8").lower()
 
 
 def test_shared_level_semantics_have_one_read_contract() -> None:
@@ -39,3 +42,11 @@ def test_phase_one_is_non_destructive_and_does_not_rewrite_promotion_runtime() -
 
 def test_views_use_security_invoker() -> None:
     assert MIGRATION.count("with (security_invoker = true)") == 2
+
+
+def test_health_probe_is_fail_closed_for_incomplete_transition_contract() -> None:
+    assert "missing_counterparts" in HEALTH
+    assert "semantic_status = 'pt_only'" in HEALTH
+    assert "total = 0" in HEALTH
+    assert "when matched = total then 'healthy'" in HEALTH
+    assert "when total = 0 or missing_counterparts > 0 then 'review'" in HEALTH
