@@ -1,0 +1,98 @@
+name: ELO OAuth Runtime Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/config.toml'
+      - 'supabase/functions/elo-mcp/**'
+      - '.github/workflows/elo-oauth-runtime-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify deploy token
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+
+      - name: Push canonical project configuration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase config push --project-ref fxbpevjrkwhbicpmecow
+
+      - name: Deploy ELO MCP from main
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy elo-mcp \
+            --project-ref fxbpevjrkwhbicpmecow \
+            --use-api
+
+      - name: Verify OAuth authorization-server discovery
+        run: |
+          set -euo pipefail
+          url='https://fxbpevjrkwhbicpmecow.supabase.co/.well-known/oauth-authorization-server/auth/v1'
+          body="$(curl --fail --silent --show-error "$url")"
+          BODY="$body" node - <<'NODE'
+          const body = JSON.parse(process.env.BODY || '{}')
+          if (!body.authorization_endpoint || !body.token_endpoint) {
+            throw new Error('OAuth authorization-server discovery is not enabled')
+          }
+          if (!body.registration_endpoint) {
+            throw new Error('Dynamic client registration is not enabled')
+          }
+          NODE
+
+      - name: Verify ELO MCP protected-resource discovery and fail-closed POST
+        run: |
+          set -euo pipefail
+          endpoint='https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-mcp'
+          metadata="$(curl --fail --silent --show-error "$endpoint/oauth-protected-resource")"
+          METADATA="$metadata" node - <<'NODE'
+          const body = JSON.parse(process.env.METADATA || '{}')
+          if (body.resource !== 'https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-mcp') {
+            throw new Error('Unexpected protected resource')
+          }
+          if (!Array.isArray(body.authorization_servers) || !body.authorization_servers.includes('https://fxbpevjrkwhbicpmecow.supabase.co/auth/v1')) {
+            throw new Error('Unexpected authorization server')
+          }
+          NODE
+
+          status="$(curl --silent --output /tmp/elo-mcp-no-token.json --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+            "$endpoint")"
+          test "$status" = '401'
+          node - <<'NODE'
+          const fs = require('fs')
+          const body = JSON.parse(fs.readFileSync('/tmp/elo-mcp-no-token.json', 'utf8'))
+          if (body.error !== 'unauthorized') throw new Error('Unauthenticated MCP POST was not denied')
+          NODE
+
+      - name: Summary
+        if: always()
+        run: |
+          echo '## ELO OAuth Runtime Deploy'
+          echo ''
+          echo '**Project:** fxbpevjrkwhbicpmecow'
+          echo '**Commit:** ${{ github.sha }}'
+          echo '**OAuth config owner:** supabase/config.toml'
+          echo '**MCP auth owner:** auth.getUser + elo-authz'
