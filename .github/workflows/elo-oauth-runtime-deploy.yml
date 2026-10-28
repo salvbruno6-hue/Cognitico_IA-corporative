@@ -87,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           url='https://fxbpevjrkwhbicpmecow.supabase.co/.well-known/oauth-authorization-server/auth/v1'
-          body="$(curl --fail --silent --show-error "$url")"
+          body="$(curl --fail --silent --show-error --retry 6 --retry-delay 2 --retry-all-errors "$url")"
           BODY="$body" node - <<'NODE'
           const body = JSON.parse(process.env.BODY || '{}')
           if (!body.authorization_endpoint || !body.token_endpoint) {
@@ -103,13 +103,21 @@ jobs:
           set -euo pipefail
           endpoint='https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-mcp'
           metadata="$(curl --fail --silent --show-error "$endpoint/oauth-protected-resource")"
-          METADATA="$metadata" node - <<'NODE'
+
+          metadata_result=0
+          METADATA="$metadata" node - <<'NODE' || metadata_result=$?
           const body = JSON.parse(process.env.METADATA || '{}')
-          if (body.resource !== 'https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-mcp') {
-            throw new Error('Unexpected protected resource')
+          const expectedResource = 'https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-mcp'
+          const expectedServer = 'https://fxbpevjrkwhbicpmecow.supabase.co/auth/v1'
+          if (body.resource !== expectedResource) {
+            console.error(`protected_resource_actual=${JSON.stringify(body.resource)}`)
+            console.error(`protected_resource_expected=${JSON.stringify(expectedResource)}`)
+            process.exitCode = 1
           }
-          if (!Array.isArray(body.authorization_servers) || !body.authorization_servers.includes('https://fxbpevjrkwhbicpmecow.supabase.co/auth/v1')) {
-            throw new Error('Unexpected authorization server')
+          if (!Array.isArray(body.authorization_servers) || !body.authorization_servers.includes(expectedServer)) {
+            console.error(`authorization_servers_actual=${JSON.stringify(body.authorization_servers)}`)
+            console.error(`authorization_server_expected=${JSON.stringify(expectedServer)}`)
+            process.exitCode = 1
           }
           NODE
 
@@ -118,12 +126,27 @@ jobs:
             --header 'Content-Type: application/json' \
             --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
             "$endpoint")"
-          test "$status" = '401'
-          node - <<'NODE'
+
+          post_result=0
+          STATUS="$status" node - <<'NODE' || post_result=$?
           const fs = require('fs')
-          const body = JSON.parse(fs.readFileSync('/tmp/elo-mcp-no-token.json', 'utf8'))
-          if (body.error !== 'unauthorized') throw new Error('Unauthenticated MCP POST was not denied')
+          const status = process.env.STATUS
+          let body = {}
+          try { body = JSON.parse(fs.readFileSync('/tmp/elo-mcp-no-token.json', 'utf8')) } catch {}
+          if (status !== '401') {
+            console.error(`unauthenticated_post_status_actual=${JSON.stringify(status)}`)
+            console.error('unauthenticated_post_status_expected="401"')
+            process.exitCode = 1
+          }
+          if (body.error !== 'unauthorized') {
+            console.error(`unauthenticated_post_body_actual=${JSON.stringify(body)}`)
+            console.error('unauthenticated_post_error_expected="unauthorized"')
+            process.exitCode = 1
+          }
           NODE
+
+          test "$metadata_result" = '0'
+          test "$post_result" = '0'
 
       - name: Summary
         if: always()
