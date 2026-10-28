@@ -52,3 +52,11 @@ test('deploy configuration delegates authentication only for elo-mcp', () => {
   assert.match(config, /\[functions\.elo-mcp\]\s+verify_jwt = false/);
   assert.equal((config.match(/\[functions\./g) ?? []).length, 1);
 });
+
+test('oauth server reuses canonical ELO auth origin and consent route', () => {
+  const config = readFileSync(new URL('../config.toml', import.meta.url), 'utf8');
+  assert.match(config, /\[auth\]\s+site_url = "https:\/\/salvbruno6-hue\.github\.io"/);
+  assert.match(config, /\[auth\.oauth_server\][\s\S]*enabled = true/);
+  assert.match(config, /authorization_url_path = "\/Cognitico_IA-corporative\/oauth\/consent"/);
+  assert.match(config, /allow_dynamic_registration = true/);
+});
