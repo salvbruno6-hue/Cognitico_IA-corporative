@@ -2,7 +2,7 @@
 
 ## Scope
 
-Live read-only reconciliation of GitHub `main` and Supabase `Elo-forge` covering architecture, integration, database integrity, duplication, capabilities, relations and Objective Continuity.
+Live reconciliation of GitHub `main` and Supabase `Elo-forge` covering architecture, integration, database integrity, duplication, capabilities, relations and Objective Continuity.
 
 ## Executive state
 
@@ -12,13 +12,28 @@ Live read-only reconciliation of GitHub `main` and Supabase `Elo-forge` covering
 | Database structure | HEALTHY | 221 tables; 174 public; 298 FKs; 0 public tables without RLS |
 | RLS fail-closed | HEALTHY_WITH_REVIEW | RLS/no-policy tables exist, but exposure must be judged by effective grants; Health Gate remains authority |
 | Duplicate indexes | HEALTHY | live exact-duplicate index query returned zero groups |
-| MT authorization | GAP_HIGH | legacy literal-true authenticated policies remain an unresolved authorization boundary |
+| MT authorization | GAP_HIGH | 168 literal-true authenticated policy objects across 71 MT tables remain an unresolved authorization boundary |
 | Duplicate permissive policies | REVIEW | 10 exact duplicate role/action groups remain across repair/stock tables; provenance still unresolved |
-| FK performance | REVIEW_BOUNDED | 145 advisor findings remain, but current workload ranking isolates five high-evidence paths for batch 2 |
+| FK performance | REVIEW_BOUNDED | 145 advisor findings remain; batch 2 is limited to five highest-evidence current paths |
 | Experience architecture | CONFLICT | English v1 and Portuguese learning families share level codes but all four adjacent transition thresholds diverge |
 | Capabilities | HEALTHY | 15 registered capabilities, all active |
-| Objective Continuity | READY_UNEXERCISED | persistence owner is live, but currently contains zero checkpoints |
-| Cognitive relations | PARTIAL | knowledge exists while `elo_conhecimento_vinculos` and `elo_cognitive_relations` are currently empty |
+| Objective Continuity | VERIFIED / IDLE | real Supabase checkpoint was created, resumed across calls, stale replay was rejected, completed at state_version=3 and the diagnostic row was cleaned up |
+| Cognitive relations | PARTIAL | 36 knowledge items exist while `elo_conhecimento_vinculos` and `elo_cognitive_relations` are currently empty |
+
+## Objective Continuity production proof
+
+A bounded diagnostic used the real owner `public.elo_objective_continuity_checkpoints` and a dedicated diagnostic tenant/objective/workstream.
+
+Observed sequence:
+
+1. inserted checkpoint `state_version=1`, decision `CONTINUE`;
+2. a separate database call reloaded exactly the persisted checkpoint;
+3. compare-and-swap update with `state_version=1` advanced to version 2;
+4. a stale replay still expecting version 1 returned zero rows and changed nothing;
+5. a valid update expecting version 2 completed at version 3 with decision `COMPLETE`;
+6. only the diagnostic row was deleted after evidence was captured.
+
+The table returning to zero rows after cleanup means there is no active persisted objective, not that continuity is untested. The intuitive health query therefore uses `READY_IDLE` rather than inferring `UNEXERCISED` from row count.
 
 ## Hot FK batch 2 evidence
 
@@ -44,6 +59,6 @@ Canonical promotion remains Symbiont -> Evolution Gate -> Governed Learning -> r
 
 ## Intuitive health surface
 
-`supabase/health/elo_intuitive_health_summary.sql` is the single compact read-only surface for the main live signals. It complements, rather than replaces, `supabase/health/elo_system_health_gate.sql`.
+`supabase/health/elo_intuitive_health_summary.sql` is the compact read-only surface for the main live signals. It complements, rather than replaces, `supabase/health/elo_system_health_gate.sql`.
 
 The compact surface emits: area, status, severity, evidence and next action, so an operator or ELO/GPT handoff can distinguish immediately between healthy, partial, review, conflict and blocking conditions.
