@@ -7,11 +7,15 @@ from elo.cognitive.pcp_control import (
     assess_demand_capacity,
     assess_empirical_capacity_learning,
     assess_material_availability,
+    assess_staffing_ramp,
+    assess_systemic_capacity,
     build_pcp_evidence,
+    calculate_mix_component_requirements,
     compare_date,
     compare_duration,
     compare_quantity,
     evaluate_pcp_evolution,
+    project_el_balance,
 )
 
 
@@ -59,6 +63,112 @@ def test_demand_capacity_preserves_missing_capacity_as_unknown():
     assert result.period_capacity is None
     assert result.deficit is None
     assert result.status == "CAPACIDADE_NAO_LOCALIZADA"
+
+
+def test_mix_requirement_uses_model_mix_instead_of_total_modules():
+    result = calculate_mix_component_requirements(
+        {"M01": 15, "M02": 5},
+        {
+            "M01": {"PIR40": 14},
+            "M02": {"PIR40": 17, "CUBA_P": 1},
+        },
+    )
+    assert result.requirements["PIR40"] == 295
+    assert result.requirements["CUBA_P"] == 5
+    assert result.status == "CALCULADO"
+
+
+def test_mix_requirement_blocks_missing_bom_instead_of_inventing():
+    result = calculate_mix_component_requirements(
+        {"M01": 10, "M02": 10},
+        {"M01": {"PIR40": 14}},
+    )
+    assert result.requirements["PIR40"] == 140
+    assert result.missing_bom_models == ("M02",)
+    assert result.status == "RESPOSTA_PARCIAL"
+
+
+def test_systemic_capacity_is_limited_by_fiber_when_all_units_require_it():
+    result = assess_systemic_capacity(
+        4,
+        {
+            "estrutura": 4,
+            "el": 4,
+            "montagem": 4,
+            "fibra": 2,
+            "qualidade": 4,
+        },
+    )
+    assert result.executable_units == 2
+    assert result.limiting_constraints == ("fibra",)
+    assert result.status == "CAPACIDADE_SISTEMICA_INSUFICIENTE"
+
+
+def test_systemic_capacity_preserves_unknown_required_constraint():
+    result = assess_systemic_capacity(
+        4,
+        {"estrutura": 4, "fibra": 4, "qualidade": None},
+        required_constraints=("estrutura", "fibra", "qualidade"),
+    )
+    assert result.executable_units == 4
+    assert result.unknown_constraints == ("qualidade",)
+    assert result.status == "RESPOSTA_PARCIAL"
+
+
+def test_el_two_caps_assembly_plan_four_at_two():
+    result = project_el_balance(
+        2,
+        daily_releases=[0],
+        daily_assembly_plan=[4],
+    )
+    assert result.days[0].realizable_assembly == 2
+    assert result.days[0].status == "MONTAGEM_LIMITADA_POR_EL"
+    assert result.first_constraint_day == 1
+
+
+def test_el_five_caps_recovery_plan_six_at_five_without_prior_release():
+    result = project_el_balance(
+        5,
+        daily_releases=[0],
+        daily_assembly_plan=[6],
+    )
+    assert result.days[0].realizable_assembly == 5
+    assert result.first_constraint_day == 1
+
+
+def test_el_projection_is_cumulative_across_days():
+    result = project_el_balance(
+        4,
+        daily_releases=[4, 4, 0],
+        daily_assembly_plan=[4, 4, 4],
+    )
+    assert [day.closing_el for day in result.days] == [4, 4, 0]
+    assert result.first_constraint_day == 3
+
+
+def test_staffing_ramp_uses_observed_team_productivity_but_does_not_authorize_hiring():
+    result = assess_staffing_ramp(
+        6,
+        output_per_team_per_day=4,
+        current_teams=1,
+        workers_per_team=2,
+    )
+    assert result.required_teams == 2
+    assert result.additional_teams == 1
+    assert result.additional_workers == 2
+    assert result.status == "CAPACITY_RAMP_CANDIDATE"
+
+
+def test_staffing_ramp_does_not_invent_missing_team_productivity():
+    result = assess_staffing_ramp(
+        6,
+        output_per_team_per_day=None,
+        current_teams=1,
+        workers_per_team=2,
+    )
+    assert result.required_teams is None
+    assert result.additional_workers is None
+    assert result.status == "PRODUTIVIDADE_EQUIPE_NAO_LOCALIZADA"
 
 
 def test_material_availability_uses_warehouse_quantity_and_purchase_lead_time():
