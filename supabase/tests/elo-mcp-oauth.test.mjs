@@ -60,3 +60,13 @@ test('oauth server reuses canonical ELO auth origin and consent route', () => {
   assert.match(config, /authorization_url_path = "\/Cognitico_IA-corporative\/oauth\/consent"/);
   assert.match(config, /allow_dynamic_registration = true/);
 });
+
+test('oauth runtime deploy preserves scoped PAT least privilege', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/elo-oauth-runtime-deploy.yml', import.meta.url), 'utf8');
+  assert.doesNotMatch(workflow, /supabase config push/);
+  assert.match(workflow, /api\.supabase\.com\/v1\/projects\/fxbpevjrkwhbicpmecow\/config\/auth/);
+  assert.match(workflow, /tomllib/);
+  assert.match(workflow, /oauth_server_enabled/);
+  assert.match(workflow, /oauth_server_authorization_path/);
+  assert.match(workflow, /oauth_server_allow_dynamic_registration/);
+});
