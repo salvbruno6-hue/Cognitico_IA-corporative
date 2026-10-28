@@ -158,10 +158,10 @@ SELECT * FROM (
 
   UNION ALL
   SELECT 'OBJECTIVE_CONTINUITY',
-         CASE WHEN checkpoints>0 THEN 'ACTIVE' ELSE 'READY_UNEXERCISED' END,
-         CASE WHEN checkpoints>0 THEN 'INFO' ELSE 'REVIEW' END,
+         CASE WHEN checkpoints>0 THEN 'ACTIVE' ELSE 'READY_IDLE' END,
+         'INFO'::text,
          format('persisted_checkpoints=%s human_required=%s',checkpoints,human_required),
-         CASE WHEN checkpoints>0 THEN 'continue governed wakeups' ELSE 'execute one authorized end-to-end checkpoint cycle' END
+         CASE WHEN checkpoints>0 THEN 'continue governed wakeups' ELSE 'no active checkpoint; start or resume only when a governed objective exists' END
   FROM objective_continuity
 
   UNION ALL
