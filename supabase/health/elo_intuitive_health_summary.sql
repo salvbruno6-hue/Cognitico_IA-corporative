@@ -114,7 +114,15 @@ relations AS (
   SELECT
     (SELECT count(*) FROM public.elo_conhecimento_itens) AS knowledge_items,
     (SELECT count(*) FROM public.elo_conhecimento_vinculos) AS knowledge_links,
-    (SELECT count(*) FROM public.elo_cognitive_relations) AS cognitive_relations
+    (SELECT count(*) FROM public.elo_cognitive_relations) AS cognitive_relations,
+    (SELECT count(*) FROM public.elo_aprendizado_relacoes WHERE ativo) AS learning_relations,
+    (SELECT count(*) FROM public.elo_aprendizado_relacoes WHERE ativo AND status='CANDIDATA') AS candidate_relations,
+    (SELECT count(*) FROM public.elo_aprendizado_relacoes
+       WHERE ativo AND status='CANDIDATA'
+         AND evidencia IS NOT NULL
+         AND jsonb_typeof(evidencia)='array'
+         AND jsonb_array_length(evidencia)>0
+         AND confianca IS NOT NULL) AS evidence_backed_candidates
 )
 SELECT * FROM (
   SELECT 'DATABASE_RLS'::text AS area,
@@ -174,10 +182,24 @@ SELECT * FROM (
 
   UNION ALL
   SELECT 'COGNITIVE_RELATIONS',
-         CASE WHEN knowledge_items=0 OR (knowledge_links=0 AND cognitive_relations=0) THEN 'PARTIAL' ELSE 'ACTIVE' END,
-         'REVIEW'::text,
-         format('knowledge_items=%s knowledge_links=%s cognitive_relations=%s',knowledge_items,knowledge_links,cognitive_relations),
-         'materialize relations only from governed evidence; do not synthesize links to fill counts'::text
+         CASE
+           WHEN cognitive_relations>0 OR knowledge_links>0 THEN 'ACTIVE'
+           WHEN candidate_relations>0 AND evidence_backed_candidates=candidate_relations THEN 'STRENGTHEN'
+           WHEN learning_relations>0 THEN 'REVIEW'
+           ELSE 'PARTIAL'
+         END,
+         CASE
+           WHEN cognitive_relations>0 OR knowledge_links>0 THEN 'INFO'
+           ELSE 'REVIEW'
+         END,
+         format('knowledge_items=%s canonical_knowledge_links=%s canonical_cognitive_relations=%s learning_relations=%s candidates=%s evidence_backed_candidates=%s',
+                knowledge_items,knowledge_links,cognitive_relations,learning_relations,candidate_relations,evidence_backed_candidates),
+         CASE
+           WHEN cognitive_relations>0 OR knowledge_links>0 THEN 'monitor canonical relation evidence and validity'
+           WHEN candidate_relations>0 AND evidence_backed_candidates=candidate_relations THEN 'route candidates through Symbiont generalization and Evolution Gate; do not synthesize canonical links'
+           WHEN learning_relations>0 THEN 'repair missing evidence before any promotion review'
+           ELSE 'materialize relations only from governed evidence; do not synthesize links to fill counts'
+         END
   FROM relations
 ) health
 ORDER BY CASE severity WHEN 'BLOCK' THEN 1 WHEN 'GAP_HIGH' THEN 2 WHEN 'REVIEW' THEN 3 ELSE 4 END, area;
