@@ -1,0 +1,119 @@
+name: ELO One-shot Protected Resource Patch
+
+on:
+  push:
+    branches:
+      - fix/elo-mcp-protected-resource-routing
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/elo-mcp-protected-resource-routing
+
+      - name: Apply deterministic routing patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          fn = Path('supabase/functions/elo-mcp/index.ts')
+          source = fn.read_text()
+
+          old_route = '''  const pathname = new URL(req.url).pathname.replace(/\\/$/, "");
+          if (req.method === "GET" && (
+            pathname === RESOURCE_METADATA_PATH ||
+            pathname === `${RESOURCE_PATH}/.well-known/oauth-protected-resource`
+          )) {
+            return protectedResourceMetadata();
+          }
+          '''
+          new_route = '''  const pathname = new URL(req.url).pathname.replace(/\\/$/, "");
+          if (req.method === "GET" && pathname.endsWith("/oauth-protected-resource")) {
+            return protectedResourceMetadata();
+          }
+          '''
+          if source.count(old_route) != 1:
+              raise SystemExit(f'route contract occurrence count={source.count(old_route)}')
+          source = source.replace(old_route, new_route)
+
+          old_challenge = '''        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${new URL(RESOURCE_METADATA_PATH, new URL(req.url).origin).toString()}"`,'''
+          new_challenge = '''        "WWW-Authenticate": `Bearer realm="ELO MCP", resource_metadata="${SUPABASE_URL}${RESOURCE_METADATA_PATH}"`,'''
+          if source.count(old_challenge) != 1:
+              raise SystemExit(f'challenge contract occurrence count={source.count(old_challenge)}')
+          source = source.replace(old_challenge, new_challenge)
+          fn.write_text(source)
+
+          test_file = Path('supabase/tests/elo-mcp-oauth.test.mjs')
+          tests = test_file.read_text()
+          old_test = '''test('discovery works without a bearer token at both supported paths', async () => {
+            for (const suffix of ['/oauth-protected-resource', '/.well-known/oauth-protected-resource']) {
+              const res = await handler()(new Request(endpoint + suffix));
+              assert.equal(res.status, 200);
+              const metadata = await res.json();
+              assert.equal(metadata.resource, endpoint);
+              assert.deepEqual(metadata.authorization_servers, [base + '/auth/v1']);
+            }
+          });'''
+          new_test = '''test('discovery works across public and gateway-rewritten paths', async () => {
+            const requestUrls = [
+              endpoint + '/oauth-protected-resource',
+              endpoint + '/.well-known/oauth-protected-resource',
+              base + '/oauth-protected-resource',
+              base + '/.well-known/oauth-protected-resource',
+              base + '/elo-mcp/oauth-protected-resource',
+              base + '/elo-mcp/.well-known/oauth-protected-resource',
+            ];
+            for (const requestUrl of requestUrls) {
+              const res = await handler()(new Request(requestUrl));
+              assert.equal(res.status, 200);
+              const metadata = await res.json();
+              assert.equal(metadata.resource, endpoint);
+              assert.deepEqual(metadata.authorization_servers, [base + '/auth/v1']);
+            }
+          });'''
+          if tests.count(old_test) != 1:
+              raise SystemExit(f'discovery test occurrence count={tests.count(old_test)}')
+          tests = tests.replace(old_test, new_test)
+
+          old_assertion = '''      assert.match(res.headers.get('WWW-Authenticate'), /resource_metadata="https:\\/\\/.+\\/oauth-protected-resource"/);'''
+          new_assertion = '''      assert.equal(res.headers.get('WWW-Authenticate'), `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`);'''
+          if tests.count(old_assertion) != 1:
+              raise SystemExit(f'challenge assertion occurrence count={tests.count(old_assertion)}')
+          tests = tests.replace(old_assertion, new_assertion)
+
+          marker = '''test('deploy configuration delegates authentication only for elo-mcp', () => {'''
+          extra = '''test('challenge stays canonical when the gateway rewrites the request origin', async () => {
+            const res = await handler()(new Request('https://edge-runtime.internal/elo-mcp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+            }));
+            assert.equal(res.status, 401);
+            assert.equal(
+              res.headers.get('WWW-Authenticate'),
+              `Bearer realm="ELO MCP", resource_metadata="${base}/functions/v1/elo-mcp/oauth-protected-resource"`,
+            );
+          });
+
+          '''
+          if tests.count(marker) != 1:
+              raise SystemExit(f'test marker occurrence count={tests.count(marker)}')
+          tests = tests.replace(marker, extra + marker)
+          test_file.write_text(tests)
+          PY
+
+      - name: Remove one-shot workflow and commit patch
+        run: |
+          rm .github/workflows/elo-one-shot-protected-resource-patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/functions/elo-mcp/index.ts supabase/tests/elo-mcp-oauth.test.mjs .github/workflows/elo-one-shot-protected-resource-patch.yml
+          git diff --cached --check
+          git commit -m 'fix(auth): aceitar pathname reescrito no metadata MCP'
+          git push origin HEAD:fix/elo-mcp-protected-resource-routing
