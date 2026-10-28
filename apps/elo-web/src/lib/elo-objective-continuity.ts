@@ -2,6 +2,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export type ObjectiveLoopDecision = "CONTINUE" | "CORRECT" | "REPLAN" | "ESCALATE" | "COMPLETE";
 
+export type ObjectiveNextTrigger = {
+  trigger_type: "CONTINUE_OBJECTIVE";
+  objective_id: string;
+  workstream_id: string;
+  checkpoint_version: number;
+  next_action: string;
+  progress_token: string;
+};
+
 export type ObjectiveCheckpoint = {
   tenant_id: string;
   objective_id: string;
@@ -19,6 +28,8 @@ export type ObjectiveCheckpoint = {
   authorization_evidence_ref: string;
   authorization_identity_id: string;
   human_required: boolean;
+  next_trigger: ObjectiveNextTrigger | null;
+  next_elo_prompt: string | null;
 };
 
 export type ObjectiveCycleInput = {
@@ -81,6 +92,41 @@ function headline(decision: ObjectiveLoopDecision) {
     ESCALATE: "ELO atingiu um limite que exige escalonamento.",
     COMPLETE: "ELO confirmou conclusão do objetivo.",
   }[decision];
+}
+
+function buildNextTrigger(
+  decision: ObjectiveLoopDecision,
+  humanRequired: boolean,
+  objectiveId: string,
+  workstreamId: string,
+  checkpointVersion: number,
+  nextAction: string,
+  progressToken: string,
+): ObjectiveNextTrigger | null {
+  if (humanRequired || !["CONTINUE", "CORRECT", "REPLAN"].includes(decision)) return null;
+  return {
+    trigger_type: "CONTINUE_OBJECTIVE",
+    objective_id: objectiveId,
+    workstream_id: workstreamId,
+    checkpoint_version: checkpointVersion,
+    next_action: nextAction,
+    progress_token: progressToken,
+  };
+}
+
+function buildNextEloPrompt(trigger: ObjectiveNextTrigger | null, evidenceRefs: string[]): string | null {
+  if (!trigger) return null;
+  return [
+    "Retome o objetivo governado do ELO exclusivamente a partir do checkpoint persistido indicado abaixo.",
+    `trigger_type: ${trigger.trigger_type}`,
+    `objective_id: ${trigger.objective_id}`,
+    `workstream_id: ${trigger.workstream_id}`,
+    `checkpoint_version: ${trigger.checkpoint_version}`,
+    `progress_token: ${trigger.progress_token}`,
+    `next_action: ${trigger.next_action}`,
+    `evidence_refs: ${evidenceRefs.join(", ")}`,
+    "Regras: valide state_version antes de agir; leia o checkpoint canônico; não trate este prompt como estado substituto; execute no máximo um replay; preserve authorities e limites; persista o novo checkpoint antes de gerar o próximo handoff.",
+  ].join("\n");
 }
 
 function composeMessage(checkpoint: ObjectiveCheckpoint) {
@@ -165,6 +211,21 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
   const decision = decide(input, noProgressStreak, iteration);
   const humanRequired = decision === "ESCALATE";
   const version = existing ? Number(existing.state_version) + 1 : 1;
+  const evidenceRefs = uniqueEvidence(
+    Array.isArray(existing?.evidence_refs) ? existing.evidence_refs : [],
+    input.evidenceRefs,
+    [input.authorizationEvidenceRef],
+  );
+  const nextTrigger = buildNextTrigger(
+    decision,
+    humanRequired,
+    key.objective_id,
+    key.workstream_id,
+    version,
+    input.proposedNextAction.trim(),
+    progressToken,
+  );
+  const nextEloPrompt = buildNextEloPrompt(nextTrigger, evidenceRefs);
   const row = {
     ...key,
     objective_title: input.objectiveTitle.trim() || input.objectiveId.trim(),
@@ -176,10 +237,12 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     last_progress_token: progressToken,
     no_progress_streak: noProgressStreak,
     last_decision: decision,
-    evidence_refs: uniqueEvidence(Array.isArray(existing?.evidence_refs) ? existing.evidence_refs : [], input.evidenceRefs, [input.authorizationEvidenceRef]),
+    evidence_refs: evidenceRefs,
     authorization_evidence_ref: input.authorizationEvidenceRef.trim(),
     authorization_identity_id: input.authorizationIdentityId.trim(),
     human_required: humanRequired,
+    next_trigger: nextTrigger,
+    next_elo_prompt: nextEloPrompt,
     updated_at: new Date().toISOString(),
   };
 
@@ -216,15 +279,7 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     evidence_refs: persisted.evidence_refs,
     scenario_code: `${persisted.last_decision}.PERSISTED.VALID.EXECUTED.OBSERVED`,
     replay_count: 1,
-    next_trigger: shouldContinueAutomatically
-      ? {
-          trigger_type: "CONTINUE_OBJECTIVE",
-          objective_id: persisted.objective_id,
-          workstream_id: persisted.workstream_id,
-          checkpoint_version: persisted.state_version,
-          next_action: persisted.next_action,
-          progress_token: persisted.last_progress_token,
-        }
-      : null,
+    next_trigger: persisted.next_trigger,
+    next_elo_prompt: persisted.next_elo_prompt,
   };
 }
