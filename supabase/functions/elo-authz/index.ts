@@ -4,6 +4,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-elo-request-id, apikey, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 const ACTION_CAPABILITY: Record<string, string> = {
   read: "READ", consult: "READ", search: "READ", inspect: "READ",
@@ -36,9 +41,7 @@ function json(data: unknown, status = 200) {
     status,
     headers: {
       "Content-Type": "application/json", "Cache-Control": "no-store",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "authorization, content-type, x-elo-request-id",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      ...CORS_HEADERS,
     },
   });
 }
@@ -178,7 +181,7 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
 }
 
 Deno.serve(async(req:Request)=>{
-  if(req.method==="OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, content-type, x-elo-request-id","Access-Control-Allow-Methods":"POST, OPTIONS"}});
+  if(req.method==="OPTIONS") return new Response(null,{status:204,headers:CORS_HEADERS});
   if(req.method!=="POST") return json({error:"method_not_allowed"},405);
   const requestId=req.headers.get("x-elo-request-id")?.trim()||crypto.randomUUID();
   const auth=await authenticate(req);
