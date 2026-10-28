@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "elo-operador-enterprise-integration-platform",
+  "version": "0.1.2",
+  "description": "Acesso governado e somente leitura à Enterprise Integration Platform do ELO.",
+  "author": {
+    "email": "planejamento_multiteiner@outlook.com",
+    "name": "planejamento Multiteiner"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "capabilities": [
+          "Read"
+        ],
+        "category": "Productivity",
+        "defaultPrompt": "Use $elo-operador para consultar o estado governado do ELO e relatar evidências, lacunas e próxima ação autorizada.",
+        "developerName": "planejamento Multiteiner",
+        "displayName": "ELO Operador",
+        "longDescription": "ELO Operador — Enterprise Integration Platform conecta o ChatGPT à fronteira MCP autenticada e auditável do ELO. Este MVP consulta estado, evidências e projeções permitidas, incluindo dados canônicos, PCP, indicadores, Decision Outcome Loop, calibração e precedentes. O plugin opera somente para leitura: não grava dados, não altera regras ou schema e não promove conhecimento.",
+        "shortDescription": "Integração empresarial ELO",
+        "brandColor": "#4F46E5",
+        "composerIcon": "./assets/elo-operador-icon.png",
+        "logo": "./assets/elo-operador-logo.png",
+        "logoDark": "./assets/elo-operador-logo.png"
+      }
+    }
+  }
+}

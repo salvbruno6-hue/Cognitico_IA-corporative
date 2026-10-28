@@ -5,7 +5,9 @@ description: Consulta governada e auditável da Enterprise Integration Platform 
 
 # ELO Operador
 
-Use a ferramenta `elo_mcp` para consultar o ELO por meio da fronteira autenticada e auditável.
+Use as ferramentas expostas pelo servidor MCP `elo_mcp` para consultar o ELO por meio da fronteira autenticada e auditável. Para consultar o status, chame `elo_status` com argumentos vazios (`{}`). `elo_mcp` identifica o servidor, não uma ferramenta.
+
+Se `elo_status` ou as demais ferramentas não estiverem disponíveis na conversa, informe que a conexão não está carregada ou autenticada e solicite a conexão do plugin. Não simule resultados nem apresente o estado do repositório como status operacional do ELO.
 
 ## Limite de autoridade
 
