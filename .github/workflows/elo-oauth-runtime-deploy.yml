@@ -31,11 +31,49 @@ jobs:
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN"
 
-      - name: Push canonical project configuration
+      - name: Apply canonical OAuth configuration
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          supabase config push --project-ref fxbpevjrkwhbicpmecow
+          set -euo pipefail
+          payload="$(python3 - <<'PY'
+          import json
+          import tomllib
+
+          with open('supabase/config.toml', 'rb') as fh:
+              config = tomllib.load(fh)
+
+          auth = config['auth']
+          oauth = auth['oauth_server']
+          print(json.dumps({
+              'site_url': auth['site_url'],
+              'oauth_server_enabled': bool(oauth['enabled']),
+              'oauth_server_authorization_path': oauth['authorization_url_path'],
+              'oauth_server_allow_dynamic_registration': bool(oauth['allow_dynamic_registration']),
+          }, separators=(',', ':')))
+          PY
+          )"
+
+          curl --fail-with-body --silent --show-error \
+            --request PATCH \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data "$payload" \
+            --output /tmp/elo-auth-config-response.json \
+            'https://api.supabase.com/v1/projects/fxbpevjrkwhbicpmecow/config/auth'
+
+          EXPECTED="$payload" python3 - <<'PY'
+          import json
+          import os
+
+          expected = json.loads(os.environ['EXPECTED'])
+          with open('/tmp/elo-auth-config-response.json', encoding='utf-8') as fh:
+              actual = json.load(fh)
+
+          for key, value in expected.items():
+              if actual.get(key) != value:
+                  raise SystemExit(f'Auth config mismatch for {key}')
+          PY
 
       - name: Deploy ELO MCP from main
         env:
