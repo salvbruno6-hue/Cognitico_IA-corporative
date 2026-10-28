@@ -1,3 +1,15 @@
+# Canonical ELO auth origin. Existing Google login remains the user authentication method.
+[auth]
+site_url = "https://salvbruno6-hue.github.io"
+
+# Supabase Auth acts as the OAuth 2.1 authorization server for ChatGPT/MCP.
+# The consent UI is the existing ELO frontend route; dynamic registration lets
+# compatible MCP clients register without creating a parallel identity system.
+[auth.oauth_server]
+enabled = true
+authorization_url_path = "/Cognitico_IA-corporative/oauth/consent"
+allow_dynamic_registration = true
+
 # Discovery must reach the handler before a token exists.
 # Every MCP POST authenticates with auth.getUser and elo-authz in the handler.
 [functions.elo-mcp]
