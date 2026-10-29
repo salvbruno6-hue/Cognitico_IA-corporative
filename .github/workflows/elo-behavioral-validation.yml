@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: ELO Behavioral Validation
     runs-on: ubuntu-latest
     permissions:
       contents: read

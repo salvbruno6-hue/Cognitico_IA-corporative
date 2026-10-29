@@ -1,13 +1,7 @@
 name: ELO MCP OAuth boundary
 on:
   pull_request:
-    paths:
-      - 'supabase/functions/elo-authz/**'
-      - 'supabase/tests/elo-authz-cors.test.mjs'
-      - 'supabase/functions/elo-mcp/**'
-      - 'supabase/tests/elo-mcp-oauth.test.mjs'
-      - 'supabase/config.toml'
-      - '.github/workflows/elo-mcp-oauth.yml'
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -16,10 +10,12 @@ on:
       - 'supabase/functions/elo-mcp/**'
       - 'supabase/tests/elo-mcp-oauth.test.mjs'
       - 'supabase/config.toml'
+      - '.github/workflows/elo-mcp-oauth.yml'
 permissions:
   contents: read
 jobs:
   boundary:
+    name: ELO MCP OAuth boundary
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

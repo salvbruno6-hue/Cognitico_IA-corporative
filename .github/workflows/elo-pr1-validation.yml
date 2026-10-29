@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: ELO PR1 Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
