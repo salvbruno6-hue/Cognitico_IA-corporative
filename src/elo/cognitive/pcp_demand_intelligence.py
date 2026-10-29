@@ -155,8 +155,19 @@ def resolve_indicator_plan(intent: str, *, physical_data_available: bool = False
         selected.extend(RETURN)
         selected.extend(STOCK_POLICY)
 
-    if any(term in text for term in ("disponível", "disponivel", "cobertura", "capacidade de atendimento", "ruptura", "risco", "preparar", "preparação", "preparacao")):
+    coverage_or_availability = any(term in text for term in (
+        "disponível", "disponivel", "disponibilidade", "cobertura",
+        "capacidade de atendimento", "ruptura", "risco",
+        "preparar", "preparação", "preparacao",
+    ))
+    if coverage_or_availability:
+        # Cobertura depende de proteção comercial; disponibilidade depende do
+        # fluxo físico de retorno/quarentena/liberação. Trazer pré-requisitos
+        # evita responder uma razão sem o denominador governado.
+        selected.extend(CAUSE)
+        selected.extend(RETURN)
         selected.extend(QUARANTINE)
+        selected.extend(STOCK_POLICY)
         selected.extend(AVAILABILITY)
         selected.extend(COVERAGE_RISK)
 
