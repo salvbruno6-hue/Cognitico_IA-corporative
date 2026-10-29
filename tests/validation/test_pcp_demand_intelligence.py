@@ -28,6 +28,23 @@ def test_preparation_queries_return_stock_and_physical_gates():
     assert "CAPACIDADE_ATENDIMENTO" in gaps
 
 
+def test_direct_coverage_includes_protection_prerequisites():
+    plan = codes("qual a cobertura de janeiro?")
+    assert plan.index("EST_SPOT_P75") < plan.index("PROTECAO_COMERCIAL")
+    assert plan.index("PROTECAO_COMERCIAL") < plan.index("DISP_PROJETADA")
+    assert plan.index("DISP_PROJETADA") < plan.index("CAPACIDADE_ATENDIMENTO")
+
+
+def test_availability_domain_noun_is_recognized():
+    plan = resolve_indicator_plan("qual a disponibilidade em janeiro?")
+    ids = [step.code for step in plan]
+    assert "DISP_PATIO_ATUAL" in ids
+    assert "DISP_PROJETADA" in ids
+    assert "PROTECAO_COMERCIAL" in ids
+    gaps = physical_gaps(plan, physical_data_available=False)
+    assert "DISP_PROJETADA" in gaps
+
+
 def test_return_question_keeps_spot_event_and_model_detail():
     plan = codes("mostre retornos previstos por modelo em novembro e dezembro")
     assert "RET_PREV_TOTAL" in plan
