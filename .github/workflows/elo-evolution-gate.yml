@@ -69,9 +69,24 @@ jobs:
           echo "Hermes 13 loop execution is evidence-only."
           echo "No promotion, production execution, or canonical mutation is authorized by this job."
 
+  external-access-contract:
+    name: External access contract
+    needs: validation
+    if: needs.validation.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install package and tests
+        run: python -m pip install -e ".[test,agentic]"
+      - name: Run external access security tests
+        run: python -m pytest -q tests/security/test_external_access_contract.py tests/security/test_identity_trust.py tests/test_specialist_consultation_boundary.py
+
   evolution-handoff:
     name: ELO decision handoff
-    needs: [validation, symbiont-capability-filter, hermes-13-loop]
+    needs: [validation, symbiont-capability-filter, hermes-13-loop, external-access-contract]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -81,15 +96,16 @@ jobs:
           VALIDATION_RESULT: ${{ needs.validation.result }}
           FILTER_RESULT: ${{ needs.symbiont-capability-filter.result }}
           HERMES_LOOP_RESULT: ${{ needs.hermes-13-loop.result }}
+          EXTERNAL_ACCESS_RESULT: ${{ needs.external-access-contract.result }}
           PR_NUMBER: ${{ github.event.pull_request.number || '' }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          if [ "$VALIDATION_RESULT" = "success" ] && [ "$FILTER_RESULT" = "success" ] && [ "$HERMES_LOOP_RESULT" = "success" ]; then
+          if [ "$VALIDATION_RESULT" = "success" ] && [ "$FILTER_RESULT" = "success" ] && [ "$HERMES_LOOP_RESULT" = "success" ] && [ "$EXTERNAL_ACCESS_RESULT" = "success" ]; then
             STATE="READY_FOR_ELO_REVIEW"
-            MESSAGE="Validação técnica, filtro profundo da Simbionte e loop Hermes passaram. O ELO pode avaliar a introdução sem presumir promoção automática."
+            MESSAGE="Validação técnica, filtro profundo da Simbionte, loop Hermes e contrato de acesso externo passaram. O ELO pode avaliar a introdução sem presumir promoção automática."
           else
             STATE="ELO_AWAITING_DECISION"
-            MESSAGE="A validação técnica, o filtro profundo da Simbionte ou o loop Hermes falhou. O ELO deve corrigir, adaptar, preservar como observação ou bloquear sem criar autoridade paralela."
+            MESSAGE="Um ou mais gates obrigatórios falharam. O ELO deve corrigir, adaptar, preservar como observação ou bloquear sem criar autoridade paralela."
           fi
 
           if [ -n "$PR_NUMBER" ]; then
@@ -101,6 +117,7 @@ jobs:
           **Validação técnica:** \`$VALIDATION_RESULT\`
           **Filtro profundo da Simbionte:** \`$FILTER_RESULT\`
           **Loop Hermes 13:** \`$HERMES_LOOP_RESULT\`
+          **Contrato de acesso externo:** \`$EXTERNAL_ACCESS_RESULT\`
 
           $MESSAGE
 
@@ -116,18 +133,3 @@ jobs:
           EOF
             gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body-file /tmp/comment.md
           fi
-
-  external-access-contract:
-    name: External access contract
-    needs: validation
-    if: needs.validation.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-      - name: Install package and tests
-        run: python -m pip install -e ".[test,agentic]"
-      - name: Run external access security tests
-        run: python -m pytest -q tests/security/test_external_access_contract.py tests/security/test_identity_trust.py tests/test_specialist_consultation_boundary.py
