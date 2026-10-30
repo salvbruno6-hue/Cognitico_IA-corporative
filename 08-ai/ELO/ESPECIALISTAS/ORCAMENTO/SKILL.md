@@ -1,6 +1,6 @@
 # ELO — Skill de Orçamento
 
-**Versão:** 1.2  
+**Versão:** 1.3  
 **Status:** Candidato canônico — sujeito ao Evolution Gate  
 **Domínio:** Orçamento  
 **Autoridade:** ELO/Governance  
@@ -60,10 +60,11 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 7. **Premissas** — classificar origem e impacto; nunca ocultar informação não confirmada.
 8. **Questionamentos/vistoria** — preferir vistoria quando a lacuna puder ser resolvida em campo.
 9. **Varredura de recorrências** — reconhecer serviços/itens recorrentes, suas aplicações e relações; recorrência gera verificação, nunca inclusão automática.
-10. **Conferência** — PTS Técnica × Orçamento.
-11. **PTS Pós-Orçamento** — identificar divergências, omissões, inclusões sem origem e responsabilidades indefinidas.
-12. **Aprendizado** — extrair padrões somente após validação, preservando evidência e contexto.
-13. **Memória de cálculo** — preservar fórmula, parâmetros, origem, resultado e evidência sem substituir o sistema persistente.
+10. **Confronto composição × memória** — abrir a composição-base, classificar etapas, localizar memórias específicas associadas e decidir se cada custo está integrado, separado, duplicado ou em conflito.
+11. **Conferência** — PTS Técnica × Orçamento.
+12. **PTS Pós-Orçamento** — identificar divergências, omissões, inclusões sem origem e responsabilidades indefinidas.
+13. **Aprendizado** — extrair padrões somente após validação, preservando evidência e contexto.
+14. **Memória de cálculo** — preservar fórmula, parâmetros, origem, resultado e evidência sem substituir o sistema persistente.
 
 ## 4. Encadeamento operacional canônico
 
@@ -76,6 +77,9 @@ PTS TÉCNICA
       ↓
 [VARRER RECORRÊNCIAS — OBRIGATÓRIO]
 requisito → aplicação → item/serviço recorrente → dependências → memória/precedente → alerta
+      ↓
+[CONFRONTAR COMPOSIÇÃO × MEMÓRIAS — OBRIGATÓRIO]
+composição-base → componentes → MO-FAB/MO-INST/MO-EXT → memórias específicas → integrado/complementar/duplicado/conflito
       ↓
 DIRECIONAMENTO / CHECKLIST
       ↓
@@ -90,6 +94,9 @@ PTS PÓS-ORÇAMENTO
 [VARRER RECORRÊNCIAS — OBRIGATÓRIO NOVAMENTE]
 orçado → esperado → omitido → duplicado → associação nova → candidato a aprendizado
       ↓
+[RECONCILIAR COMPOSIÇÃO × MEMÓRIAS NOVAMENTE]
+valor orçado → composição-base → memória específica → conflito/duplicidade/omissão
+      ↓
 ELO CONFERE
    ├─ OK → fechamento
    └─ CONTESTAÇÃO → Especialista corrige
@@ -98,7 +105,7 @@ ELO CONFERE
                       ↓
                     PTS PÓS REV.N
                       ↓
-                    VARRER RECORRÊNCIAS
+                    VARRER + RECONCILIAR
                       └──────────────► nova conferência
       ↓
 APRENDIZADO CANDIDATO
@@ -169,6 +176,42 @@ Regra:
 
 `RECORRÊNCIA → VERIFICAR APLICAÇÃO → CONSULTAR MEMÓRIA → RECALCULAR → VALIDAR → ORÇAR`
 
+## 4.3 Loop obrigatório de confronto composição × memória
+
+Para cada EXC, item composto ou serviço com possibilidade de etapas separadas, executar:
+
+`ITEM/EXC → COMPOSIÇÃO-BASE → COMPONENTES → ETAPAS EXECUTIVAS → MEMÓRIAS ESPECÍFICAS ASSOCIADAS → CONFRONTO → DECISÃO`
+
+### Hierarquia de evidência
+
+Para decidir se uma etapa está ou não incluída:
+
+1. composição detalhada e componentes efetivamente precificados;
+2. memória específica da etapa, quando existir;
+3. vínculo entre EXC e memória;
+4. decisão explícita validada do especialista/orçamentista;
+5. texto-resumo genérico.
+
+**Texto-resumo não pode vencer a estrutura da composição.**
+
+Se houver uma memória específica de instalação e a composição-base não apresentar linha inequívoca de instalação, a instalação deve ser tratada como **parcela complementar separada**. A presença de um profissional genérico como `Soldador/Montador` não basta, por si só, para provar que a instalação final está incluída; é necessário identificar a função daquela mão de obra no processo.
+
+Classificações obrigatórias:
+
+- `INTEGRADO_NA_COMPOSIÇÃO` — a etapa aparece explicitamente e está precificada na composição-base;
+- `COMPLEMENTAR_SEPARADO` — existe memória própria para a etapa e ela não aparece de forma inequívoca na base;
+- `DUPLICIDADE` — a mesma etapa aparece na base e também está sendo somada novamente;
+- `CONFLITO_DE_MEMÓRIA` — texto, componentes e memórias divergem;
+- `PENDENTE_DE_VALIDAÇÃO` — evidência insuficiente.
+
+### Exemplo de referência — porta metálica
+
+- `MC-PORTA-EXTERNA-CORTEN-800X2100`: **R$ 600,22** → materiais + fabricação + acabamento;
+- `MC-INSTALACAO-PORTA-METALICA`: **R$ 118,15** → instalação específica;
+- conclusão: a instalação não deve ser presumida dentro dos R$ 600,22 apenas porque um texto-resumo histórico assim afirmou.
+
+Esse confronto deve ocorrer **na PTS Técnica e novamente na PTS Pós**. Se houver conflito, gerar pergunta ao especialista; não resolver silenciosamente.
+
 ## 5. Regras de decisão
 
 - Usar documentação vigente antes de histórico.
@@ -181,6 +224,7 @@ Regra:
 - Premissa crítica deve gerar pendência/questionamento quando alterar materialmente custo ou atendimento.
 - Resultado de uma única SO não vira regra geral sem validação.
 - Toda PTS Técnica e toda PTS Pós deve executar a varredura de recorrências antes de ser considerada completa.
+- Toda composição com memória complementar deve executar confronto de inclusão antes de somar ou excluir custos.
 - Uma associação recorrente ausente gera alerta; não autoriza inclusão automática.
 
 ## 6. Contrato de aprendizado
@@ -209,6 +253,8 @@ O loop deve aprender prioritariamente:
 - associações entre itens;
 - sequência executiva;
 - separação fabricação × instalação × campo;
+- confronto entre composição-base e memórias específicas;
+- causas de textos-resumo conflitarem com componentes reais;
 - quantitativos e produtividade;
 - dependências logísticas;
 - responsabilidade por fornecimento de valores;
@@ -234,11 +280,14 @@ O `ELO_MEMORIA_ORCAMENTOS.md` é camada textual de contexto/índice e não subst
 Bloquear ou marcar como não confirmado quando houver:
 
 - PTS Técnica sem varredura de recorrências;
+- PTS Técnica sem confronto composição × memória quando houver memória complementar;
 - PTS Pós sem segunda varredura de recorrências;
+- PTS Pós sem reconciliação composição × memória;
 - evidência ausente para requisito crítico;
 - cálculo sem parâmetros suficientes;
 - origem de custo não demonstrável;
 - conflito documental não resolvido;
+- conflito entre texto-resumo, composição e memória específica não resolvido;
 - responsabilidade indefinida com impacto material;
 - tentativa de transformar experiência isolada em regra;
 - associação recorrente incluída automaticamente sem confirmação de aplicabilidade;
@@ -255,9 +304,13 @@ E cada recorrência relevante puder responder:
 
 `QUAL GATILHO → QUAL APLICAÇÃO → QUAL DEPENDÊNCIA → QUAL MEMÓRIA → FOI VERIFICADA? → QUAL RESULTADO?`
 
+E cada composição com memória associada puder responder:
+
+`QUAL PARCELA ESTÁ NA BASE → QUAL PARCELA TEM MEMÓRIA PRÓPRIA → ESTÁ INTEGRADA OU SEPARADA? → HÁ DUPLICIDADE? → HÁ CONFLITO?`
+
 ## 10. Potencialização para o ELO
 
-Esta skill transforma o domínio de orçamento em uma capacidade estruturada de raciocínio operacional **sem duplicar capacidades existentes**: conecta requisito, solução, composição, custo, evidência, decisão, recorrências, resultado pós-orçamento e aprendizado, mantendo a autoridade nas estruturas canônicas já existentes.
+Esta skill transforma o domínio de orçamento em uma capacidade estruturada de raciocínio operacional **sem duplicar capacidades existentes**: conecta requisito, solução, composição, custo, evidência, decisão, recorrências, confronto de memórias, resultado pós-orçamento e aprendizado, mantendo a autoridade nas estruturas canônicas já existentes.
 
 ## 11. Regra de manutenção
 
