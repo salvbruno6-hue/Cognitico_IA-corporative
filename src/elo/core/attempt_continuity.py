@@ -61,7 +61,13 @@ def evaluate_attempt_continuity(request: AttemptContinuityRequest) -> AttemptCon
     """Classify continuity without granting or refreshing authority."""
     if not all((request.request_id, request.attempt_id, request.owner_id, request.authorization_id)):
         return AttemptContinuityResult(ContinuityDecision.INVALID, False, False, "missing_identity_or_authority")
-    if request.retry_count < 0 or request.max_retries < 0:
+    # bool is intentionally rejected even though it subclasses int in Python.
+    if (
+        type(request.retry_count) is not int
+        or type(request.max_retries) is not int
+        or request.retry_count < 0
+        or request.max_retries < 0
+    ):
         return AttemptContinuityResult(ContinuityDecision.INVALID, False, False, "invalid_retry_budget")
     if request.failure_class in _BLOCKING:
         return AttemptContinuityResult(ContinuityDecision.STOP_BLOCKED, False, False, "governance_refusal_is_not_retryable")
