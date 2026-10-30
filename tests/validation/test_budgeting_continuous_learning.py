@@ -62,9 +62,12 @@ def test_reasoning_trace_covers_pts_budget_and_value_formation():
     contract = CONTRACT.read_text(encoding="utf-8")
 
     assert "## 4. Encadeamento operacional canônico" in skill
-    pts_tecnica_pos = skill.index("PTS TÉCNICA")
-    orcamento_pos = skill.index("ORÇAMENTO + MEMÓRIAS DE CÁLCULO + RASTRO DE RACIOCÍNIO")
-    pts_pos_pos = skill.index("PTS PÓS-ORÇAMENTO")
+    operational = skill.split("## 4. Encadeamento operacional canônico", 1)[1].split(
+        "## 5. Regras de decisão", 1
+    )[0]
+    pts_tecnica_pos = operational.index("PTS TÉCNICA")
+    orcamento_pos = operational.index("ORÇAMENTO + MEMÓRIAS DE CÁLCULO + RASTRO DE RACIOCÍNIO")
+    pts_pos_pos = operational.index("PTS PÓS-ORÇAMENTO")
     assert pts_tecnica_pos < orcamento_pos < pts_pos_pos
     assert "reasoning_trace_required: true" in PACK.read_text(encoding="utf-8")
     assert "Rastro de raciocínio por fase" in contract
