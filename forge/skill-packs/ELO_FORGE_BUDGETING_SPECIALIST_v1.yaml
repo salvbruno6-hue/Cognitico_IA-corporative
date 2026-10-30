@@ -7,6 +7,7 @@ promotion_gate: Evolution_Gate
 skills:
   - skill_id: FORGE-BUDGETING-001
     domain_family: BUDGETING
+    authority_role: SPECIALIZED_FORGE_EXECUTOR
     purpose: >-
       Executar raciocínio técnico-orçamentário rastreável, composição e precificação,
       explicar como cada decisão e valor foi construído e transformar experiências
@@ -19,7 +20,8 @@ skills:
     boundaries: >-
       Não inventa quantidade, fórmula, preço, produtividade ou aplicabilidade; não
       promove precedente a regra automaticamente; não substitui documentação vigente,
-      Lista-Mãe, contratos canônicos nem memória persistente autorizada.
+      Lista-Mãe, contratos canônicos nem memória persistente autorizada; não deve ser
+      apresentada ao usuário como Skill canônica ou autoridade normativa independente.
     prerequisites:
       - documentação vigente da SO/projeto quando existir
       - prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml
@@ -49,7 +51,8 @@ skills:
       - Supabase elo_orcamento_associacoes
       - Lista-Mãe e fontes autorizadas de preço
     procedures:
-      - ao iniciar ELO ANALISAR, ativar FORGE-BUDGETING-001 para a SO atual
+      - ao iniciar ELO ANALISAR, ativar internamente FORGE-BUDGETING-001 para a SO atual
+      - manter a ativação interna silenciosa na resposta inicial ao usuário
       - consultar conhecimento armazenado no Git e memória orçamentária no Supabase antes de compor
       - requisito -> interpretação -> alternativas -> decisão técnica
       - identificar padrão/modelo antes de excedente
@@ -122,17 +125,23 @@ skills:
       - não promove aprendizado diretamente ao Core
       - não transforma caso histórico em origem da SO atual
       - não integra automaticamente à Skill uma resposta ainda não validada
+      - não expõe ID da Skill, infraestrutura ou memória interna na ativação ao usuário salvo pedido explícito
     test_references:
       - tests/validation/test_budgeting_specialist_skill.py
       - tests/validation/test_budgeting_continuous_learning.py
     maturity: STRUCTURED
-    version: "1.1"
+    version: "1.2"
     history:
       - "2026-10-30: formalização no Forge reutilizando a Skill de Orçamento existente"
       - "2026-10-30: ativação automática no ELO ANALISAR, rastro de raciocínio e revisão de aprendizado >=10 questões"
+      - "2026-10-30: ativação interna silenciosa; resposta inicial orientada à SO sem expor implementação"
     contextual_parameters:
       sector: Planejamento
       auto_activate_on: ELO ANALISAR
+      activation_visibility: INTERNAL_SILENT
+      expose_skill_id_on_activation: false
+      expose_infrastructure_on_activation: false
+      forge_skill_is_canonical_authority: false
       remain_active_until: encerramento da solicitação e revisão de aprendizado
       learning_trigger: ELO APRENDER
       minimum_learning_questions: 10
