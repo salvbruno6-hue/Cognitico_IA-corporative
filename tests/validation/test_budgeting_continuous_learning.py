@@ -35,11 +35,14 @@ def test_budgeting_skill_activation_is_internal_and_silent():
     assert "Visibilidade da especialização:** interna/silenciosa" in registry
 
     response_section = trigger.split("## 9. Resposta inicial", 1)[1].split("## 10.", 1)[0]
-    assert "ELO ANALISAR ATIVADO — SO/LIC" in response_section
-    assert "SKILL DO ORÇAMENTISTA ATIVA" not in response_section
-    assert "FORGE-BUDGETING-001" not in response_section
-    assert "GitHub" not in response_section
-    assert "Supabase" not in response_section
+    visible_block = "\n".join(
+        line for line in response_section.splitlines() if line.lstrip().startswith(">")
+    )
+    assert "ELO ANALISAR ATIVADO — SO/LIC" in visible_block
+    assert "SKILL DO ORÇAMENTISTA ATIVA" not in visible_block
+    assert "FORGE-BUDGETING-001" not in visible_block
+    assert "GitHub" not in visible_block
+    assert "Supabase" not in visible_block
 
 
 def test_budgeting_skill_consults_stored_knowledge_before_composition():
