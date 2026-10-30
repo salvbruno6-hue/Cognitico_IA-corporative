@@ -5,6 +5,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/SKILL.md"
 PACK = ROOT / "forge/skill-packs/ELO_FORGE_BUDGETING_SPECIALIST_v1.yaml"
 MASTER = ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_APRENDER_CANONICO_MASTER_PROMPT.md"
+CONTRACT = ROOT / "prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml"
+TRIGGER = ROOT / "docs/cognitive/ELO_ANALISAR_TRIGGER.md"
 
 
 def test_budgeting_skill_is_formalized_without_parallel_authority():
@@ -50,3 +52,25 @@ def test_pir_dependency_is_check_not_automatic_inclusion():
     skill = SKILL.read_text(encoding="utf-8")
     assert "PAINEL PIR → VERIFICAR GUIA U / PERFIS DE FIXAÇÃO E ACABAMENTO" in skill
     assert "Não transformar automaticamente" in skill
+
+
+def test_elo_analisar_closure_requires_case_specific_learning_review():
+    contract = CONTRACT.read_text(encoding="utf-8")
+    trigger = TRIGGER.read_text(encoding="utf-8")
+
+    assert 'analysis_request: ["elo analisar", "ELO ANALISAR"]' in contract
+
+    learning_review = contract.split("- id: learning_review", 1)[1].split(
+        "- id: correction_loop", 1
+    )[0]
+    assert "mandatory: true" in learning_review
+    assert "blocking: true" in learning_review
+    assert "minimum_questions: 10" in learning_review
+    assert "close_only_when:" in learning_review
+
+    assert "learning_review_gate:" in contract
+    assert "REVISÃO DE APRENDIZADO DA SO" in contract
+    assert "no mínimo 10 perguntas específicas ao caso" in contract
+
+    assert "Fechamento obrigatório da solicitação" in trigger
+    assert "no mínimo 10 questões específicas ao owner" in trigger

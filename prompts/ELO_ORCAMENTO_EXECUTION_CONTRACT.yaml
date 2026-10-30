@@ -1,4 +1,4 @@
-version: "1.2"
+version: "1.3"
 contract_id: ELO-ORCAMENTO-EXECUTION-001
 purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista, com varredura de recorrências e confronto composição-base × memórias específicas."
 mode: supervised
@@ -70,13 +70,17 @@ pipeline:
       - PENDENTE_VALIDACAO
   - id: learning_review
     action: generate_case_specific_learning_questions
+    mandatory: true
+    blocking: true
     minimum_questions: 10
+    close_only_when: "learning_review_questions_emitted_or_case_explicitly_left_open"
   - id: correction_loop
     action: return_to_budget_when_material_divergence_exists
     repeat_until: "material_divergences_resolved_justified_or_arbitrated"
   - id: learning
     action: evaluate_experience_without_auto_promotion
 triggers:
+  analysis_request: ["elo analisar", "ELO ANALISAR"]
   budget_request: ["orçar", "orcamento", "montar orçamento", "levantar orçamento"]
   pts_technical_request: ["pts tec", "pts técnica", "criar pts técnica"]
   pts_post_request: ["pts pos", "pts pós", "pts pós-orçamento", "criar pts pós"]
@@ -92,6 +96,7 @@ rules:
   recurring_source: "Usar o catálogo do Especialista para saber o que procurar; usar memória estruturada e fonte vigente para saber como calcular e quanto custa."
   pts_technical_gate: "PTS Técnica sem varredura de recorrências e sem confronto composição↔memórias é incompleta para entrada do orçamento."
   pts_post_gate: "PTS Pós sem segunda varredura e sem novo confronto composição↔memórias é incompleta para fechamento."
+  learning_review_gate: "Quando ELO ANALISAR chegar ao fechamento da solicitação, não considerar a análise encerrada sem emitir REVISÃO DE APRENDIZADO DA SO com no mínimo 10 perguntas específicas ao caso; se a solicitação permanecer aberta, registrar explicitamente que o questionário fica pendente para o fechamento."
   correction_loop: "Divergência material encontrada na PTS Pós retorna ao orçamento; após correção, gerar nova PTS Pós e repetir varredura e confronto."
   labor_nature: "Distinguir MO-FAB, MO-INST e MO-EXT; mão de obra presente em uma composição não prova que instalação esteja incluída."
   evidence_hierarchy: "Para decidir se uma etapa está incluída, priorizar composição detalhada e memórias específicas relacionadas sobre texto-resumo genérico ou ambíguo."
