@@ -1,0 +1,133 @@
+schema: ELO-FORGE-SKILL-PACK.v1
+owner: Forge
+authority: ELO_COGNITIVO
+shared_faculty: Core
+promotion_gate: Evolution_Gate
+
+skills:
+  - skill_id: FORGE-BUDGETING-001
+    domain_family: BUDGETING
+    purpose: >-
+      Executar raciocínio técnico-orçamentário rastreável, composição e precificação,
+      e transformar experiências repetidas em aprendizado candidato sem criar
+      autoridade paralela ao ELO/Governance.
+    scope: >-
+      Setor de Planejamento, domínio Orçamento: leitura de SO/TR, enquadramento de
+      produto/modelo, equivalência, quantitativos, composição, mão de obra,
+      logística, custos, PTS pós-orçamento, memória de cálculo e aprendizado cognitivo.
+    boundaries: >-
+      Não inventa quantidade, fórmula, preço, produtividade ou aplicabilidade; não
+      promove precedente a regra automaticamente; não substitui documentação vigente,
+      Lista-Mãe, contratos canônicos nem memória persistente autorizada.
+    prerequisites:
+      - documentação vigente da SO/projeto quando existir
+      - prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml
+      - 08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md
+      - 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/SKILL.md
+      - 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_APRENDER_CANONICO_MASTER_PROMPT.md
+    authorized_inputs:
+      - SO
+      - TR_EDITAL
+      - PTS_TECNICA
+      - ORCAMENTO
+      - PTS_POS_ORCAMENTO
+      - PLANILHAS
+      - COMPOSICOES
+      - DOCUMENTOS_ANEXOS
+      - CORRECOES_EXPLICITAS_DO_OWNER
+    authorized_sources:
+      - GitHub canônico Cognitico_IA-corporative
+      - Supabase elo_orcamento_memoria
+      - Supabase elo_orcamento_calculos_aprendidos
+      - Supabase elo_orcamento_calculo_varreduras
+      - Supabase elo_orcamento_calculo_evidencias
+      - Supabase elo_orcamento_calculo_similaridades
+      - Supabase elo_orcamento_decisoes
+      - Supabase elo_orcamento_associacoes
+      - Lista-Mãe e fontes autorizadas de preço
+    procedures:
+      - requisito -> interpretação -> decisão técnica
+      - identificar padrão/modelo antes de excedente
+      - reconstruir quantitativo e dependências
+      - recuperar precedentes e confrontar equivalência
+      - separar quantitativo, preço unitário, custo, indiretos e preço final
+      - executar PTS pós-orçamento
+      - quando acionado ELO APRENDER, executar varredura cognitiva e cognitive merge governado
+    calculation_methods:
+      - preservar entrada + unidade + premissa + fórmula + subcálculo + resultado
+      - recomputar quantitativos quando houver parâmetros suficientes
+      - registrar GAP_FORMULA_QUANTITATIVO quando existir resultado sem fórmula demonstrável
+      - validar preços unitários contra fonte vigente antes do custo
+    evidence_requirements:
+      - FACT
+      - COMMITTED
+      - AVAILABLE
+      - ASSUMPTION
+      - ESTIMATE
+      - HYPOTHESIS
+      - GAP
+      - CONFLICT
+    provenance_requirements:
+      - origem_so
+      - origem_documento
+      - item_origem
+      - fonte_do_preco
+      - formula
+      - premissas
+      - validacao
+    uncertainty_rules:
+      - experiência única inicia como OBSERVADO/CANDIDATO
+      - associação recorrente gera alerta de verificação, não inclusão automática
+      - preço histórico é referência consultiva, não preço vigente
+      - sem evidência suficiente preservar GAP
+    escalation_rules:
+      - conflito documental material -> ELO/Governance
+      - ausência de preço vigente material -> questionamento/cotação
+      - regra candidata com impacto recorrente -> validação antes de promoção
+    outputs:
+      - mapa cognitivo do orçamento
+      - composição rastreável
+      - memória de cálculo
+      - divergências e riscos
+      - padrões candidatos
+      - alertas de dependências
+      - PTS pós-orçamento
+    decision_boundaries:
+      - não executa compra ou contratação
+      - não altera preço canônico sem fonte autorizada
+      - não promove aprendizado diretamente ao Core
+      - não transforma caso histórico em origem da SO atual
+    test_references:
+      - tests/validation/test_budgeting_specialist_skill.py
+    maturity: STRUCTURED
+    version: "1.0"
+    history:
+      - "2026-10-30: formalização no Forge reutilizando a Skill de Orçamento existente"
+    contextual_parameters:
+      sector: Planejamento
+      learning_trigger: ELO APRENDER
+      reasoning_chain: >-
+        REQUISITO -> RACIOCINIO -> DECISAO -> QUANTITATIVO -> DEPENDENCIAS ->
+        FORMULA -> CUSTO -> EVIDENCIA -> APRENDIZADO
+      example_candidate:
+        context: contêiner 20 pés padrão com forração PIR 32 mm
+        wall_panels_observed: 14
+        ceiling_panels_observed: 5
+        status: CANDIDATO
+        required_gap_if_formula_missing: GAP_FORMULA_QUANTITATIVO
+        dependency_alert: verificar guia U/perfis de fixação e acabamento
+    learning_candidates:
+      - padrões condicionais de composição
+      - fórmulas de quantitativos recorrentes
+      - dependências técnicas de instalação
+      - produtividade recorrente com contexto comprovado
+      - critérios de equivalência e escolha de modelo
+    promotion_candidates:
+      - somente métodos generalizáveis validados por múltiplas evidências e Evolution Gate
+
+rules:
+  direct_forge_to_core_promotion: false
+  company_overlay_is_generalizable_by_default: false
+  historical_experience_is_immutable: true
+  external_source_is_authority: false
+  precedent_is_rule_by_default: false
