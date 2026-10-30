@@ -10,7 +10,7 @@ Transformar a inteligência de orçamento do ELO em um fluxo executável, audit�
 
 A arquitetura deve operar em **loop cognitivo-orçamentário**, não em linha única:
 
-`PTS TÉCNICA → VARRER RECORRÊNCIAS → ORÇAMENTO → PTS PÓS → VARRER RECORRÊNCIAS → CORRIGIR/VALIDAR → APRENDER`
+`PTS TÉCNICA → VARRER RECORRÊNCIAS → CONFRONTAR COMPOSIÇÕES/MEMÓRIAS → ORÇAMENTO → PTS PÓS → VARRER RECORRÊNCIAS → RECONCILIAR COMPOSIÇÕES/MEMÓRIAS → CORRIGIR/VALIDAR → APRENDER`
 
 ## 3. Fluxo físico
 
@@ -32,23 +32,32 @@ ENTRADA / DOCUMENTAÇÃO
   │      └─ alertas de verificação
   │
   ▼
-[4] Consulta Lista-Mãe
+[4] Confronto obrigatório composição × memórias
+  │      ├─ abrir composição-base / EXC
+  │      ├─ classificar componentes e etapas
+  │      ├─ localizar memórias específicas
+  │      ├─ integrado × complementar
+  │      ├─ duplicidade
+  │      └─ conflito de memória
   │
   ▼
-[5] Resolução Taxonomia MLT
+[5] Consulta Lista-Mãe
   │
   ▼
-[6] Matching de Modelo / Família / Dimensão
+[6] Resolução Taxonomia MLT
   │
   ▼
-[7] Composição do orçamento-base
+[7] Matching de Modelo / Família / Dimensão
   │
-  ├──────────────► [8] Auditoria de excedentes
+  ▼
+[8] Composição do orçamento-base
+  │
+  ├──────────────► [9] Auditoria de excedentes
   │                       │
   │                       ▼
   │                materiais / serviços / MO-FAB / MO-INST
   │
-  ├──────────────► [9] Auditoria de relações
+  ├──────────────► [10] Auditoria de relações
   │                       │
   │                       ├─ elétrica / dados
   │                       ├─ hidráulica
@@ -59,13 +68,13 @@ ENTRADA / DOCUMENTAÇÃO
   │                       └─ demais composições
   │
   ▼
-[10] Motor de orçamento
+[11] Motor de orçamento
   │
   ▼
-[11] PTS Pós-Orçamento
+[12] PTS Pós-Orçamento
   │
   ▼
-[12] Segunda varredura obrigatória de recorrências
+[13] Segunda varredura obrigatória de recorrências
   │      ├─ esperado × orçado
   │      ├─ omissões
   │      ├─ duplicidades
@@ -74,7 +83,16 @@ ENTRADA / DOCUMENTAÇÃO
   │      └─ novas associações candidatas
   │
   ▼
-[13] Auditoria de confiança e lacunas
+[14] Reconciliação pós-orçamento composição × memórias
+  │      ├─ valor orçado
+  │      ├─ composição-base
+  │      ├─ memória específica
+  │      ├─ etapa integrada ou separada
+  │      ├─ duplicidade
+  │      └─ conflito/questionamento
+  │
+  ▼
+[15] Auditoria de confiança e lacunas
   │
   ├── suficiente ─────────────► fechamento / arbitragem
   │
@@ -89,18 +107,18 @@ ENTRADA / DOCUMENTAÇÃO
                                       ▼
                               PTS Pós REV.N
                                       │
-                                      └────────► volta a [12]
+                                      └────────► volta a [13] e [14]
 
 FECHAMENTO / ARBITRAGEM
   │
   ▼
-[14] Registro da experiência
+[16] Registro da experiência
   │
   ▼
-[15] Aprendizado candidato
+[17] Aprendizado candidato
   │
   ▼
-[16] Evolution Gate
+[18] Evolution Gate
   │
   ├─ regra canônica → estrutura
   └─ experiência temporal → memória
@@ -119,6 +137,9 @@ REQUISITO
 → VERIFICAR APLICAÇÃO
 → VERIFICAR DEPENDÊNCIAS
 → CONSULTAR PRECEDENTE/MEMÓRIA
+→ ABRIR COMPOSIÇÃO-BASE
+→ LOCALIZAR MEMÓRIAS ESPECÍFICAS ASSOCIADAS
+→ CONFRONTAR ETAPAS E VALORES
 → GERAR ALERTA/CHECKLIST
 → ORÇAR SOMENTE O QUE SE APLICA
 ```
@@ -130,13 +151,54 @@ PTS TÉCNICA
 → ORÇAMENTO
 → EXPECTATIVAS DE RECORRÊNCIA
 → ITENS EFETIVAMENTE ORÇADOS
-→ OMISSÕES / DUPLICIDADES / PENDÊNCIAS
+→ CONFRONTO COMPOSIÇÃO-BASE × MEMÓRIAS ESPECÍFICAS
+→ OMISSÕES / DUPLICIDADES / CONFLITOS / PENDÊNCIAS
 → CORREÇÃO OU JUSTIFICATIVA
 → NOVA PTS PÓS
-→ NOVA VARREDURA
+→ NOVA VARREDURA E RECONCILIAÇÃO
 ```
 
 O loop só termina quando as divergências materiais estiverem resolvidas, justificadas ou arbitradas.
+
+## 3.2 Princípio de reconciliação de composição e memória
+
+O orçamento não pode decidir se uma etapa está incluída apenas pelo texto descritivo de uma memória ou EXC.
+
+A decisão deve seguir:
+
+`COMPOSIÇÃO DETALHADA → COMPONENTES → ETAPAS EXECUTIVAS → MEMÓRIAS ESPECÍFICAS → VÍNCULOS → DECISÃO VALIDADA → TEXTO-RESUMO`
+
+A hierarquia operacional é:
+
+1. componentes efetivamente precificados na composição;
+2. memória específica da etapa;
+3. vínculo entre EXC e memória;
+4. decisão explícita validada pelo especialista/orçamentista;
+5. texto-resumo genérico.
+
+Se existir uma memória específica de instalação e a composição-base não demonstrar explicitamente essa mesma instalação, a memória específica deve ser tratada como parcela complementar. Um rótulo genérico de função, como `Soldador/Montador`, não prova sozinho a inclusão de instalação final.
+
+Classificar cada confronto como:
+
+- `INTEGRADO_NA_COMPOSIÇÃO`;
+- `COMPLEMENTAR_SEPARADO`;
+- `DUPLICIDADE`;
+- `CONFLITO_DE_MEMÓRIA`;
+- `PENDENTE_DE_VALIDAÇÃO`.
+
+### Caso de referência — porta metálica
+
+```text
+MC-PORTA-EXTERNA-CORTEN-800X2100
+R$ 600,22
+= materiais + fabricação + acabamento
+
+MC-INSTALACAO-PORTA-METALICA
+R$ 118,15
+= instalação específica
+```
+
+A existência da memória específica de instalação impede o ELO de concluir que os R$ 600,22 já incluem essa etapa com base apenas em texto-resumo histórico.
 
 ## 4. Camadas
 
@@ -173,13 +235,16 @@ Devem permanecer em documentos:
 - explicações de composição;
 - padrões de comportamento do ELO;
 - catálogo cognitivo de serviços e itens recorrentes;
-- critérios de aplicação e associações entre famílias de custo.
+- critérios de aplicação e associações entre famílias de custo;
+- critérios de reconciliação entre composição-base e memórias específicas.
 
 ### 4.3 Orquestração
 
 O ELO deve executar a sequência sem transformar conhecimento temporal em regra permanente automaticamente.
 
 **Regra:** recorrência é um gatilho de verificação, não uma autorização de inclusão.
+
+**Regra:** texto-resumo é evidência secundária quando conflita com a estrutura da composição ou uma memória específica.
 
 ## 5. Entidades mínimas
 
@@ -209,6 +274,16 @@ recorrência
  ├── memória de referência
  ├── condição de não aplicação
  └── resultado da verificação
+
+reconciliação
+ ├── composição-base
+ ├── componentes
+ ├── etapa executiva
+ ├── memória específica
+ ├── vínculo
+ ├── classificação
+ ├── conflito
+ └── decisão
 
 experiência
  ├── solicitação
@@ -258,6 +333,8 @@ MLT.M01
 Cada excedente recebe origem, unidade, quantidade, justificativa e relação com o modelo-base.
 
 Antes de criar novo excedente, o loop consulta catálogo, memórias e excedentes existentes para detectar equivalência ou precedente.
+
+Antes de decidir que um EXC já contém instalação, montagem, transporte, acabamento ou outra etapa, o loop confronta sua composição com memórias específicas relacionadas.
 
 ## 8. Relações como gatilhos
 
@@ -317,6 +394,8 @@ O valor de mão de obra deve ser relacionado por função e por natureza:
 - encarregado;
 - especialidades quando aplicáveis.
 
+Antes de somar uma MO específica, verificar se ela já aparece de forma inequívoca na composição-base. Antes de excluir uma MO específica, verificar se a composição-base realmente a contém. Em conflito, bloquear inferência e encaminhar ao especialista/questionário.
+
 ## 10. Especialista
 
 O especialista recebe um contexto já preparado pelo ELO:
@@ -328,7 +407,9 @@ demanda original
 → diferenças encontradas
 → recorrências detectadas
 → relações suspeitas
-→ precedentes/memórias relevantes
+→ composições-base
+→ memórias específicas associadas
+→ conflitos de inclusão/duplicidade
 → composição sugerida
 → lacunas
 → perguntas objetivas
@@ -344,8 +425,10 @@ itens aplicados
 → itens recorrentes verificados
 → itens considerados não aplicáveis
 → memórias utilizadas
+→ classificação integrado/complementar
 → novos cálculos
 → relações encontradas
+→ conflitos resolvidos
 → lacunas
 → pontos para PTS Pós
 ```
@@ -359,7 +442,7 @@ Experiências úteis, mas ainda não canonizadas, permanecem temporais e context
 ```text
 experiência
    ↓
-PTS Pós identifica padrão/erro/associação
+PTS Pós identifica padrão/erro/associação/conflito
    ↓
 validação
    ↓
@@ -378,6 +461,8 @@ O aprendizado deve distinguir:
 - memória quantitativa;
 - precedente;
 - associação recorrente;
+- etapa integrada ou complementar;
+- conflito de memória;
 - regra validada.
 
 Método e aplicação permanecem na camada documental; memória quantitativa permanece na persistência estruturada.
@@ -408,16 +493,17 @@ A implementação deve avançar nesta ordem:
 6. catálogo/índice de recorrências;
 7. motor de excedentes;
 8. grafo de relações;
-9. composição de mão de obra;
-10. motor de orçamento;
-11. integração PTS Técnica;
-12. integração PTS Pós;
-13. loop de recorrências;
-14. gateway do especialista;
-15. memória de experiências;
-16. Evolution Gate;
-17. testes integrados;
-18. observabilidade.
+9. reconciliador composição × memória;
+10. composição de mão de obra;
+11. motor de orçamento;
+12. integração PTS Técnica;
+13. integração PTS Pós;
+14. loop de recorrências e reconciliação;
+15. gateway do especialista;
+16. memória de experiências;
+17. Evolution Gate;
+18. testes integrados;
+19. observabilidade.
 
 ## 14. Critério de conclusão
 
@@ -425,9 +511,11 @@ O módulo somente é considerado operacional quando uma solicitação de orçame
 
 - PTS Técnica;
 - primeira varredura de recorrências;
+- confronto pré-orçamento entre composições e memórias;
 - orçamento;
 - PTS Pós;
 - segunda varredura de recorrências;
+- reconciliação pós-orçamento entre composição e memórias;
 - correções e reentrada no loop quando necessárias;
 - aprendizado candidato;
 - todas as relações relevantes e a evidência utilizada.
