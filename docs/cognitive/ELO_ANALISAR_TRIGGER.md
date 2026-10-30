@@ -9,7 +9,7 @@ Quando o usuário utilizar `ELO ANALISAR`, ativar o ciclo de Análise de Solicit
 
 A ativação da Skill é **interna e silenciosa**. `FORGE-BUDGETING-001` é uma especialização do Forge subordinada à autoridade do ELO/Governance; não deve ser apresentada ao usuário como "Skill canônica" nem como autoridade paralela.
 
-A Skill permanece ativa desde a leitura inicial até o fechamento da solicitação e a revisão de aprendizado com o owner.
+A Skill permanece ativa desde a leitura inicial até o fechamento da solicitação, a revisão de aprendizado com o owner e o despacho governado dos resultados classificados.
 
 Arquitetura canônica:
 
@@ -79,8 +79,21 @@ EXPLICAR COMO FOI PENSADO E COMO OS VALORES FORAM DEFINIDOS
    ↓
 REVISÃO DE APRENDIZADO DA SO (>= 10 QUESTÕES AO OWNER)
    ↓
-CANDIDATO DE INTEGRAÇÃO / GAP / REJEIÇÃO / VALIDAÇÃO GOVERNADA
+RESPOSTAS DO OWNER / CLASSIFICAÇÃO
+   ↓
+DESPACHO AUTOMÁTICO PARA LEARNING GOVERNANCE CANÔNICA
+   ├─ CASE → preservar como caso
+   ├─ PRECEDENT → preservar como referência consultiva
+   ├─ LEARNING_CANDIDATE → iniciar avaliação de maturidade/evidência
+   ├─ VALIDATED_LEARNING → reutilizar/enriquecer, sem duplicar
+   └─ GAP / CONFLICT → manter bloqueado e abrir/continuar investigação
+   ↓
+SE CANDIDATO ATINGIR THRESHOLD → SOLICITAR APROVAÇÃO HUMANA
+   ↓
+SE APROVADO → EVOLUTION GATE → PROMOÇÃO GOVERNADA
 ```
+
+O **despacho para governança é automático** após a revisão respondida/classificada. A **aprovação e a promoção não são automáticas**.
 
 ## 3. Responsabilidade do ELO na ativação
 
@@ -145,6 +158,9 @@ A leitura dos indicadores deve ajudar a explicar por que o item foi mantido, rev
 - Produtos, serviços e modelos devem usar a taxonomia/catálogo estruturado quando disponível.
 - Pergunta de aprendizado não equivale a autorização de integração.
 - Resposta do owner deve passar por evidência, classificação e governança antes de integrar regra permanente.
+- Após a revisão do owner, o ELO deve **iniciar automaticamente o loop canônico de governança** para todos os resultados classificados.
+- O owner canônico desse loop é `src/elo/core/learning_governance.py`; Forge/Supabase/GitHub não assumem autoridade de promoção.
+- Despacho automático não equivale a aprovação humana; promoção exige evidência, avaliação/threshold, aprovação humana explícita e Evolution Gate.
 
 ## 7. Logística
 
@@ -194,6 +210,8 @@ Ao final, antes de considerar a análise encerrada, retornar:
 8. divergências, GAPs e pendências;
 9. aprendizados candidatos;
 10. bloco `REVISÃO DE APRENDIZADO DA SO` com **no mínimo 10 questões específicas ao owner** para decidir o que deve ser integrado, mantido apenas como precedente ou rejeitado.
+
+Após as respostas do owner, o ELO deve continuar **sem exigir novo comando `ELO APRENDER`** para iniciar o loop de governança: classificar os resultados e despachá-los automaticamente ao owner canônico de learning governance. O fluxo deve parar em `AGUARDANDO_APROVACAO_HUMANA`, `MANTER_CANDIDATO`, `REUTILIZAR_VALIDADO` ou `BLOQUEADO_GAP_CONFLICT`, conforme o caso; nunca promover silenciosamente.
 
 ## 11. Fonte canônica
 
