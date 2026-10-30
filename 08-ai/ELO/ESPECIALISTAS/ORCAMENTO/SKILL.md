@@ -1,16 +1,17 @@
 # ELO — Skill de Orçamento
 
-**Versão:** 1.1  
+**Versão:** 1.2  
 **Status:** Candidato canônico — sujeito ao Evolution Gate  
-**Domínio:** Orçamento  
+**Domínio:** Orçamento / BUDGETING  
+**Setor:** Planejamento  
 **Autoridade:** ELO/Governance  
 **Executor especializado:** Especialista de Orçamento
 
 ## 1. Finalidade
 
-Esta skill é uma camada de **orquestração operacional** do domínio de orçamento. Ela organiza e conecta capacidades já existentes no ELO; não cria uma segunda metodologia, segundo cálculo, segundo Prompt, segundo contrato ou segunda autoridade de memória.
+Esta skill é uma camada de **orquestração operacional e aprendizado cognitivo** do domínio de orçamento. Ela organiza e conecta capacidades já existentes no ELO; não cria uma segunda metodologia, segundo cálculo, segundo Prompt, segundo contrato ou segunda autoridade de memória.
 
-**Regra estrutural:** ELO orienta e audita; o Especialista de Orçamento executa a composição e a precificação.
+**Regra estrutural:** ELO orienta, aprende e audita; o Especialista de Orçamento executa a composição e a precificação.
 
 ### Fontes canônicas e precedência
 
@@ -27,11 +28,14 @@ A skill não reescreve regras existentes. Em caso de conflito, aplicar esta prec
 
 Fontes canônicas relacionadas:
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_APRENDER_CANONICO_MASTER_PROMPT.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_CONHECIMENTO_MATURADO.md`
 - `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
 - `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
 - `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
 - `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`
 - `docs/orcamento/ELO_ORCAMENTO_EXECUTION_ARCHITECTURE.md`
+- `automation/ELO_CHAT_CODEX_BRIDGE.md`
 
 ## 2. Regra anti-duplicidade
 
@@ -44,7 +48,7 @@ Antes de criar qualquer nova regra, cálculo, classificação, tabela, memória,
 5. criar algo novo somente quando houver lacuna comprovada;
 6. registrar a relação e a justificativa da não reutilização.
 
-Esta Skill **não é proprietária** das regras detalhadas de composição, precificação, fabricação, PTS, memória persistente ou cálculo. Ela apenas referencia e orquestra essas capacidades.
+Esta Skill **não é proprietária** das regras detalhadas de composição, precificação, fabricação, PTS, memória persistente ou cálculo. Ela referencia e orquestra essas capacidades.
 
 ## 3. Capacidades orquestradas
 
@@ -62,6 +66,8 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 10. **PTS Pós-Orçamento** — identificar divergências, omissões, inclusões sem origem e responsabilidades indefinidas.
 11. **Aprendizado** — extrair padrões somente após validação, preservando evidência e contexto.
 12. **Memória de cálculo** — preservar fórmula, parâmetros, origem, resultado e evidência sem substituir o sistema persistente.
+13. **Dependências de implementação** — identificar materiais/serviços que aparecem em consequência de uma decisão técnica e explicar a função de cada dependência.
+14. **Raciocínio repetitivo** — reconhecer sequências recorrentes de decisão e cálculo sem copiar cegamente o resultado histórico.
 
 ## 4. Encadeamento operacional canônico
 
@@ -104,6 +110,7 @@ A Skill não executa composição/precificação em paralelo ao Especialista e n
 - Toda precificação relevante deve manter origem identificável.
 - Premissa crítica deve gerar pendência/questionamento quando alterar materialmente custo ou atendimento.
 - Resultado de uma única SO não vira regra geral sem validação.
+- Dependência recorrente não deve ser incluída automaticamente: primeiro verificar se a condição técnica que a exige está presente.
 
 ## 6. Contrato de aprendizado
 
@@ -126,14 +133,15 @@ Somente `VALIDADO` pode alimentar regra permanente, e ainda assim pelo mecanismo
 
 ## 7. Relação com a memória persistente
 
-A skill não cria memória paralela. Os registros de orçamento devem utilizar as estruturas canônicas existentes, incluindo as famílias de:
+A skill não cria memória paralela. Os registros de orçamento devem utilizar as estruturas canônicas existentes, incluindo:
 
-- memória de orçamento;
-- cálculos aprendidos;
-- varreduras de cálculos;
-- evidências de cálculo;
-- decisões;
-- associações.
+- `elo_orcamento_memoria`;
+- `elo_orcamento_calculos_aprendidos`;
+- `elo_orcamento_calculo_varreduras`;
+- `elo_orcamento_calculo_evidencias`;
+- `elo_orcamento_calculo_similaridades`;
+- `elo_orcamento_decisoes`;
+- `elo_orcamento_associacoes`.
 
 O `ELO_MEMORIA_ORCAMENTOS.md` é camada textual de contexto/índice e não substitui a persistência estruturada nem cria uma nova autoridade.
 
@@ -163,3 +171,124 @@ Esta skill transforma o domínio de orçamento em uma capacidade estruturada de 
 ## 11. Regra de manutenção
 
 Se uma fonte canônica posterior incorporar uma regra atualmente descrita nesta Skill, remover a duplicação desta Skill e manter somente a referência/ponte operacional. A Skill deve permanecer fina, estável e orientada à coordenação do processo.
+
+## 12. Gatilho cognitivo `ELO APRENDER`
+
+Quando o usuário disser `ELO APRENDER` durante ou após um orçamento, esta Skill deve recuperar o contrato canônico de aprendizado e executar a varredura cognitiva do caso atual.
+
+O objetivo não é memorizar o valor final. O objetivo é reconstruir e preservar:
+
+```text
+CONDIÇÃO / REQUISITO
+→ INTERPRETAÇÃO
+→ DECISÃO TÉCNICA
+→ MODELO / SOLUÇÃO
+→ QUANTITATIVO
+→ DEPENDÊNCIAS DE IMPLEMENTAÇÃO
+→ FÓRMULA / SUBCÁLCULO
+→ PREÇO UNITÁRIO E ORIGEM
+→ CUSTO
+→ VALIDAÇÃO
+→ APLICABILIDADE
+→ EXCEÇÕES
+→ PADRÃO CANDIDATO
+```
+
+Para cada etapa, registrar origem, unidade, premissa, evidência e confiança.
+
+### 12.1 O que deve ser aprendido
+
+O ELO deve procurar principalmente:
+
+- decisões repetidas;
+- cálculos repetidos;
+- relações condicionais entre materiais;
+- relações entre solução técnica e itens de instalação;
+- critérios de escolha de produto/modelo;
+- fatores de conversão;
+- arredondamentos;
+- perdas e sobras quando comprovadas;
+- produtividade de mão de obra;
+- sequência de execução que altera a composição;
+- itens que sempre devem ser verificados quando determinada solução é adotada;
+- diferenças que explicam por que dois casos semelhantes receberam composições diferentes.
+
+### 12.2 Não aprender somente o número
+
+É proibido consolidar uma memória como apenas:
+
+`CONTÊINER 20 PÉS = 19 PAINÉIS`
+
+A forma correta é registrar a lógica que produziu o quantitativo, por exemplo:
+
+`TIPO/GEOMETRIA DO CONTÊINER + SUPERFÍCIES A REVESTIR + DIMENSÃO ÚTIL DO PAINEL + ABERTURAS/RECORTES + REGRA DE ARREDONDAMENTO → PAINÉIS DE PAREDE + PAINÉIS DE TETO`
+
+Se a fórmula geométrica não estiver evidenciada, preservar o quantitativo observado e abrir `GAP_FORMULA_QUANTITATIVO`.
+
+## 13. Padrões condicionais e dependências
+
+A Skill deve aprender relações do tipo:
+
+`SE condição técnica X estiver presente → VERIFICAR componente/serviço Y`
+
+Não transformar automaticamente em:
+
+`SE X → INCLUIR Y`
+
+A inclusão só ocorre depois de validar a condição no orçamento atual.
+
+Exemplo já reconhecido pela memória do domínio:
+
+`PAINEL PIR → VERIFICAR GUIA U / PERFIS DE FIXAÇÃO E ACABAMENTO`
+
+A função, dimensão, metragem, preço e necessidade do perfil devem ser validadas no caso atual.
+
+## 14. Exemplo operacional em aprendizado — contêiner 20 pés com PIR 32 mm
+
+Experiência operacional fornecida pelo owner do processo em 2026-10-30:
+
+```text
+CONTÊINER 20 PÉS PADRÃO
++ FORRAÇÃO EM PAINEL PIR 32 MM
+→ referência observada: 14 painéis de parede
+→ referência observada: 5 painéis de teto
+→ total observado: 19 painéis
+```
+
+Status inicial: `CANDIDATO`.
+
+Esta referência **não é uma regra universal** enquanto não forem reconstruídos/confirmados os parâmetros que explicam o quantitativo, incluindo dimensões úteis dos painéis, geometria, recortes, aberturas, perdas e arredondamentos aplicáveis.
+
+Ao encontrar novo orçamento equivalente, o ELO deve:
+
+1. identificar se é realmente contêiner 20 pés e qual configuração;
+2. validar se a forração é PIR 32 mm e quais superfícies serão revestidas;
+3. recuperar casos/cálculos similares;
+4. recomputar ou confrontar o quantitativo;
+5. verificar dependências de instalação, incluindo guia U/perfis quando aplicáveis;
+6. buscar preço unitário vigente na fonte autorizada;
+7. calcular custo de material e mão de obra sem reutilizar preço histórico como preço atual;
+8. comparar observado × calculado;
+9. registrar divergência se houver;
+10. elevar confiança apenas com recorrência/evidência.
+
+## 15. Cognição lógica do Orçamentista
+
+Para cada item relevante, a Skill deve produzir internamente o seguinte mapa:
+
+| Etapa | Pergunta cognitiva |
+|---|---|
+| Requisito | O que foi pedido? |
+| Padrão | Isso já existe no produto/modelo padrão? |
+| Solução | Qual solução técnica atende? |
+| Quantidade | Como o quantitativo foi obtido? |
+| Dependências | O que essa solução exige para ser instalada/funcionar? |
+| Origem | De onde veio cada parâmetro? |
+| Custo | Qual preço unitário vigente e qual fórmula de custo? |
+| Comparação | Existe caso anterior realmente equivalente? |
+| Divergência | O que mudou e por quê? |
+| Aprendizado | O que pode ser reutilizado como método, condição ou alerta? |
+
+A saída cognitiva desejada é:
+
+`REQUISITO → RACIOCÍNIO → DECISÃO → COMPOSIÇÃO → CUSTO → EVIDÊNCIA → APRENDIZADO`
