@@ -65,7 +65,11 @@ skills:
       - executar auditoria reversa dos principais valores até requisito/solução/origem
       - no encerramento, explicar como o orçamento foi pensado e como os valores foram definidos
       - no encerramento, retornar ao owner no mínimo 10 perguntas adaptativas de aprendizado
-      - após respostas do owner, classificar integração como CASE, PRECEDENT, LEARNING_CANDIDATE ou VALIDATED_LEARNING conforme governança
+      - após respostas do owner, classificar integração como CASE, PRECEDENT, LEARNING_CANDIDATE, VALIDATED_LEARNING, GAP ou CONFLICT conforme governança
+      - após a classificação, despachar automaticamente os resultados ao owner canônico src/elo/core/learning_governance.py
+      - para LEARNING_CANDIDATE, iniciar automaticamente avaliação de maturidade/evidência sem autoaprovar nem autopromover
+      - CASE e PRECEDENT permanecem como memória consultiva; GAP e CONFLICT permanecem bloqueados; VALIDATED_LEARNING existente deve ser reutilizado/enriquecido, não duplicado
+      - promoção continua exigindo threshold, aprovação humana explícita e Evolution Gate
       - quando acionado ELO APRENDER, executar varredura cognitiva e cognitive merge governado
     calculation_methods:
       - preservar entrada + unidade + premissa + fórmula + subcálculo + resultado
@@ -100,11 +104,13 @@ skills:
       - sem evidência suficiente preservar GAP
       - pergunta de aprendizado não equivale a autorização de integração
       - resposta do owner alimenta candidato, não promoção automática ao Core
+      - despacho automático para governança não equivale a aprovação humana nem promoção
     escalation_rules:
       - conflito documental material -> ELO/Governance
       - ausência de preço vigente material -> questionamento/cotação
       - divergência PTS Técnica x Orçamento x PTS Pós sem explicação -> contestação
       - regra candidata com impacto recorrente -> validação antes de promoção
+      - candidato abaixo do threshold ou sem evidência -> manter candidato e solicitar reforço, não promover
     outputs:
       - mapa cognitivo do orçamento
       - composição rastreável
@@ -118,6 +124,7 @@ skills:
       - alertas de dependências
       - PTS Pós-Orçamento
       - questionário final de aprendizado com no mínimo 10 questões
+      - despacho automático dos candidatos classificados para a governança canônica
       - proposta de integração de aprendizado sujeita à resposta do owner e governança
     decision_boundaries:
       - não executa compra ou contratação
@@ -125,16 +132,18 @@ skills:
       - não promove aprendizado diretamente ao Core
       - não transforma caso histórico em origem da SO atual
       - não integra automaticamente à Skill uma resposta ainda não validada
+      - pode iniciar automaticamente o loop de governança, mas não pode autoaprovar a promoção
       - não expõe ID da Skill, infraestrutura ou memória interna na ativação ao usuário salvo pedido explícito
     test_references:
       - tests/validation/test_budgeting_specialist_skill.py
       - tests/validation/test_budgeting_continuous_learning.py
     maturity: STRUCTURED
-    version: "1.2"
+    version: "1.3"
     history:
       - "2026-10-30: formalização no Forge reutilizando a Skill de Orçamento existente"
       - "2026-10-30: ativação automática no ELO ANALISAR, rastro de raciocínio e revisão de aprendizado >=10 questões"
       - "2026-10-30: ativação interna silenciosa; resposta inicial orientada à SO sem expor implementação"
+      - "2026-10-30: despacho automático pós-revisão para learning_governance; aprovação/promoção permanecem humanas e governadas"
     contextual_parameters:
       sector: Planejamento
       auto_activate_on: ELO ANALISAR
@@ -142,12 +151,19 @@ skills:
       expose_skill_id_on_activation: false
       expose_infrastructure_on_activation: false
       forge_skill_is_canonical_authority: false
-      remain_active_until: encerramento da solicitação e revisão de aprendizado
+      remain_active_until: encerramento da solicitação, revisão de aprendizado e despacho à governança
       learning_trigger: ELO APRENDER
       minimum_learning_questions: 10
       learning_questions_are_adaptive: true
       reasoning_trace_required: true
       stored_knowledge_lookup_required: true
+      auto_governance_after_learning_review: true
+      governance_dispatch_trigger: learning_review_completed
+      canonical_learning_governance_owner: src/elo/core/learning_governance.py
+      human_approval_required_for_promotion: true
+      evolution_gate_required_for_promotion: true
+      auto_approval: false
+      auto_promotion: false
       pts_chain_required: PTS_TECNICA -> ORCAMENTO -> PTS_POS_ORCAMENTO
       canonical_pts_pos_indicators:
         - Conhecimento
@@ -179,7 +195,7 @@ skills:
       - divergências recorrentes entre PTS Técnica e orçamento
       - padrões de indicador da PTS Pós associados a decisões repetidas
     promotion_candidates:
-      - somente métodos generalizáveis validados por múltiplas evidências e Evolution Gate
+      - somente métodos generalizáveis validados por múltiplas evidências, aprovação humana e Evolution Gate
 
 rules:
   direct_forge_to_core_promotion: false
@@ -188,3 +204,4 @@ rules:
   external_source_is_authority: false
   precedent_is_rule_by_default: false
   learning_question_is_permission_to_promote: false
+  governance_dispatch_is_promotion: false
