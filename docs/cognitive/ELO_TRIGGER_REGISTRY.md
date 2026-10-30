@@ -18,7 +18,7 @@
 
 **Contrato de aprendizado contínuo:** `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
 
-**Gatilho:** iniciar/acionar a análise de uma SO/LIC no fluxo de Análise de Solicitações e manter internamente a especialização do Orçamentista ativa até o encerramento da solicitação e a revisão de aprendizado.
+**Gatilho:** iniciar/acionar a análise de uma SO/LIC no fluxo de Análise de Solicitações e manter internamente a especialização do Orçamentista ativa até o encerramento da solicitação, a revisão de aprendizado e o despacho dos resultados classificados à governança canônica.
 
 **Escopo:** Comercial, Licitações, Planejamento e Engenharia de Orçamento.
 
@@ -52,7 +52,11 @@
 - confronto PTS Técnica × Orçamento × PTS Pós;
 - resolução dos indicadores canônicos;
 - aprendizados candidatos e GAPs;
-- `REVISÃO DE APRENDIZADO DA SO` com no mínimo 10 perguntas específicas ao owner.
+- `REVISÃO DE APRENDIZADO DA SO` com no mínimo 10 perguntas específicas ao owner;
+- após as respostas/classificação, **despacho automático** de `CASE`, `PRECEDENT`, `LEARNING_CANDIDATE`, `VALIDATED_LEARNING`, `GAP` e `CONFLICT` ao owner canônico `src/elo/core/learning_governance.py`;
+- `LEARNING_CANDIDATE` inicia avaliação automaticamente, mas aprovação humana e promoção permanecem obrigatoriamente separadas e governadas pelo Evolution Gate.
+
+**Regra anti-atalho:** o despacho automático não concede aprovação, não promove conhecimento e não substitui `approve_for_promotion`/Evolution Gate. Quando a evidência for insuficiente, o candidato permanece temporal.
 
 **Resposta inicial obrigatória:**
 
