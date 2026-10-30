@@ -59,3 +59,14 @@ def test_missing_authorization_fails_closed():
 
 def test_invalid_retry_budget_fails_closed():
     assert evaluate_attempt_continuity(req(FailureClass.TRANSIENT_TRANSPORT, retry_count=-1)).decision is ContinuityDecision.INVALID
+
+
+def test_malformed_retry_controls_fail_closed():
+    malformed = (None, True, False, 1.0, float("nan"), float("inf"), "1", [], {})
+    for value in malformed:
+        assert evaluate_attempt_continuity(
+            req(FailureClass.TRANSIENT_TRANSPORT, retry_count=value)
+        ).decision is ContinuityDecision.INVALID
+        assert evaluate_attempt_continuity(
+            req(FailureClass.TRANSIENT_TRANSPORT, max_retries=value)
+        ).decision is ContinuityDecision.INVALID
