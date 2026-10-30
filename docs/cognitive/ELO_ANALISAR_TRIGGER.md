@@ -5,20 +5,41 @@
 
 ## 1. Ativação
 
-Quando o usuário utilizar `ELO ANALISAR`, ativar o ciclo de Análise de Solicitações para a SO/LIC atual.
+Quando o usuário utilizar `ELO ANALISAR`, ativar o ciclo de Análise de Solicitações para a SO/LIC atual **e resolver/ativar a Skill formal `FORGE-BUDGETING-001`** para o domínio de orçamento.
+
+A Skill permanece ativa desde a leitura inicial até o fechamento da solicitação e a revisão de aprendizado com o owner.
 
 Arquitetura canônica:
 
 `01-meta-architecture/cognitive-architecture/ELO_ANALISE_SOLICITACOES_ARQUITETURA_CANONICA.md`
+
+Contrato de aprendizado contínuo:
+
+`08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
+
+### 1.1 Consulta cognitiva inicial obrigatória
+
+No início da SO, antes de compor solução nova:
+
+1. consultar documentação vigente da SO;
+2. consultar regras/diretrizes do GitHub canônico;
+3. consultar memória orçamentária aplicável no Supabase;
+4. confrontar precedentes e similaridades;
+5. separar conhecimento validado, precedente, hipótese, GAP e conflito;
+6. iniciar o rastro de raciocínio da SO.
+
+O histórico nunca substitui a evidência vigente da solicitação atual.
 
 ## 2. Sequência
 
 ```text
 ELO ANALISAR
    ↓
+ATIVAR FORGE-BUDGETING-001
+   ↓
 IDENTIFICAR SO / DOCUMENTOS / CONTEXTO
    ↓
-CONSULTAR FONTES
+CONSULTAR CONHECIMENTO E MEMÓRIA EXISTENTES
    ↓
 PTS TÉCNICA (quando aplicável)
    ↓
@@ -28,15 +49,21 @@ ORÇAR
    ↓
 ESPECIALISTA DE ORÇAMENTO
    ↓
-ORÇAMENTO + MEMÓRIA + PENDÊNCIAS
+ORÇAMENTO + MEMÓRIA + RASTRO DE RACIOCÍNIO + PENDÊNCIAS
    ↓
 PTS PÓS-ORÇAMENTO
+   ↓
+RESOLVER CONHECIMENTO / FLEXIBILIDADE / RISCO / DECISÃO
    ↓
 ELO AUDITA
    ↓
 OK / CONTESTAÇÃO
    ↓
-APRENDIZADO
+EXPLICAR COMO FOI PENSADO E COMO OS VALORES FORAM DEFINIDOS
+   ↓
+REVISÃO DE APRENDIZADO DA SO (>= 10 QUESTÕES AO OWNER)
+   ↓
+CANDIDATO DE INTEGRAÇÃO / GAP / REJEIÇÃO / VALIDAÇÃO GOVERNADA
 ```
 
 ## 3. Responsabilidade do ELO na ativação
@@ -56,7 +83,10 @@ O ELO deve identificar e encaminhar:
 - prazos de contrato, mobilização, montagem, entrega e desmontagem;
 - logística e distância;
 - riscos, GAPs e perguntas;
-- PTS Técnica quando aplicável.
+- PTS Técnica quando aplicável;
+- conhecimento/memória consultiva relevante;
+- precedentes e cálculos similares, com teste de equivalência;
+- pontos que deverão ser explicados no fechamento.
 
 O ELO não substitui a execução detalhada do Especialista.
 
@@ -66,18 +96,41 @@ O ELO não substitui a execução detalhada do Especialista.
 
 O Especialista deve receber o contexto existente sem exigir repetição de informações já disponíveis.
 
-## 5. Regras críticas
+A Skill continua ativa após a transferência. Durante a composição deve preservar:
+
+`REQUISITO → INTERPRETAÇÃO → ALTERNATIVAS → DECISÃO → QUANTITATIVO → DEPENDÊNCIAS → FÓRMULA → PREÇO/FONTE → CUSTO → VALIDAÇÃO`
+
+## 5. PTS Técnica, PTS Pós e indicadores
+
+A análise deve compreender as duas PTS como partes distintas do mesmo ciclo:
+
+- **PTS Técnica:** define o que precisa ser atendido, como se pretende atender, quantitativos previstos, responsabilidades, riscos e validações;
+- **PTS Pós-Orçamento:** confronta o definido com o efetivamente orçado, sem reescrever silenciosamente a PTS Técnica.
+
+Na PTS Pós, resolver os indicadores canônicos:
+
+- Conhecimento;
+- Flexibilidade;
+- Risco;
+- Decisão.
+
+A leitura dos indicadores deve ajudar a explicar por que o item foi mantido, revisto, negociado, substituído, reestruturado, confirmado ou permaneceu aguardando decisão.
+
+## 6. Regras críticas
 
 - Documento vigente da SO/LIC prevalece sobre histórico.
 - Git é memória estruturada e não substitui a fonte vigente.
+- Supabase é memória consultiva/persistente e não autoridade para promover aprendizado sozinho.
 - Não inventar preço, norma, quantidade, modelo, prazo, responsabilidade ou resposta do cliente.
 - Lacuna material = `PENDÊNCIA + PERGUNTA + IMPACTO`.
 - Experiência isolada não vira regra corporativa automaticamente.
 - A lógica de cálculo deve ser preservada na memória de cálculo.
 - Excedentes devem ser consultados na camada própria.
 - Produtos, serviços e modelos devem usar a taxonomia/catálogo estruturado quando disponível.
+- Pergunta de aprendizado não equivale a autorização de integração.
+- Resposta do owner deve passar por evidência, classificação e governança antes de integrar regra permanente.
 
-## 6. Logística
+## 7. Logística
 
 Avaliar automaticamente quando aplicável:
 
@@ -91,23 +144,40 @@ Regra de hospedagem:
 
 O último dia é retorno, salvo inviabilidade operacional validada.
 
-## 7. Estados de confiança
+## 8. Estados de confiança
 
 - `CONFIRMADO` — documento/resposta oficial;
 - `CONHECIMENTO ELO` — regra validada;
 - `EXPERIÊNCIA` — caso histórico;
 - `HIPÓTESE` — necessita validação;
-- `PENDÊNCIA` — informação insuficiente.
+- `PENDÊNCIA` — informação insuficiente;
+- `PRECEDENT` — referência consultiva recorrente;
+- `LEARNING_CANDIDATE` — candidato à integração governada.
 
-## 8. Resposta inicial
+## 9. Resposta inicial
 
 Ao ativar:
 
-> **ELO ANALISAR ATIVADO**
+> **ELO ANALISAR ATIVADO — SKILL DO ORÇAMENTISTA ATIVA**
 >
-> Vou conduzir esta SO/LIC pelo fluxo de Análise de Solicitações, utilizando documentos vigentes, conhecimento validado, PTS Técnica, Especialista de Orçamento, PTS Pós e memória de aprendizado conforme aplicável.
+> Vou conduzir esta SO/LIC pelo fluxo de Análise de Solicitações, consultando conhecimento e memória existentes, estruturando PTS Técnica, acompanhando o orçamento, confrontando a PTS Pós e preservando o raciocínio de formação dos valores para a revisão de aprendizado no fechamento.
 
-## 9. Fonte canônica
+## 10. Fechamento obrigatório da solicitação
+
+Ao final, antes de considerar a análise encerrada, retornar:
+
+1. síntese de como a solicitação foi interpretada;
+2. decisões técnicas e alternativas relevantes;
+3. memória dos principais quantitativos e fórmulas;
+4. principais fontes de preço;
+5. explicação de como os principais valores foram formados;
+6. confronto PTS Técnica × Orçamento × PTS Pós;
+7. leitura dos indicadores Conhecimento/Flexibilidade/Risco/Decisão;
+8. divergências, GAPs e pendências;
+9. aprendizados candidatos;
+10. bloco `REVISÃO DE APRENDIZADO DA SO` com **no mínimo 10 questões específicas ao owner** para decidir o que deve ser integrado, mantido apenas como precedente ou rejeitado.
+
+## 11. Fonte canônica
 
 Este gatilho aponta para a arquitetura e as fontes especializadas; não duplica seus conteúdos.
 
@@ -115,7 +185,10 @@ Fontes principais:
 
 - `01-meta-architecture/cognitive-architecture/ELO_ANALISE_SOLICITACOES_ARQUITETURA_CANONICA.md`
 - `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/SKILL.md`
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
+- `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
 - `04-knowledge-handbook/ELO_CAMADA_EXCEDENTES_COMPOSICAO.md`
 - `04-knowledge-handbook/ELO_TAXONOMIA_CATALOGO_SERVICOS_PRODUTOS_SQL.md`
 - `04-knowledge-handbook/ELO_MEMORIA_CALCULO_ESPECIALISTA_ORCAMENTO.md`

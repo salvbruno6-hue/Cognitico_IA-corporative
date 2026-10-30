@@ -1,6 +1,6 @@
 # ELO — Skill de Orçamento
 
-**Versão:** 1.2  
+**Versão:** 1.3  
 **Status:** Candidato canônico — sujeito ao Evolution Gate  
 **Domínio:** Orçamento / BUDGETING  
 **Setor:** Planejamento  
@@ -30,6 +30,7 @@ Fontes canônicas relacionadas:
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_APRENDER_CANONICO_MASTER_PROMPT.md`
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_CONHECIMENTO_MATURADO.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
 - `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
 - `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
 - `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
@@ -68,13 +69,19 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 12. **Memória de cálculo** — preservar fórmula, parâmetros, origem, resultado e evidência sem substituir o sistema persistente.
 13. **Dependências de implementação** — identificar materiais/serviços que aparecem em consequência de uma decisão técnica e explicar a função de cada dependência.
 14. **Raciocínio repetitivo** — reconhecer sequências recorrentes de decisão e cálculo sem copiar cegamente o resultado histórico.
+15. **Explicabilidade** — reconstruir como a solicitação foi interpretada, como cada decisão relevante foi tomada e como os principais valores foram formados.
+16. **Aprendizado contínuo** — consultar conhecimento armazenado antes de compor, confrontar o caso atual e produzir revisão de aprendizado ao final de cada solicitação.
 
 ## 4. Encadeamento operacional canônico
 
 ```text
 DOCUMENTAÇÃO VIGENTE
       ↓
-ELO ANALISAR / PTS TÉCNICA
+ELO ANALISAR / ATIVA FORGE-BUDGETING-001
+      ↓
+CONSULTA CONHECIMENTO + MEMÓRIA EXISTENTE
+      ↓
+PTS TÉCNICA
       ↓
 DIRECIONAMENTO / CHECKLIST
       ↓
@@ -82,13 +89,19 @@ CONTRATO DE EXECUÇÃO
       ↓
 ESPECIALISTA DE ORÇAMENTO EXECUTA
       ↓
-ORÇAMENTO + MEMÓRIAS DE CÁLCULO
+ORÇAMENTO + MEMÓRIAS DE CÁLCULO + RASTRO DE RACIOCÍNIO
       ↓
 PTS PÓS-ORÇAMENTO
+      ↓
+RESOLUÇÃO DOS INDICADORES CANÔNICOS
       ↓
 ELO CONFERE
    ├─ OK → fechamento
    └─ CONTESTAÇÃO → Especialista corrige → nova conferência
+      ↓
+EXPLICAÇÃO DE COMO FOI ORÇADO
+      ↓
+REVISÃO DE APRENDIZADO DA SO (>= 10 QUESTÕES AO OWNER)
       ↓
 APRENDIZADO CANDIDATO
       ↓
@@ -111,6 +124,8 @@ A Skill não executa composição/precificação em paralelo ao Especialista e n
 - Premissa crítica deve gerar pendência/questionamento quando alterar materialmente custo ou atendimento.
 - Resultado de uma única SO não vira regra geral sem validação.
 - Dependência recorrente não deve ser incluída automaticamente: primeiro verificar se a condição técnica que a exige está presente.
+- Conhecimento armazenado deve ser consultado antes de desenvolver solução nova, mas nunca aplicado sem teste de equivalência com a SO atual.
+- Pergunta de aprendizado não equivale a permissão de promover ou alterar regra permanente.
 
 ## 6. Contrato de aprendizado
 
@@ -156,13 +171,19 @@ Bloquear ou marcar como não confirmado quando houver:
 - responsabilidade indefinida com impacto material;
 - tentativa de transformar experiência isolada em regra;
 - segredo/token/chave em evidência ou proveniência;
-- tentativa de alterar memória canônica fora do fluxo autorizado.
+- tentativa de alterar memória canônica fora do fluxo autorizado;
+- divergência entre PTS Técnica, orçamento e PTS Pós sem explicação/arbitragem;
+- tentativa de tratar resposta do owner como promoção automática de conhecimento.
 
 ## 9. Critério de qualidade
 
 A execução só é considerada rastreável quando cada custo relevante puder responder:
 
 `POR QUE → DE ONDE → COMO → QUANTO → PREMISSA → RISCO → VALIDAÇÃO`
+
+E o orçamento concluído deve conseguir responder:
+
+`O QUE FOI PEDIDO → O QUE FOI ENTENDIDO → O QUE FOI ESCOLHIDO → POR QUE → COMO FOI CALCULADO → DE ONDE VEIO O PREÇO → COMO CHEGOU AO VALOR → O QUE A PTS PÓS REVELOU → O QUE FOI APRENDIDO`
 
 ## 10. Potencialização para o ELO
 
@@ -292,3 +313,59 @@ Para cada item relevante, a Skill deve produzir internamente o seguinte mapa:
 A saída cognitiva desejada é:
 
 `REQUISITO → RACIOCÍNIO → DECISÃO → COMPOSIÇÃO → CUSTO → EVIDÊNCIA → APRENDIZADO`
+
+## 16. Ativação automática no início da solicitação
+
+Ao iniciar `ELO ANALISAR`, a Skill `FORGE-BUDGETING-001` deve ser ativada automaticamente e permanecer ativa até o fechamento da solicitação.
+
+No início deve consultar:
+
+`DOCUMENTO VIGENTE → CONHECIMENTO CANÔNICO NO GIT → MEMÓRIA ORÇAMENTÁRIA NO SUPABASE → PRECEDENTES/SIMILARIDADES → GAPS/CONFLITOS`
+
+O objetivo é aprimorar continuamente a análise com conhecimento armazenado sem transformar memória histórica em origem do caso atual.
+
+## 17. PTS Técnica + Orçamento + PTS Pós + indicadores
+
+A Skill deve compreender a elaboração como uma cadeia única de explicação, preservando as funções distintas de cada artefato:
+
+`PTS TÉCNICA → DECISÃO TÉCNICA → ORÇAMENTO → PTS PÓS-ORÇAMENTO → INDICADORES → VALIDAÇÃO → APRENDIZADO`
+
+Na PTS Pós devem ser interpretados, quando aplicáveis, os indicadores canônicos:
+
+- Conhecimento;
+- Flexibilidade;
+- Risco;
+- Decisão.
+
+A resolução desses indicadores deve responder **por que o orçamento ficou daquela forma**, quais elementos estavam sustentados por conhecimento, quais poderiam ser alterados, quais riscos condicionaram as escolhas e qual decisão foi tomada.
+
+## 18. Explicação por fase e formação dos valores
+
+No fechamento da solicitação, a Skill deve ser capaz de descrever:
+
+1. como leu e interpretou o requisito;
+2. quais alternativas foram consideradas;
+3. qual solução/modelo foi adotado e por quê;
+4. como cada quantitativo material foi obtido;
+5. quais dependências surgiram da solução;
+6. de onde veio cada preço unitário relevante;
+7. como quantidade, preço, mão de obra, logística, indiretos e demais componentes formaram o valor;
+8. o que a PTS Pós confirmou, contestou ou deixou pendente;
+9. como os indicadores canônicos influenciaram a decisão;
+10. o que pode ser aprendido e o que deve permanecer específico do caso.
+
+## 19. Revisão de aprendizado obrigatória — 10 ou mais questões
+
+Ao fim de **cada solicitação**, a Skill deve retornar ao owner um bloco `REVISÃO DE APRENDIZADO DA SO` com **no mínimo 10 questões específicas do caso**.
+
+As perguntas devem buscar decidir o que merece ser integrado à Skill/conhecimento e devem trazer, para cada questão:
+
+`ID | PERGUNTA | POR QUE IMPORTA | EVIDÊNCIA ATUAL | PROPOSTA DE INTEGRAÇÃO | STATUS`
+
+O piso é 10 perguntas; se houver mais aprendizados materialmente relevantes, retornar todas as questões necessárias.
+
+As respostas do owner devem ser confrontadas com evidência e classificadas como `CASE`, `PRECEDENT`, `LEARNING_CANDIDATE` ou `VALIDATED_LEARNING`, conforme governança. Nenhuma resposta promove conhecimento automaticamente ao Core.
+
+O contrato detalhado desta etapa está em:
+
+`08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
