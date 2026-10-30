@@ -1,6 +1,6 @@
-version: "1.1"
+version: "1.2"
 contract_id: ELO-ORCAMENTO-EXECUTION-001
-purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista, com varredura obrigatória de recorrências na PTS Técnica e PTS Pós-Orçamento."
+purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista, com varredura obrigatória de recorrências e confronto entre composição-base e memórias específicas."
 mode: supervised
 canonical_sources:
   - documentation/SO
@@ -33,6 +33,16 @@ pipeline:
     action: detect_excess_items
   - id: relation_audit
     action: resolve_interconnections
+  - id: composition_memory_reconciliation_pre_budget
+    action: reconcile_base_compositions_with_specific_memories
+    mandatory: true
+    sequence:
+      - open_base_composition
+      - classify_each_component_by_execution_stage
+      - search_specific_related_memories
+      - compare_summary_text_with_structured_components
+      - detect_embedded_or_complementary_costs
+      - resolve_or_raise_conflict
   - id: specialist_gate
     action: request_specialist_validation_when_needed
   - id: budget_decision
@@ -49,6 +59,15 @@ pipeline:
       - DUPLICADA
       - PENDENTE_VALIDACAO
       - NOVA_ASSOCIACAO_CANDIDATA
+  - id: composition_memory_reconciliation_post_budget
+    action: recheck_budget_items_against_specific_memories
+    mandatory: true
+    classifications:
+      - INTEGRADO_NA_COMPOSICAO
+      - COMPLEMENTAR_SEPARADO
+      - DUPLICIDADE
+      - CONFLITO_DE_MEMORIA
+      - PENDENTE_VALIDACAO
   - id: correction_loop
     action: return_to_budget_when_material_divergence_exists
     repeat_until: "material_divergences_resolved_justified_or_arbitrated"
@@ -68,10 +87,15 @@ rules:
   recurring_scan: "Toda PTS Técnica e toda PTS Pós-Orçamento deve executar varredura de serviços/itens recorrentes e suas dependências."
   recurring_semantics: "Item recorrente gera alerta/verificação de aplicabilidade; nunca inclusão automática de escopo, quantidade ou preço."
   recurring_source: "Usar o catálogo do Especialista para saber o que procurar; usar memória estruturada e fonte vigente para saber como calcular e quanto custa."
-  pts_technical_gate: "PTS Técnica sem varredura de recorrências é incompleta para entrada do orçamento."
-  pts_post_gate: "PTS Pós sem segunda varredura de recorrências é incompleta para fechamento."
-  correction_loop: "Divergência material encontrada na PTS Pós retorna ao orçamento; após correção, gerar nova PTS Pós e repetir a varredura."
-  labor_nature: "Distinguir MO-FAB, MO-INST e MO-EXT; mão de obra presente em uma composição não prova que instalação em campo esteja incluída."
+  pts_technical_gate: "PTS Técnica sem varredura de recorrências e sem confronto composição↔memórias é incompleta para entrada do orçamento."
+  pts_post_gate: "PTS Pós sem segunda varredura e sem novo confronto composição↔memórias é incompleta para fechamento."
+  correction_loop: "Divergência material encontrada na PTS Pós retorna ao orçamento; após correção, gerar nova PTS Pós e repetir a varredura e o confronto."
+  labor_nature: "Distinguir MO-FAB, MO-INST e MO-EXT; mão de obra presente em uma composição não prova que instalação esteja incluída."
+  evidence_hierarchy: "Para decidir se uma etapa está incluída, priorizar a estrutura detalhada da composição e memórias específicas relacionadas sobre textos-resumo genéricos ou ambíguos."
+  specific_memory_rule: "Se existir memória específica para uma etapa, como instalação, e a composição-base não contiver linha inequívoca dessa mesma etapa, tratar a memória específica como parcela complementar; não presumir integração pelo texto-resumo."
+  no_double_count: "Antes de somar memória complementar, verificar se a mesma etapa já aparece explicitamente na composição-base; se aparecer, classificar como possível duplicidade e exigir reconciliação."
+  conflict_rule: "Quando texto-resumo, composição detalhada e memória específica divergirem, marcar CONFLITO_DE_MEMORIA e levar ao especialista/questionário; não escolher silenciosamente."
+  door_example: "MC-PORTA-EXTERNA-CORTEN-800X2100 = R$ 600,22 de materiais/fabricação/acabamento; MC-INSTALACAO-PORTA-METALICA = R$ 118,15 de instalação quando aplicável. A memória específica impede presumir instalação embutida no valor-base."
   logistics_consistency: "Quando houver mão de obra externa, confrontar dias de equipe, carro de apoio, veículos, rota/pedágio e hospedagem por pernoite, conforme aplicabilidade."
   uncertainty: "Questão não compreendida deve ser agrupada como variação para posterior aprendizado; não inventar regra."
   experience: "Experiência só pode ser promovida após avaliação de valor, evidência, recorrência e identidade canônica."
@@ -79,12 +103,14 @@ rules:
   temporal_memory: "Aprendizado de experiência permanece temporal até promoção canônica."
 outputs:
   - pts_technical_recurring_audit
+  - composition_memory_reconciliation
   - structured_budget
   - relation_audit
   - specialist_questions
   - pts_post_budget_audit
   - pts_post_recurring_audit
   - omission_duplication_matrix
+  - memory_conflict_matrix
   - confidence
   - provenance
   - candidate_learning
