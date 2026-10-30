@@ -1,17 +1,28 @@
-version: "1.0"
+version: "1.2"
 contract_id: ELO-ORCAMENTO-EXECUTION-001
-purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista."
+purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista, com varredura de recorrências e confronto composição-base × memórias específicas."
 mode: supervised
 canonical_sources:
+  - documentation/SO
+  - PTS_TECNICA
   - Lista-Mãe
   - taxonomy/MLT
   - model_specifications
   - compositions
   - labor
   - relations
+  - budget_recurring_catalog
+  - calculation_memory
+  - PTS_POS_ORCAMENTO
 pipeline:
   - id: intake
     action: normalize_request
+  - id: pts_technical
+    action: resolve_pts_technical_requirements
+  - id: recurring_scan_pre_budget
+    action: scan_recurring_items_and_services_for_applicability
+    mandatory: true
+    semantics: "recurrence_is_verification_not_auto_inclusion"
   - id: master_list
     action: resolve_master_list_items
   - id: taxonomy
@@ -22,29 +33,88 @@ pipeline:
     action: detect_excess_items
   - id: relation_audit
     action: resolve_interconnections
+  - id: composition_memory_reconciliation_pre_budget
+    action: reconcile_base_compositions_with_specific_memories
+    mandatory: true
+    sequence:
+      - open_base_composition
+      - classify_each_component_by_execution_stage
+      - search_specific_related_memories
+      - compare_summary_text_with_structured_components
+      - detect_embedded_or_complementary_costs
+      - resolve_or_raise_conflict
   - id: specialist_gate
     action: request_specialist_validation_when_needed
-  - id: decision
+  - id: budget_decision
     action: produce_budget_decision
+  - id: pts_post_budget
+    action: audit_budget_against_pts_technical
+  - id: recurring_scan_post_budget
+    action: rescan_recurring_items_and_services_against_budget
+    mandatory: true
+    classifications:
+      - ATENDIDA
+      - NAO_APLICAVEL
+      - OMITIDA
+      - DUPLICADA
+      - PENDENTE_VALIDACAO
+      - NOVA_ASSOCIACAO_CANDIDATA
+  - id: composition_memory_reconciliation_post_budget
+    action: recheck_budget_items_against_specific_memories
+    mandatory: true
+    classifications:
+      - INTEGRADO_NA_COMPOSICAO
+      - COMPLEMENTAR_SEPARADO
+      - DUPLICIDADE
+      - CONFLITO_DE_MEMORIA
+      - PENDENTE_VALIDACAO
+  - id: learning_review
+    action: generate_case_specific_learning_questions
+    minimum_questions: 10
+  - id: correction_loop
+    action: return_to_budget_when_material_divergence_exists
+    repeat_until: "material_divergences_resolved_justified_or_arbitrated"
   - id: learning
     action: evaluate_experience_without_auto_promotion
 triggers:
   budget_request: ["orçar", "orcamento", "montar orçamento", "levantar orçamento"]
+  pts_technical_request: ["pts tec", "pts técnica", "criar pts técnica"]
+  pts_post_request: ["pts pos", "pts pós", "pts pós-orçamento", "criar pts pós"]
   comparison_request: ["comparar valores", "comparar orçamento", "diferença de preço"]
   master_list_update: ["nova lista-mãe", "atualizar lista mãe", "novo item MLT"]
-  relation_request: ["interligação", "composição", "dependência", "conexão"]
+  relation_request: ["interligação", "composição", "dependência", "conexão", "recorrente", "aplicação"]
 rules:
   canonical_model_price: "Se houver preço fechado vigente na Lista-Mãe, não estimar nem substituir automaticamente."
   excess_items: "Itens que excedam a composição do modelo devem virar linhas explícitas do orçamento."
   relations: "Interligações elétricas, nivelamento, apoio, munck e equivalentes devem ser auditáveis e cobrados do especialista quando a decisão depender de contexto."
+  recurring_scan: "Toda PTS Técnica e toda PTS Pós-Orçamento deve executar varredura de serviços/itens recorrentes e suas dependências."
+  recurring_semantics: "Item recorrente gera alerta/verificação de aplicabilidade; nunca inclusão automática de escopo, quantidade ou preço."
+  recurring_source: "Usar o catálogo do Especialista para saber o que procurar; usar memória estruturada e fonte vigente para saber como calcular e quanto custa."
+  pts_technical_gate: "PTS Técnica sem varredura de recorrências e sem confronto composição↔memórias é incompleta para entrada do orçamento."
+  pts_post_gate: "PTS Pós sem segunda varredura e sem novo confronto composição↔memórias é incompleta para fechamento."
+  correction_loop: "Divergência material encontrada na PTS Pós retorna ao orçamento; após correção, gerar nova PTS Pós e repetir varredura e confronto."
+  labor_nature: "Distinguir MO-FAB, MO-INST e MO-EXT; mão de obra presente em uma composição não prova que instalação esteja incluída."
+  evidence_hierarchy: "Para decidir se uma etapa está incluída, priorizar composição detalhada e memórias específicas relacionadas sobre texto-resumo genérico ou ambíguo."
+  specific_memory_rule: "Se existir memória específica para uma etapa, como instalação, e a composição-base não contiver linha inequívoca dessa mesma etapa, tratar a memória específica como parcela complementar; não presumir integração pelo texto-resumo."
+  no_double_count: "Antes de somar memória complementar, verificar se a mesma etapa já aparece explicitamente na composição-base; se aparecer, classificar como possível duplicidade e reconciliar."
+  conflict_rule: "Quando texto-resumo, composição detalhada e memória específica divergirem, marcar CONFLITO_DE_MEMORIA e levar ao especialista/questionário; não escolher silenciosamente."
+  door_example: "MC-PORTA-EXTERNA-CORTEN-800X2100 = R$ 600,22 de materiais/fabricação/acabamento; MC-INSTALACAO-PORTA-METALICA = R$ 118,15 de instalação quando aplicável. A memória específica impede presumir instalação embutida no valor-base."
+  logistics_consistency: "Quando houver mão de obra externa, confrontar dias de equipe, carro de apoio, veículos, rota/pedágio e hospedagem por pernoite, conforme aplicabilidade."
   uncertainty: "Questão não compreendida deve ser agrupada como variação para posterior aprendizado; não inventar regra."
-  experience: "Experiência otimista só pode ser promovida após avaliação de valor, evidência, recorrência e identidade canônica."
+  experience: "Experiência só pode ser promovida após avaliação de valor, evidência, recorrência e identidade canônica."
   structural_change: "Mudança estrutural exige Evolution Gate e aprovação apropriada."
   temporal_memory: "Aprendizado de experiência permanece temporal até promoção canônica."
 outputs:
+  - pts_technical_recurring_audit
+  - composition_memory_reconciliation
   - structured_budget
   - relation_audit
   - specialist_questions
+  - pts_post_budget_audit
+  - pts_post_recurring_audit
+  - omission_duplication_matrix
+  - memory_conflict_matrix
+  - learning_review_questions
   - confidence
   - provenance
   - candidate_learning

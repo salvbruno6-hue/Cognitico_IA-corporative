@@ -1,6 +1,6 @@
 # ELO — Skill de Orçamento
 
-**Versão:** 1.3  
+**Versão:** 1.4  
 **Status:** Candidato canônico — sujeito ao Evolution Gate  
 **Domínio:** Orçamento / BUDGETING  
 **Setor:** Planejamento  
@@ -31,6 +31,7 @@ Fontes canônicas relacionadas:
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_APRENDER_CANONICO_MASTER_PROMPT.md`
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_CONHECIMENTO_MATURADO.md`
 - `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/CATALOGO_SERVICOS_ITENS_RECORRENTES.md`
 - `04-knowledge-handbook/ELO_ESPECIALISTA_ORCAMENTO_METODOLOGIA_V2.md`
 - `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`
 - `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
@@ -71,6 +72,8 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 14. **Raciocínio repetitivo** — reconhecer sequências recorrentes de decisão e cálculo sem copiar cegamente o resultado histórico.
 15. **Explicabilidade** — reconstruir como a solicitação foi interpretada, como cada decisão relevante foi tomada e como os principais valores foram formados.
 16. **Aprendizado contínuo** — consultar conhecimento armazenado antes de compor, confrontar o caso atual e produzir revisão de aprendizado ao final de cada solicitação.
+17. **Varredura de recorrências** — reconhecer serviços/itens recorrentes e suas dependências em toda PTS Técnica e toda PTS Pós; recorrência gera verificação, nunca inclusão automática.
+18. **Reconciliação composição × memória** — abrir a composição-base/EXC, classificar componentes por etapa executiva, localizar memórias específicas associadas e decidir se cada parcela está integrada, complementar, duplicada, conflitante ou pendente.
 
 ## 4. Encadeamento operacional canônico
 
@@ -83,6 +86,10 @@ CONSULTA CONHECIMENTO + MEMÓRIA EXISTENTE
       ↓
 PTS TÉCNICA
       ↓
+VARRER RECORRÊNCIAS
+      ↓
+CONFRONTAR COMPOSIÇÃO-BASE × MEMÓRIAS ESPECÍFICAS
+      ↓
 DIRECIONAMENTO / CHECKLIST
       ↓
 CONTRATO DE EXECUÇÃO
@@ -93,11 +100,15 @@ ORÇAMENTO + MEMÓRIAS DE CÁLCULO + RASTRO DE RACIOCÍNIO
       ↓
 PTS PÓS-ORÇAMENTO
       ↓
+VARRER RECORRÊNCIAS NOVAMENTE
+      ↓
+RECONCILIAR COMPOSIÇÃO × MEMÓRIAS NOVAMENTE
+      ↓
 RESOLUÇÃO DOS INDICADORES CANÔNICOS
       ↓
 ELO CONFERE
    ├─ OK → fechamento
-   └─ CONTESTAÇÃO → Especialista corrige → nova conferência
+   └─ CONTESTAÇÃO → Especialista corrige → nova PTS Pós → nova varredura/reconciliação
       ↓
 EXPLICAÇÃO DE COMO FOI ORÇADO
       ↓
@@ -126,6 +137,8 @@ A Skill não executa composição/precificação em paralelo ao Especialista e n
 - Dependência recorrente não deve ser incluída automaticamente: primeiro verificar se a condição técnica que a exige está presente.
 - Conhecimento armazenado deve ser consultado antes de desenvolver solução nova, mas nunca aplicado sem teste de equivalência com a SO atual.
 - Pergunta de aprendizado não equivale a permissão de promover ou alterar regra permanente.
+- Texto-resumo de memória/EXC não pode, sozinho, provar que uma etapa está incluída quando a composição detalhada e/ou memória específica indicarem tratamento separado.
+- Antes de incluir ou excluir instalação, montagem, acabamento, transporte ou outra etapa, confrontar composição-base e memórias específicas associadas.
 
 ## 6. Contrato de aprendizado
 
@@ -173,7 +186,10 @@ Bloquear ou marcar como não confirmado quando houver:
 - segredo/token/chave em evidência ou proveniência;
 - tentativa de alterar memória canônica fora do fluxo autorizado;
 - divergência entre PTS Técnica, orçamento e PTS Pós sem explicação/arbitragem;
-- tentativa de tratar resposta do owner como promoção automática de conhecimento.
+- tentativa de tratar resposta do owner como promoção automática de conhecimento;
+- PTS Técnica ou PTS Pós sem varredura de recorrências quando houver itens compostos/recorrentes;
+- conflito entre texto-resumo, composição detalhada e memória específica sem reconciliação;
+- decisão de somar ou excluir memória complementar sem demonstrar se a etapa está ou não explicitamente incluída na composição-base.
 
 ## 9. Critério de qualidade
 
@@ -184,6 +200,10 @@ A execução só é considerada rastreável quando cada custo relevante puder re
 E o orçamento concluído deve conseguir responder:
 
 `O QUE FOI PEDIDO → O QUE FOI ENTENDIDO → O QUE FOI ESCOLHIDO → POR QUE → COMO FOI CALCULADO → DE ONDE VEIO O PREÇO → COMO CHEGOU AO VALOR → O QUE A PTS PÓS REVELOU → O QUE FOI APRENDIDO`
+
+Quando houver memórias associadas, também deve responder:
+
+`QUAL PARCELA ESTÁ NA COMPOSIÇÃO-BASE → QUAL PARCELA TEM MEMÓRIA ESPECÍFICA → ESTÁ INTEGRADA OU SEPARADA? → HÁ DUPLICIDADE? → HÁ CONFLITO?`
 
 ## 10. Potencialização para o ELO
 
@@ -232,7 +252,9 @@ O ELO deve procurar principalmente:
 - produtividade de mão de obra;
 - sequência de execução que altera a composição;
 - itens que sempre devem ser verificados quando determinada solução é adotada;
-- diferenças que explicam por que dois casos semelhantes receberam composições diferentes.
+- diferenças que explicam por que dois casos semelhantes receberam composições diferentes;
+- conflitos entre texto-resumo, composição efetiva e memórias específicas;
+- situações em que uma parcela complementar foi omitida ou duplicada.
 
 ### 12.2 Não aprender somente o número
 
@@ -328,7 +350,7 @@ O objetivo é aprimorar continuamente a análise com conhecimento armazenado sem
 
 A Skill deve compreender a elaboração como uma cadeia única de explicação, preservando as funções distintas de cada artefato:
 
-`PTS TÉCNICA → DECISÃO TÉCNICA → ORÇAMENTO → PTS PÓS-ORÇAMENTO → INDICADORES → VALIDAÇÃO → APRENDIZADO`
+`PTS TÉCNICA → VARRER RECORRÊNCIAS → RECONCILIAR COMPOSIÇÕES/MEMÓRIAS → DECISÃO TÉCNICA → ORÇAMENTO → PTS PÓS-ORÇAMENTO → NOVA VARREDURA/RECONCILIAÇÃO → INDICADORES → VALIDAÇÃO → APRENDIZADO`
 
 Na PTS Pós devem ser interpretados, quando aplicáveis, os indicadores canônicos:
 
@@ -352,7 +374,9 @@ No fechamento da solicitação, a Skill deve ser capaz de descrever:
 7. como quantidade, preço, mão de obra, logística, indiretos e demais componentes formaram o valor;
 8. o que a PTS Pós confirmou, contestou ou deixou pendente;
 9. como os indicadores canônicos influenciaram a decisão;
-10. o que pode ser aprendido e o que deve permanecer específico do caso.
+10. o que pode ser aprendido e o que deve permanecer específico do caso;
+11. quais memórias específicas foram confrontadas com cada composição relevante;
+12. quais parcelas foram classificadas como integradas, complementares, duplicadas ou conflitantes.
 
 ## 19. Revisão de aprendizado obrigatória — 10 ou mais questões
 
@@ -369,3 +393,39 @@ As respostas do owner devem ser confrontadas com evidência e classificadas como
 O contrato detalhado desta etapa está em:
 
 `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`
+
+## 20. Confronto obrigatório composição × memória específica
+
+Para cada EXC, composição ou item que possa possuir etapas separadas — fabricação, instalação, acabamento, transporte, montagem, campo ou manutenção — executar:
+
+`ITEM/EXC → COMPOSIÇÃO-BASE → COMPONENTES → ETAPAS EXECUTIVAS → MEMÓRIAS ESPECÍFICAS ASSOCIADAS → CONFRONTO → DECISÃO`
+
+### 20.1 Hierarquia de evidência
+
+Para decidir se uma etapa está incluída:
+
+1. componentes efetivamente precificados na composição;
+2. memória específica da etapa;
+3. vínculo EXC ↔ memória;
+4. decisão explícita e validada do especialista/orçamentista;
+5. texto-resumo genérico.
+
+**Texto-resumo não prevalece sobre a estrutura da composição.**
+
+Se existir memória específica de instalação e a composição-base não apresentar linha inequívoca dessa instalação, classificar como `COMPLEMENTAR_SEPARADO`. Um cargo genérico como `Soldador/Montador` não prova, por si só, que a instalação final já esteja incluída; o ELO deve identificar a função daquela mão de obra no processo.
+
+### 20.2 Classificações
+
+- `INTEGRADO_NA_COMPOSIÇÃO` — a etapa aparece explicitamente e está precificada na base;
+- `COMPLEMENTAR_SEPARADO` — há memória própria e a etapa não está demonstrada na base;
+- `DUPLICIDADE` — a mesma etapa aparece na base e está sendo somada novamente;
+- `CONFLITO_DE_MEMÓRIA` — texto, componentes e memória específica divergem;
+- `PENDENTE_DE_VALIDAÇÃO` — evidência insuficiente.
+
+### 20.3 Caso de referência — porta metálica
+
+- `MC-PORTA-EXTERNA-CORTEN-800X2100`: **R$ 600,22** → materiais + fabricação + acabamento;
+- `MC-INSTALACAO-PORTA-METALICA`: **R$ 118,15** → instalação específica;
+- conclusão: a instalação não deve ser presumida dentro dos R$ 600,22 com base em texto-resumo histórico.
+
+Esse confronto é obrigatório na **PTS Técnica** e deve ser repetido na **PTS Pós**. Se houver conflito, a saída correta é questionar/reconciliar, não escolher silenciosamente.
