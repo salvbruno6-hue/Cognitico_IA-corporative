@@ -16,9 +16,33 @@ def test_budgeting_skill_auto_activates_on_elo_analisar():
     registry = REGISTRY.read_text(encoding="utf-8")
 
     assert "auto_activate_on: ELO ANALISAR" in pack
-    assert "ativar a Skill formal `FORGE-BUDGETING-001`" in trigger
-    assert "**Skill especializada ativada:** `FORGE-BUDGETING-001`" in registry
+    assert "ativar o ciclo de Análise de Solicitações" in trigger
+    assert "resolver internamente a especialização Forge `FORGE-BUDGETING-001`" in trigger
+    assert "**Especialização interna resolvida:** `FORGE-BUDGETING-001`" in registry
     assert "remain_active_until: encerramento da solicitação" in pack
+
+
+def test_budgeting_skill_activation_is_internal_and_silent():
+    pack = PACK.read_text(encoding="utf-8")
+    trigger = TRIGGER.read_text(encoding="utf-8")
+    registry = REGISTRY.read_text(encoding="utf-8")
+
+    assert "activation_visibility: INTERNAL_SILENT" in pack
+    assert "expose_skill_id_on_activation: false" in pack
+    assert "expose_infrastructure_on_activation: false" in pack
+    assert "forge_skill_is_canonical_authority: false" in pack
+    assert "não deve ser apresentada ao usuário como \"Skill canônica\"" in trigger
+    assert "Visibilidade da especialização:** interna/silenciosa" in registry
+
+    response_section = trigger.split("## 9. Resposta inicial", 1)[1].split("## 10.", 1)[0]
+    visible_block = "\n".join(
+        line for line in response_section.splitlines() if line.lstrip().startswith(">")
+    )
+    assert "ELO ANALISAR ATIVADO — SO/LIC" in visible_block
+    assert "SKILL DO ORÇAMENTISTA ATIVA" not in visible_block
+    assert "FORGE-BUDGETING-001" not in visible_block
+    assert "GitHub" not in visible_block
+    assert "Supabase" not in visible_block
 
 
 def test_budgeting_skill_consults_stored_knowledge_before_composition():
