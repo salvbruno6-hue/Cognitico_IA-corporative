@@ -2,53 +2,99 @@
 
 ## 1. Objetivo
 
-Transformar a inteligência de orçamento do ELO em um fluxo executável, auditável e evolutivo, conectando Lista-Mãe, taxonomia MLT, modelos, dimensões, componentes, mão de obra, composições, relações, especialista e memória.
+Transformar a inteligência de orçamento do ELO em um fluxo executável, auditável e evolutivo, conectando Lista-Mãe, taxonomia MLT, modelos, dimensões, componentes, mão de obra, composições, relações, PTS, especialista e memória.
 
 ## 2. Princípio
 
 **O ELO interpreta, relaciona, audita e orquestra. O especialista valida decisões técnicas e econômicas quando necessário. O SQL mantém os dados estruturados; documentos mantêm regras, contexto e conhecimento explicativo.**
 
+A arquitetura opera em loop:
+
+`PTS TÉCNICA → VARRER RECORRÊNCIAS → CONFRONTAR COMPOSIÇÃO × MEMÓRIAS → ORÇAMENTO → PTS PÓS → NOVA VARREDURA → NOVA RECONCILIAÇÃO → CORRIGIR/VALIDAR → QUESTIONAR → APRENDER`
+
 ## 3. Fluxo físico
 
 ```text
-ENTRADA
+ENTRADA / DOCUMENTAÇÃO
   │
   ▼
 [1] Classificação da demanda
   │
   ▼
-[2] Consulta Lista-Mãe
+[2] PTS Técnica / requisitos e solução
   │
   ▼
-[3] Resolução Taxonomia MLT
+[3] Varredura obrigatória de recorrências
+  │      ├─ aplicação
+  │      ├─ dependências
+  │      ├─ itens complementares
+  │      ├─ precedentes/memórias
+  │      └─ alertas de verificação
   │
   ▼
-[4] Matching de Modelo / Família / Dimensão
+[4] Confronto obrigatório composição × memórias
+  │      ├─ abrir composição-base / EXC
+  │      ├─ classificar componentes e etapas
+  │      ├─ localizar memórias específicas
+  │      ├─ integrado × complementar
+  │      ├─ duplicidade
+  │      └─ conflito de memória
   │
   ▼
-[5] Composição do orçamento-base
+[5] Consulta Lista-Mãe
   │
-  ├──────────────► [6] Auditoria de excedentes
+  ▼
+[6] Resolução Taxonomia MLT
+  │
+  ▼
+[7] Matching de Modelo / Família / Dimensão
+  │
+  ▼
+[8] Composição do orçamento-base
+  │
+  ├──────────────► [9] Auditoria de excedentes
   │                       │
   │                       ▼
-  │                materiais / serviços
+  │                materiais / serviços / MO-FAB / MO-INST / MO-EXT
   │
-  ├──────────────► [7] Auditoria de relações
+  ├──────────────► [10] Auditoria de relações
   │                       │
-  │                       ├─ elétrica
+  │                       ├─ elétrica / dados
   │                       ├─ hidráulica
+  │                       ├─ abertura / reforço / acabamento
   │                       ├─ nivelamento
-  │                       ├─ içamento / munck
-  │                       ├─ carro de apoio
+  │                       ├─ logística / Munck
+  │                       ├─ carro de apoio / hospedagem / pedágio
   │                       └─ demais composições
   │
   ▼
-[8] Motor de orçamento
+[11] Motor de orçamento
   │
   ▼
-[9] Auditoria de confiança e lacunas
+[12] PTS Pós-Orçamento
   │
-  ├── suficiente ─────────────► proposta técnica/econômica
+  ▼
+[13] Segunda varredura obrigatória de recorrências
+  │      ├─ esperado × orçado
+  │      ├─ omissões
+  │      ├─ duplicidades
+  │      ├─ não aplicáveis
+  │      ├─ pendências
+  │      └─ novas associações candidatas
+  │
+  ▼
+[14] Reconciliação pós-orçamento composição × memórias
+  │      ├─ valor orçado
+  │      ├─ composição-base
+  │      ├─ memória específica
+  │      ├─ etapa integrada ou separada
+  │      ├─ duplicidade
+  │      └─ conflito/questionamento
+  │
+  ▼
+[15] Auditoria de confiança e lacunas
+  │
+  ├── suficiente ─────────────► fechamento / arbitragem
   │
   └── insuficiente ───────────► especialista
                                       │
@@ -56,14 +102,109 @@ ENTRADA
                               decisão / correção
                                       │
                                       ▼
-                              [10] Registro da experiência
+                              orçamento REV.N
                                       │
                                       ▼
-                              [11] Evolution Gate
+                              PTS Pós REV.N
                                       │
-                                      ├─ regra canônica → estrutura
-                                      └─ experiência temporal → memória
+                                      └────────► volta a [13] e [14]
+
+FECHAMENTO / ARBITRAGEM
+  │
+  ▼
+[16] Explicação de como foi orçado
+  │
+  ▼
+[17] Revisão de aprendizado da SO (>=10 questões)
+  │
+  ▼
+[18] Registro da experiência
+  │
+  ▼
+[19] Aprendizado candidato
+  │
+  ▼
+[20] Evolution Gate
+  │
+  ├─ regra canônica → estrutura
+  └─ experiência temporal → memória
 ```
+
+## 3.1 Loop cognitivo obrigatório
+
+A PTS Técnica e a PTS Pós são dois pontos obrigatórios de inspeção do mesmo sistema.
+
+### Loop A — antes do orçamento
+
+```text
+REQUISITO
+→ SOLUÇÃO TÉCNICA
+→ IDENTIFICAR FAMÍLIA RECORRENTE
+→ VERIFICAR APLICAÇÃO
+→ VERIFICAR DEPENDÊNCIAS
+→ CONSULTAR PRECEDENTE/MEMÓRIA
+→ ABRIR COMPOSIÇÃO-BASE
+→ LOCALIZAR MEMÓRIAS ESPECÍFICAS ASSOCIADAS
+→ CONFRONTAR ETAPAS E VALORES
+→ GERAR ALERTA/CHECKLIST
+→ ORÇAR SOMENTE O QUE SE APLICA
+```
+
+### Loop B — depois do orçamento
+
+```text
+PTS TÉCNICA
+→ ORÇAMENTO
+→ EXPECTATIVAS DE RECORRÊNCIA
+→ ITENS EFETIVAMENTE ORÇADOS
+→ CONFRONTO COMPOSIÇÃO-BASE × MEMÓRIAS ESPECÍFICAS
+→ OMISSÕES / DUPLICIDADES / CONFLITOS / PENDÊNCIAS
+→ CORREÇÃO OU JUSTIFICATIVA
+→ NOVA PTS PÓS
+→ NOVA VARREDURA E RECONCILIAÇÃO
+```
+
+O loop só termina quando as divergências materiais estiverem resolvidas, justificadas ou arbitradas.
+
+## 3.2 Princípio de reconciliação de composição e memória
+
+O orçamento não pode decidir se uma etapa está incluída apenas pelo texto descritivo de uma memória ou EXC.
+
+A decisão deve seguir:
+
+`COMPOSIÇÃO DETALHADA → COMPONENTES → ETAPAS EXECUTIVAS → MEMÓRIAS ESPECÍFICAS → VÍNCULOS → DECISÃO VALIDADA → TEXTO-RESUMO`
+
+Hierarquia operacional:
+
+1. componentes efetivamente precificados na composição;
+2. memória específica da etapa;
+3. vínculo entre EXC e memória;
+4. decisão explícita validada pelo especialista/orçamentista;
+5. texto-resumo genérico.
+
+Se existir uma memória específica de instalação e a composição-base não demonstrar explicitamente essa mesma instalação, a memória específica deve ser tratada como parcela complementar. Um rótulo genérico de função, como `Soldador/Montador`, não prova sozinho a inclusão da instalação final.
+
+Classificações:
+
+- `INTEGRADO_NA_COMPOSIÇÃO`;
+- `COMPLEMENTAR_SEPARADO`;
+- `DUPLICIDADE`;
+- `CONFLITO_DE_MEMÓRIA`;
+- `PENDENTE_DE_VALIDAÇÃO`.
+
+### Caso de referência — porta metálica
+
+```text
+MC-PORTA-EXTERNA-CORTEN-800X2100
+R$ 600,22
+= materiais + fabricação + acabamento
+
+MC-INSTALACAO-PORTA-METALICA
+R$ 118,15
+= instalação específica
+```
+
+A existência da memória específica de instalação impede concluir que os R$ 600,22 já incluem essa etapa com base apenas em texto-resumo histórico.
 
 ## 4. Camadas
 
@@ -83,7 +224,8 @@ Devem permanecer em SQL:
 - relações entre itens;
 - regras de aplicação estruturáveis;
 - histórico versionado;
-- evidências de auditoria.
+- evidências de auditoria;
+- memórias quantitativas e precedentes de cálculo.
 
 ### 4.2 Conhecimento documental
 
@@ -97,11 +239,17 @@ Devem permanecer em documentos:
 - decisões arquiteturais;
 - contratos de especialistas;
 - explicações de composição;
-- padrões de comportamento do ELO.
+- padrões de comportamento do ELO;
+- catálogo cognitivo de serviços e itens recorrentes;
+- critérios de reconciliação entre composição-base e memórias específicas.
 
 ### 4.3 Orquestração
 
 O ELO deve executar a sequência sem transformar conhecimento temporal em regra permanente automaticamente.
+
+**Regra:** recorrência é gatilho de verificação, não autorização de inclusão.
+
+**Regra:** texto-resumo é evidência secundária quando conflita com composição detalhada ou memória específica.
 
 ## 5. Entidades mínimas
 
@@ -123,6 +271,25 @@ orçamento
  ├── mão-de-obra
  └── evidência
 
+recorrência
+ ├── família
+ ├── gatilho
+ ├── aplicação
+ ├── dependência
+ ├── memória de referência
+ ├── condição de não aplicação
+ └── resultado da verificação
+
+reconciliação
+ ├── composição-base
+ ├── componentes
+ ├── etapa executiva
+ ├── memória específica
+ ├── vínculo
+ ├── classificação
+ ├── conflito
+ └── decisão
+
 experiência
  ├── solicitação
  ├── interpretação
@@ -136,59 +303,57 @@ experiência
 
 Se uma entrada puder ser adequadamente representada por um modelo MLT conhecido, o ELO deve reutilizar esse modelo como referência.
 
-Exemplo:
-
-`TR → MLT.M01`
-
-O ELO deve comparar:
-
-- dimensões;
-- finalidade;
-- quantidade de ambientes;
-- instalações;
-- esquadrias;
-- pontos elétricos;
-- componentes construtivos;
-- acessórios;
-- requisitos normativos;
-- diferenças em relação ao padrão.
+O ELO deve comparar dimensões, finalidade, ambientes, instalações, esquadrias, pontos, componentes, acessórios, requisitos normativos e diferenças em relação ao padrão.
 
 ## 7. Excedentes
 
 Excedente não deve alterar silenciosamente o modelo-base.
 
-Exemplo:
-
-```text
-MLT.M01
-├── configuração-base
-├── +3 janelas
-├── +1 divisória
-├── +1 tomada
-└── +relações necessárias
-```
-
 Cada excedente recebe origem, unidade, quantidade, justificativa e relação com o modelo-base.
+
+Antes de criar novo excedente, o loop consulta catálogo, memórias e excedentes existentes para detectar equivalência ou precedente.
+
+Antes de decidir que um EXC já contém instalação, montagem, transporte, acabamento ou outra etapa, o loop confronta sua composição com memórias específicas relacionadas.
 
 ## 8. Relações como gatilhos
 
-Uma relação conhecida pode disparar automaticamente uma verificação.
+Uma relação conhecida dispara automaticamente uma **verificação**, não uma inclusão.
 
 Exemplo:
 
 ```text
-nova tomada
+nova janela
    ↓
-auditar circuito
+verificar abertura de vão
    ↓
-auditar carga
+verificar reforço estrutural
    ↓
-auditar proteção
+verificar acabamento do vão
    ↓
-auditar interligação
+verificar fabricação da janela
+   ↓
+verificar instalação
+   ↓
+verificar grade, se exigida
 ```
 
-Se a relação estiver fora do conhecimento canônico, o ELO deve encaminhar ao especialista.
+Outro exemplo:
+
+```text
+mão de obra externa
+   ↓
+verificar dias de mobilização
+   ↓
+carro de apoio
+   ↓
+rota / pedágio
+   ↓
+hospedagem por pernoite
+   ↓
+transporte principal / Munck, se aplicável
+```
+
+Se a relação estiver fora do conhecimento canônico, o ELO encaminha ao especialista e pode gerar candidato de aprendizado após validação.
 
 ## 9. Valores
 
@@ -196,54 +361,59 @@ Quando o item possuir preço fechado na Lista-Mãe, o motor deve utilizar a refe
 
 Não deve inventar ou recalcular o preço-base sem uma regra explícita.
 
-O valor de mão de obra deve ser relacionado por função, por exemplo:
+Preço histórico não é preço vigente. Precedente transfere método e lógica; o cenário atual deve ser recalculado.
 
+O valor de mão de obra deve ser relacionado por função e por natureza:
+
+- MO-FAB — fabricação;
+- MO-INST — instalação;
+- MO-EXT — execução em campo;
 - ajudante;
 - profissional;
-- encarregado.
+- encarregado;
+- especialidades quando aplicáveis.
+
+Antes de somar uma MO específica, verificar se ela já aparece de forma inequívoca na composição-base. Antes de excluir uma MO específica, verificar se a composição-base realmente a contém. Em conflito, bloquear inferência e encaminhar ao especialista/questionário.
 
 ## 10. Especialista
 
-O especialista recebe um contexto já preparado pelo ELO:
+O especialista recebe contexto preparado pelo ELO:
 
 ```text
 demanda original
+→ PTS Técnica
 → modelo identificado
 → diferenças encontradas
+→ recorrências detectadas
 → relações suspeitas
+→ composições-base
+→ memórias específicas associadas
+→ conflitos de inclusão/duplicidade
 → composição sugerida
 → lacunas
 → perguntas objetivas
 → evidências
 ```
 
-O especialista não deve precisar reconstruir toda a análise manualmente.
+Na saída, devolve valores, itens aplicados, recorrências verificadas, memórias utilizadas, classificação integrado/complementar, cálculos, relações, conflitos resolvidos, lacunas e pontos para PTS Pós.
 
 ## 11. Aprendizagem
 
 Uma experiência somente pode alterar a identidade canônica quando passar pelo Evolution Gate.
 
-Experiências úteis, mas ainda não canonizadas, permanecem temporais e contextualizadas.
+O aprendizado deve distinguir resultado específico de SO, memória quantitativa, precedente, associação recorrente, etapa integrada/complementar, conflito de memória e regra validada.
 
-```text
-experiência
-   ↓
-validação
-   ↓
-repetição / evidência
-   ↓
-avaliação de impacto
-   ↓
-Evolution Gate
-   ↓
-regra canônica
-```
+Método e aplicação permanecem na camada documental; memória quantitativa permanece na persistência estruturada.
 
 ## 12. Contrato de execução
 
 O contrato principal está em:
 
 `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`
+
+O catálogo cognitivo do especialista está em:
+
+`08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/CATALOGO_SERVICOS_ITENS_RECORRENTES.md`
 
 A interface física está em:
 
@@ -258,16 +428,21 @@ A implementação deve avançar nesta ordem:
 3. resolver Lista-Mãe;
 4. resolver taxonomia MLT;
 5. motor de matching;
-6. motor de excedentes;
-7. grafo de relações;
-8. composição de mão de obra;
-9. motor de orçamento;
-10. gateway do especialista;
-11. memória de experiências;
-12. Evolution Gate;
-13. testes integrados;
-14. observabilidade.
+6. catálogo/índice de recorrências;
+7. motor de excedentes;
+8. grafo de relações;
+9. reconciliador composição × memória;
+10. composição de mão de obra;
+11. motor de orçamento;
+12. integração PTS Técnica;
+13. integração PTS Pós;
+14. loop de recorrências e reconciliação;
+15. gateway do especialista;
+16. memória de experiências;
+17. Evolution Gate;
+18. testes integrados;
+19. observabilidade.
 
 ## 14. Critério de conclusão
 
-O módulo somente é considerado operacional quando uma solicitação de orçamento puder percorrer o fluxo completo com rastreabilidade desde a entrada até a decisão final, incluindo todas as relações relevantes e a evidência utilizada.
+O módulo somente é considerado operacional quando uma solicitação de orçamento puder percorrer o fluxo completo com rastreabilidade desde a entrada até a decisão final, incluindo PTS Técnica, varredura de recorrências, confronto composição × memória, orçamento, PTS Pós, nova varredura/reconciliação, correções, revisão de aprendizado, aprendizado candidato e evidências utilizadas.
