@@ -1,6 +1,6 @@
-version: "1.3"
+version: "1.4"
 contract_id: ELO-ORCAMENTO-EXECUTION-001
-purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista, com varredura de recorrências e confronto composição-base × memórias específicas."
+purpose: "Contrato físico para execução assistida de orçamento no ambiente do especialista, com varredura de recorrências, confronto composição-base × memórias específicas e despacho automático de candidatos ao owner canônico de governança."
 mode: supervised
 canonical_sources:
   - documentation/SO
@@ -74,11 +74,28 @@ pipeline:
     blocking: true
     minimum_questions: 10
     close_only_when: "learning_review_questions_emitted_or_case_explicitly_left_open"
+  - id: learning_governance_dispatch
+    action: dispatch_classified_learning_to_canonical_governance
+    mandatory: true
+    automatic_on: learning_review_completed
+    canonical_owner: src/elo/core/learning_governance.py
+    classifications:
+      CASE: retain_case
+      PRECEDENT: retain_reference
+      LEARNING_CANDIDATE: evaluate_without_auto_approval
+      VALIDATED_LEARNING: reuse_existing_validated_learning
+      GAP: retain_blocked
+      CONFLICT: retain_blocked
+    promotion:
+      human_approval_required: true
+      evolution_gate_required: true
+      auto_approval: false
+      auto_promotion: false
   - id: correction_loop
     action: return_to_budget_when_material_divergence_exists
     repeat_until: "material_divergences_resolved_justified_or_arbitrated"
   - id: learning
-    action: evaluate_experience_without_auto_promotion
+    action: evaluate_dispatched_candidates_without_auto_promotion
 triggers:
   analysis_request: ["elo analisar", "ELO ANALISAR"]
   budget_request: ["orçar", "orcamento", "montar orçamento", "levantar orçamento"]
@@ -97,6 +114,7 @@ rules:
   pts_technical_gate: "PTS Técnica sem varredura de recorrências e sem confronto composição↔memórias é incompleta para entrada do orçamento."
   pts_post_gate: "PTS Pós sem segunda varredura e sem novo confronto composição↔memórias é incompleta para fechamento."
   learning_review_gate: "Quando ELO ANALISAR chegar ao fechamento da solicitação, não considerar a análise encerrada sem emitir REVISÃO DE APRENDIZADO DA SO com no mínimo 10 perguntas específicas ao caso; se a solicitação permanecer aberta, registrar explicitamente que o questionário fica pendente para o fechamento."
+  post_analysis_learning_governance: "Após a revisão de aprendizado ser respondida/classificada, ELO ANALISAR deve despachar automaticamente CASE/PRECEDENT/LEARNING_CANDIDATE/VALIDATED_LEARNING/GAP/CONFLICT ao owner canônico de learning_governance. O despacho é automático; aprovação e promoção nunca são automáticas. LEARNING_CANDIDATE entra em avaliação; promoção exige evidência, threshold, aprovação humana explícita e Evolution Gate."
   correction_loop: "Divergência material encontrada na PTS Pós retorna ao orçamento; após correção, gerar nova PTS Pós e repetir varredura e confronto."
   labor_nature: "Distinguir MO-FAB, MO-INST e MO-EXT; mão de obra presente em uma composição não prova que instalação esteja incluída."
   evidence_hierarchy: "Para decidir se uma etapa está incluída, priorizar composição detalhada e memórias específicas relacionadas sobre texto-resumo genérico ou ambíguo."
@@ -120,6 +138,7 @@ outputs:
   - omission_duplication_matrix
   - memory_conflict_matrix
   - learning_review_questions
+  - learning_governance_dispatch
   - confidence
   - provenance
   - candidate_learning

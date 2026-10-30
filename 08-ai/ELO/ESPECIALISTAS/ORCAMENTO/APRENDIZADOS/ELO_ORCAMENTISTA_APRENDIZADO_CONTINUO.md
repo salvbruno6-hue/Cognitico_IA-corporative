@@ -35,7 +35,12 @@ ELO ANALISAR
 → validação/arbitragem quando aplicável
 → explicação do raciocínio
 → revisão de aprendizado com o owner
-→ candidato de integração
+→ classificação do aprendizado
+→ despacho automático ao learning governance canônico
+→ avaliação de candidatos / retenção de casos, precedentes, GAPs e conflitos
+→ aprovação humana quando aplicável
+→ Evolution Gate
+→ promoção governada ou preservação temporal
 ```
 
 A Skill não deve ser ativada somente no fim. O aprendizado começa na leitura inicial, porque decisões, hipóteses e alternativas descartadas também explicam o orçamento.
@@ -130,7 +135,7 @@ Confrontar:
 
 ### Fase G — aprendizado
 
-`OBSERVAR → COMPARAR COM MEMÓRIA → IDENTIFICAR PADRÃO/DIFERENÇA → QUESTIONAR OWNER → CLASSIFICAR → INTEGRAR COMO CANDIDATO OU REJEITAR`
+`OBSERVAR → COMPARAR COM MEMÓRIA → IDENTIFICAR PADRÃO/DIFERENÇA → QUESTIONAR OWNER → CLASSIFICAR → DESPACHAR À GOVERNANÇA → AVALIAR → APROVAR/RETER/BLOQUEAR`
 
 ## 6. Resolução dos indicadores da PTS Pós
 
@@ -226,20 +231,53 @@ A Skill deve selecionar, reescrever e complementar pelo menos 10 destas categori
 
 Se a SO produzir mais de 10 questões materialmente relevantes, retornar todas as relevantes; **10 é piso, não teto**.
 
-## 10. Decisão de integração após respostas
+## 10. Decisão de integração e loop automático de governança
 
 As respostas do owner não alteram a Skill automaticamente. O ELO deve confrontá-las com evidência e classificar o resultado:
 
 - `CASE` — conhecimento apenas daquele caso;
 - `PRECEDENT` — precedente consultivo;
 - `LEARNING_CANDIDATE` — candidato a aprendizado reutilizável;
-- `VALIDATED_LEARNING` — somente quando os critérios de validação canônicos forem satisfeitos.
+- `VALIDATED_LEARNING` — conhecimento já validado que deve ser reutilizado/enriquecido, não duplicado;
+- `GAP` / `CONFLICT` — não promover; manter investigação aberta.
 
-Fluxo:
+Assim que a revisão do owner estiver respondida e classificada, **o loop de governança deve ser iniciado automaticamente**, sem exigir novo comando `ELO APRENDER`.
 
-`RESPOSTA DO OWNER → EVIDÊNCIA → COMPARAÇÃO COM MEMÓRIA → DUPLICIDADE/CONFLITO → CLASSIFICAÇÃO → COGNITIVE MERGE → GOVERNANÇA → PERSISTÊNCIA AUTORIZADA`
+Owner canônico do ciclo de promoção:
 
-Nenhuma resposta promove diretamente conhecimento ao Core.
+`src/elo/core/learning_governance.py`
+
+Fluxo obrigatório:
+
+```text
+RESPOSTA DO OWNER
+→ EVIDÊNCIA
+→ COMPARAÇÃO COM MEMÓRIA
+→ DUPLICIDADE / CONFLITO
+→ CLASSIFICAÇÃO
+→ DESPACHO AUTOMÁTICO AO LEARNING GOVERNANCE
+   ├─ CASE → preservar como caso
+   ├─ PRECEDENT → preservar como referência
+   ├─ LEARNING_CANDIDATE → avaliar maturidade/evidência
+   ├─ VALIDATED_LEARNING → reutilizar/enriquecer
+   └─ GAP/CONFLICT → bloquear promoção e investigar
+→ SE CANDIDATO ATINGE THRESHOLD → AGUARDAR APROVAÇÃO HUMANA EXPLÍCITA
+→ SE APROVADO → EVOLUTION GATE
+→ PROMOTABLE_KNOWLEDGE OU PRESERVAÇÃO TEMPORAL
+→ COGNITIVE MERGE / GOVERNANÇA / PERSISTÊNCIA AUTORIZADA
+```
+
+Regras:
+
+- o **despacho** é automático;
+- a **avaliação** do candidato deve iniciar automaticamente quando houver evidência suficiente para avaliação;
+- a **aprovação humana nunca é automática**;
+- a **promoção nunca é automática**;
+- candidato sem evidência/proveniência suficiente permanece `LEARNING_CANDIDATE`;
+- candidato abaixo do threshold permanece candidato ou é rejeitado conforme evidência;
+- conflito ou duplicidade bloqueia promoção;
+- Evolution Gate permanece obrigatório para promoção;
+- nenhuma resposta do owner, isoladamente, promove diretamente conhecimento ao Core.
 
 ## 11. Aprimoramento contínuo da própria Skill
 
@@ -271,7 +309,10 @@ Não integrar como regra quando houver:
 - decisão do owner sem evidência suficiente para generalização;
 - indicador da PTS Pós ainda pendente ou conflitado;
 - divergência não arbitrada;
-- ausência de proveniência.
+- ausência de proveniência;
+- avaliação abaixo do threshold;
+- ausência de aprovação humana explícita;
+- ausência de Evolution Gate compatível.
 
 Nesses casos, preservar `GAP`, `PRECEDENT` ou `LEARNING_CANDIDATE` conforme aplicável.
 
@@ -279,4 +320,4 @@ Nesses casos, preservar `GAP`, `PRECEDENT` ou `LEARNING_CANDIDATE` conforme apli
 
 O Orçamentista deve ser capaz de responder, para qualquer orçamento concluído:
 
-**o que foi pedido → o que foi entendido → o que foi escolhido → por que foi escolhido → como foi dimensionado → quais dependências surgiram → como cada valor relevante foi calculado → o que a PTS Pós revelou → quais indicadores sustentaram a decisão → o que o ELO aprendeu → o que ainda precisa ser confirmado pelo owner.**
+**o que foi pedido → o que foi entendido → o que foi escolhido → por que foi escolhido → como foi dimensionado → quais dependências surgiram → como cada valor relevante foi calculado → o que a PTS Pós revelou → quais indicadores sustentaram a decisão → o que o ELO aprendeu → o que foi despachado automaticamente à governança → o que aguarda aprovação humana → o que ainda precisa ser confirmado pelo owner.**
