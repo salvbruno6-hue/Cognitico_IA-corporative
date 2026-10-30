@@ -8,6 +8,7 @@ PACK = ROOT / "forge/skill-packs/ELO_FORGE_BUDGETING_SPECIALIST_v1.yaml"
 TRIGGER = ROOT / "docs/cognitive/ELO_ANALISAR_TRIGGER.md"
 REGISTRY = ROOT / "docs/cognitive/ELO_TRIGGER_REGISTRY.md"
 CONTRACT = ROOT / "08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md"
+EXECUTION_CONTRACT = ROOT / "prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml"
 
 
 def test_budgeting_skill_auto_activates_on_elo_analisar():
@@ -99,7 +100,42 @@ def test_learning_questions_do_not_auto_promote_knowledge():
     assert "PRECEDENT" in contract
     assert "LEARNING_CANDIDATE" in contract
     assert "VALIDATED_LEARNING" in contract
-    assert "Nenhuma resposta promove diretamente conhecimento ao Core" in contract
+    assert "nenhuma resposta do owner, isoladamente, promove diretamente conhecimento ao Core" in contract
+
+
+def test_post_analysis_learning_governance_starts_automatically_but_never_auto_promotes():
+    pack = PACK.read_text(encoding="utf-8")
+    trigger = TRIGGER.read_text(encoding="utf-8")
+    registry = REGISTRY.read_text(encoding="utf-8")
+    contract = CONTRACT.read_text(encoding="utf-8")
+    execution = EXECUTION_CONTRACT.read_text(encoding="utf-8")
+
+    assert "auto_governance_after_learning_review: true" in pack
+    assert "governance_dispatch_trigger: learning_review_completed" in pack
+    assert "canonical_learning_governance_owner: src/elo/core/learning_governance.py" in pack
+    assert "human_approval_required_for_promotion: true" in pack
+    assert "auto_approval: false" in pack
+    assert "auto_promotion: false" in pack
+
+    assert "DESPACHO AUTOMÁTICO PARA LEARNING GOVERNANCE CANÔNICA" in trigger
+    assert "sem exigir novo comando `ELO APRENDER`" in trigger
+    assert "despacho automático" in registry.lower()
+
+    assert "loop de governança deve ser iniciado automaticamente" in contract
+    assert "a **aprovação humana nunca é automática**" in contract
+    assert "a **promoção nunca é automática**" in contract
+
+    dispatch = execution.split("- id: learning_governance_dispatch", 1)[1].split(
+        "- id: correction_loop", 1
+    )[0]
+    assert "mandatory: true" in dispatch
+    assert "automatic_on: learning_review_completed" in dispatch
+    assert "canonical_owner: src/elo/core/learning_governance.py" in dispatch
+    assert "LEARNING_CANDIDATE: evaluate_without_auto_approval" in dispatch
+    assert "human_approval_required: true" in dispatch
+    assert "evolution_gate_required: true" in dispatch
+    assert "auto_approval: false" in dispatch
+    assert "auto_promotion: false" in dispatch
 
 
 def test_closure_explains_how_budget_was_thought_and_priced():
