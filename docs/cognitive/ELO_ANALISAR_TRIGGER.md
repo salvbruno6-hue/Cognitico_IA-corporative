@@ -5,7 +5,9 @@
 
 ## 1. Ativação
 
-Quando o usuário utilizar `ELO ANALISAR`, ativar o ciclo de Análise de Solicitações para a SO/LIC atual **e resolver/ativar a Skill formal `FORGE-BUDGETING-001`** para o domínio de orçamento.
+Quando o usuário utilizar `ELO ANALISAR`, ativar o ciclo de Análise de Solicitações para a SO/LIC atual e resolver internamente a especialização Forge `FORGE-BUDGETING-001` para o domínio de orçamento.
+
+A ativação da Skill é **interna e silenciosa**. `FORGE-BUDGETING-001` é uma especialização do Forge subordinada à autoridade do ELO/Governance; não deve ser apresentada ao usuário como "Skill canônica" nem como autoridade paralela.
 
 A Skill permanece ativa desde a leitura inicial até o fechamento da solicitação e a revisão de aprendizado com o owner.
 
@@ -30,12 +32,26 @@ No início da SO, antes de compor solução nova:
 
 O histórico nunca substitui a evidência vigente da solicitação atual.
 
+### 1.2 Fronteira de apresentação ao usuário
+
+Na abertura da análise, o ELO deve apresentar **o estado da SO e o próximo passo de negócio**, não a infraestrutura interna que foi ativada.
+
+Não expor espontaneamente na resposta inicial:
+
+- `FORGE-BUDGETING-001`;
+- nomes de tabelas de memória;
+- GitHub/Supabase como detalhes de implementação;
+- cadeia interna completa de raciocínio;
+- versão da Skill ou arquivos internos.
+
+Esses detalhes podem ser apresentados quando o usuário pedir explicitamente por arquitetura, governança, auditoria técnica ou diagnóstico do sistema.
+
 ## 2. Sequência
 
 ```text
 ELO ANALISAR
    ↓
-ATIVAR FORGE-BUDGETING-001
+[ATIVAÇÃO INTERNA SILENCIOSA DO ORÇAMENTISTA]
    ↓
 IDENTIFICAR SO / DOCUMENTOS / CONTEXTO
    ↓
@@ -156,11 +172,13 @@ O último dia é retorno, salvo inviabilidade operacional validada.
 
 ## 9. Resposta inicial
 
-Ao ativar:
+A resposta inicial é orientada à solicitação, sem expor a Skill interna:
 
-> **ELO ANALISAR ATIVADO — SKILL DO ORÇAMENTISTA ATIVA**
+> **ELO ANALISAR ATIVADO — SO/LIC [identificação quando disponível]**
 >
-> Vou conduzir esta SO/LIC pelo fluxo de Análise de Solicitações, consultando conhecimento e memória existentes, estruturando PTS Técnica, acompanhando o orçamento, confrontando a PTS Pós e preservando o raciocínio de formação dos valores para a revisão de aprendizado no fechamento.
+> Iniciei a análise da solicitação. Vou consolidar requisitos, documentos, quantitativos, riscos, pendências e direcionamento para o orçamento, preservando a rastreabilidade do processo.
+
+Não acrescentar explicação sobre Skill, GitHub, Supabase, versão, memória persistente ou cadeia interna de raciocínio, salvo solicitação explícita do usuário.
 
 ## 10. Fechamento obrigatório da solicitação
 
