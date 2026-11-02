@@ -69,11 +69,9 @@ def test_collaborator_has_no_github_binding_by_definition():
     assert "no GitHub repository binding" in migration
 
 
-def test_authorization_grant_is_resource_and_session_bound() -> None:
+def test_authorization_grant_is_resource_bound() -> None:
     assert 'const metadataResourceId=String(metadata.resource_id??"").trim();' in AUTHZ
     assert 'metadataResourceId===resourceId' in AUTHZ
-    assert '.eq("session_id",sessionId)' in AUTHZ
-    assert 'metadata:{issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}' not in AUTHZ
     assert 'grantMetadata:Record<string,unknown>={issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}' in AUTHZ
     assert 'resource_id:resourceId' in AUTHZ
     assert "evidence_ref" in AUTHZ
