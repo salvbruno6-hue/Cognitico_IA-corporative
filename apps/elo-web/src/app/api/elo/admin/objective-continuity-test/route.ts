@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const CANONICAL_REPOSITORY = "salvbruno6-hue/Cognitico_IA-corporative";
-const TEST_TENANT_ID = "multiteiner";
+const TEST_TENANT_ID = "MULTITEINER";
 const TEST_OBJECTIVE_ID = "ELO-DIALOGUE-HANDOFF-1079";
 const TEST_WORKSTREAM_ID = "dialogue-handoff-real-test";
 const TEST_OPERATION = `continue_objective:${TEST_OBJECTIVE_ID}`;
@@ -91,6 +91,7 @@ export async function POST(request: Request) {
       operation: TEST_OPERATION,
       repository: CANONICAL_REPOSITORY,
       resource_id: TEST_OBJECTIVE_ID,
+      tenant_id: TEST_TENANT_ID,
       expires_in_seconds: TEST_GRANT_SECONDS,
     }),
     cache: "no-store",
@@ -126,7 +127,6 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       tenant_id: TEST_TENANT_ID,
       objective_id: TEST_OBJECTIVE_ID,
-      objective_title: "Teste real do handoff GPT ↔ ELO",
       workstream_id: TEST_WORKSTREAM_ID,
       progress_token: existingCheckpoint?.last_progress_token || "pr1079-contract-and-gates-green",
       proposed_next_action: "validar retorno ELO→GPT e checkpoint persistido",
@@ -149,6 +149,7 @@ export async function POST(request: Request) {
         authorization_state: (grant.grant as Record<string, unknown> | undefined)?.authorization_state ?? grant.authorization_state,
         grant_id: (grant.grant as Record<string, unknown> | undefined)?.grant_id ?? grant.grant_id,
         expires_at: (grant.grant as Record<string, unknown> | undefined)?.expires_at ?? grant.expires_at,
+        tenant_id: grant.tenant_id,
         authorization_authority: grant.authorization_authority,
       },
       cycle,
@@ -161,6 +162,7 @@ export async function POST(request: Request) {
     authorized: true,
     stage: "cycle",
     test: "ELO_DIALOGUE_HANDOFF_REAL",
+    tenant_id: TEST_TENANT_ID,
     objective_id: TEST_OBJECTIVE_ID,
     workstream_id: TEST_WORKSTREAM_ID,
     operation: TEST_OPERATION,
@@ -172,6 +174,7 @@ export async function POST(request: Request) {
       authorization_state: nestedGrant.authorization_state,
       grant_id: nestedGrant.grant_id,
       expires_at: nestedGrant.expires_at,
+      tenant_id: grant.tenant_id,
       authorization_authority: grant.authorization_authority,
     },
     cycle,

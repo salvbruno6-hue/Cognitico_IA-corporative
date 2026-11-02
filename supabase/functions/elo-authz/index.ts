@@ -149,7 +149,11 @@ async function getScopes(identityId:string) {
   return {ok:true as const,scopes:(data??[]).map((r:any)=>r.elo_scopes).filter((s:any)=>s?.active===true)};
 }
 
-async function resolveAuthorizationGrant(identityId:string, sessionId:string, state:string, operation:string, repository:string, resourceId:string) {
+function isObjectiveContinuation(operation:string) {
+  return operation.startsWith("continue_objective:");
+}
+
+async function resolveAuthorizationGrant(identityId:string, sessionId:string, state:string, operation:string, repository:string, resourceId:string, tenantId:string) {
   const allowed = new Set([
     "elo-execution-authorized",
     "elo-commit-authorized",
@@ -158,7 +162,7 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   if(!allowed.has(state)) return {ok:false as const,reason:"authorization_state_not_supported"};
 
   const {data,error}=await supabase.from("elo_authorization_grants")
-    .select("grant_id,binding_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
+    .select("grant_id,binding_id,session_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
     .eq("identity_id",identityId)
     .eq("authorization_state",state)
     .eq("operation",operation)
@@ -169,11 +173,17 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
 
   if(error) return {ok:false as const,reason:"authorization_grant_lookup_failed"};
 
+  const continuation=isObjectiveContinuation(operation);
   const now=Date.now();
   const grant=(data??[]).find((g:any)=>{
     const issued=Date.parse(String(g.issued_at));
     const expires=Date.parse(String(g.expires_at));
-    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=now&&expires>now;
+    const metadata=(g.metadata && typeof g.metadata==="object") ? g.metadata as Record<string,unknown> : {};
+    const metadataResourceId=String(metadata.resource_id??"").trim();
+    const metadataTenantId=String(metadata.tenant_id??"").trim();
+    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=now&&expires>now
+      && metadataResourceId===resourceId
+      && (!continuation || (Boolean(tenantId) && metadataTenantId===tenantId));
   });
   if(!grant) return {ok:false as const,reason:"authorization_state_not_granted"};
 
@@ -281,12 +291,24 @@ Deno.serve(async(req:Request)=>{
     const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
     const operation=typeof body.operation==="string"?body.operation.trim():"";
     const resourceId=typeof body.resource_id==="string"?body.resource_id.trim():"";
-    if(!state||!operation||!repository||!resourceId)return json({authorized:false,reason:"authorization_state_operation_repository_resource_required",request_id:requestId},400);
+    const tenantId=typeof body.tenant_id==="string"?body.tenant_id.trim():"";
+    const continuation=isObjectiveContinuation(operation);
+    if(!state||!operation||!repository||!resourceId||continuation&&!tenantId)
+      return json({authorized:false,reason:continuation?"authorization_state_operation_repository_resource_tenant_required":"authorization_state_operation_repository_resource_required",request_id:requestId},400);
+    if(continuation && (state!=="elo-execution-authorized" || operation!==`continue_objective:${resourceId}`))
+      return json({authorized:false,reason:"objective_continuation_grant_mismatch",request_id:requestId},400);
 
-    const grant=await resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository,resourceId);
+    if(continuation) {
+      const scopes=await getScopes(auth.identity.identity_id);
+      if(!scopes.ok)return json({authorized:false,reason:scopes.reason,request_id:requestId},503);
+      if(!hasEnterpriseTenantScope(scopes.scopes,tenantId))
+        return json({authorized:false,reason:"enterprise_tenant_scope_not_granted",request_id:requestId},403);
+    }
+
+    const grant=await resolveAuthorizationGrant(auth.identity.identity_id,session.session.session_id,state,operation,repository,resourceId,tenantId);
     if(!grant.ok){
       try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY",grant.reason,requestId);}catch{}
-      return json({authorized:false,reason:grant.reason,authorization_state:state,operation,repository,request_id:requestId},403);
+      return json({authorized:false,reason:grant.reason,authorization_state:state,operation,repository,tenant_id:tenantId||null,request_id:requestId},403);
     }
 
     try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","explicit_authorization_state_verified",requestId);}
@@ -298,6 +320,7 @@ Deno.serve(async(req:Request)=>{
       authorization_state:state,
       operation,
       repository,
+      tenant_id:tenantId||null,
       identity_id:auth.identity.identity_id,
       session_id:session.session.session_id,
       binding_id:grant.binding.binding_id,
@@ -362,13 +385,17 @@ Deno.serve(async(req:Request)=>{
     const state=typeof body.authorization_state==="string"?body.authorization_state.trim():"";
     const operation=typeof body.operation==="string"?body.operation.trim():"";
     const resourceId=typeof body.resource_id==="string"?body.resource_id.trim():"";
+    const tenantId=typeof body.tenant_id==="string"?body.tenant_id.trim():"";
+    const continuation=isObjectiveContinuation(operation);
     const expiresIn=Number(body.expires_in_seconds);
-    if(!bindingId||!state||!operation||!resourceId||!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>86400)
-      return json({authorized:false,reason:"binding_state_operation_expiry_required",request_id:requestId},400);
+    if(!bindingId||!state||!operation||!resourceId||continuation&&!tenantId||!Number.isInteger(expiresIn)||expiresIn<60||expiresIn>86400)
+      return json({authorized:false,reason:continuation?"binding_state_operation_resource_tenant_expiry_required":"binding_state_operation_expiry_required",request_id:requestId},400);
 
     const allowedStates=new Set(["elo-execution-authorized","elo-commit-authorized","elo-merge-authorized"]);
     if(!allowedStates.has(state))
       return json({authorized:false,reason:"authorization_state_not_supported",request_id:requestId},400);
+    if(continuation && (state!=="elo-execution-authorized" || operation!==`continue_objective:${resourceId}`))
+      return json({authorized:false,reason:"objective_continuation_grant_mismatch",request_id:requestId},400);
 
     const {data:binding,error:bindingError}=await supabase.from("elo_operator_github_bindings")
       .select("binding_id,identity_id,github_user_id,github_login,repository_full_name,operation_class,active")
@@ -376,18 +403,27 @@ Deno.serve(async(req:Request)=>{
     if(bindingError)return json({authorized:false,reason:"operator_binding_lookup_failed",request_id:requestId},503);
     if(!binding)return json({authorized:false,reason:"operator_binding_inactive",request_id:requestId},403);
 
+    if(continuation) {
+      const targetScopes=await getScopes(binding.identity_id);
+      if(!targetScopes.ok)return json({authorized:false,reason:targetScopes.reason,request_id:requestId},503);
+      if(!hasEnterpriseTenantScope(targetScopes.scopes,tenantId))
+        return json({authorized:false,reason:"enterprise_tenant_scope_not_granted",request_id:requestId},403);
+    }
+
     const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
+    const grantMetadata:Record<string,unknown>={issuer_role:"CANONICAL_ADMIN",resource_id:resourceId};
+    if(continuation)grantMetadata.tenant_id=tenantId;
     const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
       binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
       authorization_state:state,operation,repository_full_name:repository,
       issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
-      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:{issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}
-    }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at").single();
+      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:grantMetadata
+    }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at,metadata").single();
     if(error||!grant)return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
 
     try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_issued_authorization_state",requestId);}
     catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
-    return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding,resource_id:resourceId,evidence_ref:`elo-authz:${requestId}`});
+    return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding,resource_id:resourceId,tenant_id:tenantId||null,evidence_ref:`elo-authz:${requestId}`});
   }
 
   if(action==="portal_access") {
