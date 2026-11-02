@@ -8,7 +8,7 @@ import { runInNewContext } from 'node:vm';
 function handler() {
   let handle;
   const source = readFileSync(new URL('../functions/elo-authz/index.ts', import.meta.url), 'utf8')
-    .replace(/^import .*;\n/gm, '');
+    .replace(/^import[\s\S]*?;\n/gm, '');
   runInNewContext(stripTypeScriptTypes(source), {
     Deno: { env: { get: () => 'test-only' }, serve: fn => { handle = fn; } },
     createClient: () => ({ auth: { getUser: async () => ({ data: { user: null }, error: new Error('invalid') }) } }),

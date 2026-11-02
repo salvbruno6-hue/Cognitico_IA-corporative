@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 const ALLOWED_ACTIONS = new Set([
   "establish_session","revoke_session","read","consult","search","inspect",
   "portal_access","authorize_area","lista_mae_insert","check_authorization_state","create_operator_binding","issue_authorization_grant",
+  "authorize_strategic_write",
 ]);
 
 type AuthorizationBody = {
@@ -10,6 +11,7 @@ type AuthorizationBody = {
   area_code?: unknown; operation?: unknown; authorization_state?: unknown;
   identity_id?: unknown; github_user_id?: unknown; github_login?: unknown;
   operation_class?: unknown; binding_id?: unknown; expires_in_seconds?: unknown;
+  strategic_action?: unknown; tenant_id?: unknown; resource_ref?: unknown;
 };
 
 function json(data: unknown,status=200){return NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});}
@@ -39,6 +41,9 @@ export async function POST(request:Request){
       operation_class:typeof body.operation_class==="string"?body.operation_class.trim():undefined,
       binding_id:typeof body.binding_id==="string"?body.binding_id.trim():undefined,
       expires_in_seconds:body.expires_in_seconds,
+      strategic_action:typeof body.strategic_action==="string"?body.strategic_action.trim():undefined,
+      tenant_id:typeof body.tenant_id==="string"?body.tenant_id.trim():undefined,
+      resource_ref:typeof body.resource_ref==="string"?body.resource_ref.trim():undefined,
     }),
     cache:"no-store",
   });

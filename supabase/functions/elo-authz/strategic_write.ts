@@ -2,7 +2,7 @@
 //
 // This module is NOT a separate authorization authority and is not deployed or
 // invoked independently. It only centralizes deterministic policy constants and
-// validation helpers for future integration into elo-authz/index.ts.
+// validation helpers for integration into elo-authz/index.ts.
 
 export const STRATEGIC_ACTION_CAPABILITY: Readonly<Record<string, string>> = {
   strategic_okr_propose: "PROPOSE",
@@ -83,6 +83,25 @@ export function isStrategicResourceRef(value: string): boolean {
     /^strategic_okr:key_result:[^:]+$/.test(ref) ||
     /^strategic_okr:binding:[^:]+:[^:]+$/.test(ref)
   );
+}
+
+export function strategicResourceMatchesAction(action: string, value: string): boolean {
+  const ref = value.trim();
+  if (!isStrategicResourceRef(ref)) return false;
+
+  if (action === "strategic_okr_propose") {
+    return /^strategic_okr:(objective|key_result):[^:]+$/.test(ref);
+  }
+  if (action === "strategic_okr_review") {
+    return /^strategic_okr:binding:[^:]+:[^:]+$/.test(ref);
+  }
+  if (action === "strategic_okr_approve") {
+    return /^strategic_okr:key_result:[^:]+$/.test(ref);
+  }
+  if (action === "strategic_okr_write") {
+    return true;
+  }
+  return false;
 }
 
 export function strategicReceiptExpiry(nowMs = Date.now()): string {
