@@ -60,8 +60,8 @@ export async function POST(request: Request) {
   }
 
   // Autonomous continuation is never self-authorized by the GPT or this route.
-  // elo-authz must confirm an explicit, unexpired execution grant whose operation
-  // is bound to this exact objective id.
+  // elo-authz must confirm an explicit, unexpired execution grant bound to this
+  // exact enterprise tenant + objective identity.
   const operation = `continue_objective:${objectiveId}`;
   const authzUrl = (process.env.ELO_FORGE_SUPABASE_URL ?? publicUrl).trim();
   const requestId = request.headers.get("x-elo-request-id")?.trim() || crypto.randomUUID();
@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       operation,
       repository: CANONICAL_REPOSITORY,
       resource_id: objectiveId,
+      tenant_id: tenantId,
     }),
     cache: "no-store",
   });
