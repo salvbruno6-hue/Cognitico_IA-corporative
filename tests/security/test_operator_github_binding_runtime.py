@@ -71,8 +71,9 @@ def test_execution_grant_is_candidate_bound():
 
 def test_authorization_state_check_requires_candidate_resource():
     source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    compact = "".join(source.split())
     assert "authorization_state_operation_repository_resource_required" in source
-    assert "resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository,resourceId)" in source
+    assert "resolveAuthorizationGrant(auth.identity.identity_id,session.session.session_id,state,operation,repository,resourceId)" in compact
 
 
 def test_authorization_grant_lookup_is_bound_to_session_and_resource():
