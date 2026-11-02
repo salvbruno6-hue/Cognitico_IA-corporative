@@ -115,7 +115,7 @@ def test_exact_legacy_shapes_are_materialized_before_rewrite() -> None:
     assert "'PERMISSIVE'" in SQL
     assert "'{authenticated}'" in SQL
     assert "CASE v.shape WHEN 'JWT_OR_ADMIN' THEN v_jwt_or_admin ELSE v_admin_only END" in SQL
-    assert "same-count drift" in SQL
+    assert "Same-count drift" in SQL
 
 
 def test_lista_mae_guard_no_longer_treats_security_definer_current_user_as_caller() -> None:
