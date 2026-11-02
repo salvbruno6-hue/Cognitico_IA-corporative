@@ -164,7 +164,6 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   const {data,error}=await supabase.from("elo_authorization_grants")
     .select("grant_id,binding_id,session_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
     .eq("identity_id",identityId)
-    .eq("session_id",sessionId)
     .eq("authorization_state",state)
     .eq("operation",operation)
     .eq("repository_full_name",repository)
