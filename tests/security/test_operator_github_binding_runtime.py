@@ -87,6 +87,14 @@ def test_authorization_grant_lookup_is_bound_to_session_and_resource():
     assert "authorization_grant_resource_mismatch" in source
 
 
+def test_authorization_grant_is_issued_for_target_operator_active_session():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert "const targetSession=await resolveActiveSession(binding.identity_id)" in source
+    assert 'targetSession.reason==="active_elo_session_required"?403:503' in source
+    assert "session_id:targetSession.session.session_id" in source
+    assert "session_id:session.session.session_id,\n      authorization_state:state" not in source
+
+
 def test_authorization_state_audit_preserves_requested_resource():
     source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
     assert 'const authorizationAuditResource=`repository:${repository}|resource:${resourceId}`;' in source
