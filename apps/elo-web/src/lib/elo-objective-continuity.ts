@@ -1,6 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  orchestrateObjectiveContinuityDecision,
+  type ObjectiveContinuityDecision,
+} from "@/lib/elo-cognitive-core";
 
-export type ObjectiveLoopDecision = "CONTINUE" | "CORRECT" | "REPLAN" | "ESCALATE" | "COMPLETE";
+export type ObjectiveLoopDecision = ObjectiveContinuityDecision;
 
 export type ObjectiveNextTrigger = {
   trigger_type: "CONTINUE_OBJECTIVE";
@@ -67,21 +71,20 @@ function uniqueEvidence(...groups: string[][]) {
   return [...new Set(groups.flat().map((value) => value.trim()).filter(Boolean))];
 }
 
-function decide(input: ObjectiveCycleInput, noProgressStreak: number, iteration: number): ObjectiveLoopDecision {
-  if (input.objectiveSatisfied === true) return "COMPLETE";
-  if (input.withinScope === false || input.authorityAvailable === false) return "ESCALATE";
-  if (["HIGH", "CRITICAL"].includes((input.riskLevel ?? "LOW").toUpperCase())) return "ESCALATE";
-  if (iteration >= (input.maxCycles ?? 12)) return "ESCALATE";
-  if (noProgressStreak >= 4) return "ESCALATE";
-  if (noProgressStreak >= 2) return "REPLAN";
-  if (noProgressStreak >= 1) return "CORRECT";
-  return "CONTINUE";
-}
-
 function statusFor(decision: ObjectiveLoopDecision): ObjectiveCheckpoint["status"] {
   if (decision === "COMPLETE") return "COMPLETED";
   if (decision === "ESCALATE") return "HUMAN_APPROVAL_REQUIRED";
   return "ACTIVE";
+}
+
+function nextActionForDecision(decision: ObjectiveLoopDecision, proposedNextAction: string) {
+  return {
+    CONTINUE: proposedNextAction,
+    CORRECT: "CORRECT",
+    REPLAN: "REPLAN",
+    ESCALATE: "HUMAN_APPROVAL_REQUIRED",
+    COMPLETE: "COMPLETED",
+  }[decision];
 }
 
 function headline(decision: ObjectiveLoopDecision) {
@@ -169,6 +172,11 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     throw new ObjectiveContinuityError("AUTHORIZATION_REQUIRED", "Evidência de autorização canônica é obrigatória.", 403);
   }
 
+  const maxCycles = input.maxCycles ?? 12;
+  if (!Number.isInteger(maxCycles) || maxCycles < 2) {
+    throw new ObjectiveContinuityError("INVALID_OBJECTIVE_POLICY", "max_cycles deve ser inteiro >= 2.");
+  }
+
   const supabase = serverSupabase();
   const key = {
     tenant_id: input.tenantId.trim(),
@@ -208,7 +216,15 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     ? existing.last_progress_token === progressToken ? Number(existing.no_progress_streak ?? 0) + 1 : 0
     : 0;
   const iteration = existing ? Number(existing.iteration) + 1 : 1;
-  const decision = decide(input, noProgressStreak, iteration);
+  const { decision, reason: decisionReason } = orchestrateObjectiveContinuityDecision({
+    objectiveSatisfied: input.objectiveSatisfied === true,
+    withinScope: input.withinScope !== false,
+    authorityAvailable: input.authorityAvailable !== false,
+    riskLevel: input.riskLevel ?? "LOW",
+    iteration,
+    maxCycles,
+    noProgressStreak,
+  });
   const humanRequired = decision === "ESCALATE";
   const version = existing ? Number(existing.state_version) + 1 : 1;
   const evidenceRefs = uniqueEvidence(
@@ -216,13 +232,14 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     input.evidenceRefs,
     [input.authorizationEvidenceRef],
   );
+  const nextAction = nextActionForDecision(decision, input.proposedNextAction.trim());
   const nextTrigger = buildNextTrigger(
     decision,
     humanRequired,
     key.objective_id,
     key.workstream_id,
     version,
-    input.proposedNextAction.trim(),
+    nextAction,
     progressToken,
   );
   const nextEloPrompt = buildNextEloPrompt(nextTrigger, evidenceRefs);
@@ -231,7 +248,7 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
     objective_title: input.objectiveTitle.trim() || input.objectiveId.trim(),
     status: statusFor(decision),
     stage: "OBJECTIVE_CONTINUITY",
-    next_action: input.proposedNextAction.trim(),
+    next_action: nextAction,
     iteration,
     state_version: version,
     last_progress_token: progressToken,
@@ -271,6 +288,7 @@ export async function runObjectiveCycle(input: ObjectiveCycleInput) {
   return {
     final_message: composeMessage(persisted),
     decision: persisted.last_decision,
+    decision_reason: decisionReason,
     next_action: persisted.next_action,
     progress_token: persisted.last_progress_token,
     checkpoint_version: persisted.state_version,
