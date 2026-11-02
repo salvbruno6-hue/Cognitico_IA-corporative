@@ -54,10 +54,27 @@ function json(data: unknown, status = 200) {
   });
 }
 
-async function audit(identityId: string, sessionId: string | null, action: string, resource: string | null, decision: "ALLOW"|"DENY", reason: string, requestId: string) {
-  const { error } = await supabase.from("elo_authorization_audit").insert({
-    identity_id: identityId, session_id: sessionId, action, resource, decision, reason, request_id: requestId,
-  });
+async function audit(
+  identityId: string,
+  sessionId: string | null,
+  action: string,
+  resource: string | null,
+  decision: "ALLOW"|"DENY",
+  reason: string,
+  requestId: string,
+  scopeKey: string | null = null,
+) {
+  const record: Record<string, unknown> = {
+    identity_id: identityId,
+    session_id: sessionId,
+    action,
+    resource,
+    decision,
+    reason,
+    request_id: requestId,
+  };
+  if (scopeKey) record.scope_key = scopeKey;
+  const { error } = await supabase.from("elo_authorization_audit").insert(record);
   if (error) throw new Error("authorization_audit_write_failed");
 }
 
@@ -87,12 +104,12 @@ async function authenticate(req: Request) {
     .from("elo_identity_roles").select("role_id,elo_roles(code,active)").eq("identity_id", identity.identity_id);
   if (roleError) return { ok: false as const, reason: "role_lookup_failed" };
 
-  const roles = (roleRows ?? []).map((r:any)=>r.elo_roles)
-    .filter((r:any)=>r?.active===true).map((r:any)=>String(r.code));
+  const activeRoleRows = (roleRows ?? []).filter((r:any)=>r.elo_roles?.active===true);
+  const roles = activeRoleRows.map((r:any)=>String(r.elo_roles.code));
 
   return {
     ok: true as const, user:data.user, email, identity, roles,
-    roleIds:(roleRows ?? []).map((r:any)=>r.role_id).filter(Boolean),
+    roleIds:activeRoleRows.map((r:any)=>r.role_id).filter(Boolean),
   };
 }
 
@@ -225,9 +242,10 @@ Deno.serve(async(req:Request)=>{
     const resourceRef=typeof body.resource_ref==="string"?body.resource_ref.trim():"";
     const capability=strategicCapabilityForAction(strategicAction);
     const strategicResource=resourceRef||tenantId||strategicAction||null;
+    const strategicAuditAction=strategicAction?`${action}:${strategicAction}`:action;
 
     const denyStrategic=async(reason:string,status=403)=>{
-      try{await audit(auth.identity.identity_id,session.session.session_id,action,strategicResource,"DENY",reason,requestId);}
+      try{await audit(auth.identity.identity_id,session.session.session_id,strategicAuditAction,strategicResource,"DENY",reason,requestId,tenantId||null);}
       catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
       return json({authorized:false,reason,action,strategic_action:strategicAction||null,tenant_id:tenantId||null,resource_ref:resourceRef||null,request_id:requestId,authorization_authority:"elo-authz"},status);
     };
@@ -255,7 +273,7 @@ Deno.serve(async(req:Request)=>{
     const evidenceRef=`elo-authz:${requestId}`;
     const grantRef=evidenceRef;
     const expiresAt=strategicReceiptExpiry();
-    try{await audit(auth.identity.identity_id,session.session.session_id,action,resourceRef,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId);}
+    try{await audit(auth.identity.identity_id,session.session.session_id,strategicAuditAction,resourceRef,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId,tenantId);}
     catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
 
     return json({
