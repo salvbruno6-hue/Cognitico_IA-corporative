@@ -20,6 +20,7 @@ A read-only live audit on 2026-11-02 found:
 - there are only two expression shapes:
   - 30 occurrences: `JWT app_metadata.role = admin OR has_capability('PCP_ADMIN')`;
   - 20 occurrences: `has_capability('PCP_ADMIN')` only;
+- every affected policy is `PERMISSIVE` and targets `{authenticated}`;
 - `public.lista_mae_guard()` is the only function body that also references `PCP_ADMIN`;
 - the same live-only migration added `current_user IN ('postgres','service_role')` inside that `SECURITY DEFINER` trigger function;
 - the function owner is `postgres`, so `current_user` is not a safe caller-identity proof in this context.
@@ -58,11 +59,20 @@ No role code bypasses capability materialization.
 
 The 38 existing admin-write policies keep their current role/JWT semantics, but every `has_capability('PCP_ADMIN')` term is replaced by `has_admin_role()`.
 
-The migration candidate is deliberately fail-closed:
+The migration candidate is deliberately fail-closed and now embeds the **exact audited snapshot** observed live. Before the first `ALTER POLICY`, it validates for every one of the 38 policies:
 
-- it requires exactly the audited 38 policies before rewriting;
-- each referenced expression must actually contain the expected legacy term;
-- it aborts if any `PCP_ADMIN` reference remains in `pg_policies` after rewriting.
+- `schemaname`;
+- `tablename`;
+- `policyname`;
+- command (`INSERT`, `UPDATE` or `DELETE`);
+- permissiveness (`PERMISSIVE`);
+- target roles (`{authenticated}`);
+- exact `USING` predicate;
+- exact `WITH CHECK` predicate.
+
+The two accepted legacy predicate shapes are materialized explicitly. The candidate aborts if a policy is missing, if an unaudited `PCP_ADMIN` consumer appears, or if any definition changes even while the aggregate totals remain 38 policies / 50 occurrences. Same-count drift is therefore not accepted as evidence of equivalence.
+
+After the rewrite, the candidate also aborts if any `PCP_ADMIN` reference remains in `pg_policies`.
 
 ### 4. Correct `lista_mae_guard`
 
@@ -102,11 +112,12 @@ Merge means only that the canonical remediation is prepared. Promotion to `supab
 
 Before promotion to an official migration:
 
-1. re-read the live helper definitions and `PCP_ADMIN` reference counts;
-2. require the expected 38 policies / 50 expressions / one function reference, or stop for re-analysis;
-3. confirm `ELO_ADMIN` and `CANONICAL_ADMIN` are the intended administrative role codes;
-4. confirm no new `PCP_ADMIN` consumer appeared after this decision;
-5. obtain explicit canonical DDL authorization.
+1. re-read the live helper definitions and the complete `PCP_ADMIN` policy graph;
+2. require exact equality with the embedded 38-policy snapshot, including identities, commands, permissiveness, roles and `USING/WITH CHECK` definitions; any difference requires re-analysis;
+3. require the observed aggregate of 38 policies / 50 occurrences and exactly one function-body consumer;
+4. confirm `ELO_ADMIN` and `CANONICAL_ADMIN` are still the intended administrative role codes;
+5. confirm no new `PCP_ADMIN` consumer appeared after this decision;
+6. obtain explicit canonical DDL authorization.
 
 ## Required post-apply evidence
 
