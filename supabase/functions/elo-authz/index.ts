@@ -54,27 +54,10 @@ function json(data: unknown, status = 200) {
   });
 }
 
-async function audit(
-  identityId: string,
-  sessionId: string | null,
-  action: string,
-  resource: string | null,
-  decision: "ALLOW"|"DENY",
-  reason: string,
-  requestId: string,
-  scopeKey: string | null = null,
-) {
-  const record: Record<string, unknown> = {
-    identity_id: identityId,
-    session_id: sessionId,
-    action,
-    resource,
-    decision,
-    reason,
-    request_id: requestId,
-  };
-  if (scopeKey) record.scope_key = scopeKey;
-  const { error } = await supabase.from("elo_authorization_audit").insert(record);
+async function audit(identityId: string, sessionId: string | null, action: string, resource: string | null, decision: "ALLOW"|"DENY", reason: string, requestId: string) {
+  const { error } = await supabase.from("elo_authorization_audit").insert({
+    identity_id: identityId, session_id: sessionId, action, resource, decision, reason, request_id: requestId,
+  });
   if (error) throw new Error("authorization_audit_write_failed");
 }
 
@@ -241,11 +224,12 @@ Deno.serve(async(req:Request)=>{
     const tenantId=typeof body.tenant_id==="string"?body.tenant_id.trim():"";
     const resourceRef=typeof body.resource_ref==="string"?body.resource_ref.trim():"";
     const capability=strategicCapabilityForAction(strategicAction);
-    const strategicResource=resourceRef||tenantId||strategicAction||null;
+    const strategicResource=resourceRef||strategicAction||"UNBOUND";
     const strategicAuditAction=strategicAction?`${action}:${strategicAction}`:action;
+    const strategicAuditResource=`tenant:${tenantId||"UNBOUND"}|resource:${strategicResource}`;
 
     const denyStrategic=async(reason:string,status=403)=>{
-      try{await audit(auth.identity.identity_id,session.session.session_id,strategicAuditAction,strategicResource,"DENY",reason,requestId,tenantId||null);}
+      try{await audit(auth.identity.identity_id,session.session.session_id,strategicAuditAction,strategicAuditResource,"DENY",reason,requestId);}
       catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
       return json({authorized:false,reason,action,strategic_action:strategicAction||null,tenant_id:tenantId||null,resource_ref:resourceRef||null,request_id:requestId,authorization_authority:"elo-authz"},status);
     };
@@ -273,7 +257,7 @@ Deno.serve(async(req:Request)=>{
     const evidenceRef=`elo-authz:${requestId}`;
     const grantRef=evidenceRef;
     const expiresAt=strategicReceiptExpiry();
-    try{await audit(auth.identity.identity_id,session.session.session_id,strategicAuditAction,resourceRef,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId,tenantId);}
+    try{await audit(auth.identity.identity_id,session.session.session_id,strategicAuditAction,strategicAuditResource,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId);}
     catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
 
     return json({
