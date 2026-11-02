@@ -388,9 +388,18 @@ Deno.serve(async(req:Request)=>{
     if(bindingError)return json({authorized:false,reason:"operator_binding_lookup_failed",request_id:requestId},503);
     if(!binding)return json({authorized:false,reason:"operator_binding_inactive",request_id:requestId},403);
 
+    const targetSession=await resolveActiveSession(binding.identity_id);
+    if(!targetSession.ok){
+      const reason=`target_${targetSession.reason}`;
+      const status=targetSession.reason==="active_elo_session_required"?403:503;
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY",reason,requestId);}
+      catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+      return json({authorized:false,reason,request_id:requestId},status);
+    }
+
     const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
     const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
-      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
+      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:targetSession.session.session_id,
       authorization_state:state,operation,repository_full_name:repository,
       issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
       issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:{issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}
