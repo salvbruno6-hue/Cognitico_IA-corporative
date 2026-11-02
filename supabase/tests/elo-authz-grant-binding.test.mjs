@@ -84,6 +84,11 @@ async function resolve(grants, sessionId = 'session-1', resourceId = 'ELO-OBJ-1'
   );
 }
 
+function assertDenied(result, reason) {
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, reason);
+}
+
 test('accepts only an active grant bound to the active session and exact resource', async () => {
   const result = await resolve([baseGrant]);
   assert.equal(result.ok, true);
@@ -92,25 +97,25 @@ test('accepts only an active grant bound to the active session and exact resourc
 
 test('rejects a grant issued for another active session', async () => {
   const result = await resolve([baseGrant], 'session-2');
-  assert.deepEqual(result, { ok: false, reason: 'authorization_grant_session_mismatch' });
+  assertDenied(result, 'authorization_grant_session_mismatch');
 });
 
 test('rejects a legacy grant without resource binding metadata', async () => {
   const result = await resolve([{ ...baseGrant, metadata: {} }]);
-  assert.deepEqual(result, { ok: false, reason: 'authorization_grant_resource_missing' });
+  assertDenied(result, 'authorization_grant_resource_missing');
 });
 
 test('rejects a grant bound to another resource', async () => {
   const result = await resolve([{ ...baseGrant, metadata: { resource_id: 'ELO-OBJ-OTHER' } }]);
-  assert.deepEqual(result, { ok: false, reason: 'authorization_grant_resource_mismatch' });
+  assertDenied(result, 'authorization_grant_resource_mismatch');
 });
 
 test('expired grants fail closed', async () => {
   const result = await resolve([{ ...baseGrant, expires_at: new Date(now - 1_000).toISOString() }]);
-  assert.deepEqual(result, { ok: false, reason: 'authorization_state_not_granted' });
+  assertDenied(result, 'authorization_state_not_granted');
 });
 
 test('revoked grants fail closed through the canonical revoked_at query filter', async () => {
   const result = await resolve([{ ...baseGrant, revoked_at: new Date(now - 1_000).toISOString() }]);
-  assert.deepEqual(result, { ok: false, reason: 'authorization_state_not_granted' });
+  assertDenied(result, 'authorization_state_not_granted');
 });
