@@ -10,6 +10,47 @@ DECISION = Path(
 ADR = Path("10-adr/ADR-0017-lista-mae-editable-by-admin.md").read_text(encoding="utf-8")
 HEALTH = Path("supabase/health/elo_capability_reference_integrity.sql").read_text(encoding="utf-8")
 
+EXPECTED_POLICY_NAMES = {
+    "p_pcp_dimensoes_admin_delete",
+    "p_pcp_dimensoes_admin_insert",
+    "p_pcp_dimensoes_admin_update",
+    "p_m01_est_comp_delete",
+    "p_m01_est_comp_insert",
+    "p_m01_est_comp_update",
+    "p_pcp_fluxo_admin_delete",
+    "p_pcp_fluxo_admin_insert",
+    "p_pcp_fluxo_admin_update",
+    "p_pcp_fluxo_etapas_admin_delete",
+    "p_pcp_fluxo_etapas_admin_insert",
+    "p_pcp_fluxo_etapas_admin_update",
+    "p_pcp_kit_itens_admin_delete",
+    "p_pcp_kit_itens_admin_insert",
+    "p_pcp_kit_itens_admin_update",
+    "p_pcp_kits_admin_delete",
+    "p_pcp_kits_admin_insert",
+    "p_pcp_kits_admin_update",
+    "p_pcp_lista_mae_admin_delete",
+    "p_pcp_lista_mae_admin_insert",
+    "p_pcp_lista_mae_admin_update",
+    "p_pcp_modelos_admin_delete",
+    "p_pcp_modelos_admin_insert",
+    "p_pcp_modelos_admin_update",
+    "p_pcp_lotes_delete_admin",
+    "p_m01_mo_eletrico_delete",
+    "p_m01_mo_eletrico_insert",
+    "p_m01_mo_eletrico_update",
+    "p_m01_mo_montagem_delete",
+    "p_m01_mo_montagem_insert",
+    "p_m01_mo_montagem_update",
+    "p_m01_mo_solda_delete",
+    "p_m01_mo_solda_insert",
+    "p_m01_mo_solda_update",
+    "p_pcp_reparo_delete_admin",
+    "p_m01_tempo_fab_delete",
+    "p_m01_tempo_fab_insert",
+    "p_m01_tempo_fab_update",
+}
+
 
 def test_resolution_remains_non_live_candidate() -> None:
     assert "CANDIDATE ONLY" in SQL
@@ -47,13 +88,34 @@ def test_candidate_does_not_create_or_assign_capabilities() -> None:
         assert forbidden not in lowered
 
 
-def test_policy_rewrite_is_bound_to_audited_live_shape() -> None:
+def test_policy_rewrite_is_bound_to_exact_audited_live_snapshot() -> None:
+    assert "CREATE TEMP TABLE expected_pcp_admin_policies" in SQL
+    assert "expected_qual text" in SQL
+    assert "expected_with_check text" in SQL
+    assert "p.roles::text IS DISTINCT FROM e.roles_text" in SQL
+    assert "p.cmd IS DISTINCT FROM e.cmd" in SQL
+    assert "p.permissive IS DISTINCT FROM e.permissive" in SQL
+    assert "p.qual IS DISTINCT FROM e.expected_qual" in SQL
+    assert "p.with_check IS DISTINCT FROM e.expected_with_check" in SQL
+    assert "PCP_ADMIN audited policy definition drift detected" in SQL
+    assert "Unexpected PCP_ADMIN policy outside audited snapshot" in SQL
     assert "v_policy_count <> 38" in SQL
     assert "v_expression_count <> 50" in SQL
+    assert "JOIN expected_pcp_admin_policies e" in SQL
     assert "ALTER POLICY %I ON %I.%I" in SQL
-    assert "PCP_ADMIN policy graph changed" in SQL
-    assert "PCP_ADMIN policy references remain after rewrite" in SQL
-    assert "elo_private.has_admin_role()" in SQL
+
+    for policy_name in EXPECTED_POLICY_NAMES:
+        assert f"'{policy_name}'" in SQL
+    assert len(EXPECTED_POLICY_NAMES) == 38
+
+
+def test_exact_legacy_shapes_are_materialized_before_rewrite() -> None:
+    assert "v_jwt_or_admin text :=" in SQL
+    assert "v_admin_only text :=" in SQL
+    assert "'PERMISSIVE'" in SQL
+    assert "'{authenticated}'" in SQL
+    assert "CASE v.shape WHEN 'JWT_OR_ADMIN' THEN v_jwt_or_admin ELSE v_admin_only END" in SQL
+    assert "same-count drift" in SQL
 
 
 def test_lista_mae_guard_no_longer_treats_security_definer_current_user_as_caller() -> None:
@@ -83,6 +145,7 @@ def test_decision_respects_existing_canonical_debt_classification() -> None:
     assert "never permission to create/assign" in HEALTH
     assert "Resolve the debt without creating a new capability." in DECISION
     assert "No role code bypasses capability materialization." in DECISION
+    assert "exact audited snapshot" in DECISION
 
 
 def test_resolution_does_not_promote_strategic_authority() -> None:
