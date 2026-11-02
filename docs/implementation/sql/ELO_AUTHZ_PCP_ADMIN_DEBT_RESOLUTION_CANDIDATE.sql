@@ -66,8 +66,10 @@ GRANT EXECUTE ON FUNCTION elo_private.has_capability(text) TO authenticated;
 COMMENT ON FUNCTION elo_private.has_capability(text)
 IS 'Canonical ELO RLS capability resolver. Requires explicit active identity -> active role -> role capability -> active capability mapping.';
 
--- Rewrite only the audited legacy PCP_ADMIN policy references. Fail closed if
--- the live policy graph changed after the 2026-11-02 evidence capture.
+-- Exact audited snapshot from the live project on 2026-11-02.
+-- Each row binds schema/table/policy/command/permissiveness/roles plus one of the
+-- two exact legacy predicate shapes observed live. expected_qual and
+-- expected_with_check are materialized from that shape before any ALTER POLICY.
 DO $$
 DECLARE
   r record;
@@ -75,7 +77,83 @@ DECLARE
   v_expression_count integer;
   v_qual text;
   v_check text;
+  v_jwt_or_admin text := '((COALESCE(((( SELECT auth.jwt() AS jwt) -> ''app_metadata''::text) ->> ''role''::text), ''''::text) = ''admin''::text) OR elo_private.has_capability(''PCP_ADMIN''::text))';
+  v_admin_only text := '( SELECT elo_private.has_capability(''PCP_ADMIN''::text) AS has_capability)';
 BEGIN
+  CREATE TEMP TABLE expected_pcp_admin_policies (
+    schemaname text NOT NULL,
+    tablename text NOT NULL,
+    policyname text NOT NULL,
+    cmd text NOT NULL,
+    permissive text NOT NULL,
+    roles_text text NOT NULL,
+    expected_qual text,
+    expected_with_check text,
+    PRIMARY KEY (schemaname, tablename, policyname)
+  ) ON COMMIT DROP;
+
+  INSERT INTO expected_pcp_admin_policies (
+    schemaname, tablename, policyname, cmd, permissive, roles_text,
+    expected_qual, expected_with_check
+  )
+  SELECT
+    'public',
+    v.tablename,
+    v.policyname,
+    v.cmd,
+    'PERMISSIVE',
+    '{authenticated}',
+    CASE
+      WHEN v.cmd IN ('DELETE', 'UPDATE') THEN
+        CASE v.shape WHEN 'JWT_OR_ADMIN' THEN v_jwt_or_admin ELSE v_admin_only END
+      ELSE NULL
+    END,
+    CASE
+      WHEN v.cmd IN ('INSERT', 'UPDATE') THEN
+        CASE v.shape WHEN 'JWT_OR_ADMIN' THEN v_jwt_or_admin ELSE v_admin_only END
+      ELSE NULL
+    END
+  FROM (VALUES
+    ('dimensoes','p_pcp_dimensoes_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('dimensoes','p_pcp_dimensoes_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('dimensoes','p_pcp_dimensoes_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('estrutura_metalica_20_componentes','p_m01_est_comp_delete','DELETE','ADMIN_ONLY'),
+    ('estrutura_metalica_20_componentes','p_m01_est_comp_insert','INSERT','ADMIN_ONLY'),
+    ('estrutura_metalica_20_componentes','p_m01_est_comp_update','UPDATE','ADMIN_ONLY'),
+    ('fluxo_produtivo_modular','p_pcp_fluxo_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('fluxo_produtivo_modular','p_pcp_fluxo_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('fluxo_produtivo_modular','p_pcp_fluxo_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('fluxo_produtivo_modular_etapas','p_pcp_fluxo_etapas_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('fluxo_produtivo_modular_etapas','p_pcp_fluxo_etapas_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('fluxo_produtivo_modular_etapas','p_pcp_fluxo_etapas_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('kit_itens','p_pcp_kit_itens_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('kit_itens','p_pcp_kit_itens_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('kit_itens','p_pcp_kit_itens_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('kits','p_pcp_kits_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('kits','p_pcp_kits_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('kits','p_pcp_kits_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('lista_mae','p_pcp_lista_mae_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('lista_mae','p_pcp_lista_mae_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('lista_mae','p_pcp_lista_mae_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('modelos','p_pcp_modelos_admin_delete','DELETE','JWT_OR_ADMIN'),
+    ('modelos','p_pcp_modelos_admin_insert','INSERT','JWT_OR_ADMIN'),
+    ('modelos','p_pcp_modelos_admin_update','UPDATE','JWT_OR_ADMIN'),
+    ('mt_lotes_estoque','p_pcp_lotes_delete_admin','DELETE','JWT_OR_ADMIN'),
+    ('mt_mao_obra_kit_eletrico_m01','p_m01_mo_eletrico_delete','DELETE','ADMIN_ONLY'),
+    ('mt_mao_obra_kit_eletrico_m01','p_m01_mo_eletrico_insert','INSERT','ADMIN_ONLY'),
+    ('mt_mao_obra_kit_eletrico_m01','p_m01_mo_eletrico_update','UPDATE','ADMIN_ONLY'),
+    ('mt_mao_obra_montagem_estrutura_modular_20','p_m01_mo_montagem_delete','DELETE','ADMIN_ONLY'),
+    ('mt_mao_obra_montagem_estrutura_modular_20','p_m01_mo_montagem_insert','INSERT','ADMIN_ONLY'),
+    ('mt_mao_obra_montagem_estrutura_modular_20','p_m01_mo_montagem_update','UPDATE','ADMIN_ONLY'),
+    ('mt_mao_obra_solda_preparacao_estrutura_modular','p_m01_mo_solda_delete','DELETE','ADMIN_ONLY'),
+    ('mt_mao_obra_solda_preparacao_estrutura_modular','p_m01_mo_solda_insert','INSERT','ADMIN_ONLY'),
+    ('mt_mao_obra_solda_preparacao_estrutura_modular','p_m01_mo_solda_update','UPDATE','ADMIN_ONLY'),
+    ('mt_ordens_reparo','p_pcp_reparo_delete_admin','DELETE','JWT_OR_ADMIN'),
+    ('mt_tempo_fabricacao_estrutura_modular','p_m01_tempo_fab_delete','DELETE','ADMIN_ONLY'),
+    ('mt_tempo_fabricacao_estrutura_modular','p_m01_tempo_fab_insert','INSERT','ADMIN_ONLY'),
+    ('mt_tempo_fabricacao_estrutura_modular','p_m01_tempo_fab_update','UPDATE','ADMIN_ONLY')
+  ) AS v(tablename, policyname, cmd, shape);
+
   SELECT
     count(*)::integer,
     coalesce(sum(
@@ -94,12 +172,52 @@ BEGIN
       v_policy_count, v_expression_count;
   END IF;
 
+  -- Exact per-policy comparison. Same-count drift must fail before any rewrite.
+  IF EXISTS (
+    SELECT 1
+    FROM expected_pcp_admin_policies e
+    LEFT JOIN pg_policies p
+      ON p.schemaname = e.schemaname
+     AND p.tablename = e.tablename
+     AND p.policyname = e.policyname
+    WHERE p.policyname IS NULL
+       OR p.cmd IS DISTINCT FROM e.cmd
+       OR p.permissive IS DISTINCT FROM e.permissive
+       OR p.roles::text IS DISTINCT FROM e.roles_text
+       OR p.qual IS DISTINCT FROM e.expected_qual
+       OR p.with_check IS DISTINCT FROM e.expected_with_check
+  ) THEN
+    RAISE EXCEPTION 'PCP_ADMIN audited policy definition drift detected; re-analysis required before rewrite';
+  END IF;
+
+  -- No extra legacy consumer is allowed outside the audited identity set.
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies p
+    LEFT JOIN expected_pcp_admin_policies e
+      ON e.schemaname = p.schemaname
+     AND e.tablename = p.tablename
+     AND e.policyname = p.policyname
+    WHERE (coalesce(p.qual, '') LIKE '%PCP_ADMIN%'
+        OR coalesce(p.with_check, '') LIKE '%PCP_ADMIN%')
+      AND e.policyname IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Unexpected PCP_ADMIN policy outside audited snapshot; re-analysis required';
+  END IF;
+
   FOR r IN
-    SELECT schemaname, tablename, policyname, qual, with_check
-    FROM pg_policies
-    WHERE coalesce(qual, '') LIKE '%PCP_ADMIN%'
-       OR coalesce(with_check, '') LIKE '%PCP_ADMIN%'
-    ORDER BY schemaname, tablename, policyname
+    SELECT
+      p.schemaname,
+      p.tablename,
+      p.policyname,
+      p.qual,
+      p.with_check
+    FROM pg_policies p
+    JOIN expected_pcp_admin_policies e
+      ON e.schemaname = p.schemaname
+     AND e.tablename = p.tablename
+     AND e.policyname = p.policyname
+    ORDER BY p.schemaname, p.tablename, p.policyname
   LOOP
     v_qual := CASE
       WHEN r.qual IS NULL THEN NULL
