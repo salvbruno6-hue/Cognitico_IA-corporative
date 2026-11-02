@@ -1,7 +1,8 @@
 # ELO OKR — Strategic Write Authorization Boundary
 
-Status: PREPARED / NOT LIVE
+Status: IMPLEMENTED IN CANON / NOT LIVE
 Date: 2026-10-09
+Last reconciled: 2026-11-02
 
 ## Decision
 
@@ -20,7 +21,7 @@ No new capability code is introduced.
 | `strategic_okr_approve` | `APPROVE` |
 | `strategic_okr_write` | `CANONICAL_WRITE` |
 
-These capability codes already exist in the canonical capability registry. The writer must not substitute `PCP_UPDATE`, because strategic Objectives/KRs can span PCP, Commercial, Production, Stock, Repairs and other domains.
+These capability codes exist in the capability registry. The writer must not substitute `PCP_UPDATE`, because strategic Objectives/KRs can span PCP, Commercial, Production, Stock, Repairs and other domains.
 
 ## Write ownership
 
@@ -103,17 +104,28 @@ Repository scope and area scope are not interchangeable with tenant scope. `elo-
 - Every persisted strategic write records `authorization_ref`.
 - `EvidenceRepository` remains the evidence authority; tables store references only.
 
-## Current activation blockers
+## Canonical implementation state — reconciled 2026-11-02
 
-The current `elo-authz` implementation is not yet sufficient for live strategic writes for three independent reasons:
+The three implementation blockers recorded on 2026-10-09 are resolved in the GitHub canon:
 
-1. **Action mapping** — the four strategic actions are not yet present in `ACTION_CAPABILITY`.
-2. **Tenant scope** — generic authorization currently validates repository scope, while `authorize_area` validates area scope. Neither is a canonical tenant authorization contract for OKR writes.
-3. **Bounded authorization receipt** — the generic action response contains identity/session/action/capability/request information, but it does not currently provide the tenant-bound, auditable, expirability semantics expected by `StrategicWriteGrant`.
+1. **Action mapping** — `strategic_okr_propose/review/approve/write` map to `PROPOSE/REVIEW/APPROVE/CANONICAL_WRITE` in the canonical `elo-authz` source.
+2. **Tenant scope** — `authorize_strategic_write` validates explicit `ENTERPRISE/<tenant>` scope and action/resource binding.
+3. **Bounded receipt** — the canonical extension emits short-lived, auditable strategic authorization evidence.
 
-Therefore the writer is intentionally fail-closed and MUST NOT be activated live until `elo-authz` is extended to satisfy all three conditions using its existing identity/session/capability/audit authorities.
+These statements describe the GitHub implementation, not the current production deployment.
 
-The extension should preserve existing owners rather than repurpose GitHub execution/commit/merge grants for corporate data writes.
+## Current live activation blockers — 2026-11-02
+
+The live Supabase project is intentionally still fail-closed:
+
+1. **`elo-authz` runtime drift** — live Edge Function version 15 predates `authorize_strategic_write` and the later continuation tenant/resource hardening. Canonical source must be deployed through the governed deployment path before strategic authorization can be considered live.
+2. **administrative capability drift** — live `CANONICAL_ADMIN` has zero material role-capability assignments, while the canonical baseline materially assigns its baseline capabilities. Recovery is prepared separately and must not be performed by ad-hoc SQL.
+3. **strategic owner absent** — `elo_strategic_objectives`, `elo_strategic_key_results` and `elo_strategic_kr_snapshot_bindings` are not live. #1137 governs their promotion.
+4. **delegated strategic assignment not selected** — `PROPOSE/REVIEW/APPROVE` must be explicitly assigned through governance to appropriate operator roles/identities; no document or bootstrap path may choose recipients automatically.
+
+The complete activation order is defined in:
+
+`docs/architecture/ELO_OBJECTIVE_CONTINUITY_ACTIVATION_SEQUENCE_20261102.md`
 
 Do not bypass these blockers by:
 
@@ -124,8 +136,10 @@ Do not bypass these blockers by:
 - treating repository scope or area scope as tenant scope;
 - reusing GitHub operator bindings as corporate tenant authority;
 - using `PCP_UPDATE` as a generic strategic write capability;
-- creating `OKR_WRITE` or another duplicate capability.
+- creating `OKR_WRITE` or another duplicate capability;
+- fabricating an Objective Continuity checkpoint before the strategic Objective exists;
+- treating technical ability to deploy/apply a migration as governance approval.
 
 ## Live state
 
-No strategic OKR persistence table, authz extension or writer flow has been activated in the live Supabase project as part of this decision.
+No strategic Objective/KR owner table, role-capability repair, delegated strategic permission, Objective or ACTIVE checkpoint is activated merely by this decision.
