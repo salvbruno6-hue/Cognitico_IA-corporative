@@ -1,5 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  hasEnterpriseTenantScope,
+  isRegisteredGoogleIdentity,
+  strategicActionRequiresStructuralAuthority,
+  strategicCapabilityForAction,
+  strategicReceiptExpiry,
+  strategicResourceMatchesAction,
+} from "./strategic_write.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -66,7 +74,7 @@ async function authenticate(req: Request) {
 
   const { data: identity, error: identityError } = await supabase
     .from("elo_identity_registry")
-    .select("identity_id,display_name,active,provider,provider_subject,enterprise_context,authorized_email")
+    .select("identity_id,display_name,active,provider,provider_subject,enterprise_context,authorized_email,auth_user_id")
     .eq("auth_user_id", data.user.id).eq("active", true).maybeSingle();
 
   if (identityError) return { ok: false as const, reason: "identity_lookup_failed" };
@@ -209,6 +217,62 @@ Deno.serve(async(req:Request)=>{
   if(!session.ok) {
     try{await audit(auth.identity.identity_id,null,action,repository||null,"DENY",session.reason,requestId);}catch{}
     return json({authorized:false,reason:session.reason,request_id:requestId},403);
+  }
+
+  if(action==="authorize_strategic_write") {
+    const strategicAction=typeof body.strategic_action==="string"?body.strategic_action.trim():"";
+    const tenantId=typeof body.tenant_id==="string"?body.tenant_id.trim():"";
+    const resourceRef=typeof body.resource_ref==="string"?body.resource_ref.trim():"";
+    const capability=strategicCapabilityForAction(strategicAction);
+    const strategicResource=resourceRef||tenantId||strategicAction||null;
+
+    const denyStrategic=async(reason:string,status=403)=>{
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,strategicResource,"DENY",reason,requestId);}
+      catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+      return json({authorized:false,reason,action,strategic_action:strategicAction||null,tenant_id:tenantId||null,resource_ref:resourceRef||null,request_id:requestId,authorization_authority:"elo-authz"},status);
+    };
+
+    if(!strategicAction||!tenantId||!resourceRef)
+      return await denyStrategic("strategic_action_tenant_resource_required",400);
+    if(!capability)
+      return await denyStrategic("strategic_action_not_supported",400);
+    if(!strategicResourceMatchesAction(strategicAction,resourceRef))
+      return await denyStrategic("strategic_action_resource_mismatch",400);
+    if(!isRegisteredGoogleIdentity(auth.identity,auth.email))
+      return await denyStrategic("registered_google_identity_required",403);
+    if(strategicActionRequiresStructuralAuthority(strategicAction)&&!auth.roles.includes("CANONICAL_ADMIN"))
+      return await denyStrategic("canonical_authority_required",403);
+
+    const scopes=await getScopes(auth.identity.identity_id);
+    if(!scopes.ok)return await denyStrategic(scopes.reason,503);
+    if(!hasEnterpriseTenantScope(scopes.scopes,tenantId))
+      return await denyStrategic("enterprise_tenant_scope_not_granted",403);
+
+    const cap=await hasCapability(auth.roleIds,capability);
+    if(!cap.ok)return await denyStrategic(cap.reason,503);
+    if(!cap.granted)return await denyStrategic("strategic_capability_not_granted",403);
+
+    const evidenceRef=`elo-authz:${requestId}`;
+    const grantRef=evidenceRef;
+    const expiresAt=strategicReceiptExpiry();
+    try{await audit(auth.identity.identity_id,session.session.session_id,action,resourceRef,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId);}
+    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+
+    return json({
+      authorized:true,
+      authorization_authority:"elo-authz",
+      action,
+      strategic_action:strategicAction,
+      capability,
+      tenant_id:tenantId,
+      resource_ref:resourceRef,
+      identity_id:auth.identity.identity_id,
+      session_id:session.session.session_id,
+      evidence_ref:evidenceRef,
+      grant_ref:grantRef,
+      expires_at:expiresAt,
+      request_id:requestId,
+    });
   }
 
   if(action==="check_authorization_state") {
