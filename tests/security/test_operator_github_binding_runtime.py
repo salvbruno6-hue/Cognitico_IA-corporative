@@ -71,5 +71,32 @@ def test_execution_grant_is_candidate_bound():
 
 def test_authorization_state_check_requires_candidate_resource():
     source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    compact = "".join(source.split())
     assert "authorization_state_operation_repository_resource_required" in source
-    assert "resolveAuthorizationGrant(auth.identity.identity_id,session.session_id,state,operation,repository,resourceId)" in source
+    assert "resolveAuthorizationGrant(auth.identity.identity_id,session.session.session_id,state,operation,repository,resourceId)" in compact
+
+
+def test_authorization_grant_lookup_is_bound_to_session_and_resource():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert 'select("grant_id,binding_id,session_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")' in source
+    assert 'String(g.session_id??"")===sessionId' in source
+    assert 'typeof g.metadata?.resource_id==="string"' in source
+    assert 'String(g.metadata.resource_id).trim()===resourceId' in source
+    assert "authorization_grant_session_mismatch" in source
+    assert "authorization_grant_resource_missing" in source
+    assert "authorization_grant_resource_mismatch" in source
+
+
+def test_authorization_grant_is_issued_for_target_operator_active_session():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert "const targetSession=await resolveActiveSession(binding.identity_id)" in source
+    assert 'targetSession.reason==="active_elo_session_required"?403:503' in source
+    assert "session_id:targetSession.session.session_id" in source
+    assert "session_id:session.session.session_id,\n      authorization_state:state" not in source
+
+
+def test_authorization_state_audit_preserves_requested_resource():
+    source = Path("supabase/functions/elo-authz/index.ts").read_text(encoding="utf-8")
+    assert 'const authorizationAuditResource=`repository:${repository}|resource:${resourceId}`;' in source
+    assert 'action,authorizationAuditResource,"DENY",grant.reason,requestId' in source
+    assert 'action,authorizationAuditResource,"ALLOW","explicit_authorization_state_verified",requestId' in source
