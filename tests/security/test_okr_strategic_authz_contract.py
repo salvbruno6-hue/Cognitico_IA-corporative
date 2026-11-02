@@ -112,6 +112,15 @@ def test_canonical_elo_authz_integrates_strategic_policy_without_new_authority()
     assert 'auth.roles.includes("CANONICAL_ADMIN")' in runtime
 
 
+def test_only_active_roles_can_contribute_capabilities() -> None:
+    runtime = AUTHZ_RUNTIME.read_text(encoding="utf-8")
+
+    assert "const activeRoleRows = (roleRows ?? []).filter((r:any)=>r.elo_roles?.active===true)" in runtime
+    assert "const roles = activeRoleRows.map((r:any)=>String(r.elo_roles.code))" in runtime
+    assert "roleIds:activeRoleRows.map((r:any)=>r.role_id).filter(Boolean)" in runtime
+    assert "roleIds:(roleRows ?? [])" not in runtime
+
+
 def test_strategic_path_uses_google_bound_identity_and_active_session() -> None:
     runtime = AUTHZ_RUNTIME.read_text(encoding="utf-8")
 
@@ -126,8 +135,10 @@ def test_strategic_path_uses_google_bound_identity_and_active_session() -> None:
 def test_every_strategic_decision_is_audited_and_receipt_is_resource_bound() -> None:
     runtime = AUTHZ_RUNTIME.read_text(encoding="utf-8")
 
-    assert '"DENY",reason,requestId' in runtime
-    assert '"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId' in runtime
+    assert "const strategicAuditAction=strategicAction?`${action}:${strategicAction}`:action" in runtime
+    assert 'strategicAuditAction,strategicResource,"DENY",reason,requestId,tenantId||null' in runtime
+    assert 'strategicAuditAction,resourceRef,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId,tenantId' in runtime
+    assert "if (scopeKey) record.scope_key = scopeKey" in runtime
     for token in (
         'authorization_authority:"elo-authz"',
         'action,',
@@ -142,6 +153,16 @@ def test_every_strategic_decision_is_audited_and_receipt_is_resource_bound() -> 
         'expires_at:expiresAt',
     ):
         assert token in runtime
+
+
+def test_strategic_audit_evidence_preserves_tenant_action_and_resource() -> None:
+    runtime = AUTHZ_RUNTIME.read_text(encoding="utf-8")
+    strategic = runtime.split('if(action==="authorize_strategic_write")', 1)[1].split('if(action==="check_authorization_state")', 1)[0]
+
+    assert "strategicAuditAction" in strategic
+    assert "tenantId||null" in strategic
+    assert "resourceRef" in strategic
+    assert "scope_key" in runtime
 
 
 def test_strategic_receipt_does_not_reuse_github_authorization_grants_as_parallel_owner() -> None:
