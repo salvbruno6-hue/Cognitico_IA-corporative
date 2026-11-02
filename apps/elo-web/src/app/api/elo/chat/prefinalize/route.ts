@@ -20,6 +20,10 @@ function stringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean) : [];
 }
 
+function uniqueStrings(...groups: string[][]) {
+  return [...new Set(groups.flat().map((value) => value.trim()).filter(Boolean))];
+}
+
 export async function POST(request: Request) {
   const accessToken = bearer(request);
   const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -43,7 +47,6 @@ export async function POST(request: Request) {
 
   const tenantId = text(body.tenant_id);
   const objectiveId = text(body.objective_id);
-  const objectiveTitle = text(body.objective_title) || objectiveId;
   const workstreamId = text(body.workstream_id);
   const progressToken = text(body.progress_token);
   const proposedNextAction = text(body.proposed_next_action);
@@ -95,6 +98,53 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "AUTHORIZATION_EVIDENCE_INVALID", message: "elo-authz não retornou identidade autorizada." }, { status: 503 });
   }
 
+  // The continuation grant authorizes execution; it does not create objective identity.
+  // Resolve the objective from the strategic-objective-domain owner before any checkpoint write.
+  const serviceUrl = (process.env.ELO_FORGE_SUPABASE_URL ?? publicUrl).trim();
+  const serviceKey = (process.env.ELO_FORGE_SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+  if (!serviceUrl || !serviceKey) {
+    return NextResponse.json({
+      code: "OBJECTIVE_REGISTRY_UNAVAILABLE",
+      message: "Owner estratégico do Objective não está disponível para validação.",
+      request_id: requestId,
+    }, { status: 503 });
+  }
+
+  const admin = createClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: registeredObjective, error: objectiveError } = await admin
+    .from("elo_strategic_objectives")
+    .select("title,strategy_ref,evidence_refs,authorization_ref")
+    .eq("tenant_id", tenantId)
+    .eq("objective_id", objectiveId)
+    .maybeSingle();
+
+  if (objectiveError) {
+    return NextResponse.json({
+      code: "OBJECTIVE_REGISTRY_UNAVAILABLE",
+      message: "Falha ao consultar o owner estratégico do Objective.",
+      request_id: requestId,
+    }, { status: 503 });
+  }
+  if (!registeredObjective) {
+    return NextResponse.json({
+      code: "OBJECTIVE_NOT_REGISTERED",
+      message: "O Objective informado não existe no owner estratégico canônico.",
+      objective_id: objectiveId,
+      request_id: requestId,
+    }, { status: 409 });
+  }
+
+  const objectiveTitle = text(registeredObjective.title);
+  if (!objectiveTitle) {
+    return NextResponse.json({
+      code: "OBJECTIVE_REGISTRY_INVALID",
+      message: "O Objective persistido não possui título canônico válido.",
+      objective_id: objectiveId,
+      request_id: requestId,
+    }, { status: 503 });
+  }
+  const governedEvidenceRefs = uniqueStrings(stringArray(registeredObjective.evidence_refs), evidenceRefs);
+
   try {
     const result = await runObjectiveCycle({
       tenantId,
@@ -103,7 +153,7 @@ export async function POST(request: Request) {
       workstreamId,
       expectedCheckpointVersion,
       progressToken,
-      evidenceRefs,
+      evidenceRefs: governedEvidenceRefs,
       proposedNextAction,
       authorizationEvidenceRef,
       authorizationIdentityId,
@@ -118,6 +168,8 @@ export async function POST(request: Request) {
       authorization_authority: "elo-authz",
       authorization_evidence_ref: authorizationEvidenceRef,
       authorization_operation: operation,
+      objective_registry: "strategic-objective-domain",
+      objective_strategy_ref: text(registeredObjective.strategy_ref) || null,
       request_id: requestId,
     }, { status: 200, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
