@@ -25,8 +25,18 @@ def test_recovery_restores_only_material_baseline_capabilities() -> None:
     assert "v_required_count <> 4" in RECOVERY
     assert "v_existing_count <> 0" in RECOVERY
     assert "INSERT INTO public.elo_role_capabilities" in RECOVERY
+    assert "ON CONFLICT DO NOTHING" not in RECOVERY
     assert "INSERT INTO public.elo_capabilities" not in RECOVERY
     assert "INSERT INTO public.elo_roles" not in RECOVERY
+
+
+def test_recovery_serializes_checked_state_and_verifies_exact_result() -> None:
+    assert "LOCK TABLE public.elo_role_capabilities IN SHARE ROW EXCLUSIVE MODE" in RECOVERY
+    assert "FOR UPDATE" in RECOVERY
+    assert "FOR SHARE" in RECOVERY
+    assert "v_final_count <> 4" in RECOVERY
+    assert "c.code NOT IN ('READ', 'ADMIN', 'CANONICAL_WRITE', 'APPROVE')" in RECOVERY
+    assert "recovery produced capability set outside canonical baseline" in RECOVERY
 
 
 def test_recovery_does_not_auto_delegate_strategic_capabilities() -> None:
