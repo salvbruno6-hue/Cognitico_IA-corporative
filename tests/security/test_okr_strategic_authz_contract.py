@@ -6,6 +6,7 @@ AUTHZ_RUNTIME = Path("supabase/functions/elo-authz/index.ts")
 WEB_BOUNDARY = Path("apps/elo-web/src/app/api/authorization/route.ts")
 DECISION = Path("docs/architecture/ELO_OKR_ENTERPRISE_TENANT_SCOPE_DECISION_20261009.md")
 AUTHORITY_DECISION = Path("docs/architecture/ELO_AUTHORITY_SEPARATION_DECISION_20261009.md")
+AUDIT_BASELINE = Path("supabase/migrations/20260912195000_elo_authorization_schema_baseline.sql")
 
 
 def test_strategic_policy_reuses_existing_capabilities_only() -> None:
@@ -136,9 +137,9 @@ def test_every_strategic_decision_is_audited_and_receipt_is_resource_bound() -> 
     runtime = AUTHZ_RUNTIME.read_text(encoding="utf-8")
 
     assert "const strategicAuditAction=strategicAction?`${action}:${strategicAction}`:action" in runtime
-    assert 'strategicAuditAction,strategicResource,"DENY",reason,requestId,tenantId||null' in runtime
-    assert 'strategicAuditAction,resourceRef,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId,tenantId' in runtime
-    assert "if (scopeKey) record.scope_key = scopeKey" in runtime
+    assert 'const strategicAuditResource=`tenant:${tenantId||"UNBOUND"}|resource:${strategicResource}`' in runtime
+    assert 'strategicAuditAction,strategicAuditResource,"DENY",reason,requestId' in runtime
+    assert 'strategicAuditAction,strategicAuditResource,"ALLOW","strategic_identity_tenant_scope_capability_verified",requestId' in runtime
     for token in (
         'authorization_authority:"elo-authz"',
         'action,',
@@ -155,14 +156,17 @@ def test_every_strategic_decision_is_audited_and_receipt_is_resource_bound() -> 
         assert token in runtime
 
 
-def test_strategic_audit_evidence_preserves_tenant_action_and_resource() -> None:
+def test_strategic_audit_provenance_uses_only_versioned_audit_fields() -> None:
     runtime = AUTHZ_RUNTIME.read_text(encoding="utf-8")
+    baseline = AUDIT_BASELINE.read_text(encoding="utf-8")
     strategic = runtime.split('if(action==="authorize_strategic_write")', 1)[1].split('if(action==="check_authorization_state")', 1)[0]
 
+    assert "scope_key" not in baseline.split("create table if not exists public.elo_authorization_audit", 1)[1].split(";", 1)[0]
+    assert "scope_key" not in strategic
     assert "strategicAuditAction" in strategic
-    assert "tenantId||null" in strategic
-    assert "resourceRef" in strategic
-    assert "scope_key" in runtime
+    assert "strategicAuditResource" in strategic
+    assert "tenant:${tenantId" in strategic
+    assert "resource:${strategicResource}" in strategic
 
 
 def test_strategic_receipt_does_not_reuse_github_authorization_grants_as_parallel_owner() -> None:
