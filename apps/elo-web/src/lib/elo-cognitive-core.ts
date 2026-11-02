@@ -31,11 +31,77 @@ export type LocalCognitiveResult = {
   };
 };
 
+export type ObjectiveContinuityDecision = "CONTINUE" | "CORRECT" | "REPLAN" | "ESCALATE" | "COMPLETE";
+
+export type ObjectiveContinuityDecisionInput = {
+  objectiveSatisfied: boolean;
+  withinScope: boolean;
+  authorityAvailable: boolean;
+  riskLevel: string;
+  iteration: number;
+  maxCycles: number;
+  noProgressStreak: number;
+};
+
+export type ObjectiveContinuityDecisionResult = {
+  decision: ObjectiveContinuityDecision;
+  reason: string;
+};
+
 const RUNTIME_PROBE_MISSION = "runtime_probe";
 const RUNTIME_PROBE_CAPABILITY = "hermes:runtime_probe";
 
 function requireTenant(tenantId: string) {
   if (!tenantId.trim()) throw new Error("tenant_id is required");
+}
+
+/**
+ * Cognitive decision policy for one bounded Objective Continuity cycle.
+ *
+ * This function owns no persistence or authorization. It preserves the
+ * canonical ObjectiveContinuityAdapter semantics inside the official ELO Web
+ * runtime so the checkpoint store only persists the cognitive result.
+ */
+export function orchestrateObjectiveContinuityDecision(
+  input: ObjectiveContinuityDecisionInput,
+): ObjectiveContinuityDecisionResult {
+  if (!Number.isInteger(input.iteration) || input.iteration < 1) {
+    throw new Error("objective continuity iteration must be >= 1");
+  }
+  if (!Number.isInteger(input.maxCycles) || input.maxCycles < 2) {
+    throw new Error("objective continuity maxCycles must be >= 2");
+  }
+  if (!Number.isInteger(input.noProgressStreak) || input.noProgressStreak < 0) {
+    throw new Error("objective continuity noProgressStreak must be >= 0");
+  }
+
+  if (input.objectiveSatisfied) {
+    return { decision: "COMPLETE", reason: "objective acceptance criteria satisfied" };
+  }
+  if (!input.withinScope) {
+    return { decision: "ESCALATE", reason: "next action would leave approved objective scope" };
+  }
+  if (!input.authorityAvailable) {
+    return { decision: "ESCALATE", reason: "required authority is unavailable" };
+  }
+
+  const risk = input.riskLevel.trim().toUpperCase();
+  if (["HIGH", "CRITICAL", "ALTO", "CRITICO"].includes(risk)) {
+    return { decision: "ESCALATE", reason: "risk exceeds bounded autonomous execution" };
+  }
+  if (input.iteration >= input.maxCycles) {
+    return { decision: "ESCALATE", reason: "objective loop autonomy cycle budget exhausted" };
+  }
+  if (input.noProgressStreak >= 4) {
+    return { decision: "ESCALATE", reason: "persistent no-progress after correction/replanning" };
+  }
+  if (input.noProgressStreak >= 2) {
+    return { decision: "REPLAN", reason: "current approach is not producing objective-relevant progress" };
+  }
+  if (input.noProgressStreak >= 1) {
+    return { decision: "CORRECT", reason: "local correction required before repeating the action" };
+  }
+  return { decision: "CONTINUE", reason: "objective-relevant progress observed" };
 }
 
 export async function processLocalCognitiveMission(input: LocalCognitiveRequest): Promise<LocalCognitiveResult> {
