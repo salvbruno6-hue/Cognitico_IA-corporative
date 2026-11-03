@@ -7,6 +7,10 @@
 
 A PTS Pós-Orçamento acontece **depois do orçamento**. Ela não refaz a PTS Técnica e não substitui a planilha orçamentária. Sua função é confrontar o que foi tecnicamente identificado com o que efetivamente foi orçado.
 
+**Pré-condição de emissão:** PTS Técnica atual identificada por `pts_tecnica_ref` e orçamento atual identificado por `orcamento_atual_ref`; ambos devem ter evidência verificável e não podem ser valores provisórios. O renderer e o pipeline rejeitam a ausência dessas referências. A verificação de existência do documento/orçamento de origem permanece uma obrigação do fluxo operacional; um identificador escrito não comprova sozinho sua autenticidade. Sem orçamento realizado, a etapa termina na PTS Técnica e o orçamento permanece pendente — nunca gerar PTS Pós com valores simulados.
+
+O modelo institucional `PTS_DOC (1).docx` é usado para a versão DOC quando solicitada; a PTS Pós completa deve ser exibida em tela primeiro, e a versão documental não inclui o bloco interno de aprendizado ELO.
+
 A PTS Pós possui **duas camadas complementares e não sobrepostas**:
 
 1. **Camada de Auditoria** — comprova correspondência, ausência ou divergência entre PTS Técnica, TR e orçamento.
