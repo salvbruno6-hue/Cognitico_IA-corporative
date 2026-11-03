@@ -42,6 +42,20 @@ PTS PÓS-ORÇAMENTO
 
 A PTS Técnica prepara o orçamento. A PTS Pós confronta o orçamento realizado com a PTS Técnica. A validação é uma etapa cruzada entre as duas, e não uma terceira PTS.
 
+### Estados e fronteiras obrigatórios
+
+1. **SO / TR / documentos / layout** — identificar a SO atribuída pelo Analista e a evidência de cada requisito, sem inventar identificação, escopo ou quantidades.
+2. **PTS TÉCNICA (pré-orçamento)** — emitir somente pelo contrato de maturidade `1.0`; registrar requisitos, evidências, operações/soluções físicas, quantitativos, premissas, riscos e consultas. Campos de associação ao orçamento representam **tratamento planejado ou pendente**, não valores ou itens já executados. O parecer da PTS Técnica não audita orçamento futuro.
+3. **ORÇAMENTO** — somente mediante comando operacional explícito, com o Especialista de Orçamento. Utilizar o modelo mestre vigente, sem alterar a base; preservar fontes, custos, quantidades e memórias.
+4. **PTS PÓS-ORÇAMENTO** — somente depois da existência de PTS Técnica referenciada e orçamento atual identificado; auditar TR × solução × quantitativo previsto × item/valor orçado, inclusive ausências. Referências não comprovadas são GAPs, nunca correspondências presumidas.
+5. **VALIDAÇÃO CRUZADA → ARBITRAGEM → ELO APRENDER** — nenhum documento equivale a aprovação automática. Competitividade é camada analítica da PTS Pós; aprendizado permanece candidato e governado.
+
+A referência `orcamento_atual_ref` identifica o orçamento da SO atual na PTS Pós. Ela é obrigatória para emissão e para o pipeline atual, mas sua presença textual **não comprova sozinha** que o orçamento foi efetivamente realizado; essa origem deve ser confrontada com a evidência operacional. Ausência ou marcador provisório deve bloquear emissão em vez de fabricar valores.
+
+O banco Supabase pode conter descrições históricas de uma “PTS TEC pós-orçamento” (formato Boa Vista). Essa função de **auditoria de itens e composição** pertence à PTS Pós. O conteúdo técnico de estrutura, matriz e legendas é reutilizado quando pertinente, sem reclassificar a PTS Técnica como parecer posterior.
+
+**Apresentação documental:** `PTS_DOC (1).docx` é o modelo institucional obrigatório para emissão DOC de PTS; preservar identidade visual e paginação. A PTS Pós completa é apresentada primeiro em tela; somente emitir DOC após solicitação específica e sem o bloco interno “Aprendizado ELO”.
+
 ## Regra de referência
 
 A PTS Pós usa `ref_tecnica` para apontar para um ID comprovável da PTS Técnica. Também preserva `pts_tecnica_ref`, `itens_herdados` e `consultas_abertas`.
