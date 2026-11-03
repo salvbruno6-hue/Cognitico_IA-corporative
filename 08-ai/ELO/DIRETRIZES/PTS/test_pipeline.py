@@ -28,6 +28,7 @@ TECHNICA = {
 POS = {
     "so": "SO-TESTE",
     "pts_tecnica_ref": "PTS-TESTE",
+    "orcamento_atual_ref": "ORC-TESTE",
     "itens_herdados": ["T-001"],
     "consultas_abertas": ["C-001"],
     "documentos": [],
