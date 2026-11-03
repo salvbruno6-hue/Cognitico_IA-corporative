@@ -6,6 +6,8 @@ from POS_ORCAMENTO_RENDER import preparar_documento
 def _base_document() -> dict:
     return {
         "so": "SO 001.26",
+        "pts_tecnica_ref": "PTS-001.26",
+        "orcamento_atual_ref": "ORC-001.26",
         "matriz_principal": [
             {
                 "n": 1,
