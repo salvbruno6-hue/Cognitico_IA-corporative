@@ -225,7 +225,7 @@ def validate_pos(data, tecnica_ids):
     require_keys(
         data,
         [
-            "so", "pts_tecnica_ref", "itens_herdados", "consultas_abertas",
+            "so", "pts_tecnica_ref", "orcamento_atual_ref", "itens_herdados", "consultas_abertas",
             "documentos", "objetivo_texto", "matriz_principal",
             "blocos_quantitativos", "conferencia_valores", "auditoria_reversa",
             "itens_premissa", "logistica", "mao_de_obra", "exclusoes",
@@ -234,8 +234,10 @@ def validate_pos(data, tecnica_ids):
         ],
         "PTS Pós-Orçamento",
     )
-    if not data["pts_tecnica_ref"]:
-        raise ValidationError("PTS Pós-Orçamento: pts_tecnica_ref ausente")
+    if not reference_present(data["pts_tecnica_ref"]):
+        raise ValidationError("PTS Pós-Orçamento: pts_tecnica_ref ausente ou provisória")
+    if not reference_present(data["orcamento_atual_ref"]):
+        raise ValidationError("PTS Pós-Orçamento: orcamento_atual_ref ausente ou provisória")
     if not isinstance(data["matriz_principal"], list):
         raise ValidationError("PTS Pós-Orçamento: matriz_principal deve ser lista")
 
