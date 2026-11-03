@@ -4,6 +4,7 @@
   "objeto": "",
   "revisao": "0",
   "pts_tecnica_ref": "",
+  "orcamento_atual_ref": "",
   "itens_herdados": [],
   "consultas_abertas": [],
   "documentos": [],
@@ -24,7 +25,10 @@
     }
   ],
   "blocos_quantitativos": [
-    {"titulo": "", "corpo": ""}
+    {
+      "titulo": "",
+      "corpo": ""
+    }
   ],
   "conferencia_valores": {
     "Subtotal geral": "",
@@ -33,34 +37,83 @@
     "Total geral": ""
   },
   "auditoria_reversa": [
-    {"item": "", "ref": "", "valor": "", "base": "", "justificativa": ""}
+    {
+      "item": "",
+      "ref": "",
+      "valor": "",
+      "base": "",
+      "justificativa": ""
+    }
   ],
   "itens_premissa": [
-    {"item": "", "origem": "", "premissa": "", "impacto": "", "tratamento": ""}
+    {
+      "item": "",
+      "origem": "",
+      "premissa": "",
+      "impacto": "",
+      "tratamento": ""
+    }
   ],
   "logistica": [
-    {"componente": "", "calculo": "", "valor": "", "criterio": ""}
+    {
+      "componente": "",
+      "calculo": "",
+      "valor": "",
+      "criterio": ""
+    }
   ],
   "mao_de_obra": [
     {
       "titulo": "MO interna",
       "linhas": [
-        {"funcao": "", "dias": "", "colab": "", "v_unit": "", "parcial": ""}
+        {
+          "funcao": "",
+          "dias": "",
+          "colab": "",
+          "v_unit": "",
+          "parcial": ""
+        }
       ],
       "total": ""
     }
   ],
   "exclusoes": [
-    {"item": "", "responsavel": "", "orcado": "", "status": ""}
+    {
+      "item": "",
+      "responsavel": "",
+      "orcado": "",
+      "status": ""
+    }
   ],
   "divergencias": [
-    {"n": 1, "item": "", "tipo": "", "previsto": "", "orcado": "", "motivo": "", "impacto": "", "acao": ""}
+    {
+      "n": 1,
+      "item": "",
+      "tipo": "",
+      "previsto": "",
+      "orcado": "",
+      "motivo": "",
+      "impacto": "",
+      "acao": ""
+    }
   ],
   "riscos": [
-    {"risco": "", "tipo": "", "impacto": "", "condicao": "", "tratamento": ""}
+    {
+      "risco": "",
+      "tipo": "",
+      "impacto": "",
+      "condicao": "",
+      "tratamento": ""
+    }
   ],
   "pendencias": [
-    {"pendencia": "", "origem": "", "impacto": "", "acao": "", "status": ""}
+    {
+      "pendencia": "",
+      "origem": "",
+      "impacto": "",
+      "acao": "",
+      "status": ""
+    }
   ],
   "itens_nao_orcados": "",
   "checklist": {
