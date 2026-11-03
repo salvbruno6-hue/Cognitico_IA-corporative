@@ -62,6 +62,20 @@ class StaffingEvidenceAssessment:
     canonical_mutation: bool = False
 
 
+def _is_missing_evidence(parameter: str, value: object | None) -> bool:
+    """Separate an absent observation from an explicitly observed zero/none state.
+
+    For equipment downtime, ``[]`` is a valid observation meaning that no
+    indisponibility was recorded in the observed period. Structural evidence
+    such as mix/team mappings still requires a non-empty payload.
+    """
+    if value is None or value == "":
+        return True
+    if parameter == "equipamentos_indisponibilidades":
+        return False
+    return value == () or value == [] or value == {}
+
+
 def assess_staffing_evidence(
     evidence: Mapping[str, object | None],
     *,
@@ -76,8 +90,7 @@ def assess_staffing_evidence(
     missing_context: list[str] = []
     for parameter, action, impact, criticality in _CONTEXT_REQUIREMENTS:
         value = evidence.get(parameter)
-        missing = value is None or value == "" or value == () or value == [] or value == {}
-        if not missing:
+        if not _is_missing_evidence(parameter, value):
             continue
         missing_context.append(parameter)
         gaps.append(
