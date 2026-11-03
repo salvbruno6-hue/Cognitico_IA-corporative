@@ -123,6 +123,8 @@ def preparar_documento(dados: dict) -> dict:
     filtrado = _filtrar_registro(documento, so_atual)
     if not isinstance(filtrado, dict):
         raise ValueError("os dados fornecidos não são seguros para gerar a PTS Pós.")
+    if not reference_present(filtrado.get("pts_tecnica_ref")):
+        raise ValueError("pts_tecnica_ref é obrigatório para a PTS Pós.")
     if not reference_present(filtrado.get("orcamento_atual_ref")):
         raise ValueError("orcamento_atual_ref é obrigatório para a PTS Pós.")
     resultado, responsavel, justificativa = _arbitragem_explicitada(filtrado)
