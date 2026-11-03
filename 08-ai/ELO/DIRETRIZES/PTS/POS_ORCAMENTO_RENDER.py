@@ -127,6 +127,8 @@ def preparar_documento(dados: dict) -> dict:
         raise ValueError("pts_tecnica_ref é obrigatório para a PTS Pós.")
     if not reference_present(filtrado.get("orcamento_atual_ref")):
         raise ValueError("orcamento_atual_ref é obrigatório para a PTS Pós.")
+    if not isinstance(filtrado.get("matriz_principal"), list) or not filtrado["matriz_principal"]:
+        raise ValueError("PTS Pós exige matriz_principal para auditar itens e ausências.")
     resultado, responsavel, justificativa = _arbitragem_explicitada(filtrado)
     integracao = integrate(
         filtrado,
