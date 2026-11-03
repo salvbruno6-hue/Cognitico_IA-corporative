@@ -213,6 +213,14 @@ def validate_current_tecnica(data):
     return validate_tecnica(data)
 
 
+def reference_present(value):
+    """A reference must identify an actual document, not a pending field."""
+    return (
+        isinstance(value, str) and bool(value.strip())
+        and value.strip().casefold() not in {"-", "—", "na", "n/a", "pendente", "a definir", "não informado", "nao informado"}
+    )
+
+
 def validate_pos(data, tecnica_ids):
     require_keys(
         data,
