@@ -19,8 +19,10 @@ Princípio: **REUTILIZAR → RELACIONAR → COMPLEMENTAR GAP → PRESERVAR HIST�
 
 ## 2. Autoridades e estruturas existentes
 
-- GitHub: autoridade operacional/canônica do ELO.
-- ELO FORGE/Supabase: autoridade cognitiva/persistente.
+- ELO: autoridade cognitiva canônica, responsável por orquestração, decisões cognitivas e aprovação de promoção de aprendizagem.
+- GitHub: repositório canônico e trilha governada de alterações, sem substituir a autoridade cognitiva do ELO.
+- Forge: plano de execução/construção e versionamento autorizado, sem autoridade cognitiva própria.
+- Supabase: persistência e memória consultiva, fornecendo dados e evidências ao ELO; não decide nem promove aprendizagem autonomamente.
 - `mt_tenants`: identidade organizacional persistente.
 - `mt_setores`: setores/responsabilidades organizacionais.
 - `mt_centros_trabalho`: centros/células de trabalho, já relacionados a `mt_setores` por `setor_id`.
