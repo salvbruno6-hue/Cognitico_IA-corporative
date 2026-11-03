@@ -4,6 +4,8 @@ from elo.interface.api import app
 def _base_document() -> dict:
     return {
         "so": "SO 001.26",
+        "pts_tecnica_ref": "PTS-001.26",
+        "orcamento_atual_ref": "ORC-001.26",
         "cliente": "Cliente teste",
         "objeto": "Objeto teste",
         "matriz_principal": [{
