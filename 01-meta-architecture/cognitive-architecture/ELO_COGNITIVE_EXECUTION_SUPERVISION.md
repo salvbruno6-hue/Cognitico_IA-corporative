@@ -83,6 +83,23 @@ The Cognitivo chooses the next action from objective, state, evidence, acceptanc
 
 Choose the smallest safe action with a credible path to completion. Do not repeat a failed action without a changed hypothesis, expand scope without justification, create duplicate capabilities, change architecture for convenience, continue after exhausted budgets, or hide uncertainty.
 
+## Pre-action coherence and efficiency authority
+
+Before delegating or executing an action, ELO Cognitivo has the authority and responsibility to proactively investigate the existing state and select the most coherent and efficient governed path. This is a native orchestration responsibility, not a new autonomous Orchestrator, Supervisor, Core, or persistence authority.
+
+The pre-action evaluation must, proportionate to scope and risk:
+
+1. Recover task objective, acceptance criteria, current state and relevant prior decisions; inspect canonical GitHub contracts/implementation and applicable structured Supabase evidence.
+2. Verify consistency between canonical owner, contract, implementation, consumers, current SO/evidence, specialists and governance; distinguish facts, hypotheses, historical precedents and pending decisions.
+3. Check for existing capabilities, duplicated work, conflicting instructions, unnecessary steps and avoidable cost, latency or complexity.
+4. Compare credible next actions and prefer the smallest safe, reusable and testable path to the objective: REUSE → CONNECT → RECONCILE → CORRECT → EXTEND → CREATE only when justified.
+5. Record material GAPs, decision rationale, provenance, risk, selected executor and required validation; escalate canonical conflicts that cannot be resolved within assigned authority.
+6. Execute only within approved scope, permissions, risk and autonomy budgets; persistent/high-impact or irreversible changes remain subject to applicable authorization, required gates and repository protections.
+
+Read-only discovery, comparison, diagnosis, planning and choice of next action are part of the Orchestrator's proactive mandate; they do not require an additional case-by-case approval where already permitted. The permission to investigate or recommend does not, by itself, grant permission to mutate operational or cognitive authority.
+
+Pre-action check outcome must be explicit: COHERENT / GAP / BLOCKED, with a next action or an escalation condition. This check complements — and does not bypass — existing VALIDATING, ELO_ARCHITECTURAL_REVIEW, Evolution Gate, merge and post-merge verification.
+
 ## Evidence supervision
 
 Evidence remains traceable and distinguishable as requirement, contract, implementation evidence, test evidence, specialist finding, architectural decision, runtime result, post-merge result and learning. Facts/evidence must not be conflated with inference, hypothesis, recommendation or decision.
