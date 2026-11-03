@@ -24,6 +24,7 @@ if REPOSITORY_SRC.is_dir() and str(REPOSITORY_SRC) not in sys.path:
 
 from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
 from POS_ORCAMENTO_INTEGRATION import integrate
+from pipeline import reference_present
 
 ROOT = Path(__file__).parent
 TEMPLATE_NAME = "POS_ORCAMENTO_TEMPLATE.md.j2"
