@@ -1,0 +1,124 @@
+import pytest
+
+from elo.cognitive.reasoning.critical_gap_reasoning import (
+    CriticalEvidenceGap,
+    GapCriticality,
+    GapPlanState,
+    ObservationUse,
+    prioritize_evidence_gaps,
+    qualify_observation,
+)
+
+
+def _gap(
+    gap_id: str,
+    parameter: str,
+    *,
+    criticality: GapCriticality,
+    sensitivity: int,
+    effort: int,
+    blocks: bool = True,
+) -> CriticalEvidenceGap:
+    return CriticalEvidenceGap(
+        gap_id=gap_id,
+        parameter=parameter,
+        decision="CONTRATACAO_MONTAGEM",
+        missing_condition=f"evidência ausente: {parameter}",
+        operational_impact=f"sem {parameter}, a causa da restrição não é comprovada",
+        collection_action=f"coletar {parameter} por período e setor",
+        owner="PRODUCAO_RH",
+        criticality=criticality,
+        decision_sensitivity=sensitivity,
+        collection_effort=effort,
+        blocks_decision=blocks,
+    )
+
+
+def test_orchestrator_prioritizes_the_gap_with_highest_decision_power():
+    plan = prioritize_evidence_gaps(
+        [
+            _gap(
+                "GAP-ABSENTEISMO",
+                "absenteismo",
+                criticality=GapCriticality.HIGH,
+                sensitivity=3,
+                effort=2,
+            ),
+            _gap(
+                "GAP-EQUIPE",
+                "quantidade_colaboradores_por_setor_funcao_turno",
+                criticality=GapCriticality.CRITICAL,
+                sensitivity=5,
+                effort=2,
+            ),
+            _gap(
+                "GAP-RETRABALHO",
+                "retrabalho",
+                criticality=GapCriticality.HIGH,
+                sensitivity=4,
+                effort=3,
+            ),
+        ]
+    )
+
+    assert plan.state is GapPlanState.DECISION_BLOCKED
+    assert plan.next_gap is not None
+    assert plan.next_gap.gap_id == "GAP-EQUIPE"
+    assert plan.blocked_decisions == ("CONTRATACAO_MONTAGEM",)
+    assert plan.canonical_mutation is False
+
+
+def test_missing_field_is_explained_by_impact_and_collection_action():
+    gap = _gap(
+        "GAP-MIX",
+        "mix_modelos_m01_m02",
+        criticality=GapCriticality.CRITICAL,
+        sensitivity=5,
+        effort=1,
+    )
+
+    assert "causa da restrição" in gap.operational_impact
+    assert gap.collection_action.startswith("coletar")
+    assert gap.priority_score > 0
+
+
+def test_six_per_day_can_be_historical_without_becoming_canonical_capacity():
+    observation = qualify_observation(
+        observation_id="MONTAGEM-6-DIA",
+        statement="oficina de montagem observada em média de 6 módulos/dia",
+        source_ref="informação operacional do usuário",
+        missing_context=(
+            "periodo_observado",
+            "quantidade_colaboradores_por_funcao",
+            "turnos_e_jornada",
+            "horas_extras",
+            "mix_modelos",
+            "el_disponivel",
+            "esperas_por_material",
+            "retrabalho",
+        ),
+    )
+
+    assert ObservationUse.HISTORICAL_EVIDENCE in observation.allowed_uses
+    assert ObservationUse.SCENARIO_INPUT in observation.allowed_uses
+    assert ObservationUse.CANONICAL_RULE not in observation.allowed_uses
+    assert observation.canonicalizable is False
+
+
+def test_canonical_capacity_is_fail_closed_while_context_is_missing():
+    with pytest.raises(ValueError, match="contextual evidence is missing"):
+        qualify_observation(
+            observation_id="MONTAGEM-6-DIA",
+            statement="6 módulos/dia",
+            source_ref="historical observation",
+            missing_context=("mix_modelos",),
+            authorize_canonical_rule=True,
+        )
+
+
+def test_no_gaps_never_authorizes_a_business_action():
+    plan = prioritize_evidence_gaps([])
+
+    assert plan.state is GapPlanState.NO_GAPS
+    assert plan.next_gap is None
+    assert plan.canonical_mutation is False
