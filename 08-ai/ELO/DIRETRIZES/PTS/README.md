@@ -176,3 +176,11 @@ A PTS Técnica pertence à Solicitação de Orçamento (SO) do projeto ativo. O 
 - `identificacao.so_resolvida` tem prioridade quando já estiver determinada pelo contexto.
 - Ausência de SO resolvida bloqueia a renderização da PTS, evitando PTS sem vínculo ou vinculada à solicitação errada.
 - Registros históricos preservam suas identidades e chaves existentes; entradas novas inválidas não são corrigidas ou renumeradas silenciosamente.
+
+## Rastreabilidade do planejamento ao orçamento — diretriz do Analista (2026-11-04)
+
+Sequência analítica requerida: **1. Requisitos** (SO, ambientes, dimensões, finalidade e condições); **2. PTS Técnica** (compatibilidade e limitações); **3. Consulta PTS Pós existente** (evidências históricas de configuração/posicionamento, quando disponíveis); **4. Layout** (distribuição, acessos, circulação, pavimentos); **5. Escolha dos módulos** (justificar família, código, modelo, quantidade e posição por evidência); **6. Complementos e EXCs** (escadas, passarelas, guarda-corpos e outros); **7. Orçamento** (catálogo, quantitativos, composição, VW e memória); **8. Aprendizado** (evidências, alternativas, premissas, decisões e validações).
+
+**Fronteira PTS Pós:** a consulta de PTS Pós pré-existente na etapa 3 não é emissão da PTS Pós da SO atual. A PTS Pós atual somente é gerada após o orçamento atual e deve auditá-lo, conforme o contrato desta pasta. Sem evidência documental, registrar GAP.
+
+**Orçamento na tela primeiro:** após autorização expressa para orçar, apresentar **integralmente na conversa**, antes de qualquer arquivo, cópia preenchida da Planilha de Orçamento — Base Mestre vigente. Preservar seções 0 Controle, 1 Comercial, 2 Serviços/Materiais/Mão de Obra, 3 Fechamento, 4 Observações; colunas originais, taxonomia, unidades e regras de cálculo. Não substituir por resumo ou tabela alternativa. Apresentar campos sem evidência como pendentes/NA, sem inventar preços. Divergência entre unidade de catálogo e unidade de memória de cálculo deve ser GAP explícito. EXCs compostos exibem componentes e total sem dupla cobrança. VW significa Valor de Venda, distinguindo referência histórica de preço comercial aprovado. Somente gerar arquivo após solicitação específica posterior; não alterar a base mestre. Validação, arbitragem e aprendizado governado seguem o fluxo existente.
