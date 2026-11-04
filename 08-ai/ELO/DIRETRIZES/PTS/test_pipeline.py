@@ -222,6 +222,17 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("| Responsável | Responsabilidade |", rendered)
         self.assertIn("| PLA | ENG |", rendered)
 
+    def test_renderer_displays_visual_indicators_and_associations(self):
+        tecnica = current_tecnica()
+        tecnica["identificacao"] = {"so_resolvida": "SO 001.27"}
+        result = render(tecnica)
+        self.assertIn("PAINEL DE INDICADORES", result)
+        self.assertIn("ASSOCIAÇÕES VISUAIS", result)
+        self.assertIn("| Requisitos mapeados | 1 |", result)
+        self.assertIn("| Consultas registradas | 1 |", result)
+        self.assertIn("| T-001 |", result)
+        self.assertIn("MATRIZ TÉCNICA", result)
+
     def test_renderer_consumes_assigned_canonical_so(self):
         tecnica = current_tecnica()
         tecnica["identificacao"] = {"so_resolvida": "SO 001.27", "cliente": "teste"}
