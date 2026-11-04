@@ -54,7 +54,15 @@ A referência `orcamento_atual_ref` identifica o orçamento da SO atual na PTS P
 
 O banco Supabase pode conter descrições históricas de uma “PTS TEC pós-orçamento” (formato Boa Vista). Essa função de **auditoria de itens e composição** pertence à PTS Pós. O conteúdo técnico de estrutura, matriz e legendas é reutilizado quando pertinente, sem reclassificar a PTS Técnica como parecer posterior.
 
-**Apresentação documental:** `PTS_DOC (1).docx` é o modelo institucional obrigatório para emissão DOC de PTS; preservar identidade visual e paginação. A PTS Pós completa é apresentada primeiro em tela; somente emitir DOC após solicitação específica e sem o bloco interno “Aprendizado ELO”.
+### Regra universal de apresentação: TELA PRIMEIRO → DOC SOMENTE SE SOLICITADO
+
+Para **toda PTS** (PTS Técnica, PTS Pós-Orçamento e demais PTS documentais), o ELO deve primeiro apresentar **o conteúdo completo e utilizável na conversa**, com todas as seções, tabelas, matrizes, consultas, premissas e pendências aplicáveis, respeitando os contratos canônicos. Um resumo, um link de arquivo ou a mera menção de documento não satisfaz a apresentação em tela.
+
+**A emissão de arquivo Word (DOC/DOCX) é uma segunda ação independente**, autorizada somente mediante solicitação explícita posterior do usuário. O comando inicial `PTS TEC <SO>` ou `PTS PÓS <SO>` pede exclusivamente a apresentação em tela: não gerar DOC automaticamente nem oferecer um download como entrega principal. Alterações solicitadas à versão em tela devem ser incorporadas antes da emissão documental.
+
+Quando expressamente solicitada a versão DOC, utilizar `PTS_DOC (1).docx` como modelo institucional obrigatório, preservando identidade visual e paginação; a PTS Pós documental exclui o bloco interno “Aprendizado ELO”. A apresentação em tela não equivale à validação técnica, orçamentária, arbitragem nem liberação de execução.
+
+**Sequência:** SO/TR/Layout → PTS Técnica **completa na tela** → [DOC técnico somente se pedido] → Orçamento mediante comando → PTS Pós **completa na tela** → [DOC pós somente se pedido] → Validação → Arbitragem → ELO Aprender.
 
 ## Regra de referência
 
