@@ -7,6 +7,29 @@
 | {{ k }} | {{ v }} |
 {% endfor %}
 
+## PAINEL DE INDICADORES — LEITURA EXECUTIVA
+
+| Indicador | Resultado | Leitura |
+|---|---:|---|
+| Requisitos mapeados | {{ matriz_tecnica | length }} | Itens com ID técnico |
+| Atendimento indicado como verde | {{ matriz_tecnica | selectattr("status", "equalto", "🟢") | list | length }} | Situação sugerida; não comprova execução |
+| Itens em atenção (amarelo) | {{ matriz_tecnica | selectattr("status", "equalto", "🟡") | list | length }} | Dependem de verificação |
+| Itens críticos (vermelho) | {{ matriz_tecnica | selectattr("status", "equalto", "🔴") | list | length }} | Bloqueios ou não atendimento |
+| Consultas registradas | {{ consultas | length }} | Questões a resolver |
+| Itens com impacto alto | {{ matriz_tecnica | selectattr("impacto", "equalto", "ALTO") | list | length }} | Prioridade de análise técnica |
+
+**Observação:** os indicadores contam classificações registradas na PTS Técnica. Não representam aprovação da engenharia, valor orçado ou índice efetivo de atendimento ao TR.
+
+### ASSOCIAÇÕES VISUAIS — REQUISITO × EVIDÊNCIA × SOLUÇÃO × ORÇAMENTO
+
+| ID técnico | Requisito / origem | Evidência | Solução técnica prevista | Quantidade informada | Tratamento no orçamento | Situação | Consulta |
+|---|---|---|---|---|---|---|---|
+{% for r in matriz_tecnica -%}
+| {{ r.id }} | {{ r.exigencia }} / {{ r.origem | default([]) | join(", ") }} | {{ r.evidencia_layout | default("não comprovada") }} | {{ r.atendimento_multiteiner | default("a definir") }} | {{ r.quantidade_tr | default("não informada") }} | {{ r.tratamento_orcamentario | default("pendente") }}; {{ r.associacao_orcamento | default("sem referência orçada") }} | {{ r.status }} | {{ r.consulta_id | default("—") }} |
+{% endfor %}
+
+**Fronteira:** na PTS Técnica, associação e tratamento orçamentários são planejados ou pendentes. Somente a PTS Pós confronta com orçamento realmente emitido. Não preencher referência orçamentária sem comprovação.
+
 ## 2. OBJETIVO
 {{ objetivo }}
 
