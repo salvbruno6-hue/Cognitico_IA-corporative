@@ -64,6 +64,19 @@ Quando expressamente solicitada a versão DOC, utilizar `PTS_DOC (1).docx` como 
 
 **Sequência:** SO/TR/Layout → PTS Técnica **completa na tela** → [DOC técnico somente se pedido] → Orçamento mediante comando → PTS Pós **completa na tela** → [DOC pós somente se pedido] → Validação → Arbitragem → ELO Aprender.
 
+## Prevalência do layout analítico: tabelas, indicadores e associações
+
+A PTS deve ser um **painel técnico de fácil leitura**, não um parecer narrativo desassociado. Preservar integralmente o contrato canônico, porém **priorizar na apresentação em tela**: identificação → painel de indicadores com fonte/critério explícitos → matriz compacta de associações requisito × evidência × interpretação/solução × quantitativo × tratamento orçamentário × situação × consulta → matriz técnica integral → detalhes/pendências → parecer.
+
+- Reutilizar os campos já existentes dos contratos `PTS_TECNICA_SCHEMA.json` e `POS_ORCAMENTO_SCHEMA.json`. Não duplicar proprietário, schema, autoridade ou capacidade para produzir o painel.
+- Tabelas e indicadores devem derivar **apenas de registros comprováveis** da SO; total de itens, status e consultas podem ser contados da estrutura da PTS. Não inventar índice de atendimento, porcentagem de conformidade, valores, custos, economia, gráficos de ABC ou quantidades faltantes.
+- Na **PTS Técnica**, itens e associação ao orçamento são **planejados**; pendências e ausência de referências aparecem como tais. O painel orienta a composição do orçamento sem alegar que ele já existe.
+- Na **PTS Pós**, mostrar com clareza lado a lado **previsto × orçado**, referências técnicas e financeiras, diferenças, custos relevantes, Curva ABC quando calculável, riscos, competitividade e decisão. Auditoria e competitividade permanecem camadas distintas do mesmo documento.
+- A tabela compacta é uma **visão derivada** para compreensão imediata; não elimina a matriz técnica integral, a rastreabilidade item a item, consultas, premissas, notas técnicas ou campos obrigatórios da maturidade `1.0`.
+- Indicadores visuais não são autorização de execução, validação técnica, arbitragem nem promoção de aprendizado.
+
+Essa apresentação prevalece sobre layouts corridos ou apenas textuais. Continua obrigatória a regra **PTS completa em tela primeiro → DOC somente se solicitado**.
+
 ## Regra de referência
 
 A PTS Pós usa `ref_tecnica` para apontar para um ID comprovável da PTS Técnica. Também preserva `pts_tecnica_ref`, `itens_herdados` e `consultas_abertas`.
