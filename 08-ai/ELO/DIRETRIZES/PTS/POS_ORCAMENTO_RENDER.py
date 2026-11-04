@@ -24,6 +24,7 @@ if REPOSITORY_SRC.is_dir() and str(REPOSITORY_SRC) not in sys.path:
 
 from elo.cognitive.runtime.knowledge.so_resolver import normalize_so_id
 from POS_ORCAMENTO_INTEGRATION import integrate
+from pipeline import reference_present
 
 ROOT = Path(__file__).parent
 TEMPLATE_NAME = "POS_ORCAMENTO_TEMPLATE.md.j2"
@@ -122,6 +123,14 @@ def preparar_documento(dados: dict) -> dict:
     filtrado = _filtrar_registro(documento, so_atual)
     if not isinstance(filtrado, dict):
         raise ValueError("os dados fornecidos não são seguros para gerar a PTS Pós.")
+    if not reference_present(filtrado.get("pts_tecnica_ref")):
+        raise ValueError("pts_tecnica_ref é obrigatório para a PTS Pós.")
+    if not reference_present(filtrado.get("orcamento_atual_ref")):
+        raise ValueError("orcamento_atual_ref é obrigatório para a PTS Pós.")
+    if not isinstance(filtrado.get("matriz_principal"), list) or not filtrado["matriz_principal"]:
+        raise ValueError("PTS Pós exige matriz_principal para auditar itens e ausências.")
+    if any(not isinstance(row, dict) or not reference_present(row.get("ref_tecnica")) for row in filtrado["matriz_principal"]):
+        raise ValueError("PTS Pós exige ref_tecnica em cada item da matriz.")
     resultado, responsavel, justificativa = _arbitragem_explicitada(filtrado)
     integracao = integrate(
         filtrado,

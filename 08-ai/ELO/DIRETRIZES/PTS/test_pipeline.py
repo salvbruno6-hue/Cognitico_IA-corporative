@@ -28,6 +28,7 @@ TECHNICA = {
 POS = {
     "so": "SO-TESTE",
     "pts_tecnica_ref": "PTS-TESTE",
+    "orcamento_atual_ref": "ORC-TESTE",
     "itens_herdados": ["T-001"],
     "consultas_abertas": ["C-001"],
     "documentos": [],
@@ -105,6 +106,20 @@ class PipelineTests(unittest.TestCase):
                 [sys.executable, str(PIPELINE), str(tecnica), str(pos_file)],
                 capture_output=True, text=True, encoding="utf-8"
             )
+
+    def test_pos_rejects_pending_budget_reference(self):
+        pos = json.loads(json.dumps(POS))
+        pos["orcamento_atual_ref"] = "pendente"
+        result = self.run_pipeline(pos)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("orcamento_atual_ref", result.stderr)
+
+    def test_pos_rejects_missing_technical_reference(self):
+        pos = json.loads(json.dumps(POS))
+        pos["pts_tecnica_ref"] = ""
+        result = self.run_pipeline(pos)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("pts_tecnica_ref", result.stderr)
 
     def test_valid_link(self):
         result = self.run_pipeline(POS)

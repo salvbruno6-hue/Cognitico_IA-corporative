@@ -263,5 +263,10 @@
       "VALIDADO_COM_PENDENCIAS",
       "NAO_VALIDADO"
     ]
+  },
+  "referencia_orcamento_atual": {
+    "campo": "orcamento_atual_ref",
+    "natureza": "referência explícita ao orçamento atual da SO",
+    "regra": "Obrigatória na PTS Pós; não usar marcadores provisórios; comprovar origem na execução orçamentária"
   }
 }

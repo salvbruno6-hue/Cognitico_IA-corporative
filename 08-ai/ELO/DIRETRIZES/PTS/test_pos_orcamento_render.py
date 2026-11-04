@@ -6,6 +6,8 @@ from POS_ORCAMENTO_RENDER import preparar_documento
 def _base_document() -> dict:
     return {
         "so": "SO 001.26",
+        "pts_tecnica_ref": "PTS-001.26",
+        "orcamento_atual_ref": "ORC-001.26",
         "matriz_principal": [
             {
                 "n": 1,
@@ -106,6 +108,30 @@ class TestFronteiraDocumental(unittest.TestCase):
     def test_exige_so_atual(self):
         with self.assertRaises(ValueError):
             preparar_documento({"objetivo": "sem SO"})
+
+    def test_bloqueia_pts_pos_sem_orcamento(self):
+        dados = _base_document()
+        dados.pop("orcamento_atual_ref")
+        with self.assertRaisesRegex(ValueError, "orcamento_atual_ref"):
+            preparar_documento(dados)
+
+    def test_bloqueia_orcamento_provisorio(self):
+        dados = _base_document()
+        dados["orcamento_atual_ref"] = "pendente"
+        with self.assertRaisesRegex(ValueError, "orcamento_atual_ref"):
+            preparar_documento(dados)
+
+    def test_bloqueia_pts_pos_sem_pts_tecnica(self):
+        dados = _base_document()
+        dados["pts_tecnica_ref"] = ""
+        with self.assertRaisesRegex(ValueError, "pts_tecnica_ref"):
+            preparar_documento(dados)
+
+    def test_bloqueia_matriz_tecnica_sem_referencia(self):
+        dados = _base_document()
+        dados["matriz_principal"][0]["ref_tecnica"] = ""
+        with self.assertRaisesRegex(ValueError, "ref_tecnica"):
+            preparar_documento(dados)
 
     def test_injects_canonical_integration(self):
         saida = preparar_documento(_base_document())
