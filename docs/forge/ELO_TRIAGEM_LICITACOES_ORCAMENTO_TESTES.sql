@@ -34,3 +34,20 @@ AND c.relname IN ('elo_triagens_licitacao_orcamento','elo_triagem_apontamentos',
 -- 1) UPDATE consulta PREPARADA -> VALIDADA sem enviada_em/respondida_em/resposta/referencia_resposta deve falhar por CHECK.
 -- 2) Consulta com triagem_id da SO B e apontamento_id da SO A deve falhar por FK composta.
 -- 3) SOs temporarias de teste devem ser revertidas.
+
+
+-- Consulta por tema: deve mostrar fonte, status de aprendizagem e ausencia de resposta.
+SELECT codigo_so,titulo,chave_conhecimento,status_experiencia,
+ codigo_consulta,status_consulta,referencia_resposta
+FROM public.v_elo_triagem_precedentes WHERE titulo ILIKE '%piso%'
+ORDER BY codigo_so,codigo_apontamento;
+
+-- Indicador calculado em vez de inferir prontidao a partir do campo de status.
+SELECT codigo_so,pontos_alta_nao_resolvidos,consultas_nao_validadas,avaliacao_derivada
+FROM public.v_elo_triagem_prontidao WHERE codigo_so='SO 228.26';
+
+-- As views usam RLS invoker e nao podem ser lidas diretamente por anon/authenticated.
+SELECT c.relname,c.reloptions,has_table_privilege('anon',c.oid,'SELECT') AS anon_leitura,
+ has_table_privilege('authenticated',c.oid,'SELECT') AS autenticado_leitura
+FROM pg_class c WHERE c.relnamespace='public'::regnamespace
+AND c.relname IN ('v_elo_triagem_precedentes','v_elo_triagem_prontidao');
