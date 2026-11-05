@@ -2,7 +2,7 @@
 
 **Owner:** diretrizes PTS Técnica de `08-ai/ELO/DIRETRIZES/PTS/`.  
 **Ativação:** leitura da SO/TR antes de orçar; extensão da PTS Técnica canônica de maturidade 1.0, **não** uma terceira PTS, outro Core ou Skill paralela.  
-**Persistência:** Supabase Forge, migração `elo_triagem_licitacoes_orcamento_20261105`; espelho do esquema em `docs/forge/ELO_TRIAGEM_LICITACOES_ORCAMENTO_SCHEMA.sql`.  
+**Persistência:** Supabase Forge, migração `elo_triagem_licitacoes_orcamento_20261105`; espelho do esquema em `supabase/migrations/20261105193252_elo_triagem_licitacoes_orcamento_20261105.sql`.  
 **Exemplo observado:** SO 228.26 — ELETRONUCLEAR. O exemplo é experiência **OBSERVADA** e consultiva, não regra técnica nem comportamento automaticamente validado.
 
 ## Regra de negócio
