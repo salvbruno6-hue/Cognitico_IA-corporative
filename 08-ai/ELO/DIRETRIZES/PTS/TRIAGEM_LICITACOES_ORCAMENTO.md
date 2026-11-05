@@ -64,6 +64,25 @@ ORDER BY CASE a.prioridade WHEN 'ALTA' THEN 1 WHEN 'MEDIA' THEN 2 ELSE 3 END,
 
 Para recuperar precedentes, consultar por `titulo`/`descricao`, filtrar por domínio/escopo e mostrar SEMPRE fonte e `status_validacao`. Relevância textual não comprova aplicabilidade: confirmar TR atual e eventual resposta formal.
 
+### Busca de experiências por necessidade
+
+Além do JOIN por SO, o Forge oferece duas projeções relacionais **`security_invoker`**, versão de migração `20261105194042`:
+
+- `public.v_elo_triagem_precedentes`: relaciona requisitos, apontamentos, perguntas, respostas comprovadas, fichas técnicas e estado da experiência, para recuperar ideias por similaridade temática.
+- `public.v_elo_triagem_prontidao`: devolve contagem dinâmica de prioridades altas abertas e consultas não validadas. O resultado é **indicador de revisão humana**, nunca aprovação ou autorização automática do orçamento.
+
+Exemplo de busca fundamentada:
+
+```sql
+SELECT codigo_so, titulo, descricao, evidencia_ref, prioridade,
+ chave_conhecimento, status_experiencia, pergunta, status_consulta, referencia_resposta
+FROM public.v_elo_triagem_precedentes
+WHERE titulo ILIKE '%piso%'
+ORDER BY codigo_so,codigo_apontamento,codigo_consulta;
+```
+
+A busca mostra tanto a ideia aproveitável quanto suas limitações; só uma resposta referenciada e validada pode ser tratada como aceitação de cliente. A triagem atual `SO 228.26` registra nove apontamentos prioritários abertos e doze consultas preparadas, valores dinâmicos sujeitos à evolução do caso.
+
 ## Acesso e governança
 
 As três tabelas estão em `public` com RLS habilitada e sem políticas para `anon`/`authenticated`. Permissões públicas foram revogadas; a versão inicial é destinada a backend privilegiado autorizado (`service_role`), nunca a chave secreta em cliente. A futura interface deve possuir tenant/owner identificável e políticas de leitura/escrita autorizadas. Não abrir `authenticated` indiscriminadamente.
