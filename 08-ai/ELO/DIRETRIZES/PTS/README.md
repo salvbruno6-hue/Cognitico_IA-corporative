@@ -5,6 +5,7 @@ Esta pasta é o **owner canônico da PTS no ELO**. Não criar outra pasta para P
 ## Estrutura canônica
 
 - `PTS_TECNICA_SCHEMA.json` — contrato da PTS Técnica.
+- `TRIAGEM_LICITACOES_ORCAMENTO.md` — regra de negócio de triagem antecipada, evidências, consultas e transferência Licitações → Orçamento. Reutiliza PTS Técnica; não cria outra PTS.
 - `PTS_TECNICA_TEMPLATE.json` — modelo de dados da PTS Técnica.
 - `PTS_TECNICA_TEMPLATE.md.j2` — apresentação da PTS Técnica.
 - `PTS_TECNICA_RENDER.py` — renderizador da PTS Técnica.

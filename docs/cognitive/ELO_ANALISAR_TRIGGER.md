@@ -46,6 +46,19 @@ Não expor espontaneamente na resposta inicial:
 
 Esses detalhes podem ser apresentados quando o usuário pedir explicitamente por arquitetura, governança, auditoria técnica ou diagnóstico do sistema.
 
+### 1.3 Triagem antecipada Licitações → Orçamento (Forge)
+
+Antes da composição do orçamento, executar a triagem de entrada para evitar retrabalho quando a SO/TR contém lacunas. O contrato operacional permanece no owner canônico `08-ai/ELO/DIRETRIZES/PTS/TRIAGEM_LICITACOES_ORCAMENTO.md`, sem mudar a autoridade do ELO Cognitivo ou criar outro motor.
+
+- Verificar documentação, layout, proposta de modelo-base, composição existente, excedentes, responsabilidades e prazos.
+- Registrar apontamentos separados em fato documental, lacuna não demonstrada na SO, hipótese técnica, inferência analítica ou pendência.
+- Antecipar perguntas de alto impacto e direcioná-las a Licitações, Engenharia ou vistoria; preservar origem e estado de envio/resposta.
+- Consultar experiências anteriores por contexto e evidência, respeitando estado `OBSERVADA`/`CANDIDATA` e sem promover equivalências não aprovadas.
+- A passagem ao Orçamento deve explicitar GAPs e premissas; orçamento continua dependente do comando `ORÇAR`.
+- Persistência relacional no Forge: `elo_triagens_licitacao_orcamento` → `elo_triagem_apontamentos` → `elo_triagem_consultas`, com FKs ao conhecimento e à experiência existente.
+- O histórico de uma SO só é precedente consultivo. A aprovação técnica do cliente e a promoção de aprendizado exigem rastreabilidade, arbitragem e Evolution Gate.
+
+
 ## 2. Sequência
 
 ```text
