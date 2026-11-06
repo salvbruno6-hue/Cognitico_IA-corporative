@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { supabase } from '../auth/ELOGoogleLogin';
 
 type Item = {
   id: string;
@@ -12,13 +13,28 @@ type Item = {
 
 type Audit = { regra: string; resultado: 'OK' | 'ATENÇÃO' | 'BLOQUEIO'; detalhe: string };
 
-const seed: Item[] = [
-  { id: 'MLT.M01', descricao: 'Módulo Amplo 20 pés', modelo: 'MLT.M01', unidade: 'un', quantidade: 5, origem: 'lista-mae', status: 'validado' },
-  { id: 'EXC-001', descricao: 'Janela adicional', unidade: 'un', quantidade: 3, origem: 'excedente', status: 'identificado' },
-  { id: 'EXC-002', descricao: 'Divisória adicional', unidade: 'm²', quantidade: 1, origem: 'excedente', status: 'identificado' },
-  { id: 'EXC-003', descricao: 'Tomada adicional', unidade: 'un', quantidade: 1, origem: 'excedente', status: 'identificado' },
-  { id: 'INT-001', descricao: 'Interligação elétrica entre módulos', unidade: 'serv', quantidade: 1, origem: 'interligacao', status: 'pendente' },
-];
+type Excess = {
+  id: string;
+  codigo_excedente: string;
+  descricao: string;
+  unidade: string;
+  custo_total: number | string | null;
+  valor_total: number | string | null;
+  ativo: boolean;
+};
+type ExcessLine = {
+  excedente_id: string;
+  descricao?: string;
+  funcao?: string;
+  quantidade?: number | string;
+  tempo?: number | string;
+  unidade?: string;
+  valor_unitario?: number | string | null;
+  valor_parcial?: number | string | null;
+};
+const amount = (value: number | string | null | undefined) => Number(value ?? 0);
+const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const tolerance = 0.02;
 
 const audits: Audit[] = [
   { regra: 'Taxonomia MLT', resultado: 'OK', detalhe: 'Modelo reconhecido e associado à família.' },
@@ -29,7 +45,65 @@ const audits: Audit[] = [
 ];
 
 export const ELOOrcamentoView: React.FC = () => {
-  const [items, setItems] = useState(seed);
+  const [items, setItems] = useState<Item[]>([]);
+  const [excesses, setExcesses] = useState<Excess[]>([]);
+  const [excessItems, setExcessItems] = useState<ExcessLine[]>([]);
+  const [excessLabor, setExcessLabor] = useState<ExcessLine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    async function loadExcesses() {
+      setLoading(true);
+      setLoadError(null);
+      // Read-only queries use the existing authenticated ELO browser client and RLS.
+      const [base, materials, labor] = await Promise.all([
+        supabase.from('excedentes').select('id,codigo_excedente,descricao,unidade,custo_total,valor_total,ativo').eq('ativo', true).order('codigo_excedente'),
+        supabase.from('excedente_itens').select('excedente_id,descricao,quantidade,unidade,valor_unitario,valor_parcial'),
+        supabase.from('excedente_mao_obra').select('excedente_id,funcao,quantidade,tempo,valor_unitario,valor_parcial'),
+      ]);
+      if (!active) return;
+      const error = base.error ?? materials.error ?? labor.error;
+      if (error) {
+        setLoadError(error.message);
+        setItems([]);
+        setExcesses([]);
+        setExcessItems([]);
+        setExcessLabor([]);
+      } else {
+        const rows = (base.data ?? []) as Excess[];
+        setExcesses(rows);
+        setExcessItems((materials.data ?? []) as ExcessLine[]);
+        setExcessLabor((labor.data ?? []) as ExcessLine[]);
+        setItems(rows.map(row => ({
+          id: row.codigo_excedente, descricao: row.descricao,
+          unidade: row.unidade, quantidade: 1, origem: 'excedente', status: 'identificado',
+        })));
+      }
+      setLoading(false);
+    }
+    void loadExcesses().catch(error => {
+      if (active) { setLoadError(String(error)); setLoading(false); }
+    });
+    return () => { active = false; };
+  }, [reload]);
+
+  const visibleItems = useMemo(() => items.filter(item =>
+    !filter || (item.id + ' ' + item.descricao).toLocaleLowerCase('pt-BR').includes(filter.toLocaleLowerCase('pt-BR'))
+  ), [items, filter]);
+  const selectedExcess = excesses.find(row => row.id === selected);
+  const selectedMaterials = excessItems.filter(row => row.excedente_id === selected);
+  const selectedLabor = excessLabor.filter(row => row.excedente_id === selected);
+  // Material rows can already include labor; avoid summing labor twice.
+  const materialHasLabor = selectedMaterials.some(row => /^(profissional|ajudante|encarregado)$/i.test(row.descricao?.trim() ?? ''));
+  const componentTotal = selectedMaterials.reduce((sum, row) => sum + amount(row.valor_parcial), 0)
+    + (materialHasLabor ? 0 : selectedLabor.reduce((sum, row) => sum + amount(row.valor_parcial), 0));
+  const headerTotal = amount(selectedExcess?.valor_total ?? selectedExcess?.custo_total);
+  const hasMismatch = !!selectedExcess && Math.abs(componentTotal - headerTotal) > tolerance;
   const [command, setCommand] = useState('');
   const [message, setMessage] = useState('Aguardando instrução do especialista.');
 
@@ -37,7 +111,7 @@ export const ELOOrcamentoView: React.FC = () => {
   const approved = useMemo(() => items.filter((item) => item.status === 'validado').length, [items]);
 
   const audit = () => {
-    setMessage(`Auditoria concluída: ${approved} itens validados, ${pending} itens aguardando especialista.`);
+    setMessage(loadError ? `Consulta indisponível: ${loadError}` : `Auditoria: ${excesses.length} EXCs reais recuperadas. Consulte uma composição para verificar os totais.`);
   };
 
   const requestSpecialist = () => {
@@ -48,7 +122,10 @@ export const ELOOrcamentoView: React.FC = () => {
   const processCommand = () => {
     const normalized = command.trim().toLowerCase();
     if (!normalized) return;
-    if (normalized.includes('orçar') || normalized.includes('orcamento')) {
+    if (normalized.includes('tomada') || normalized.includes('exc') || normalized.includes('excedente')) {
+      setFilter(normalized.includes('tomada') ? 'tomada' : '');
+      setMessage('Consulta de excedentes do banco aplicada; selecione uma linha para abrir a composição.');
+    } else if (normalized.includes('orçar') || normalized.includes('orcamento')) {
       setMessage('Modo orçamento ativado: Lista-Mãe → taxonomia → modelo → excedentes → interligações → auditoria.');
     } else if (normalized.includes('comparar')) {
       setMessage('Comparação preparada: separar preço fechado de tabela, excedentes e composições variáveis.');
@@ -88,14 +165,29 @@ export const ELOOrcamentoView: React.FC = () => {
       <section className="workspace">
         <div className="panel">
           <div className="panel-title"><h2>Estrutura do orçamento</h2><button onClick={audit}>Auditar</button></div>
+          <div role="status">{loading ? 'Consultando EXCs no Supabase…' : loadError ? `Falha na consulta: ${loadError}` : `${excesses.length} EXCs ativas recuperadas do banco.`}</div>
+          <button onClick={() => setReload(current => current + 1)}>Atualizar dados</button>
+          <input aria-label="Filtrar excedentes" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Buscar EXC ou descrição" />
           <div className="table-wrap">
             <table><thead><tr><th>Item</th><th>Modelo</th><th>Qtd.</th><th>Origem</th><th>Status</th></tr></thead>
-              <tbody>{items.map(item => <tr key={item.id}><td><b>{item.id}</b><br />{item.descricao}</td><td>{item.modelo ?? '—'}</td><td>{item.quantidade} {item.unidade}</td><td>{item.origem}</td><td><span className={`badge ${item.status}`}>{item.status}</span></td></tr>)}</tbody>
+              <tbody>{visibleItems.map(item => <tr key={item.id} onClick={() => setSelected(excesses.find(row => row.codigo_excedente === item.id)?.id ?? null)} style={{cursor:'pointer'}}><td><b>{item.id}</b><br />{item.descricao}</td><td>{item.modelo ?? '—'}</td><td>{item.quantidade} {item.unidade}</td><td>{item.origem}</td><td><span className={`badge ${item.status}`}>{item.status}</span></td></tr>)}</tbody>
             </table>
           </div>
         </div>
 
         <aside className="panel audit-panel">
+          <div className="panel-title"><h2>Composição canônica</h2></div>
+          {!selectedExcess ? <p>Selecione uma EXC para conferir materiais, mão de obra e totais.</p> : <>
+            <p><b>{selectedExcess.codigo_excedente}</b> — {selectedExcess.descricao}</p>
+            <p>Total cadastrado: <b>{money(headerTotal)}</b></p>
+            <p>Componentes (sem duplicar mão de obra): <b>{money(componentTotal)}</b></p>
+            <p role="status">{hasMismatch ? 'GAP: valores divergentes; requer reconciliação antes de aprovar.' : 'Valores conciliados dentro da tolerância.'}</p>
+            <h3>Materiais / componentes</h3>
+            {selectedMaterials.map((line, index) => <p key={index}>{line.descricao} — {line.quantidade} {line.unidade ?? ''} × {money(amount(line.valor_unitario))} = {money(amount(line.valor_parcial))}</p>)}
+            <h3>Mão de obra detalhada</h3>
+            {selectedLabor.map((line, index) => <p key={index}>{line.funcao} — {line.quantidade} × {line.tempo} dia = {money(amount(line.valor_parcial))}</p>)}
+          </>}
+          <hr />
           <div className="panel-title"><h2>Auditoria de relações</h2><span>CORE</span></div>
           {audits.map(row => <div className="audit-row" key={row.regra}><div><b>{row.regra}</b><small>{row.detalhe}</small></div><strong className={row.resultado.toLowerCase()}>{row.resultado}</strong></div>)}
           <button className="primary" onClick={requestSpecialist}>Solicitar validação ao especialista</button>
