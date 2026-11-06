@@ -98,12 +98,20 @@ export const ELOOrcamentoView: React.FC = () => {
   const selectedExcess = excesses.find(row => row.id === selected);
   const selectedMaterials = excessItems.filter(row => row.excedente_id === selected);
   const selectedLabor = excessLabor.filter(row => row.excedente_id === selected);
-  // Material rows can already include labor; avoid summing labor twice.
-  const materialHasLabor = selectedMaterials.some(row => /^(profissional|ajudante|encarregado)$/i.test(row.descricao?.trim() ?? ''));
-  const componentTotal = selectedMaterials.reduce((sum, row) => sum + amount(row.valor_parcial), 0)
-    + (materialHasLabor ? 0 : selectedLabor.reduce((sum, row) => sum + amount(row.valor_parcial), 0));
-  const headerTotal = amount(selectedExcess?.valor_total ?? selectedExcess?.custo_total);
-  const hasMismatch = !!selectedExcess && Math.abs(componentTotal - headerTotal) > tolerance;
+  // Match each embedded labor role separately. Never suppress unrelated roles.
+  const embeddedRoles = new Set(selectedMaterials
+    .map(row => row.descricao?.trim().toLocaleLowerCase('pt-BR') ?? '')
+    .filter(role => /^(profissional|ajudante|encarregado)$/.test(role)));
+  const distinctLabor = selectedLabor.filter(row =>
+    !embeddedRoles.has(row.funcao?.trim().toLocaleLowerCase('pt-BR') ?? ''));
+  const components = [...selectedMaterials, ...distinctLabor];
+  const headerValue = selectedExcess?.valor_total ?? selectedExcess?.custo_total;
+  const completeEvidence = !!selectedExcess && headerValue != null &&
+    Number.isFinite(Number(headerValue)) && components.length > 0 &&
+    components.every(row => row.valor_parcial != null && Number.isFinite(Number(row.valor_parcial)));
+  const componentTotal = components.reduce((sum, row) => sum + amount(row.valor_parcial), 0);
+  const headerTotal = amount(headerValue);
+  const hasMismatch = completeEvidence && Math.abs(componentTotal - headerTotal) > tolerance;
   const [command, setCommand] = useState('');
   const [message, setMessage] = useState('Aguardando instrução do especialista.');
 
@@ -179,9 +187,9 @@ export const ELOOrcamentoView: React.FC = () => {
           <div className="panel-title"><h2>Composição canônica</h2></div>
           {!selectedExcess ? <p>Selecione uma EXC para conferir materiais, mão de obra e totais.</p> : <>
             <p><b>{selectedExcess.codigo_excedente}</b> — {selectedExcess.descricao}</p>
-            <p>Total cadastrado: <b>{money(headerTotal)}</b></p>
-            <p>Componentes (sem duplicar mão de obra): <b>{money(componentTotal)}</b></p>
-            <p role="status">{hasMismatch ? 'GAP: valores divergentes; requer reconciliação antes de aprovar.' : 'Valores conciliados dentro da tolerância.'}</p>
+            <p>Total cadastrado: <b>{headerValue == null ? 'Não informado' : money(headerTotal)}</b></p>
+            <p>Componentes (sem duplicar funções de mão de obra): <b>{components.length ? money(componentTotal) : 'Não informados'}</b></p>
+            <p role="status">{!completeEvidence ? 'GAP: evidência monetária incompleta; não é possível conciliar.' : hasMismatch ? 'GAP: valores divergentes; requer reconciliação antes de aprovar.' : 'Valores conciliados dentro da tolerância.'}</p>
             <h3>Materiais / componentes</h3>
             {selectedMaterials.map((line, index) => <p key={index}>{line.descricao} — {line.quantidade} {line.unidade ?? ''} × {money(amount(line.valor_unitario))} = {money(amount(line.valor_parcial))}</p>)}
             <h3>Mão de obra detalhada</h3>
