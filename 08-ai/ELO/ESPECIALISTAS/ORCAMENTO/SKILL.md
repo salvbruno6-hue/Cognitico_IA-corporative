@@ -39,6 +39,14 @@ Fontes canônicas relacionadas:
 - `docs/orcamento/ELO_ORCAMENTO_EXECUTION_ARCHITECTURE.md`
 - `automation/ELO_CHAT_CODEX_BRIDGE.md`
 
+### Gate pré-planilha — `ELO ORÇAR`
+
+O gatilho `ELO ORÇAR` é uma variante do gatilho `ORÇAR` existente. A Skill **não compõe nem precifica em paralelo**: orquestra o Especialista de Orçamento para executar `composition_build_pre_spreadsheet` e `composition_pre_spreadsheet_gate` definidos no contrato `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`.
+
+Antes da planilha final, exigir relatório de composição por serviço: base consultada, itens reutilizados/substituídos/adicionados/excluídos, quantitativos e respectivas evidências, preços e origens, mão de obra, reconciliação de memórias e GAPs. `PASS` libera planilha final; `REVIEW` permite somente prévia identificada; `BLOCKED` impede fechamento e exige arbitragem. Preservar a PTS Pós, segunda reconciliação e governança de aprendizado já existentes.
+
+Caso de regressão contextual (não regra geral): SO 214.26, um contêiner de 20 pés, drywall/EPS, KIT-M01 elétrico adaptado e pintura. Detalhes e GAPs: `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROPOSTAS/CONSTRUIR_COMPOSICAO_PRE_PLANILHA_SO21426.md`.
+
 ## 2. Regra anti-duplicidade
 
 Antes de criar qualquer nova regra, cálculo, classificação, tabela, memória, trigger, executor ou mecanismo de orçamento:
