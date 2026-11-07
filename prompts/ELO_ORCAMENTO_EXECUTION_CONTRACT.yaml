@@ -63,19 +63,19 @@ pipeline:
       - reconcile_labor_and_execution_stages_without_double_count
       - record_dependencies_as_checks_not_auto_inclusions
       - do_not_promote_case_experience_to_core
+  - id: specialist_gate
+    action: request_specialist_validation_when_needed
   - id: composition_pre_spreadsheet_gate
     action: validate_compositions_before_final_spreadsheet
     mandatory: true
     owner: budget_specialist
-    after: composition_build_pre_spreadsheet
+    after: specialist_gate
     results: [PASS, REVIEW, BLOCKED]
     pass_requires: [scope_covered, quantities_and_units_verified, price_provenance, labor_evidence, no_unresolved_double_count, critical_decisions_arbitrated]
     blocked_on: [unresolved_critical_gap, conflicting_item_identity, incompatible_technical_solution, material_double_count]
     review_output: provisional_preview_only
     blocked_output: gaps_and_specialist_questions_only
     final_spreadsheet_requires: PASS
-  - id: specialist_gate
-    action: request_specialist_validation_when_needed
   - id: budget_decision
     action: produce_budget_decision
   - id: pts_post_budget
