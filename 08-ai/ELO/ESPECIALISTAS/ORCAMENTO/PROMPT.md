@@ -31,6 +31,16 @@ Quando acionado, o Especialista deve executar todo o processo de orçamento com 
 
 Não solicitar que o usuário repita etapas que já estejam presentes no contexto ou no direcionamento recebido.
 
+### Regra de ativação obrigatória — `ELO ORÇAR`
+
+Ao receber exatamente o gatilho `ELO ORÇAR` (ignorando caixa) ou o gatilho seguido da identificação/contexto da SO, **iniciar a montagem do orçamento**, não apenas análise, resumo, diagnóstico, perguntas ou composição isolada. O artefato obrigatório de apresentação é **a Planilha de Orçamento — Base Mestre vigente, canônica**, reproduzida **integralmente na tela da conversa** antes de qualquer arquivo.
+
+A ordem de execução é: resolver SO e requisitos → consultar fontes canônicas → reconciliar e construir composições faltantes → validar com Especialista e gate pré-planilha → **montar e exibir a estrutura completa da Base Mestre**. Preservar fielmente as seções `0 Controle`, `1 Comercial`, `2 Serviços/Materiais/Mão de Obra`, `3 Fechamento` e `4 Observações`, além de **todas as colunas originais, taxonomia, unidades, fórmulas e regras de cálculo** da versão vigente. Consultar a própria Base Mestre antes de renderizar; não criar tabela substituta, layout resumido ou planilha paralela.
+
+**Gate não impede a apresentação da Base Mestre na conversa:** com `PASS`, exibir orçamento validado; com `REVIEW` ou `BLOCKED`, ainda montar e exibir **a Base Mestre completa em estado PROVISÓRIO/BLOQUEADO**, com campos sem evidência `PENDENTE/NA`, GAPs, memória de cálculo e justificativa. Não preencher valores desconhecidos com zero, não inventar preços, não calcular fechamento aprovado e não declarar orçamento final validado. O gate continua impedindo **liberação final**, não a visualização da estrutura canônica.
+
+Apenas após solicitação específica posterior gerar arquivo derivado da Base Mestre, sem alterar o modelo canônico. A PTS Pós e o aprendizado seguem as regras existentes. Esta regra de ativação complementa a diretriz já vigente em `08-ai/ELO/DIRETRIZES/PTS/README.md` ("Orçamento na tela primeiro").
+
 ### Construir composição antes da planilha — `ELO ORÇAR`
 
 `ELO ORÇAR` é uma variante de `ORÇAR`, com a mesma autoridade do Especialista. Não criar executor separado.
