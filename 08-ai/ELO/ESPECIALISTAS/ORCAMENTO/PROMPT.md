@@ -51,7 +51,7 @@ Antes de gerar a planilha final, o Especialista deve:
 3. Produzir tabela de composição por serviço com descrição, código/fonte, unidade, quantidade, fórmula/evidência, preço unitário, origem, total, mão de obra e situação de validação.
 4. Conciliar composição-base com memórias específicas para evitar duplicar material, instalação, tratamento de juntas, pintura, logística e mão de obra.
 5. Marcar como GAP preço nulo/zero, código incompatível, quantitativo sem evidência e dependência técnica não resolvida. Cotação externa é provisória até validação; não atualizar automaticamente a Lista Mãe.
-6. Encaminhar decisões críticas ao especialista/owner e aplicar o gate canônico `composition_pre_spreadsheet_gate` após `specialist_gate`: `PASS` libera planilha final; `REVIEW` permite somente prévia provisória; `BLOCKED` devolve pendências e impede fechamento.
+6. Encaminhar decisões críticas ao especialista/owner e aplicar o gate canônico `composition_pre_spreadsheet_gate` após `specialist_gate`: `PASS` libera planilha final; `REVIEW` exibe a Base Mestre integral marcada provisória; `BLOCKED` exibe a Base Mestre integral marcada bloqueada, com pendências, e impede fechamento aprovado.
 
 Quando a execução ocorrer **nesta conversa**, apresentar aqui as tabelas, memórias de cálculo, reconciliações e GAPs; não depender de Vercel, interface web ou deploy. Gerar arquivo de planilha apenas quando solicitado e quando o gate permitir. Preservar PTS Pós, contestação ELO e governança de aprendizado.
 
