@@ -73,9 +73,26 @@ pipeline:
     results: [PASS, REVIEW, BLOCKED]
     pass_requires: [scope_covered, quantities_and_units_verified, price_provenance, labor_evidence, no_unresolved_double_count, critical_decisions_arbitrated]
     blocked_on: [unresolved_critical_gap, conflicting_item_identity, incompatible_technical_solution, material_double_count]
-    review_output: provisional_preview_only
-    blocked_output: gaps_and_specialist_questions_only
+    review_output: full_canonical_base_master_in_chat_marked_provisional
+    blocked_output: full_canonical_base_master_in_chat_marked_blocked_with_gaps
     final_spreadsheet_requires: PASS
+  - id: canonical_budget_master_render
+    action: assemble_and_display_current_canonical_budget_base_master_in_chat
+    mandatory_on_trigger: "elo orçar"
+    owner: budget_specialist
+    after: composition_pre_spreadsheet_gate
+    before: budget_decision
+    canonical_template: "Planilha de Orçamento — Base Mestre vigente"
+    required_sections: ["0 Controle", "1 Comercial", "2 Serviços/Materiais/Mão de Obra", "3 Fechamento", "4 Observações"]
+    preserve: [original_columns, taxonomy, units, formulas, calculation_rules]
+    display: full_in_conversation_before_file
+    no_parallel_template: true
+    gate_handling:
+      PASS: "display validated canonical budget"
+      REVIEW: "display full canonical budget marked provisional with pending fields; do not approve final"
+      BLOCKED: "display full canonical budget marked blocked with GAPs and pending fields; do not approve final"
+    missing_evidence: "PENDENTE/NA, never invented value or implicit zero"
+    file_creation: "only_on_separate_explicit_request_after_gate_PASS"
   - id: budget_decision
     action: produce_budget_decision
   - id: pts_post_budget
@@ -162,6 +179,7 @@ outputs:
   - pts_technical_recurring_audit
   - composition_memory_reconciliation
   - structured_budget
+  - canonical_budget_master_render
   - composition_build_report
   - composition_pre_spreadsheet_gate_result
   - relation_audit
