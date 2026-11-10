@@ -99,3 +99,33 @@ def test_objective_continuation_runtime_uses_canonical_enterprise_tenant() -> No
     assert 'tenant_id: tenantId' in prefinalize
     assert 'const TEST_TENANT_ID = "MULTITEINER"' in real_test
     assert 'tenant_id: TEST_TENANT_ID' in real_test
+
+
+def test_grant_lookup_is_bound_to_active_elo_session() -> None:
+    """Grants from a different session must not pass the canonical lookup."""
+    resolver = AUTHZ.split("async function resolveAuthorizationGrant(", 1)[1].split("Deno.serve(", 1)[0]
+    lookup = resolver.split('supabase.from("elo_authorization_grants")', 1)[1].split("if(error)", 1)[0]
+    assert '.eq("identity_id",identityId)' in lookup
+    assert '.eq("session_id",sessionId)' in lookup
+    assert '.eq("authorization_state",state)' in lookup
+    assert '.eq("operation",operation)' in lookup
+    assert '.eq("repository_full_name",repository)' in lookup
+    assert '.is("revoked_at",null)' in lookup
+    assert 'metadataResourceId===resourceId' in resolver
+    assert 'metadataTenantId===tenantId' in resolver
+    assert "issued<=now&&expires>now" in resolver
+    assert 'reason:"authorization_state_not_granted"' in resolver
+
+
+def test_grant_issuance_uses_recipient_session_and_fails_closed() -> None:
+    """A grant issued by an administrator targets the recipient session."""
+    issuer = AUTHZ.split('const bindingId=typeof body.binding_id', 1)[1].split('if(action==="portal_access")', 1)[0]
+    assert "const targetSession=await resolveActiveSession(binding.identity_id);" in issuer
+    assert "if(!targetSession.ok)" in issuer
+    assert 'reason:"target_elo_session_unavailable"' in issuer
+    assert 'reason:"authorization_audit_write_failed"' in issuer
+    assert 'targetSession.reason==="session_lookup_failed"?503:403' in issuer
+    assert "identity_id:binding.identity_id,session_id:targetSession.session.session_id" in issuer
+    assert "identity_id:binding.identity_id,session_id:session.session.session_id" not in issuer
+    assert 'issued_by_identity_id:auth.identity.identity_id' in issuer
+    assert 'audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW"' in issuer

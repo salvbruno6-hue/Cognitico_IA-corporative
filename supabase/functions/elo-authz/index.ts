@@ -164,6 +164,7 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   const {data,error}=await supabase.from("elo_authorization_grants")
     .select("grant_id,binding_id,session_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
     .eq("identity_id",identityId)
+    .eq("session_id",sessionId)
     .eq("authorization_state",state)
     .eq("operation",operation)
     .eq("repository_full_name",repository)
@@ -410,11 +411,20 @@ Deno.serve(async(req:Request)=>{
         return json({authorized:false,reason:"enterprise_tenant_scope_not_granted",request_id:requestId},403);
     }
 
+    // Grants belong to the recipient's active ELO session, even when
+    // a different CANONICAL_ADMIN identity performs the issuance.
+    const targetSession=await resolveActiveSession(binding.identity_id);
+    if(!targetSession.ok) {
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY","target_elo_session_unavailable",requestId);}
+      catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+      return json({authorized:false,reason:"target_elo_session_unavailable",request_id:requestId},targetSession.reason==="session_lookup_failed"?503:403);
+    }
+
     const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
     const grantMetadata:Record<string,unknown>={issuer_role:"CANONICAL_ADMIN",resource_id:resourceId};
     if(continuation)grantMetadata.tenant_id=tenantId;
     const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
-      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
+      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:targetSession.session.session_id,
       authorization_state:state,operation,repository_full_name:repository,
       issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
       issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:grantMetadata
