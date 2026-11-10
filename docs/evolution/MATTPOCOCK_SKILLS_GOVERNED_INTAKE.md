@@ -3,7 +3,7 @@
 Status: FULL_CATALOG_VENDORED — manual-only discovery; runtime activation and canonical promotion not authorized.
 Upstream: https://github.com/mattpocock/skills
 License: MIT (copyright 2026 Matt Pocock; preserve license on any vendored copies).
-Upstream package version observed: 1.3.2 (not an immutable revision pin).
+Upstream package version observed: 1.3.2 (immutable source commit pinned below).
 
 ## Existing owners (do not replace)
 - ELO Knowledge & Skills / Forge: specialist skills and context.
@@ -38,16 +38,16 @@ The upstream README offers `npx skills@latest add mattpocock/skills -a <agent>`,
 
 ## Integral source import — 2026-11-10
 
-Source pinned immutably to \`mattpocock/skills@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d\`, upstream package v1.3.2 (MIT).
-All **114 source files**, including **39 individual SKILL.md** definitions, are present in \`vendor/mattpocock-skills/skills/\`, with per-file Git blob hashes in \`manifest.json\`. LICENSE, upstream README and original Claude plugin manifest are preserved. No external installer or script was executed.
+Source pinned immutably to `mattpocock/skills@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`, upstream package v1.3.2 (MIT).
+All **114 source files**, including **39 individual SKILL.md** definitions, are present in `vendor/mattpocock-skills/skills/`, with per-file Git blob hashes in `manifest.json`. LICENSE, upstream README and original Claude plugin manifest are preserved. No external installer or script was executed.
 
-The canonical ELO inventory now has **39 namespaced discovery wrappers** at \`.agents/skills/mattpocock-*/SKILL.md\`; all carry \`disable-model-invocation: true\` plus Codex \`allow_implicit_invocation: false\`. The 27 upstream promoted packages are eligible for separate governed assessment; the 12 miscellaneous or in-progress packages stay explicitly non-promoted. Manual invocation is available to inspect source, not to bypass ELO permissions.
+The canonical ELO inventory now has **39 namespaced discovery wrappers** at `.agents/skills/mattpocock-*/SKILL.md`; all carry `disable-model-invocation: true` plus Codex `allow_implicit_invocation: false`. The 27 upstream promoted packages are eligible for separate governed assessment; the 12 miscellaneous or in-progress packages stay explicitly non-promoted. Manual invocation is available to inspect source, not to bypass ELO permissions.
 
 Upstream skills are NOT ELO-native by copying. The ELO Core, Forge, PCP skill, Symbiont, existing code-review adapter, Evolution Gate, branch protection and operator authorization remain canonical. Shell, network, new-package, hook or subagent actions requested inside imported instructions require distinct validation and authorization and are never executed during this import. Production and Supabase are unchanged.
 
 ### Evidence and boundaries
 
-- \`tests/test_mattpocock_skills_vendor_integrity.py\` checks the full source inventory against the pinned Git blob SHA-1s and checks 39 manual-only wrappers.
-- \`VENDOR_PRESENT\` is not \`RUNTIME_ACTIVATED\`, \`TESTED\`, \`MERGED\` or \`PROMOTED\`. These require CI and existing Symbiont/Evolution gates, and the appropriate human decision where applicable.
+- `tests/test_mattpocock_skills_vendor_integrity.py` checks the full source inventory against the pinned Git blob SHA-1s and checks 39 manual-only wrappers.
+- `VENDOR_PRESENT` is not `RUNTIME_ACTIVATED`, `TESTED`, `MERGED` or `PROMOTED`. These require CI and existing Symbiont/Evolution gates, and the appropriate human decision where applicable.
 - No new skills are registered in the cognitive Core or Supabase; the external references remain in a separate, governed repository source namespace.
 - The existing PR #1167 remains the ELO-native two-axis reviewer; this import does not replace or shadow it.
