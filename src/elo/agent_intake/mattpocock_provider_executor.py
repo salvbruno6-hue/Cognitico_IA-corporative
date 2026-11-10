@@ -22,6 +22,7 @@ from elo.evidence import Evidence, EvidenceRepository
 from .mattpocock_catalog import ExternalSkillReference
 
 REPOSITORY = "salvbruno6-hue/Cognitico_IA-corporative"
+CANONICAL_SUPABASE_HOST = "fxbpevjrkwhbicpmecow.supabase.co"
 OPERATION = "execute_external_skill"
 
 
@@ -43,7 +44,7 @@ class EloAuthzExternalSkillVerifier:
         if (
             parsed.scheme != "https"
             or not parsed.hostname
-            or not parsed.hostname.endswith(".supabase.co")
+            or parsed.hostname != CANONICAL_SUPABASE_HOST
             or parsed.path != "/functions/v1/elo-authz"
             or parsed.query
             or parsed.fragment

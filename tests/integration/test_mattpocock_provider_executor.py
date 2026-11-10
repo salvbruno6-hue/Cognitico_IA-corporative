@@ -19,7 +19,7 @@ from elo.evidence import EvidenceAccessError, EvidenceRepository
 from elo.integrations.ai_provider import AIResponse
 
 ROOT = Path(__file__).resolve().parents[2]
-ENDPOINT = "https://testproject.supabase.co/functions/v1/elo-authz"
+ENDPOINT = "https://fxbpevjrkwhbicpmecow.supabase.co/functions/v1/elo-authz"
 
 
 def sample_request(skill_id="mattpocock:diagnosing-bugs"):
