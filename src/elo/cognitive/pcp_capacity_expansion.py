@@ -49,6 +49,7 @@ class CapacityExpansionAssessment:
     actions: tuple[CapacityExpansionAction, ...]
     status: str
     canonical_mutation: bool = False
+    missing_model_boms: tuple[str, ...] = ()
 
 
 def _validate_non_negative(value: float, field: str) -> None:
@@ -141,13 +142,13 @@ def assess_capacity_expansion(
     bom_by_model: Mapping[str, Mapping[str, float | None]] | None = None,
     available_components: Mapping[str, float | None] | None = None,
     worker_increment_capacity: Mapping[str, float | None] | None = None,
+    labor_constrained_resources: Sequence[str] = (),
 ) -> CapacityExpansionAssessment:
     """Assess what must change before demand-driven capacity can increase safely.
 
-    ``worker_increment_capacity`` is optional explicit evidence of additional
-    module-equivalent capacity per added worker for a named constraint. Without
-    it the function requests staffing measurement/review and does not invent a
-    headcount.
+    ``worker_increment_capacity`` supplies a measured marginal increment, but
+    staffing counts additionally require an explicitly evidenced labor cause in
+    ``labor_constrained_resources``. No headcount is inferred from throughput alone.
     """
     systemic = assess_systemic_capacity(
         demand_modules,
@@ -161,6 +162,27 @@ def assess_capacity_expansion(
     )
 
     actions: list[CapacityExpansionAction] = []
+    missing_model_boms = tuple(sorted(
+        model.strip().upper()
+        for model, quantity in (demand_by_model or {}).items()
+        if quantity > 0 and not (bom_by_model or {}).get(model.strip().upper())
+    ))
+    for model in missing_model_boms:
+        actions.append(
+            CapacityExpansionAction(
+                target=model,
+                action="LOCALIZAR_BOM_MODELO",
+                reason="modelo demandado sem composição técnica comprovada",
+                current=None,
+                required=(demand_by_model or {}).get(model),
+                gap=None,
+                evidence_required=("bom_vigente_modelo", "itens_e_quantidades_validados"),
+            )
+        )
+    evidenced_labor = {
+        name.strip().upper()
+        for name in labor_constrained_resources if name.strip()
+    }
     worker_increment_capacity = {
         key.strip().upper(): value
         for key, value in (worker_increment_capacity or {}).items()
@@ -218,7 +240,7 @@ def assess_capacity_expansion(
                 )
             )
         status = "EXPANSAO_BLOQUEADA"
-        return CapacityExpansionAssessment(systemic, mix, tuple(actions), status)
+        return CapacityExpansionAssessment(systemic, mix, tuple(actions), status, missing_model_boms=missing_model_boms)
 
     capacity_gap = max(demand_modules - systemic.executable_modules, 0.0)
     for constraint in systemic.limiting_constraints:
@@ -227,7 +249,10 @@ def assess_capacity_expansion(
         calculated_workers: int | None = None
         evidence_required: tuple[str, ...] = ()
         action = "AUMENTAR_CAPACIDADE_RECURSO"
-        if increment is None:
+        if increment is not None and constraint not in evidenced_labor:
+            action = "VALIDAR_CAUSA_MAO_DE_OBRA"
+            evidence_required = ("causa_restricao_mao_de_obra",)
+        elif increment is None:
             action = "REVISAR_RECURSO_E_MEDIR_INCREMENTO"
             evidence_required = ("produtividade_marginal_por_colaborador",)
         else:
@@ -251,8 +276,10 @@ def assess_capacity_expansion(
             )
         )
 
-    status = "SEM_EXPANSAO_NECESSARIA" if capacity_gap == 0 and not actions else "PLANO_EXPANSAO_GOVERNADO"
-    return CapacityExpansionAssessment(systemic, mix, tuple(actions), status)
+    status = ("EXPANSAO_BLOQUEADA" if missing_model_boms else
+              "SEM_EXPANSAO_NECESSARIA" if capacity_gap == 0 and not actions else
+              "PLANO_EXPANSAO_GOVERNADO")
+    return CapacityExpansionAssessment(systemic, mix, tuple(actions), status, missing_model_boms=missing_model_boms)
 
 
 __all__ = [
