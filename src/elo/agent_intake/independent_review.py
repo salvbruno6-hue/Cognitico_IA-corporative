@@ -55,3 +55,60 @@ def validate_independent_review(
     return review.verdict in VALID_VERDICTS
 
 __all__ = ["IndependentReviewEvidence", "validate_independent_review"]
+
+
+@dataclass(frozen=True)
+class TwoAxisReviewAssessment:
+    """Advisory review outcome; never permission to merge or promote."""
+    status: str
+    standards_verdict: str
+    specification_verdict: str
+    evidence_ids: tuple[str, ...]
+    findings: tuple[str, ...]
+    canonical_mutation: bool = False
+
+
+def assess_two_axis_review(
+    standards: IndependentReviewEvidence | None,
+    specification: IndependentReviewEvidence | None,
+    *,
+    expected_subject_id: str,
+) -> TwoAxisReviewAssessment:
+    """Separate standards-vs-spec review, fail closed and preserve provenance.
+
+    Adapted principle: mattpocock/skills code-review. ELO remains the authority.
+    """
+    if not expected_subject_id.strip():
+        raise ValueError("expected_subject_id is required")
+    axes = (("STANDARDS", standards), ("SPEC", specification))
+    valid = tuple(
+        review is not None
+        and review.review_scope == axis
+        and validate_independent_review(review, expected_subject_id=expected_subject_id)
+        for axis, review in axes
+    )
+    verdicts = tuple(
+        review.verdict if ok and review is not None else "ABSTAIN"
+        for (_, review), ok in zip(axes, valid)
+    )
+    observed = tuple(
+        review for (_, review), ok in zip(axes, valid) if ok and review is not None
+    )
+    evidence_ids = tuple(dict.fromkeys(ref for review in observed for ref in review.evidence_ids))
+    findings = tuple(
+        f"{review.review_scope}: {finding}"
+        for review in observed for finding in review.findings
+    )
+    if "FAIL" in verdicts:
+        status = "REVIEW_FAILED"
+    elif (
+        verdicts == ("PASS", "PASS")
+        and standards is not None
+        and specification is not None
+        and standards.reviewer_id != specification.reviewer_id
+        and standards.context_snapshot_id != specification.context_snapshot_id
+    ):
+        status = "REVIEW_PASSED"
+    else:
+        status = "REVIEW_INCOMPLETE"
+    return TwoAxisReviewAssessment(status, verdicts[0], verdicts[1], evidence_ids, findings)
