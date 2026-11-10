@@ -1354,3 +1354,61 @@ No estado documentado em 2026-10-21:
 - `PREVISAO_BASE` não substitui `mt_previsoes_demanda`.
 
 Esses GAPs devem sobreviver a qualquer handoff e não podem ser preenchidos por inferência.
+
+---
+
+## 35. Orquestração cognitiva de capacidade adaptativa (contrato governado)
+
+**Natureza:** extensão da Skill PCP existente, não nova autoridade. **Owner:** PCP; Orquestrador coordena alternativas, Simbionte observa evidência e Evolution Gate governa promoção. A Skill não autoriza compras, contratações, mudanças de capacidade ou persistência canônica por conta própria.
+
+### 35.1 Gatilho e escopo
+
+Quando houver evidência de aumento de demanda comercial, confrontar `demanda → mix de modelos → BOM vigente → estoque/reservas → MRP → compras/lead times → fluxos paralelos (fibra, cubas, esquadrias, PIR) → EL → montagem → qualidade → expedição`. Aumento de demanda não prova aumento de produtividade. Não converter volume planejado em realizado.
+
+Para cada modelo, multiplicar apenas quantidades de componentes comprovadas pela BOM aplicável, com versão, unidade, vigência e aliases resolvidos. Não assumir que todos os modelos consomem telhas, cubas ou esquadrias iguais. A demanda total de 300 módulos sem mix validado não autoriza explosão definitiva de materiais.
+
+### 35.2 Capacidade e percepção sistêmica
+
+Distinguir `NOMINAL`, `EXTRAORDINARIA_CONDICIONADA`, `OBSERVADA`, `REALIZADA` e `EFETIVA`. A capacidade completa é limitada pela primeira restrição aplicável ao mix e horizonte, não apenas pela estrutura. Não usar `min` de unidades heterogêneas sem converter por BOM e disponibilidade temporal comprovadas.
+
+Referências operacionais recebidas para reconciliação com registros vigentes:
+- estrutura nominal: 4 estruturas/dia;
+- montagem nominal: 4 módulos/dia, até 6/dia em recuperação **somente com condições verificadas**;
+- fibra: referência anterior de 4 telhas/dia; menção posterior de aumento para 6 telhas/dia exige confirmação de vigência, equipe, turno e evidência;
+- cubas: referência de 3/dia, dependente de mix;
+- EL: mínimo 3, alvo 4, máximo 5, sujeitos a confirmação de vigência operacional;
+- corte/dobra: referência aproximada de 7 kits/chapa, requer medição/rendimento aplicável.
+
+**CONFLITO-PCS-CAP-001:** fonte histórica da planilha/Forge pode indicar montagem 6/dia como padrão, enquanto o contexto operacional distingue nominal 4/dia e recuperação 6/dia. Não sobrescrever nem promover sem reconciliação de período, turno, equipe e escopo. **CONFLITO-PCS-FIBRA-001:** 4 versus 6 telhas/dia; 6 é candidato de capacidade ampliada, não baseline comprovado. Registrar ambos com fonte e vigência, sem eleger vencedor silenciosamente.
+
+### 35.3 EL, eventos e primeira ruptura
+
+`EL_PROJETADO(D) = EL_INICIAL + LIBERACOES_ACUMULADAS_ATE_D - CONSUMOS_ACUMULADOS_ATE_D`, usando eventos reais e cronologia comprovada. Estrutura soldada/pintada não integra EL antes de cura, inspeção e liberação aplicáveis. Montagem realizável não excede EL liberado antes do consumo.
+
+`FIRST_CONSTRAINT_DATE` é a primeira data futura com déficit comprovável por recurso, material, EL, equipe, fluxo paralelo ou qualidade. Se datas ou unidades faltarem, retornar `RESPOSTA_PARCIAL` e a evidência faltante, não inventar a data.
+
+### 35.4 Alternativas propostas pelo Orquestrador
+
+Para demanda crescente, produzir alternativas condicionais e rastreáveis: reprogramar mix e lotes, antecipar abastecimento, comparar estoque utilizável com necessidades, propor compras sujeitas a lead time, aumentar turno/equipe somente com parâmetros e autorização comprovados, revisar sincronização de fibra/PIR/esquadrias/cubas, ou ativar recuperação documentada. Cada alternativa explicita ganho estimado **somente se calculável**, recurso restritivo remanescente, risco, evidência, custo quando comprovado, responsável/autoridade e gate de aprovação.
+
+**Proibido:** criar automaticamente pedidos, contratar pessoas, mudar produtividade canônica, alterar BOM/estoque, liberar EL, aprovar qualidade ou promover experiência ao Core. Preservar tenant, RLS e provenance.
+
+### 35.5 Contrato de decisão e validação
+
+Entrada: demanda e período, mix, BOM e aliases, disponibilidade temporal, equipes/turnos, capacidades por escopo, eventos de liberação e evidências. Saída: `FATO | HIPOTESE | CONFLITO | GAP`, alternativas, gargalo, primeira ruptura quando demonstrável, impacto, condição de aplicabilidade e `canonical_mutation=false` até autorização externa.
+
+Casos obrigatórios de regressão:
+1. EL=2, montagem planejada=4: realizável <=2.
+2. EL=5, recuperação planejada=6: realizável <=5 sem liberação anterior ao consumo.
+3. EL=6, recuperação=6: verificar demais recursos; não declarar 6 automaticamente.
+4. Estrutura=4, montagem=4, fibra=2: <=2 **somente** se o mix exigir uma telha por módulo e não houver estoque utilizável.
+5. 20 módulos, 5 exigem cuba: demanda de cuba deriva apenas dos 5 e da BOM.
+6. PIR40 e MAT-PIR-40: consolidar somente com alias canônico comprovado.
+7. Kit de alumínio para porta não equivale a porta social.
+8. Cura termina amanhã: EL não cresce hoje sem evento de liberação.
+9. Estoque suficiente: compra líquida zero se reservas e demais regras permitirem.
+10. Consumo unitário ausente: bloquear pedido definitivo.
+11. Capacidade de fibra 4 versus 6: expor conflito e vigência; não selecionar silenciosamente.
+12. Aumento de colaboradores sem produtividade observada: propor avaliação, não inferir ganho linear.
+
+**Rastreabilidade:** regra operacional ↔ conhecimento Forge contextual ↔ entidade Supabase ↔ dado/versão ↔ cálculo ↔ proposta do Orquestrador ↔ evidência ↔ Evolution Gate. O Forge preserva experiência e contexto, não substitui autoridade operacional.
