@@ -276,7 +276,10 @@ def assess_capacity_expansion(
             )
         )
 
-    status = ("EXPANSAO_BLOQUEADA" if missing_model_boms else
+    unresolved_material_evidence = any(
+        item.status in {"BOM_INCOMPLETA", "ESTOQUE_NAO_LOCALIZADO"} for item in mix
+    )
+    status = ("EXPANSAO_BLOQUEADA" if missing_model_boms or unresolved_material_evidence else
               "SEM_EXPANSAO_NECESSARIA" if capacity_gap == 0 and not actions else
               "PLANO_EXPANSAO_GOVERNADO")
     return CapacityExpansionAssessment(systemic, mix, tuple(actions), status, missing_model_boms=missing_model_boms)
