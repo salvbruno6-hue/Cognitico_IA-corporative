@@ -129,3 +129,145 @@ def test_grant_issuance_uses_recipient_session_and_fails_closed() -> None:
     assert "identity_id:binding.identity_id,session_id:session.session.session_id" not in issuer
     assert 'issued_by_identity_id:auth.identity.identity_id' in issuer
     assert 'audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW"' in issuer
+
+
+def test_grant_resolver_behavior_with_isolated_supabase() -> None:
+    """Execute the actual TS grant resolver under Node with a fake Supabase API.
+
+    Unlike source-assertion tests, this executes the implementation on allowed
+    and denied grants. No live credential, network connection or write is used.
+    """
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    assert node is not None, "Node is required for security behavior tests"
+    resolver = "async function resolveAuthorizationGrant(" + AUTHZ.split(
+        "async function resolveAuthorizationGrant(", 1
+    )[1].split("\nDeno.serve(", 1)[0]
+    # The existing function has a small, known TS-only surface.
+    assert resolver.count(":string") == 7
+    assert resolver.count("(g:any)") == 1
+    resolver = (
+        resolver.replace(":string", "")
+        .replace("(g:any)", "(g)")
+        .replace(" as Record<string,unknown>", "")
+        .replace(" as const", "")
+    )
+    harness = r"""
+const assert = require("node:assert/strict");
+const now = Date.now();
+const base = {
+  grant_id:"grant1", binding_id:"binding1", identity_id:"identityA",
+  session_id:"sessionA", authorization_state:"elo-execution-authorized",
+  operation:"execute", repository_full_name:"org/repo",
+  issued_at:new Date(now-60000).toISOString(),
+  expires_at:new Date(now+60000).toISOString(), revoked_at:null,
+  metadata:{resource_id:"resourceA",tenant_id:"tenantA"}
+};
+const binding = {
+  binding_id:"binding1",identity_id:"identityA",
+  repository_full_name:"org/repo",active:true,
+  github_user_id:123,github_login:"user",operation_class:"execute"
+};
+let tables = {};
+let dbErrors = {};
+class Query {
+  constructor(name) { this.name = name; this.filters = []; }
+  select() { return this; }
+  eq(key,value) { this.filters.push([key,value]); return this; }
+  is(key,value) { this.filters.push([key,value]); return this; }
+  order() { return this; }
+  _rows() {
+    return (tables[this.name]||[]).filter(row =>
+      this.filters.every(([key,value]) => row[key] === value)
+    );
+  }
+  limit(n) {
+    const error = dbErrors[this.name] || null;
+    return Promise.resolve({data:error?null:this._rows().slice(0,n),error});
+  }
+  maybeSingle() {
+    const error = dbErrors[this.name] || null;
+    return Promise.resolve({data:error?null:(this._rows()[0]||null),error});
+  }
+}
+const supabase = {from:(name)=>new Query(name)};
+function isObjectiveContinuation(operation) {
+  return operation.startsWith("continue_objective:");
+}
+async function check(label, config={},expected=null) {
+  tables = {
+    elo_authorization_grants:config.noGrant ? [] : [{
+      ...base,...(config.grant||{})
+    }],
+    elo_operator_github_bindings:config.noBinding ? [] : [{
+      ...binding,...(config.binding||{})
+    }]
+  };
+  dbErrors = config.errors || {};
+  const args = {
+    identityId:"identityA",sessionId:"sessionA",
+    state:"elo-execution-authorized",operation:"execute",
+    repository:"org/repo",resourceId:"resourceA",tenantId:"tenantA",
+    ...(config.args||{})
+  };
+  const result = await resolveAuthorizationGrant(
+    args.identityId,args.sessionId,args.state,args.operation,
+    args.repository,args.resourceId,args.tenantId
+  );
+  if (expected === null) {
+    assert.equal(result.ok,true,label+": "+JSON.stringify(result));
+    assert.equal(result.grant.grant_id,"grant1",label);
+    assert.equal(result.binding.binding_id,"binding1",label);
+  } else {
+    assert.equal(result.ok,false,label);
+    assert.equal(result.reason,expected,label);
+  }
+}
+(async () => {
+  await check("valid same identity and session");
+  await check("valid objective scope",{
+    grant:{operation:"continue_objective:resourceA"},
+    args:{operation:"continue_objective:resourceA"}
+  });
+  const denied = "authorization_state_not_granted";
+  await check("wrong session",{args:{sessionId:"sessionB"}},denied);
+  await check("missing grant session",{grant:{session_id:null}},denied);
+  await check("wrong recipient identity",{args:{identityId:"identityB"}},denied);
+  await check("wrong resource",{args:{resourceId:"resourceB"}},denied);
+  await check("missing resource metadata",{grant:{metadata:{}}},denied);
+  await check("wrong repository",{args:{repository:"other/repo"}},denied);
+  await check("wrong state",{args:{state:"elo-commit-authorized"}},denied);
+  await check("wrong operation",{args:{operation:"merge"}},denied);
+  await check("expired",{grant:{expires_at:new Date(now-1000).toISOString()}},denied);
+  await check("not yet issued",{grant:{issued_at:new Date(now+1000).toISOString()}},denied);
+  await check("revoked",{grant:{revoked_at:new Date(now-1000).toISOString()}},denied);
+  await check("missing grant",{noGrant:true},denied);
+  await check("objective wrong tenant",{
+    grant:{operation:"continue_objective:resourceA"},
+    args:{operation:"continue_objective:resourceA",tenantId:"tenantB"}
+  },denied);
+  await check("objective missing tenant",{
+    grant:{operation:"continue_objective:resourceA"},
+    args:{operation:"continue_objective:resourceA",tenantId:""}
+  },denied);
+  await check("binding inactive",{binding:{active:false}},"operator_binding_inactive");
+  await check("binding wrong identity",{binding:{identity_id:"identityB"}},"operator_binding_inactive");
+  await check("binding wrong repo",{binding:{repository_full_name:"other/repo"}},"operator_binding_inactive");
+  await check("binding missing",{noBinding:true},"operator_binding_inactive");
+  await check("lookup failure",{errors:{elo_authorization_grants:{message:"db"}}},"authorization_grant_lookup_failed");
+  await check("binding lookup failure",{errors:{elo_operator_github_bindings:{message:"db"}}},"operator_binding_lookup_failed");
+  await check("unsupported state",{args:{state:"unknown"}},"authorization_state_not_supported");
+  process.stdout.write("23 grant resolver behavior cases passed\n");
+})().catch(error=>{console.error(error);process.exitCode=1});
+"""
+    result = subprocess.run(
+        [node, "-e", resolver + "\n" + harness],
+        capture_output=True,
+        text=True,
+        timeout=25,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "23 grant resolver behavior cases passed" in result.stdout
