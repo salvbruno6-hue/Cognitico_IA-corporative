@@ -506,3 +506,98 @@ class GovernedOrchestrator:
             selection=selection,
             outcome=outcome,
         )
+
+
+    def invoke_external_skill(
+        self,
+        request: OrchestrationRequest,
+        *,
+        skill_id: str,
+        approved_skill_ids: frozenset[str],
+        executor,
+        catalog=None,
+        symbiont_runtime=None,
+    ):
+        """Use an explicitly approved external skill through ELO ExecutionBoundary.
+
+        The external catalog supplies instructions as untrusted reference data.
+        Only an injected, already-governed executor can perform the bounded task.
+        This method does not route models, install plugins, or create policies.
+        """
+        from elo.agent_intake.mattpocock_catalog import ExternalSkillCatalog
+        from elo.core.execution_boundary import (
+            ExecutionOutcome, ExecutionRequest, ExecutionStatus, execute_governed,
+        )
+        from elo.cognitive.symbiont_skill_runtime import SymbiontSkillRuntime
+
+        catalog = catalog or ExternalSkillCatalog()
+        reference = catalog.read(skill_id)
+        auth = request.authorization
+        is_allowed = (
+            skill_id in approved_skill_ids
+            and auth is not None
+            and auth.is_transport_valid()
+            and auth.identity_id == request.principal_id
+            and auth.resource_id == skill_id
+            and bool(request.tenant_id)
+            and bool(request.principal_id)
+            and bool(request.domain)
+            and bool(request.objective)
+            and bool(request.request_id)
+            and bool(request.correlation_id)
+            and bool(request.evidence_ids)
+            and callable(executor)
+        )
+        if not is_allowed:
+            return ExternalSkillInvocation(
+                reference,
+                ExecutionOutcome(
+                    request_id=request.request_id,
+                    status=ExecutionStatus.BLOCKED,
+                    executed=False,
+                    reason="external_skill_requires_explicit_canonical_approval_and_scope",
+                    provenance={"execution": "not_attempted", "source_commit": reference.source_commit},
+                    evidence_ids=request.evidence_ids,
+                    correlation_id=request.correlation_id,
+                    authorization_id=auth.grant_id if auth else None,
+                ),
+                None,
+            )
+
+        class BoundedExternalSkillAdapter:
+            def execute(self, execution_request):
+                response = executor(reference, execution_request)
+                if not isinstance(response, dict) or not str(response.get("runtime_evidence_ref") or "").strip():
+                    raise ValueError("external skill execution requires traceable runtime evidence")
+                return {str(key): str(value) for key, value in response.items()}
+
+        outcome = execute_governed(
+            ExecutionRequest(
+                request_id=request.request_id,
+                tenant_id=request.tenant_id,
+                principal_id=request.principal_id,
+                action_id=skill_id,
+                authorization_id=auth.grant_id,
+                evidence_ids=request.evidence_ids,
+                correlation_id=request.correlation_id,
+                decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
+            ),
+            BoundedExternalSkillAdapter(),
+        )
+        observer = symbiont_runtime or SymbiontSkillRuntime()
+        observed = observer.observe_external_skill_invocation(
+            reference,
+            outcome,
+            tenant_id=request.tenant_id,
+            domain=request.domain,
+        )
+        return ExternalSkillInvocation(reference, outcome, observed)
+
+
+@dataclass(frozen=True)
+class ExternalSkillInvocation:
+    """Execution outcome and advisory Symbiont classification, no promotion."""
+
+    reference: "ExternalSkillReference"
+    outcome: "ExecutionOutcome"
+    symbiont_decision: "PatternIntakeDecision | None"
