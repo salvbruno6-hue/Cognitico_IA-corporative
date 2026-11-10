@@ -125,10 +125,13 @@ def test_grant_issuance_uses_recipient_session_and_fails_closed() -> None:
     assert 'reason:"target_elo_session_unavailable"' in issuer
     assert 'reason:"authorization_audit_write_failed"' in issuer
     assert 'targetSession.reason==="session_lookup_failed"?503:403' in issuer
-    assert "identity_id:binding.identity_id,session_id:targetSession.session.session_id" in issuer
-    assert "identity_id:binding.identity_id,session_id:session.session.session_id" not in issuer
-    assert 'issued_by_identity_id:auth.identity.identity_id' in issuer
-    assert 'audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW"' in issuer
+    assert "p_identity_id:binding.identity_id" in issuer
+    assert "p_session_id:targetSession.session.session_id" in issuer
+    assert "p_issued_by_identity_id:auth.identity.identity_id" in issuer
+    assert "p_issuer_session_id:session.session.session_id" in issuer
+    assert 'supabase.rpc("elo_atomic_issue_authorization_grant"' in issuer
+    assert 'supabase.from("elo_authorization_grants").insert' not in issuer
+    assert 'audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW"' not in issuer
 
 
 def test_grant_resolver_behavior_with_isolated_supabase() -> None:
@@ -329,6 +332,30 @@ async function audit(identityId,sessionId,kind,repo,decision,reason,id) {
   if(config.auditError===decision) throw Error("audit failed");
 }
 const supabase={
+  // Simulated RPC contract; SQL transaction rollback itself requires
+  // a PostgreSQL integration test before production promotion.
+  async rpc(name,args) {
+    assert.equal(name,"elo_atomic_issue_authorization_grant");
+    if(config.insertError||config.auditError==="ALLOW") {
+      return {data:null,error:{message:"transaction rejected"}};
+    }
+    const payload={
+      binding_id:args.p_binding_id,identity_id:args.p_identity_id,
+      session_id:args.p_session_id,
+      authorization_state:args.p_authorization_state,
+      operation:args.p_operation,repository_full_name:args.p_repository_full_name,
+      issued_by_identity_id:args.p_issued_by_identity_id,
+      request_id:args.p_request_id,expires_at:args.p_expires_at,
+      metadata:args.p_metadata
+    };
+    inserts.push(payload);
+    audits.push({
+      identityId:args.p_issued_by_identity_id,
+      sessionId:args.p_issuer_session_id,
+      decision:"ALLOW"
+    });
+    return {data:{grant_id:"grant-1",...payload},error:null};
+  },
   from(table) {
     if(table==="elo_operator_github_bindings") {
       const filters=[];
@@ -339,32 +366,17 @@ const supabase={
           if(config.bindingLookupError) {
             return {data:null,error:{message:"binding error"}};
           }
-          const binding = {
-            binding_id:"binding-1", identity_id:config.recipientId||"recipient",
+          const binding={
+            binding_id:"binding-1",identity_id:config.recipientId||"recipient",
             repository_full_name:"org/repo",active:true,
             github_user_id:123,github_login:"recipient",operation_class:"execute"
           };
-          const valid=filters.every(([k,v]) => binding[k]===v);
+          const valid=filters.every(([k,v])=>binding[k]===v);
           return {data:!config.noBinding&&valid?binding:null,error:null};
         }
       };
     }
-    if(table==="elo_authorization_grants") {
-      return {
-        insert(payload) {
-          inserts.push(payload);
-          return {
-            select() {return this;},
-            async single() {
-              return config.insertError
-                ? {data:null,error:{message:"insert failed"}}
-                : {data:{grant_id:"grant-1",...payload},error:null};
-            }
-          };
-        }
-      };
-    }
-    throw Error("Unexpected table: "+table);
+    throw Error("Direct grant writes are prohibited: "+table);
   }
 };
 let count=0;
@@ -442,6 +454,7 @@ async function check(label,overrides={},expectedStatus=200,expectedReason=null) 
     operation:"continue_objective:objective-A",resource_id:"objective-A",tenant_id:"tenantA"
   }},503,"scope_lookup_failed");
   await check("insert fails",{insertError:true},503,"authorization_grant_create_failed");
+  await check("atomic audit failure",{auditError:"ALLOW"},503,"authorization_grant_create_failed");
   process.stdout.write(count+" grant issuance behavior cases passed\n");
 })().catch(err=>{console.error(err);process.exitCode=1});
 """
@@ -453,4 +466,4 @@ async function check(label,overrides={},expectedStatus=200,expectedReason=null) 
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
-    assert "23 grant issuance behavior cases passed" in result.stdout
+    assert "24 grant issuance behavior cases passed" in result.stdout

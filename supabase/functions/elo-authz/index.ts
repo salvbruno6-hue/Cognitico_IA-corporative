@@ -421,18 +421,38 @@ Deno.serve(async(req:Request)=>{
     }
 
     const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
-    const grantMetadata:Record<string,unknown>={issuer_role:"CANONICAL_ADMIN",resource_id:resourceId};
+    const grantMetadata:Record<string,unknown>={
+      issuer_role:"CANONICAL_ADMIN",resource_id:resourceId,expires_in_seconds:expiresIn
+    };
     if(continuation)grantMetadata.tenant_id=tenantId;
-    const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
-      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:targetSession.session.session_id,
-      authorization_state:state,operation,repository_full_name:repository,
-      issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
-      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:grantMetadata
-    }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at,metadata").single();
-    if(error||!grant)return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
 
-    try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_issued_authorization_state",requestId);}
-    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+    // A single database RPC persists the grant AND its ALLOW audit atomically.
+    // If the migration is absent, the RPC fails closed without creating a grant.
+    const {data:grantData,error:grantError}=await supabase.rpc("elo_atomic_issue_authorization_grant",{
+      p_binding_id:binding.binding_id,
+      p_identity_id:binding.identity_id,
+      p_session_id:targetSession.session.session_id,
+      p_authorization_state:state,
+      p_operation:operation,
+      p_repository_full_name:repository,
+      p_issued_by_identity_id:auth.identity.identity_id,
+      p_issuer_session_id:session.session.session_id,
+      p_request_id:requestId,
+      p_expires_at:expiresAt,
+      p_metadata:grantMetadata
+    });
+    const grant=Array.isArray(grantData)?grantData[0]:grantData;
+    if(grantError||!grant
+      || String(grant.identity_id)!==String(binding.identity_id)
+      || String(grant.session_id)!==String(targetSession.session.session_id)
+      || String(grant.issued_by_identity_id)!==String(auth.identity.identity_id)
+      || String(grant.request_id)!==requestId
+      || String(grant.repository_full_name)!==repository
+      || String(grant.authorization_state)!==state
+      || String(grant.operation)!==operation
+      || String(grant.metadata?.resource_id)!==resourceId
+    )return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
+
     return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding,resource_id:resourceId,tenant_id:tenantId||null,evidence_ref:`elo-authz:${requestId}`});
   }
 
