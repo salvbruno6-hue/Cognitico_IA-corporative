@@ -271,3 +271,186 @@ async function check(label, config={},expected=null) {
     )
     assert result.returncode == 0, result.stderr or result.stdout
     assert "23 grant resolver behavior cases passed" in result.stdout
+
+
+def test_grant_issuance_behavior_with_isolated_supabase() -> None:
+    """Execute the actual ELO grant-issuance branch with controlled data stores.
+
+    This tests issuance logic, not HTTP authentication or a live Supabase
+    endpoint. It must never access production or create a real grant.
+    """
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    assert node is not None, "Node is required for the authorization security suite"
+    issuer = "    const bindingId=typeof body.binding_id" + AUTHZ.split(
+        "    const bindingId=typeof body.binding_id", 1
+    )[1].split('  if(action==="portal_access")', 1)[0]
+    assert issuer.rstrip().endswith("}")
+    # Remove the enclosing action branch's closing brace.
+    issuer = issuer.rstrip().rsplit("\n  }", 1)[0]
+    assert issuer.count("const grantMetadata:Record<string,unknown>") == 1
+    issuer = issuer.replace(
+        "const grantMetadata:Record<string,unknown>", "const grantMetadata"
+    )
+    javascript = "async function issueGrant() {\n" + issuer + "\n}\n"
+    harness = r"""
+const assert = require("node:assert/strict");
+const auth = {identity:{identity_id:"admin"}};
+const session = {session:{session_id:"admin-session"}};
+const action = "issue_authorization_grant";
+const repository = "org/repo";
+const requestId = "request-1";
+let body, config, inserts, audits, targetLookups, scopesLookups;
+function json(value,status=200) { return {value,status}; }
+function isObjectiveContinuation(operation) {
+  return operation.startsWith("continue_objective:");
+}
+function hasEnterpriseTenantScope(scopes,tenantId) {
+  return scopes.some(scope => scope.tenant === tenantId);
+}
+async function getScopes(identityId) {
+  scopesLookups.push(identityId);
+  return config.scopeError
+    ? {ok:false,reason:"scope_lookup_failed"}
+    : {ok:true,scopes:[{tenant:"tenantA"}]};
+}
+async function resolveActiveSession(identityId) {
+  targetLookups.push(identityId);
+  if(config.noSession) return {ok:false,reason:"active_elo_session_required"};
+  if(config.sessionLookupError) return {ok:false,reason:"session_lookup_failed"};
+  return {ok:true,session:{session_id:
+    identityId === "admin" ? "admin-session" : "recipient-session"
+  }};
+}
+async function audit(identityId,sessionId,kind,repo,decision,reason,id) {
+  audits.push({identityId,sessionId,kind,repo,decision,reason,id});
+  if(config.auditError===decision) throw Error("audit failed");
+}
+const supabase={
+  from(table) {
+    if(table==="elo_operator_github_bindings") {
+      const filters=[];
+      return {
+        select() {return this;},
+        eq(k,v) {filters.push([k,v]);return this;},
+        async maybeSingle() {
+          if(config.bindingLookupError) {
+            return {data:null,error:{message:"binding error"}};
+          }
+          const binding = {
+            binding_id:"binding-1", identity_id:config.recipientId||"recipient",
+            repository_full_name:"org/repo",active:true,
+            github_user_id:123,github_login:"recipient",operation_class:"execute"
+          };
+          const valid=filters.every(([k,v]) => binding[k]===v);
+          return {data:!config.noBinding&&valid?binding:null,error:null};
+        }
+      };
+    }
+    if(table==="elo_authorization_grants") {
+      return {
+        insert(payload) {
+          inserts.push(payload);
+          return {
+            select() {return this;},
+            async single() {
+              return config.insertError
+                ? {data:null,error:{message:"insert failed"}}
+                : {data:{grant_id:"grant-1",...payload},error:null};
+            }
+          };
+        }
+      };
+    }
+    throw Error("Unexpected table: "+table);
+  }
+};
+let count=0;
+async function check(label,overrides={},expectedStatus=200,expectedReason=null) {
+  config=overrides;
+  body={
+    binding_id:"binding-1",authorization_state:"elo-execution-authorized",
+    operation:"execute",resource_id:"resource-A",tenant_id:"",
+    expires_in_seconds:600,...(config.body||{})
+  };
+  inserts=[];audits=[];targetLookups=[];scopesLookups=[];
+  const result=await issueGrant();
+  assert.equal(result.status,expectedStatus,label+": "+JSON.stringify(result));
+  assert.equal(result.value.authorized,expectedStatus===200,label);
+  if(expectedReason!==null) assert.equal(result.value.reason,expectedReason,label);
+  if(expectedStatus===200) {
+    assert.equal(inserts.length,1,label);
+    assert.equal(inserts[0].identity_id,config.recipientId||"recipient",label);
+    assert.equal(inserts[0].session_id,
+      config.recipientId==="admin"?"admin-session":"recipient-session",label);
+    assert.equal(inserts[0].issued_by_identity_id,"admin",label);
+    assert.equal(inserts[0].metadata.resource_id,body.resource_id,label);
+    assert.equal(inserts[0].metadata.issuer_role,"CANONICAL_ADMIN",label);
+    assert.equal(result.value.authorization_authority,"elo-authz",label);
+    assert.equal(audits.length,1,label);
+    assert.equal(audits[0].decision,"ALLOW",label);
+    assert.equal(audits[0].identityId,"admin",label);
+    assert.equal(audits[0].sessionId,"admin-session",label);
+    assert.deepEqual(targetLookups,[config.recipientId||"recipient"],label);
+    assert.ok(Date.parse(inserts[0].expires_at)>Date.now(),label);
+  }
+  if(config.noSession||config.sessionLookupError) {
+    assert.equal(inserts.length,0,label);
+    assert.equal(audits.length,1,label);
+    assert.equal(audits[0].decision,"DENY",label);
+  }
+  if(config.noBinding||config.bindingLookupError||config.scopeError) {
+    assert.equal(inserts.length,0,label);
+    assert.equal(targetLookups.length,0,label);
+  }
+  count+=1;
+}
+(async()=>{
+  await check("admin issues to another identity");
+  await check("admin self-issuance",{recipientId:"admin"});
+  await check("commit authorization",{body:{authorization_state:"elo-commit-authorized",operation:"commit"}});
+  await check("merge authorization",{body:{authorization_state:"elo-merge-authorized",operation:"merge"}});
+  await check("minimum expiry",{body:{expires_in_seconds:60}});
+  await check("maximum expiry",{body:{expires_in_seconds:86400}});
+  await check("continuation with correct scope",{body:{
+    authorization_state:"elo-execution-authorized",
+    operation:"continue_objective:objective-A",resource_id:"objective-A",tenant_id:"tenantA"
+  }});
+  await check("no active recipient session",{noSession:true},403,"target_elo_session_unavailable");
+  await check("recipient session lookup failure",{sessionLookupError:true},503,"target_elo_session_unavailable");
+  await check("audit DENY failure remains closed",{noSession:true,auditError:"DENY"},503,"authorization_audit_write_failed");
+  await check("missing binding",{noBinding:true},403,"operator_binding_inactive");
+  await check("binding lookup failure",{bindingLookupError:true},503,"operator_binding_lookup_failed");
+  await check("no binding id",{body:{binding_id:""}},400,"binding_state_operation_expiry_required");
+  await check("no resource",{body:{resource_id:""}},400,"binding_state_operation_expiry_required");
+  await check("unknown state",{body:{authorization_state:"unknown"}},400,"authorization_state_not_supported");
+  await check("under minimum expiry",{body:{expires_in_seconds:59}},400,"binding_state_operation_expiry_required");
+  await check("over maximum expiry",{body:{expires_in_seconds:86401}},400,"binding_state_operation_expiry_required");
+  await check("fractional expiry",{body:{expires_in_seconds:60.5}},400,"binding_state_operation_expiry_required");
+  await check("continuation without tenant",{body:{
+    operation:"continue_objective:objective-A",resource_id:"objective-A",tenant_id:""
+  }},400,"binding_state_operation_resource_tenant_expiry_required");
+  await check("continuation mismatched objective",{body:{
+    operation:"continue_objective:objective-B",resource_id:"objective-A",tenant_id:"tenantA"
+  }},400,"objective_continuation_grant_mismatch");
+  await check("continuation lacks recipient tenant scope",{body:{
+    operation:"continue_objective:objective-A",resource_id:"objective-A",tenant_id:"tenantB"
+  }},403,"enterprise_tenant_scope_not_granted");
+  await check("continuation scope lookup failure",{scopeError:true,body:{
+    operation:"continue_objective:objective-A",resource_id:"objective-A",tenant_id:"tenantA"
+  }},503,"scope_lookup_failed");
+  await check("insert fails",{insertError:true},503,"authorization_grant_create_failed");
+  process.stdout.write(count+" grant issuance behavior cases passed\n");
+})().catch(err=>{console.error(err);process.exitCode=1});
+"""
+    result = subprocess.run(
+        [node, "-e", javascript + harness],
+        capture_output=True,
+        text=True,
+        timeout=25,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "23 grant issuance behavior cases passed" in result.stdout
