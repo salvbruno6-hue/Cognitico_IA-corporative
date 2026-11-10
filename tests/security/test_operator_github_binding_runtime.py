@@ -43,7 +43,11 @@ def test_canonical_issuer_is_required_for_binding_and_grants():
     assert 'action==="create_operator_binding" || action==="issue_authorization_grant"' in AUTHZ
     assert 'auth.roles.includes("CANONICAL_ADMIN")' in AUTHZ
     assert "canonical_admin_created_operator_binding" in AUTHZ
-    assert "canonical_admin_issued_authorization_state" in AUTHZ
+    atomic_sql = (ROOT / "supabase/migrations/20261110185000_elo_atomic_grant_audit_rpc.sql").read_text(encoding="utf-8")
+    # Grant ALLOW is audited in the same DB transaction, not by a second
+    # non-atomic Edge Function API call.
+    assert "canonical_admin_issued_authorization_state" in atomic_sql
+    assert 'supabase.rpc("elo_atomic_issue_authorization_grant"' in AUTHZ
     assert "expires_in_seconds" in AUTHZ
     assert "86400" in AUTHZ
 
@@ -72,7 +76,8 @@ def test_collaborator_has_no_github_binding_by_definition():
 def test_authorization_grant_is_resource_bound() -> None:
     assert 'const metadataResourceId=String(metadata.resource_id??"").trim();' in AUTHZ
     assert 'metadataResourceId===resourceId' in AUTHZ
-    assert 'grantMetadata:Record<string,unknown>={issuer_role:"CANONICAL_ADMIN",resource_id:resourceId}' in AUTHZ
+    assert 'issuer_role:"CANONICAL_ADMIN",resource_id:resourceId,expires_in_seconds:expiresIn' in AUTHZ
+    assert 'p_metadata:grantMetadata' in AUTHZ
     assert 'resource_id:resourceId' in AUTHZ
     assert "evidence_ref" in AUTHZ
 
