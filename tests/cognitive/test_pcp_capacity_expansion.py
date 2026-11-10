@@ -155,3 +155,69 @@ def test_evidenced_labor_cause_and_marginal_gain_allow_conditional_headcount():
     action = next(a for a in result.actions if a.target == "ESTRUTURA")
     assert action.calculated_workers == 2
     assert result.canonical_mutation is False
+
+
+def test_missing_component_stock_blocks_executable_expansion():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4},
+        bom_by_model={"M01": {"PIR40": 14}},
+    )
+    assert result.status == "EXPANSAO_BLOQUEADA"
+    assert any(
+        action.target == "PIR40" and action.action == "CONSULTAR_ESTOQUE"
+        for action in result.actions
+    )
+    assert result.canonical_mutation is False
+
+
+def test_unverified_bom_consumption_blocks_executable_expansion():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4},
+        bom_by_model={"M01": {"TELHA_FIBRA": None}},
+        available_components={"TELHA_FIBRA": 10},
+    )
+    assert result.status == "EXPANSAO_BLOQUEADA"
+    assert any(
+        action.target == "TELHA_FIBRA"
+        and action.action == "BLOQUEAR_QUANTIDADE_E_VALIDAR_BOM"
+        for action in result.actions
+    )
+    assert result.canonical_mutation is False
+
+
+def test_confirmed_material_coverage_does_not_block_plan():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4},
+        bom_by_model={"M01": {"PIR40": 14}},
+        available_components={"PIR40": 56},
+    )
+    assert result.status == "SEM_EXPANSAO_NECESSARIA"
+
+
+def test_zero_consumption_does_not_require_stock_to_release_expansion():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4},
+        bom_by_model={"M01": {"PIR40": 14, "CUBA_P": 0}},
+        available_components={"PIR40": 56},
+    )
+    assert result.status == "SEM_EXPANSAO_NECESSARIA"
+    assert result.canonical_mutation is False
+
+
+def test_zero_demand_model_does_not_require_stock_for_unused_component():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4, "M02": 0},
+        bom_by_model={"M01": {"PIR40": 14}, "M02": {"CUBA_P": 1}},
+        available_components={"PIR40": 56},
+    )
+    assert result.status == "SEM_EXPANSAO_NECESSARIA"

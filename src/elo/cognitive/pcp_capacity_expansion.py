@@ -213,7 +213,7 @@ def assess_capacity_expansion(
                     evidence_required=("consumo_unitario_validado",),
                 )
             )
-        elif requirement.status == "ESTOQUE_NAO_LOCALIZADO":
+        elif requirement.status == "ESTOQUE_NAO_LOCALIZADO" and requirement.gross_required is not None and requirement.gross_required > 0:
             actions.append(
                 CapacityExpansionAction(
                     target=requirement.component,
@@ -276,7 +276,12 @@ def assess_capacity_expansion(
             )
         )
 
-    status = ("EXPANSAO_BLOQUEADA" if missing_model_boms else
+    unresolved_material_evidence = any(
+        item.status == "BOM_INCOMPLETA"
+        or (item.status == "ESTOQUE_NAO_LOCALIZADO" and item.gross_required is not None and item.gross_required > 0)
+        for item in mix
+    )
+    status = ("EXPANSAO_BLOQUEADA" if missing_model_boms or unresolved_material_evidence else
               "SEM_EXPANSAO_NECESSARIA" if capacity_gap == 0 and not actions else
               "PLANO_EXPANSAO_GOVERNADO")
     return CapacityExpansionAssessment(systemic, mix, tuple(actions), status, missing_model_boms=missing_model_boms)
