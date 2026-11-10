@@ -85,6 +85,7 @@ def test_expansion_can_calculate_workers_only_when_increment_is_explicit():
         {"ESTRUTURA": 4, "MONTAGEM": 6, "FIBRA": 6},
         required_constraints=["ESTRUTURA", "MONTAGEM", "FIBRA"],
         worker_increment_capacity={"ESTRUTURA": 1},
+        labor_constrained_resources=["ESTRUTURA"],
     )
     action = next(item for item in result.actions if item.target == "ESTRUTURA")
     assert action.action == "AUMENTAR_CAPACIDADE_RECURSO"
@@ -118,3 +119,39 @@ def test_missing_required_capacity_blocks_expansion_instead_of_inferring():
 def test_invalid_negative_mix_demand_is_rejected():
     with pytest.raises(ValueError):
         explode_mix_requirements({"M01": -1}, {"M01": {"PIR40": 14}})
+
+
+def test_missing_model_bom_blocks_full_expansion_even_if_other_model_has_bom():
+    result = assess_capacity_expansion(
+        5,
+        {"ESTRUTURA": 5, "MONTAGEM": 5},
+        demand_by_model={"M01": 3, "M02": 2},
+        bom_by_model={"M01": {"PIR40": 14}},
+        available_components={"PIR40": 42},
+    )
+    assert result.status == "EXPANSAO_BLOQUEADA"
+    assert result.missing_model_boms == ("M02",)
+    assert any(a.target == "M02" and a.action == "LOCALIZAR_BOM_MODELO" for a in result.actions)
+
+
+def test_measured_increment_without_labor_causality_does_not_calculate_hiring():
+    result = assess_capacity_expansion(
+        6,
+        {"ESTRUTURA": 4, "MONTAGEM": 6},
+        worker_increment_capacity={"ESTRUTURA": 1},
+    )
+    action = next(a for a in result.actions if a.target == "ESTRUTURA")
+    assert action.action == "VALIDAR_CAUSA_MAO_DE_OBRA"
+    assert action.calculated_workers is None
+
+
+def test_evidenced_labor_cause_and_marginal_gain_allow_conditional_headcount():
+    result = assess_capacity_expansion(
+        6,
+        {"ESTRUTURA": 4, "MONTAGEM": 6},
+        labor_constrained_resources=["ESTRUTURA"],
+        worker_increment_capacity={"ESTRUTURA": 1},
+    )
+    action = next(a for a in result.actions if a.target == "ESTRUTURA")
+    assert action.calculated_workers == 2
+    assert result.canonical_mutation is False
