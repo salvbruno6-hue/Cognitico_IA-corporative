@@ -10,6 +10,7 @@ def test_purchase_and_capacity_changes_require_external_authorization():
         bom_by_model={"M01": {"PIR40": 14}},
         available_components={"PIR40": 70},
         worker_increment_capacity={"ESTRUTURA": 1},
+        labor_constrained_resources=["ESTRUTURA"],
     )
 
     actions = PCPCapacityOrchestratorBridge().orient(assessment)
@@ -28,3 +29,18 @@ def test_measurement_and_lookup_actions_are_consultative():
 
     actions = PCPCapacityOrchestratorBridge().orient(assessment)
     assert any(item.action == "LOCALIZAR_CAPACIDADE" and not item.authorization_required for item in actions)
+
+
+def test_unproven_labor_cause_remains_consultative_for_orchestrator():
+    assessment = assess_capacity_expansion(
+        6,
+        {"ESTRUTURA": 4, "MONTAGEM": 6},
+        worker_increment_capacity={"ESTRUTURA": 1},
+    )
+    actions = PCPCapacityOrchestratorBridge().orient(assessment)
+    assert any(
+        item.action == "VALIDAR_CAUSA_MAO_DE_OBRA"
+        and not item.authorization_required
+        and "causa_restricao_mao_de_obra" in item.evidence_required
+        for item in actions
+    )
