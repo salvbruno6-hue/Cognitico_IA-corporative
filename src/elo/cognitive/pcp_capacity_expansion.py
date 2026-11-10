@@ -213,7 +213,7 @@ def assess_capacity_expansion(
                     evidence_required=("consumo_unitario_validado",),
                 )
             )
-        elif requirement.status == "ESTOQUE_NAO_LOCALIZADO":
+        elif requirement.status == "ESTOQUE_NAO_LOCALIZADO" and requirement.gross_required is not None and requirement.gross_required > 0:
             actions.append(
                 CapacityExpansionAction(
                     target=requirement.component,
