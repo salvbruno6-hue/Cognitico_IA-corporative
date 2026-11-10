@@ -198,3 +198,26 @@ def test_confirmed_material_coverage_does_not_block_plan():
         available_components={"PIR40": 56},
     )
     assert result.status == "SEM_EXPANSAO_NECESSARIA"
+
+
+def test_zero_consumption_does_not_require_stock_to_release_expansion():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4},
+        bom_by_model={"M01": {"PIR40": 14, "CUBA_P": 0}},
+        available_components={"PIR40": 56},
+    )
+    assert result.status == "SEM_EXPANSAO_NECESSARIA"
+    assert result.canonical_mutation is False
+
+
+def test_zero_demand_model_does_not_require_stock_for_unused_component():
+    result = assess_capacity_expansion(
+        4,
+        {"ESTRUTURA": 4, "MONTAGEM": 4},
+        demand_by_model={"M01": 4, "M02": 0},
+        bom_by_model={"M01": {"PIR40": 14}, "M02": {"CUBA_P": 1}},
+        available_components={"PIR40": 56},
+    )
+    assert result.status == "SEM_EXPANSAO_NECESSARIA"
