@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-to-questionnaire"
+  short_description: "Manual ELO-governed source for to-questionnaire."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-implement"
+  short_description: "Manual ELO-governed source for implement."
+policy:
+  allow_implicit_invocation: false

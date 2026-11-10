@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-wayfinder"
+  short_description: "Manual ELO-governed source for wayfinder."
+policy:
+  allow_implicit_invocation: false

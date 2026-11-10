@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-chief-of-staff"
+  short_description: "Manual ELO-governed source for chief-of-staff."
+policy:
+  allow_implicit_invocation: false

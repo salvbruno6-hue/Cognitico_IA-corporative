@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-retro"
+  short_description: "Manual ELO-governed source for retro."
+policy:
+  allow_implicit_invocation: false

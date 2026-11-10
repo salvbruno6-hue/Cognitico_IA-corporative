@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-tdd"
+  short_description: "Manual ELO-governed source for tdd."
+policy:
+  allow_implicit_invocation: false

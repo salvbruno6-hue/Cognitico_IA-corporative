@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-prototype"
+  short_description: "Manual ELO-governed source for prototype."
+policy:
+  allow_implicit_invocation: false

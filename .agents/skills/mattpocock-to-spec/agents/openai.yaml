@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-to-spec"
+  short_description: "Manual ELO-governed source for to-spec."
+policy:
+  allow_implicit_invocation: false

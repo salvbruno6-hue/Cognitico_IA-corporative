@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-teach"
+  short_description: "Manual ELO-governed source for teach."
+policy:
+  allow_implicit_invocation: false
