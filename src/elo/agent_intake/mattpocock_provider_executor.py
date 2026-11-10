@@ -147,6 +147,20 @@ class MattPocockProviderExecutor:
         self.evidence_repository = evidence_repository
         self.allow_nonpromoted = allow_nonpromoted
 
+    def preflight_authorization(
+        self, reference: ExternalSkillReference, execution: ExecutionRequest
+    ) -> bool:
+        """Validate source/route plus the canonical live grant before execution."""
+        return (
+            reference.manual_only
+            and self.route.capability == reference.skill_id
+            and self.route.model_id is not None
+            and self.route.tool_id is None
+            and execution.action_id == reference.skill_id
+            and (reference.upstream_promoted or self.allow_nonpromoted)
+            and self.authz_verifier.verify(self.request, execution)
+        )
+
     def __call__(
         self,
         reference: ExternalSkillReference,

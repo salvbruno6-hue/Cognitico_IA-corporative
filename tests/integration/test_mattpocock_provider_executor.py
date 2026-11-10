@@ -144,7 +144,7 @@ def test_authz_mismatch_blocks_provider_without_side_effect(field):
         approved_skill_ids=frozenset({request.authorization.resource_id}),
         executor=executor, catalog=ExternalSkillCatalog(ROOT),
     )
-    assert result.outcome.status is ExecutionStatus.FAILED
+    assert result.outcome.status is ExecutionStatus.BLOCKED
     assert result.symbiont_decision is None
     assert provider.calls == []
 
@@ -157,7 +157,7 @@ def test_failed_authz_network_blocks_provider():
         approved_skill_ids=frozenset({request.authorization.resource_id}),
         executor=executor, catalog=ExternalSkillCatalog(ROOT),
     )
-    assert outcome.outcome.status is ExecutionStatus.FAILED
+    assert outcome.outcome.status is ExecutionStatus.BLOCKED
     assert provider.calls == []
 
 
@@ -169,7 +169,7 @@ def test_unpromoted_skill_requires_extra_admission_even_with_authz():
         approved_skill_ids=frozenset({request.authorization.resource_id}),
         executor=executor, catalog=ExternalSkillCatalog(ROOT),
     )
-    assert result.outcome.status is ExecutionStatus.FAILED
+    assert result.outcome.status is ExecutionStatus.BLOCKED
     assert provider.calls == []
 
 
@@ -196,7 +196,7 @@ def test_no_matching_model_route_prohibits_execution():
         approved_skill_ids=frozenset({request.authorization.resource_id}),
         executor=executor, catalog=ExternalSkillCatalog(ROOT),
     )
-    assert result.outcome.status is ExecutionStatus.FAILED
+    assert result.outcome.status is ExecutionStatus.BLOCKED
     assert provider.calls == []
 
 

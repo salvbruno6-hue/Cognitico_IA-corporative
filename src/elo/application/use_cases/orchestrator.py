@@ -571,19 +571,40 @@ class GovernedOrchestrator:
                     raise ValueError("external skill execution requires traceable runtime evidence")
                 return {str(key): str(value) for key, value in response.items()}
 
-        outcome = execute_governed(
-            ExecutionRequest(
-                request_id=request.request_id,
-                tenant_id=request.tenant_id,
-                principal_id=request.principal_id,
-                action_id=skill_id,
-                authorization_id=auth.grant_id,
-                evidence_ids=request.evidence_ids,
-                correlation_id=request.correlation_id,
-                decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
-            ),
-            BoundedExternalSkillAdapter(),
+        execution_request = ExecutionRequest(
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            principal_id=request.principal_id,
+            action_id=skill_id,
+            authorization_id=auth.grant_id,
+            evidence_ids=request.evidence_ids,
+            correlation_id=request.correlation_id,
+            decision_pattern_candidate_ref=request.decision_pattern_candidate_ref,
         )
+        # Provider-backed executors perform live elo-authz verification before
+        # the canonical ExecutionBoundary attempts any external side effect.
+        preflight = getattr(executor, "preflight_authorization", None)
+        if callable(preflight):
+            try:
+                verified = preflight(reference, execution_request) is True
+            except Exception:
+                verified = False
+            if not verified:
+                return ExternalSkillInvocation(
+                    reference,
+                    ExecutionOutcome(
+                        request_id=request.request_id,
+                        status=ExecutionStatus.BLOCKED,
+                        executed=False,
+                        reason="external_skill_live_elo_authz_not_verified",
+                        provenance={"execution": "not_attempted", "source_commit": reference.source_commit},
+                        evidence_ids=request.evidence_ids,
+                        correlation_id=request.correlation_id,
+                        authorization_id=auth.grant_id,
+                    ),
+                    None,
+                )
+        outcome = execute_governed(execution_request, BoundedExternalSkillAdapter())
         observer = symbiont_runtime or SymbiontSkillRuntime()
         observed = observer.observe_external_skill_invocation(
             reference,
