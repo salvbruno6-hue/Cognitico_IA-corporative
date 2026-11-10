@@ -277,7 +277,9 @@ def assess_capacity_expansion(
         )
 
     unresolved_material_evidence = any(
-        item.status in {"BOM_INCOMPLETA", "ESTOQUE_NAO_LOCALIZADO"} for item in mix
+        item.status == "BOM_INCOMPLETA"
+        or (item.status == "ESTOQUE_NAO_LOCALIZADO" and item.gross_required is not None and item.gross_required > 0)
+        for item in mix
     )
     status = ("EXPANSAO_BLOQUEADA" if missing_model_boms or unresolved_material_evidence else
               "SEM_EXPANSAO_NECESSARIA" if capacity_gap == 0 and not actions else
