@@ -304,7 +304,7 @@ function decisionResult(payload: Record<string, unknown>): GovernedPcpResult {
       suggestions: [suggestion],
       evidenceRefs: [],
       validationStatus: "PARTIAL_SUPPORTED",
-      policyDecision: "HUMAN_EVIDFNCE_REQUIRED",
+      policyDecision: "HUMAN_EVIDENCE_REQUIRED",
       metadata: { confidence_calibrated: false, must_not_infer: true },
     };
   }
