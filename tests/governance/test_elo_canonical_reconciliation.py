@@ -213,3 +213,147 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+
+def _make_existing_authz_owner(tmp_path: Path) -> None:
+    """Fixture for the pre-existing single authorization issuer."""
+    from automation.tasks.elo_canonical_reconciliation import (
+        AUTHZ_CANONICAL_RUNTIME, AUTHZ_OWNER_CONTRACT,
+    )
+    runtime = tmp_path / AUTHZ_CANONICAL_RUNTIME
+    runtime.parent.mkdir(parents=True, exist_ok=True)
+    runtime.write_text("async function resolveAuthorizationGrant() {}\n", encoding="utf-8")
+    owner = tmp_path / AUTHZ_OWNER_CONTRACT
+    owner.parent.mkdir(parents=True, exist_ok=True)
+    owner.write_text(
+        "# ELO Operator GitHub Binding Runtime\n"
+        "elo-authz remains the sole issuer; issue_authorization_grant is governed.\n",
+        encoding="utf-8",
+    )
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure.parent.mkdir(parents=True, exist_ok=True)
+    structure.write_text(
+        "# ELO Repository Canonical Structure Map\n"
+        "| supabase/functions/elo-authz/ | ELO Governance | "
+        "owner contract docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md | canonical |\n",
+        encoding="utf-8",
+    )
+
+
+def test_authz_session_fix_reconciles_existing_owner(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        "supabase/functions/elo-authz/index.ts",
+        "tests/security/test_operator_github_binding_runtime.py",
+    ])
+    assert evidence.canonical_identity == "elo-authz"
+    assert evidence.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete
+    assert evidence.decision == "STRENGTHEN"
+
+
+def test_authz_atomicity_fix_reconciles_same_owner(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        "supabase/functions/elo-authz/index.ts",
+        "tests/security/test_operator_github_binding_runtime.py",
+        "tests/security/test_elo_atomic_grant_issuance_contract.py",
+        "tests/security/sql/elo_atomic_grant_integration.sql",
+        "supabase/migrations/20261110185000_elo_atomic_grant_audit_rpc.sql",
+        ".github/workflows/elo-authz-atomic-db-test.yml",
+    ])
+    assert evidence.canonical_identity == "elo-authz"
+    assert evidence.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete
+    assert evidence.decision == "STRENGTHEN"
+
+
+def test_authz_scope_does_not_infer_missing_contract(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    (tmp_path / "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md").unlink()
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert evidence.waiting_for_evidence
+    assert evidence.source_of_truth is None
+
+
+def test_authz_scope_rejects_unlisted_migration(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        "supabase/functions/elo-authz/index.ts",
+        "supabase/migrations/20261111120000_unreviewed_authz.sql",
+    ])
+    assert evidence.waiting_for_evidence
+    assert evidence.source_of_truth is None
+
+
+def test_authz_scope_rejects_unrelated_workflow(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        "supabase/functions/elo-authz/index.ts",
+        ".github/workflows/elo-merge-coordinator.yml",
+    ])
+    assert evidence.waiting_for_evidence
+    assert evidence.source_of_truth is None
+
+
+def test_authz_scope_rejects_test_only_change(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        "tests/security/test_operator_github_binding_runtime.py",
+    ])
+    assert evidence.waiting_for_evidence
+
+
+def test_authz_scope_rejects_unknown_owner_map(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    (tmp_path / CANONICAL_STRUCTURE_MAP).write_text(
+        "# unrelated structure map\n", encoding="utf-8"
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert evidence.waiting_for_evidence
+
+
+def test_authz_scope_does_not_override_competing_owner(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    (tmp_path / "rogue_authz.py").write_text("elo_authz capability\n", encoding="utf-8")
+    (tmp_path / "rogue_owner.md").write_text(
+        "canonical owner: rogue_authz.py\n"
+        "source of truth: rogue_authz.py\n"
+        "elo_authz capability\n", encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path,
+        ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["elo_authz"],
+    )
+    assert evidence.decision != "STRENGTHEN"
+    assert evidence.duplicate_or_parallel is not False
+
+
+def test_maintenance_map_and_test_changes_share_existing_owner(tmp_path: Path) -> None:
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure.parent.mkdir(parents=True, exist_ok=True)
+    structure.write_text("# ELO canonical map\n", encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [
+        "automation/tasks/elo_canonical_reconciliation.py",
+        CANONICAL_STRUCTURE_MAP,
+        "tests/governance/test_elo_canonical_reconciliation.py",
+    ])
+    assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
+    assert evidence.reuse_analysis_complete
+    assert evidence.duplicate_or_parallel is False
+
+
+def test_maintenance_map_cannot_override_unrelated_runtime(tmp_path: Path) -> None:
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure.parent.mkdir(parents=True, exist_ok=True)
+    structure.write_text("# ELO canonical map\n", encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [
+        "automation/tasks/elo_canonical_reconciliation.py",
+        CANONICAL_STRUCTURE_MAP,
+        "supabase/functions/unrelated/index.ts",
+    ])
+    assert evidence.waiting_for_evidence
