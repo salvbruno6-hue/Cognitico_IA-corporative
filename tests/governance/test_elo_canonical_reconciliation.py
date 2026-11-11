@@ -357,3 +357,36 @@ def test_maintenance_map_cannot_override_unrelated_runtime(tmp_path: Path) -> No
         "supabase/functions/unrelated/index.ts",
     ])
     assert evidence.waiting_for_evidence
+
+
+
+def test_authz_owner_reconciles_real_pr1171_paths_in_repository() -> None:
+    """Integration: work on the full canonical tree, not a synthetic fixture."""
+    root = Path(__file__).resolve().parents[2]
+    evidence = reconcile_repository(root, [
+        "supabase/functions/elo-authz/index.ts",
+        "tests/security/test_operator_github_binding_runtime.py",
+    ])
+    assert evidence.reuse_analysis_complete, evidence.reasons
+    assert evidence.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    assert evidence.canonical_identity == "elo-authz"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.decision == "STRENGTHEN"
+
+
+def test_authz_owner_reconciles_real_pr1173_paths_in_repository() -> None:
+    """Integration: the stacked atomicity PR remains the same governed owner."""
+    root = Path(__file__).resolve().parents[2]
+    evidence = reconcile_repository(root, [
+        ".github/workflows/elo-authz-atomic-db-test.yml",
+        "supabase/functions/elo-authz/index.ts",
+        "supabase/migrations/20261110185000_elo_atomic_grant_audit_rpc.sql",
+        "tests/security/sql/elo_atomic_grant_integration.sql",
+        "tests/security/test_elo_atomic_grant_issuance_contract.py",
+        "tests/security/test_operator_github_binding_runtime.py",
+    ])
+    assert evidence.reuse_analysis_complete, evidence.reasons
+    assert evidence.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    assert evidence.canonical_identity == "elo-authz"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.decision == "STRENGTHEN"
