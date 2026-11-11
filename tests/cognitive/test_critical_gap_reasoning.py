@@ -197,3 +197,27 @@ def test_admin_questionnaire_has_bounded_question_count():
 
 def test_no_gap_produces_no_admin_question():
     assert build_admin_decision_questionnaire(prioritize_evidence_gaps([])) == ()
+
+
+
+def test_approved_admin_policy_is_bounded_and_context_scoped():
+    plan = prioritize_evidence_gaps(
+        [
+            _gap(
+                f"GAP-ADM-{index}",
+                f"param_{index}",
+                criticality=GapCriticality.HIGH,
+                sensitivity=4,
+                effort=2,
+            )
+            for index in range(7)
+        ]
+    )
+
+    questions = build_admin_decision_questionnaire(plan)
+
+    assert len(questions) == 5
+    assert all(item.answer_contract == "HUMAN_EVIDENCE_CANDIDATE" for item in questions)
+    assert all(item.answer_scope == "CURRENT_DECISION_CONTEXT_ONLY" for item in questions)
+    assert all(item.canonical_mutation is False for item in questions)
+    assert all(item.to_payload()["canonical_mutation"] is False for item in questions)

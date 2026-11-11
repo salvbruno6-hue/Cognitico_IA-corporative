@@ -26,6 +26,17 @@ class OrchestrationLimits:
     max_requirements: int = 20
     max_candidates: int = 50
     max_retrieval_rounds: int = 2
+    common_response_p95_target_ms: int = 3000
+    quality_speed_policy: str = "BY_CRITICALITY"
+    retrieval_stop_policy: str = "BY_CRITICALITY"
+
+    def __post_init__(self) -> None:
+        if self.common_response_p95_target_ms <= 0:
+            raise ValueError("common_response_p95_target_ms must be positive")
+        if self.quality_speed_policy != "BY_CRITICALITY":
+            raise ValueError("quality_speed_policy must remain BY_CRITICALITY")
+        if self.retrieval_stop_policy != "BY_CRITICALITY":
+            raise ValueError("retrieval_stop_policy must remain BY_CRITICALITY")
 
 
 class KnowledgeNeedPlanner:
@@ -115,6 +126,20 @@ class KnowledgeOrchestrator:
         self.timing_sink = timing_sink
         self._clock = clock
 
+    @staticmethod
+    def _decision_criticality(intent: IntentSpec) -> str:
+        value = str(intent.metadata.get("decision_criticality", "")).strip().upper()
+        return value if value in {"LOW", "MEDIUM", "HIGH", "CRITICAL"} else "UNSPECIFIED"
+
+    @classmethod
+    def _retrieval_strategy(cls, intent: IntentSpec) -> str:
+        criticality = cls._decision_criticality(intent)
+        if criticality == "LOW":
+            return "EARLY_STOP_ELIGIBLE"
+        if criticality == "MEDIUM":
+            return "CONFIRMATION_REQUIRED"
+        return "FULL_EVIDENCE_REQUIRED"
+
     def _record_timing(
         self,
         *,
@@ -158,7 +183,11 @@ class KnowledgeOrchestrator:
                 duration_ms=(self._clock() - retrieval_started) * 1000.0,
                 requirement_key=requirement.key,
                 candidate_count=len(found),
-                metadata={"required": str(requirement.required).lower()},
+                metadata={
+                    "required": str(requirement.required).lower(),
+                    "decision_criticality": self._decision_criticality(intent),
+                    "retrieval_strategy": self._retrieval_strategy(intent),
+                },
             )
             if not found and requirement.required:
                 gaps.append(
@@ -206,6 +235,13 @@ class KnowledgeOrchestrator:
                 "retrieval_calls": str(retrieval_calls),
                 "gaps": str(len(gaps)),
                 "conflicts": str(len(conflicts)),
+                "common_response_p95_target_ms": str(
+                    self.limits.common_response_p95_target_ms
+                ),
+                "quality_speed_policy": self.limits.quality_speed_policy,
+                "retrieval_stop_policy": self.limits.retrieval_stop_policy,
+                "decision_criticality": self._decision_criticality(intent),
+                "retrieval_strategy": self._retrieval_strategy(intent),
             },
         )
         return context

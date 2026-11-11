@@ -41,6 +41,11 @@ class ObservationUse(StrEnum):
     CANONICAL_RULE = "CANONICAL_RULE"
 
 
+DEFAULT_ADMIN_QUESTION_LIMIT = 5
+ADMIN_ANSWER_CONTRACT = "HUMAN_EVIDENCE_CANDIDATE"
+ADMIN_ANSWER_SCOPE = "CURRENT_DECISION_CONTEXT_ONLY"
+
+
 @dataclass(frozen=True, slots=True)
 class CriticalEvidenceGap:
     gap_id: str
@@ -142,7 +147,9 @@ class AdminDecisionQuestion:
     priority_score: int
     blocks_decision: bool
     evidence_refs: tuple[str, ...] = ()
-    answer_contract: str = "HUMAN_EVIDENCE_CANDIDATE"
+    answer_contract: str = ADMIN_ANSWER_CONTRACT
+    answer_scope: str = ADMIN_ANSWER_SCOPE
+    canonical_mutation: bool = False
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -158,13 +165,15 @@ class AdminDecisionQuestion:
             "blocks_decision": self.blocks_decision,
             "evidence_refs": list(self.evidence_refs),
             "answer_contract": self.answer_contract,
+            "answer_scope": self.answer_scope,
+            "canonical_mutation": self.canonical_mutation,
         }
 
 
 def build_admin_decision_questionnaire(
     plan: CriticalGapPlan,
     *,
-    max_questions: int = 5,
+    max_questions: int = DEFAULT_ADMIN_QUESTION_LIMIT,
     include_non_blocking: bool = False,
 ) -> tuple[AdminDecisionQuestion, ...]:
     """Project existing gaps into questions; never synthesize missing business facts."""
@@ -265,6 +274,9 @@ def qualify_observation(
 
 
 __all__ = [
+    "ADMIN_ANSWER_CONTRACT",
+    "ADMIN_ANSWER_SCOPE",
+    "DEFAULT_ADMIN_QUESTION_LIMIT",
     "CriticalEvidenceGap",
     "CriticalGapPlan",
     "AdminDecisionQuestion",

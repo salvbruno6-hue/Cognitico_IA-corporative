@@ -114,3 +114,62 @@ def test_observability_failure_never_changes_cognitive_output():
 
     assert len(context.candidates) == 1
     assert context.gaps == ()
+
+
+
+def test_approved_response_policy_defaults_are_applied_to_orchestration():
+    limits = OrchestrationLimits()
+
+    assert limits.common_response_p95_target_ms == 3000
+    assert limits.quality_speed_policy == "BY_CRITICALITY"
+    assert limits.retrieval_stop_policy == "BY_CRITICALITY"
+
+
+def test_retrieval_strategy_is_fail_closed_when_criticality_is_unknown():
+    low = IntentSpec(
+        question="consulta simples",
+        intent="read",
+        domain="planning",
+        metadata={"decision_criticality": "LOW"},
+    )
+    medium = IntentSpec(
+        question="consulta moderada",
+        intent="read",
+        domain="planning",
+        metadata={"decision_criticality": "MEDIUM"},
+    )
+    critical = IntentSpec(
+        question="decisão crítica",
+        intent="decide",
+        domain="planning",
+        metadata={"decision_criticality": "CRITICAL"},
+    )
+    unknown = IntentSpec(question="sem classificação", intent="read", domain="planning")
+
+    assert KnowledgeOrchestrator._retrieval_strategy(low) == "EARLY_STOP_ELIGIBLE"
+    assert KnowledgeOrchestrator._retrieval_strategy(medium) == "CONFIRMATION_REQUIRED"
+    assert KnowledgeOrchestrator._retrieval_strategy(critical) == "FULL_EVIDENCE_REQUIRED"
+    assert KnowledgeOrchestrator._retrieval_strategy(unknown) == "FULL_EVIDENCE_REQUIRED"
+
+
+def test_partial_supported_state_preserves_known_evidence_and_blocks_only_gap():
+    from elo.agentic.contracts import KnowledgeCandidate, KnowledgeContext, KnowledgeGap
+
+    intent = IntentSpec(question="x", intent="x", domain="planning")
+    candidate = KnowledgeCandidate(
+        source_id="known",
+        content="known fact",
+        source_type="TEST",
+        status="GOVERNED",
+        relevance=1.0,
+        confidence=1.0,
+        context_match=1.0,
+    )
+    context = KnowledgeContext(
+        intent=intent,
+        candidates=(candidate,),
+        gaps=(KnowledgeGap("missing", "still unresolved", blocks_decision=True),),
+    )
+
+    assert context.response_state == "PARTIAL_SUPPORTED"
+    assert context.requires_human_decision is True
