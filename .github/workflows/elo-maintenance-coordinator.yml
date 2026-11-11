@@ -171,7 +171,9 @@ jobs:
 
           DECISION=$(python -c "import json; print(json.load(open('automation/audit-output/decision.json'))['decision'])")
           if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge."
+            PR_HEAD_SHA="$(gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid)"
+            [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing PR head SHA for Maintenance attestation."; exit 1; }
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge. ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID} ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER} ELO_HEAD_SHA=${PR_HEAD_SHA}"
           elif [ "${DECISION}" = "BLOCKED" ]; then
             gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **BLOCKED**. Canonical reconciliation found an existing or parallel capability. Reuse/strengthen/refactor must be resolved before a new authority can proceed."
           else

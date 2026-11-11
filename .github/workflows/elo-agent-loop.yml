@@ -247,5 +247,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh pr comment "$PR_URL" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${COMMIT_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates."
+          PR_NUMBER="${PR_URL##*/}"
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "Unable to resolve PR number for PR-ready evidence."; exit 1; }
+          gh pr comment "$PR_URL" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${COMMIT_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}"
           gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO loop reached PR-ready state: diagnosis → correction → validation → ELO governance → APPROVE_COMMIT → Commit → PR. Awaiting authorized merge; no automatic merge or issue closure performed."
