@@ -179,7 +179,7 @@ def _jq_run(filter_source: str, payload: object, *args: str) -> list[str]:
 
     if shutil.which("jq") is None:
         pytest.skip("jq required for workflow provenance behavior tests")
-    command = ["jq", "-r", *args, filter_source]
+    command = ["jq", "-cr", *args, filter_source]
     result = subprocess.run(
         command, input=json.dumps(payload), text=True,
         capture_output=True, check=False,
