@@ -264,3 +264,22 @@ Este contrato é uma referência operacional subordinada aos contratos canônico
 
 Em caso de conflito, prevalecem a autoridade canônica, a proteção do repositório,
 o `elo-authz` e os gates existentes.
+
+
+## 13. Provas de origem e de autorização por PR/commit (GAP P0 #1176)
+
+O Merge Coordinator exige evidências **emitidas pelas autoridades de execução**:
+- PR-ready em comentário de \`github-actions[bot]\` com o SHA vigente,
+  a PR correta e \`ELO_AGENT_LOOP_RUN_ID\`; a run consultada deve ser
+  \`ELO Agent Loop\`, concluída com sucesso no repositório canônico.
+- Maintenance \`APPROVED_FOR_MERGE\` em comentário de \`github-actions[bot]\`
+  com \`ELO_MAINTENANCE_RUN_ID\`, PR e SHA; a run de \`ELO Maintenance Coordinator\`
+  também deve ter sido concluída com sucesso.
+- Grant emitido pelo \`elo-authz\`: estado \`elo-merge-authorized\`,
+  operação \`merge\`, \`metadata.resource_id=pr:<numero>@<head_sha>\`,
+  identidade, binding, sessão e janela de validade coerentes.
+- Revalidar o mesmo head SHA antes do merge. Provas antigas sem run ID
+  deixam de ser suficientes. A nova evidência deve ser produzida pelo
+  workflow real, nunca por comentário escrito manualmente.
+- Preservar gates de CI, Simbionte, Evolution Gate, revisão independente
+  e proteção de branch. Estas verificações não criam autorização adicional.
