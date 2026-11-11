@@ -1,5 +1,8 @@
+import pytest
+
 from elo.agentic.contracts import IntentSpec
 from elo.agentic.orchestrator import KnowledgeOrchestrator, OrchestrationLimits
+from elo.observability.cognitive_timing import InMemoryCognitiveTimingSink
 
 
 class Provider:
@@ -51,3 +54,63 @@ def test_required_missing_knowledge_becomes_blocking_gap() -> None:
 
     assert context.gaps
     assert context.requires_human_decision
+
+
+
+class _Clock:
+    def __init__(self, values):
+        self._values = iter(values)
+
+    def __call__(self):
+        return next(self._values)
+
+
+def test_orchestrator_emits_stage_timing_without_changing_context():
+    sink = InMemoryCognitiveTimingSink()
+    intent = IntentSpec(
+        question="qual requisito falta?",
+        intent="diagnose",
+        domain="planning",
+        required_knowledge=("scope",),
+        metadata={"correlation_id": "corr-1179"},
+    )
+    orchestrator = KnowledgeOrchestrator(
+        Provider(),
+        timing_sink=sink,
+        clock=_Clock((0.0, 0.10, 0.15, 0.20, 0.23, 0.30)),
+    )
+
+    context = orchestrator.run(intent)
+
+    assert [item.stage for item in sink.observations] == [
+        "knowledge.retrieve",
+        "knowledge.curate",
+        "knowledge.total",
+    ]
+    retrieval, curation, total = sink.observations
+    assert retrieval.requirement_key == "scope"
+    assert retrieval.duration_ms == pytest.approx(50.0)
+    assert retrieval.candidate_count == 1
+    assert curation.duration_ms == pytest.approx(30.0)
+    assert total.duration_ms == pytest.approx(300.0)
+    assert total.correlation_id == "corr-1179"
+    assert total.metadata["requirements"] == "1"
+    assert total.metadata["retrieval_calls"] == "1"
+    assert len(context.candidates) == 1
+
+
+def test_observability_failure_never_changes_cognitive_output():
+    class BrokenSink:
+        def record(self, observation):
+            raise RuntimeError("telemetry unavailable")
+
+    intent = IntentSpec(
+        question="x",
+        intent="x",
+        domain="planning",
+        required_knowledge=("scope",),
+    )
+    context = KnowledgeOrchestrator(Provider(), timing_sink=BrokenSink()).run(intent)
+
+    assert len(context.candidates) == 1
+    assert context.gaps == ()
