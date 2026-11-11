@@ -76,3 +76,22 @@ A conclusão de um modelo-base permanece condicionada à evidência da TR e do l
 8. Registrar como precedente supervisionado até validação de fichas e PTS Pós; só generalizar por Evolution Gate após testes em novos casos.
 
 **Origem:** correção do usuário especialista no contexto da análise da SO 233/2026; referência documental da SO fornecida na conversa. **Riscos:** porta lateral pode exigir adaptação; dimensões de módulo e quantitativos-base não foram comprovados. **Teste de regressão:** comparar MLT.C01 × MLT.C06 e MLT.M05 × MLT.C22 e impedir que o algoritmo marque equivalência integral sem ficha ou aceite.
+
+### Continuação supervisionada — SO 233/2026 (itens de escritório e habitável)
+
+**Desambiguação documental:** a SO repete numeração 03 para depósito e escritório com banheiro; as correções seguintes usam **03 = escritório com banheiro** e **04 = habitável**. Não transferir o MLT.M02 ao contêiner depósito de 4 m.
+
+**03 — Escritório com banheiro: modelo-base candidato MLT.M02 (Módulo Habitacional 20 pés Escritório Suíte).**
+- **Evidências:** pé-direito/altura nominal de 2,89 m, mais compatível segundo especialista com solução modular, e integração de escritório com banheiro.
+- **Princípio:** escolher família construtiva e configuração habitual de venda/locação antes de decompor custo; características incorporadas ao produto padrão (como solução de isolamento termoacústico, se comprovada em ficha técnica) devem continuar incluídas mesmo quando a SO não as menciona, e não viram excedente automaticamente.
+- **Excedente informado pelo especialista:** **+3 tomadas** para atingir requisito de 6 tomadas 10 A; pressupõe 3 tomadas no padrão. Validar quantidade de circuitos e tomadas efetivas na ficha do MLT.M02 antes de precificar. Confirmar janela, basculante, porta, banheiro, luminárias e infraestrutura de ar-condicionado. A abertura/tomada para ar-condicionado não implica incluir o aparelho quando não solicitado.
+- **Risco:** altura e isolamento não foram aferidos contra ficha técnica; evitar declarar conformidade sem evidência.
+
+**04 — Habitável: modelo-base candidato MLT.M01 (Módulo Habitacional 20 pés Amplo).**
+- **Configuração informada pelo especialista:** 1 janela de correr + 1 basculante; **+3 tomadas** para atender às 6 tomadas da SO, condicionadas à confirmação de 3 já incorporadas ao padrão.
+- **Comparação obrigatória:** verificar se as duas esquadrias fazem parte da base e não cobrar duplicadas; avaliar 4 portas laterais requeridas, 2 luminárias e infraestrutura para ar-condicionado; confrontar altura externa/pé-direito.
+- **Não inventar:** dimensões, isolamento e quantidade padrão de esquadrias/tomadas precisam de cadastro/ficha validada.
+
+**Lógica reutilizável:** requisitos explícitos da SO + características incorporadas à oferta-padrão comprovada → seleção por aderência técnica → lacunas reais de quantitativo e configuração → excedentes líquidos; atributo do padrão não solicitado não deve ser removido por omissão, mas também não deve ser apresentado como exigência contratual do cliente. Registrar origem do atributo, hipótese, condição de aceite e composição sem duplicidade.
+
+**Status:** precedente supervisionado sob validação; o merge documental não constitui promoção ao Core ou persistência cognitiva validada no Supabase. **Regressão:** distinguir depósito de escritório apesar da duplicação de numeração; confirmar +3 tomadas somente com padrão de 3 documentado; impedir dupla cobrança de termoacústico e esquadrias já incluídos.
