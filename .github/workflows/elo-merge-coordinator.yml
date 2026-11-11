@@ -91,10 +91,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
-          jq -e '[.comments[]? | select(.body | contains("ELO execution cycle reached PR-ready state."))] | length > 0' <<<"$comments" >/dev/null
+          # Neither a human comment nor a substring match is PR-ready evidence.
+          # Demand the canonical bot, exact head, matching PR, and real Agent Loop run.
+          run_ids="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
+            .comments[]?
+            | select(.author.login == "github-actions[bot]")
+            | select(.body | startswith("ELO execution cycle reached PR-ready state. Commit " + $sha + " passed ELO and applicable laboratory gates."))
+            | select(.body | contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr))
+            | (.body | capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+)")? | .id)
+          ' <<<"$comments")"
+          proved=false
+          while IFS= read -r run_id; do
+            [[ "$run_id" =~ ^[0-9]+$ ]] || continue
+            run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}" || true)"
+            if [[ -n "$run_json" ]] && jq -e --arg repo "$REPOSITORY" '
+              .name == "ELO Agent Loop"
+              and .status == "completed"
+              and .conclusion == "success"
+              and .repository.full_name == $repo
+            ' <<<"$run_json" >/dev/null; then
+              proved=true
+              break
+            fi
+          done <<<"$run_ids"
+          [[ "$proved" == "true" ]] || {
+            echo "No genuine Agent Loop PR-ready evidence for this PR and head SHA."
+            exit 1
+          }
 
       - name: Verify required GitHub checks
         if: steps.pr.outputs.number != ''
@@ -115,19 +142,43 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
-          if ! jq -e '[.comments[]? | select(.body | contains("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**"))] | length > 0' <<<"$comments" >/dev/null; then
-            echo "Maintenance Coordinator approval evidence not found."
+          run_ids="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
+            .comments[]?
+            | select(.author.login == "github-actions[bot]")
+            | select(.body | startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**."))
+            | select(.body | contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr))
+            | select(.body | contains("ELO_HEAD_SHA=" + $sha))
+            | (.body | capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+)")? | .id)
+          ' <<<"$comments")"
+          proved=false
+          while IFS= read -r run_id; do
+            [[ "$run_id" =~ ^[0-9]+$ ]] || continue
+            run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}" || true)"
+            if [[ -n "$run_json" ]] && jq -e --arg repo "$REPOSITORY" '
+              .name == "ELO Maintenance Coordinator"
+              and .status == "completed"
+              and .conclusion == "success"
+              and .repository.full_name == $repo
+            ' <<<"$run_json" >/dev/null; then
+              proved=true
+              break
+            fi
+          done <<<"$run_ids"
+          [[ "$proved" == "true" ]] || {
+            echo "No authenticated Maintenance approval for this PR and head SHA."
             exit 1
-          fi
+          }
 
       - name: Verify elo-merge-authorized in Supabase
         if: steps.pr.outputs.number != ''
         shell: bash
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           : "${SUPABASE_URL:?SUPABASE_URL secret is required}"
@@ -137,7 +188,8 @@ jobs:
           headers=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
           repo_encoded="$(python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["REPOSITORY"], safe=""))')"
 
-          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&limit=20")"
+          required_resource="pr:${PR_NUMBER}@${HEAD_SHA}"
+          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&operation=eq.merge&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&limit=20")"
 
           valid_grant=""
           while IFS= read -r row; do
@@ -152,7 +204,7 @@ jobs:
                 break
               fi
             fi
-          done < <(jq -c '.[] | select(.revoked_at == null and .metadata.issuer_role == "CANONICAL_ADMIN")' <<<"$grants")
+          done < <(jq -c --arg resource "$required_resource" '.[] | select(.revoked_at == null and .operation == "merge" and .metadata.issuer_role == "CANONICAL_ADMIN" and .metadata.resource_id == $resource and .session_id != null)' <<<"$grants")
 
           if [[ -z "$valid_grant" ]]; then
             echo "No valid elo-merge-authorized grant found."
@@ -165,7 +217,19 @@ jobs:
           binding_id="$(jq -r '.binding_id' /tmp/grant.json)"
           binding_url="${SUPABASE_URL%/}/rest/v1/elo_operator_github_bindings"
           binding="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${binding_url}?select=binding_id,identity_id,github_user_id,github_login,repository_full_name,active&binding_id=eq.${binding_id}&repository_full_name=eq.${repo_encoded}&active=eq.true&limit=1")"
-          jq -e 'length == 1' <<<"$binding" >/dev/null
+          target_identity="$(jq -r '.identity_id' /tmp/grant.json)"
+          jq -e --arg identity "$target_identity" 'length == 1 and .[0].identity_id == $identity and .[0].active == true' <<<"$binding" >/dev/null
+
+          session_id="$(jq -r '.session_id' /tmp/grant.json)"
+          session_url="${SUPABASE_URL%/}/rest/v1/elo_identity_sessions"
+          session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${session_id}&identity_id=eq.${target_identity}&revoked_at=is.null&limit=1")"
+          jq -e 'length == 1' <<<"$session" >/dev/null
+          session_issued="$(jq -r '.[0].issued_at' <<<"$session")"
+          session_expires="$(jq -r '.[0].expires_at' <<<"$session")"
+          session_issued_epoch="$(date -u -d "$session_issued" +%s 2>/dev/null || true)"
+          session_expires_epoch="$(date -u -d "$session_expires" +%s 2>/dev/null || true)"
+          session_now_epoch="$(date -u +%s)"
+          [[ -n "$session_issued_epoch" && -n "$session_expires_epoch" ]] && (( session_issued_epoch <= session_now_epoch && session_now_epoch < session_expires_epoch ))
 
           role_url="${SUPABASE_URL%/}/rest/v1/elo_identity_roles"
           roles="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${role_url}?select=identity_id,elo_roles!inner(code,active)&identity_id=eq.${issuer}&elo_roles.code=eq.CANONICAL_ADMIN&elo_roles.active=eq.true")"
@@ -177,10 +241,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           pr_json="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,mergeable,mergeStateStatus,headRefOid,baseRefName)"
-          jq -e '.state == "OPEN" and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
+          jq -e --arg sha "$HEAD_SHA" '.state == "OPEN" and .headRefOid == $sha and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
           gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --delete-branch=false
 
       - name: Verify merge result
