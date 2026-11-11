@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from elo.agentic.contracts import IntentSpec, KnowledgeRequirement
 from elo.agentic.elo_provider import ELOKnowledgeProvider, ELORequestContext
 from elo.agentic.runtime_context import ELORuntimeContext
-from elo.core.source_resolver import SourceResolutionRequest, SourceResolver
+from elo.core.context_resolution import ContextPack
+from elo.core.source_discovery import CANONICAL_CAPABILITIES, DiscoveryPlan, SourceCandidate
+from elo.core.source_resolver import RetrievedSource, SourceResolutionRequest, SourceResolver
+from elo.observability.cognitive_timing import InMemoryCognitiveTimingSink
 from elo.core.temporal_memory import TemporalConversationMemory
 
 
@@ -362,3 +365,219 @@ def test_provider_uses_provenance_signals_when_metadata_does_not_supply_them() -
     assert item.authority == "governed-source"
     assert item.product_code == "3300900009"
     assert item.metadata["agentic_requirement"] == "materials"
+
+
+
+class _StaticContextEngine:
+    def __init__(self, candidates):
+        self.candidates = tuple(candidates)
+
+    def resolve(self, query):
+        return ContextPack(
+            query=query,
+            discovery_plan=DiscoveryPlan(
+                intent="test",
+                entities=(),
+                questions=(query.question,),
+                candidates=self.candidates,
+            ),
+        )
+
+    @staticmethod
+    def candidate_sources(pack):
+        return pack.discovery_plan.candidates
+
+
+class _CountingSourceAdapter:
+    def __init__(self, *, kind, retrieved):
+        self.kind = kind
+        self.capability = CANONICAL_CAPABILITIES[kind]
+        self.retrieved = retrieved
+        self.calls = 0
+
+    def available(self):
+        return True
+
+    def retrieve(self, candidate, request):
+        self.calls += 1
+        return (self.retrieved,)
+
+
+def _multi_source_provider(*, first, second, timing_sink=None):
+    first_adapter = _CountingSourceAdapter(kind="ELO_MEMORY", retrieved=first)
+    second_adapter = _CountingSourceAdapter(kind="GITHUB", retrieved=second)
+    context = ELORequestContext(
+        tenant_id="tenant",
+        principal_id="principal",
+        session_id="session",
+        request_id="request-multi",
+        correlation_id="correlation-multi",
+        conversation_id="conversation",
+        authorization_scope="scope.read",
+    )
+    candidates = (
+        SourceCandidate(
+            kind="ELO_MEMORY",
+            reason="preferred",
+            priority=5,
+            query="q",
+            required_capability=CANONICAL_CAPABILITIES["ELO_MEMORY"],
+        ),
+        SourceCandidate(
+            kind="GITHUB",
+            reason="confirmation",
+            priority=4,
+            query="q",
+            required_capability=CANONICAL_CAPABILITIES["GITHUB"],
+        ),
+    )
+    provider = ELOKnowledgeProvider(
+        request_context=context,
+        context_engine=_StaticContextEngine(candidates),
+        source_resolver=SourceResolver(
+            adapters=(first_adapter, second_adapter),
+            temporal_memory=TemporalConversationMemory(),
+        ),
+        timing_sink=timing_sink,
+    )
+    return provider, first_adapter, second_adapter
+
+
+def _retrieved_quality(source_id, *, status="CURRENT", relevance="0.8",
+                       confidence="0.8", context_match="0.8",
+                       authority="governed-source"):
+    return RetrievedSource(
+        source_id=source_id,
+        source_type="TEST",
+        content=f"evidence:{source_id}",
+        metadata={
+            "knowledge_status": status,
+            "relevance": relevance,
+            "confidence": confidence,
+            "context_match": context_match,
+            "authority": authority,
+        },
+        provenance={"origin": source_id, "authority": authority},
+    )
+
+
+def test_low_criticality_stops_after_first_explicitly_sufficient_source():
+    sink = InMemoryCognitiveTimingSink()
+    provider, first, second = _multi_source_provider(
+        first=_retrieved_quality("first"),
+        second=_retrieved_quality("second"),
+        timing_sink=sink,
+    )
+    intent, req = _inputs()
+    intent = IntentSpec(
+        question=intent.question,
+        intent=intent.intent,
+        domain=intent.domain,
+        task=intent.task,
+        entity=intent.entity,
+        active_context=intent.active_context,
+        metadata={"decision_criticality": "LOW", "correlation_id": "corr-low"},
+    )
+
+    found = provider.retrieve(intent, req)
+
+    assert [item.source_id for item in found] == ["first"]
+    assert first.calls == 1
+    assert second.calls == 0
+    total = [x for x in sink.observations if x.stage == "knowledge.provider.retrieve"][-1]
+    assert total.metadata["source_attempts"] == "1"
+    assert total.metadata["early_stop_applied"] == "true"
+    assert total.metadata["decision_criticality"] == "LOW"
+
+
+def test_low_criticality_continues_when_first_source_is_not_sufficient():
+    provider, first, second = _multi_source_provider(
+        first=_retrieved_quality(
+            "first",
+            status="REFERENCE",
+            relevance="0.9",
+            confidence="0.9",
+            context_match="0.9",
+        ),
+        second=_retrieved_quality("second"),
+    )
+    intent, req = _inputs()
+    intent = IntentSpec(
+        question=intent.question,
+        intent=intent.intent,
+        domain=intent.domain,
+        metadata={"decision_criticality": "LOW"},
+    )
+
+    found = provider.retrieve(intent, req)
+
+    assert [item.source_id for item in found] == ["first", "second"]
+    assert first.calls == 1
+    assert second.calls == 1
+
+
+def test_low_criticality_does_not_stop_without_explicit_authority():
+    first_item = _retrieved_quality("first", authority="")
+    provider, first, second = _multi_source_provider(
+        first=first_item,
+        second=_retrieved_quality("second"),
+    )
+    intent, req = _inputs()
+    intent = IntentSpec(
+        question=intent.question,
+        intent=intent.intent,
+        domain=intent.domain,
+        metadata={"decision_criticality": "LOW"},
+    )
+
+    provider.retrieve(intent, req)
+
+    assert first.calls == 1
+    assert second.calls == 1
+
+
+def test_non_low_criticality_never_early_stops_in_this_cycle():
+    for criticality in ("MEDIUM", "HIGH", "CRITICAL", ""):
+        provider, first, second = _multi_source_provider(
+            first=_retrieved_quality(f"first-{criticality or 'unknown'}"),
+            second=_retrieved_quality(f"second-{criticality or 'unknown'}"),
+        )
+        intent, req = _inputs()
+        metadata = {"decision_criticality": criticality} if criticality else {}
+        scoped_intent = IntentSpec(
+            question=intent.question,
+            intent=intent.intent,
+            domain=intent.domain,
+            metadata=metadata,
+        )
+
+        found = provider.retrieve(scoped_intent, req)
+
+        assert len(found) == 2
+        assert first.calls == 1
+        assert second.calls == 1
+
+
+def test_low_criticality_minimum_signal_is_exactly_sixty_percent():
+    provider, first, second = _multi_source_provider(
+        first=_retrieved_quality(
+            "first",
+            relevance="0.60",
+            confidence="0.60",
+            context_match="0.60",
+        ),
+        second=_retrieved_quality("second"),
+    )
+    intent, req = _inputs()
+    intent = IntentSpec(
+        question=intent.question,
+        intent=intent.intent,
+        domain=intent.domain,
+        metadata={"decision_criticality": "LOW"},
+    )
+
+    found = provider.retrieve(intent, req)
+
+    assert [item.source_id for item in found] == ["first"]
+    assert first.calls == 1
+    assert second.calls == 0

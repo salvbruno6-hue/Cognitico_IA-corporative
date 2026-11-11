@@ -10,6 +10,7 @@ in with ``allow_temporal_trace=True``.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Callable, Mapping
 
 from elo.agent_intake.hermes_context_plugin_adapter import ContextPluginAdapter
@@ -29,6 +30,10 @@ from elo.core.source_resolver import (
     SourceResolutionRequest,
     SourceResolver,
     SourceResolverAdapter,
+)
+from elo.observability.cognitive_timing import (
+    CognitiveTimingObservation,
+    CognitiveTimingSink,
 )
 
 from .contracts import IntentSpec, KnowledgeCandidate, KnowledgeRequirement
@@ -52,6 +57,12 @@ class _NullTemporalMemory:
 
     def append(self, **_: object) -> None:
         return None
+
+
+_LOW_CRITICALITY_MINIMUM_SIGNAL = 0.60
+_LOW_CRITICALITY_EARLY_STOP_STATUSES = frozenset({
+    "CANONICAL", "GOVERNED", "APPLICABLE", "CURRENT",
+})
 
 
 _KNOWLEDGE_STATUSES = frozenset({
@@ -121,6 +132,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         context_plugin_signal: ContextEnginePluginSignal | None = None,
         hermes_memory_provider_signal: MemoryProviderSignal | None = None,
         runtime_evidence_sink=None,
+        timing_sink: CognitiveTimingSink | None = None,
+        clock: Callable[[], float] = perf_counter,
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
         self.source_resolver = source_resolver or SourceResolver()
@@ -131,6 +144,51 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         self.context_plugin_signal = context_plugin_signal
         self.hermes_memory_provider_signal = hermes_memory_provider_signal
         self.runtime_evidence_sink = runtime_evidence_sink
+        self.timing_sink = timing_sink
+        self._clock = clock
+
+    @staticmethod
+    def _decision_criticality(intent: IntentSpec) -> str:
+        value = str(intent.metadata.get("decision_criticality", "")).strip().upper()
+        return value if value in {"LOW", "MEDIUM", "HIGH", "CRITICAL"} else "UNSPECIFIED"
+
+    @staticmethod
+    def _low_criticality_candidate_is_sufficient(item: KnowledgeCandidate) -> bool:
+        return (
+            item.status in _LOW_CRITICALITY_EARLY_STOP_STATUSES
+            and item.relevance >= _LOW_CRITICALITY_MINIMUM_SIGNAL
+            and item.confidence >= _LOW_CRITICALITY_MINIMUM_SIGNAL
+            and item.context_match >= _LOW_CRITICALITY_MINIMUM_SIGNAL
+            and bool(item.authority and item.authority.strip())
+            and bool(item.provenance)
+        )
+
+    def _record_timing(
+        self,
+        *,
+        intent: IntentSpec,
+        requirement: KnowledgeRequirement,
+        stage: str,
+        duration_ms: float,
+        candidate_count: int = 0,
+        metadata: Mapping[str, str] | None = None,
+    ) -> None:
+        if self.timing_sink is None:
+            return
+        try:
+            self.timing_sink.record(
+                CognitiveTimingObservation(
+                    stage=stage,
+                    duration_ms=max(0.0, duration_ms),
+                    correlation_id=str(intent.metadata.get("correlation_id", "")),
+                    requirement_key=requirement.key,
+                    candidate_count=candidate_count,
+                    metadata=dict(metadata or {}),
+                )
+            )
+        except Exception:
+            # Observability must never alter retrieval or cognitive output.
+            return
 
     def retrieve(
         self,
@@ -178,9 +236,15 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             if memory_contract.tenant_scope != request_context.tenant_id:
                 raise PermissionError("Hermes memory-provider tenant scope mismatch")
 
+        provider_started = self._clock()
+        source_attempts = 0
+        early_stop_applied = False
+        criticality = self._decision_criticality(intent)
+
         for source_candidate in self.context_engine.candidate_sources(pack):
             if memory_contract is not None and source_candidate.kind != memory_contract.provider_id:
                 continue
+            source_started = self._clock()
             resolution = resolver.resolve(
                 source_candidate,
                 SourceResolutionRequest(
@@ -201,6 +265,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                     },
                 ),
             )
+            source_attempts += 1
+            source_candidates: list[KnowledgeCandidate] = []
             for item in resolution.retrieved:
                 if memory_contract is not None:
                     provenance_refs = tuple(
@@ -239,21 +305,58 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                     or metadata.get("produto_codigo")
                     or metadata.get("product_code")
                 )
-                candidates.append(
-                    KnowledgeCandidate(
-                        source_id=item.source_id,
-                        content=item.content,
-                        source_type=item.source_type,
-                        status=_knowledge_status(metadata, provenance),
-                        relevance=_bounded_signal(metadata, provenance, "relevance"),
-                        confidence=_bounded_signal(metadata, provenance, "confidence"),
-                        context_match=_bounded_signal(metadata, provenance, "context_match"),
-                        authority=_authority(metadata, provenance),
-                        product_code=product_code,
-                        provenance=provenance,
-                        metadata=metadata,
-                    )
+                candidate = KnowledgeCandidate(
+                    source_id=item.source_id,
+                    content=item.content,
+                    source_type=item.source_type,
+                    status=_knowledge_status(metadata, provenance),
+                    relevance=_bounded_signal(metadata, provenance, "relevance"),
+                    confidence=_bounded_signal(metadata, provenance, "confidence"),
+                    context_match=_bounded_signal(metadata, provenance, "context_match"),
+                    authority=_authority(metadata, provenance),
+                    product_code=product_code,
+                    provenance=provenance,
+                    metadata=metadata,
                 )
+                candidates.append(candidate)
+                source_candidates.append(candidate)
+
+            source_sufficient = (
+                criticality == "LOW"
+                and any(
+                    self._low_criticality_candidate_is_sufficient(item)
+                    for item in source_candidates
+                )
+            )
+            self._record_timing(
+                intent=intent,
+                requirement=requirement,
+                stage="source.resolve",
+                duration_ms=(self._clock() - source_started) * 1000.0,
+                candidate_count=len(source_candidates),
+                metadata={
+                    "source_kind": str(source_candidate.kind),
+                    "resolution_status": resolution.status,
+                    "decision_criticality": criticality,
+                    "low_criticality_sufficient": str(source_sufficient).lower(),
+                },
+            )
+            if source_sufficient:
+                early_stop_applied = True
+                break
+
+        self._record_timing(
+            intent=intent,
+            requirement=requirement,
+            stage="knowledge.provider.retrieve",
+            duration_ms=(self._clock() - provider_started) * 1000.0,
+            candidate_count=len(candidates),
+            metadata={
+                "source_attempts": str(source_attempts),
+                "early_stop_applied": str(early_stop_applied).lower(),
+                "decision_criticality": criticality,
+            },
+        )
         return tuple(candidates)
 
     def _resolver_for_mode(self) -> SourceResolver:
