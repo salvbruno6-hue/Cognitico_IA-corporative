@@ -157,3 +157,96 @@ def test_provenance_workflow_steps_are_valid_bash():
             ["bash", "-n"], input=script, text=True, capture_output=True
         )
         assert result.returncode == 0, (str(workflow), name, result.stderr)
+
+
+
+def _jq_filter_for_comment_step(step_name: str) -> str:
+    script = _shell_step(WORKFLOW, step_name)
+    marker = '''jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" ' '''
+    # The workflow's jq program is an actual inlined multiline string.
+    opening = '''jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" ' '''
+    opening = opening.rstrip()
+    assert opening in script, step_name
+    start = script.index(opening) + len(opening)
+    end = script.index("""' <<<"$comments")\"""", start)
+    return script[start:end]
+
+
+def _jq_run(filter_source: str, payload: object, *args: str) -> list[str]:
+    import json
+    import shutil
+    import subprocess
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq required for workflow provenance behavior tests")
+    command = ["jq", "-r", *args, filter_source]
+    result = subprocess.run(
+        command, input=json.dumps(payload), text=True,
+        capture_output=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip().splitlines() if result.stdout.strip() else []
+
+
+def test_pr_ready_provenance_rejects_human_and_wrong_sha():
+    query = _jq_filter_for_comment_step("Verify PR-ready evidence")
+    prefix = "ELO execution cycle reached PR-ready state. Commit "
+    good = prefix + "aabbcc passed ELO and applicable laboratory gates. " + (
+        "ELO_AGENT_LOOP_RUN_ID=1234 ELO_AGENT_LOOP_PR_NUMBER=1177"
+    )
+    rows = [
+        {"author": {"login": "salvbruno6-hue"}, "body": good},
+        {"author": {"login": "github-actions[bot]"}, "body": good.replace("aabbcc", "other")},
+        {"author": {"login": "github-actions[bot]"}, "body": good.replace("1177", "9999")},
+    ]
+    args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
+    assert _jq_run(query, {"comments": rows}, *args) == []
+    rows.append({"author": {"login": "github-actions[bot]"}, "body": good})
+    assert _jq_run(query, {"comments": rows}, *args) == ["1234"]
+
+
+def test_maintenance_provenance_rejects_human_and_stale_sha():
+    query = _jq_filter_for_comment_step("Verify applicable ELO gate evidence")
+    good = ("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. "
+            "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_PR_NUMBER=1177 ELO_HEAD_SHA=aabbcc")
+    rows = [
+        {"author": {"login": "salvbruno6-hue"}, "body": good},
+        {"author": {"login": "github-actions[bot]"}, "body": good.replace("aabbcc", "other")},
+    ]
+    args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
+    assert _jq_run(query, {"comments": rows}, *args) == []
+    rows.append({"author": {"login": "github-actions[bot]"}, "body": good})
+    assert _jq_run(query, {"comments": rows}, *args) == ["890"]
+
+
+def test_merge_grant_filter_rejects_other_operation_resource_or_session():
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    opening = '''jq -c --arg resource "$required_resource" ' '''
+    opening = opening.rstrip()
+    assert opening in script
+    start = script.index(opening) + len(opening)
+    end = script.index("""' <<<"$grants")""", start)
+    filter_source = script[start:end]
+    valid = {
+        "grant_id": "good", "operation": "merge", "revoked_at": None,
+        "session_id": "session1",
+        "metadata": {"issuer_role": "CANONICAL_ADMIN", "resource_id": "pr:1177@aabbcc"}
+    }
+    others = [
+        {**valid, "grant_id": "wrong-operation", "operation": "execute"},
+        {**valid, "grant_id": "wrong-pr", "metadata": {
+            "issuer_role": "CANONICAL_ADMIN", "resource_id": "pr:999@aabbcc"
+        }},
+        {**valid, "grant_id": "no-session", "session_id": None},
+        {**valid, "grant_id": "wrong-issuer", "metadata": {
+            "issuer_role": "USER", "resource_id": "pr:1177@aabbcc"
+        }},
+        {**valid, "grant_id": "revoked", "revoked_at": "2026-11-10T00:00:00Z"},
+    ]
+    output = _jq_run(
+        filter_source, others + [valid],
+        "--arg", "resource", "pr:1177@aabbcc",
+    )
+    import json
+    assert [json.loads(row)["grant_id"] for row in output] == ["good"]
