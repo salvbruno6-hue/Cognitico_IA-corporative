@@ -8,10 +8,26 @@ from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
+AUTHZ_CANONICAL_RUNTIME = "supabase/functions/elo-authz/index.ts"
+AUTHZ_OWNER_CONTRACT = "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+# Only exact, already-reviewed implementation and test paths; no broad migration
+# or workflow wildcard. The owner remains the existing elo-authz runtime.
+AUTHZ_GOVERNED_PATHS = frozenset({
+    AUTHZ_CANONICAL_RUNTIME,
+    "tests/security/test_operator_github_binding_runtime.py",
+    "tests/security/test_elo_atomic_grant_issuance_contract.py",
+    "tests/security/sql/elo_atomic_grant_integration.sql",
+    "supabase/migrations/20261110185000_elo_atomic_grant_audit_rpc.sql",
+    ".github/workflows/elo-authz-atomic-db-test.yml",
+})
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
     "automation/tasks/elo_maintenance_coordinator.py",
+}
+SELF_AUDIT_SUPPORT_PATHS = {
+    CANONICAL_STRUCTURE_MAP,
+    "tests/governance/test_elo_canonical_reconciliation.py",
 }
 AUDIT_INFRA_PREFIXES = (".github/", "automation/", "docs/", "tests/")
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
@@ -68,6 +84,31 @@ def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
         if declared_stem in candidate_stems:
             targets.add(declared_stem)
     return targets
+
+
+def _is_governed_authz_change(root: Path, changed: set[str]) -> bool:
+    """Resolve the existing authz issuer only from its real contract and map."""
+    if AUTHZ_CANONICAL_RUNTIME not in changed:
+        return False
+    if not changed.issubset(AUTHZ_GOVERNED_PATHS):
+        return False
+
+    runtime = root / AUTHZ_CANONICAL_RUNTIME
+    owner_contract = root / AUTHZ_OWNER_CONTRACT
+    structure_map = root / CANONICAL_STRUCTURE_MAP
+    if not (runtime.is_file() and owner_contract.is_file() and structure_map.is_file()):
+        return False
+
+    contract = owner_contract.read_text(encoding="utf-8", errors="ignore")
+    structure = structure_map.read_text(encoding="utf-8", errors="ignore")
+    runtime_text = runtime.read_text(encoding="utf-8", errors="ignore")
+    return (
+        "elo-authz" in contract
+        and "issue_authorization_grant" in contract
+        and "ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md" in structure
+        and "| supabase/functions/elo-authz/ |" in structure
+        and "resolveAuthorizationGrant" in runtime_text
+    )
 
 
 def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
@@ -158,7 +199,13 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Canonical structure map resolves src/elo as the executable ELO owner"]
 
-    maintenance_changed = all(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
+    maintenance_changed = (
+        any(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
+        and all(
+            p.replace("\\", "/") in SELF_AUDIT_PATHS | SELF_AUDIT_SUPPORT_PATHS
+            for p in changed
+        )
+    )
     if maintenance_changed and structure_map.is_file():
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "elo-maintenance-governance"
@@ -172,8 +219,28 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
+    # A source-only authz change is not a new capability. Require the existing
+    # canonical owner contract and map. Unlisted paths and competing owners
+    # remain unresolved, never treated as safe reuse.
+    scoped_authz = (
+        not owner_evidence
+        and duplicate is None
+        and _is_governed_authz_change(root, changed_normalised)
+    )
+    if scoped_authz:
+        source_of_truth = AUTHZ_OWNER_CONTRACT
+        canonical_identity = "elo-authz"
+        duplicate = False
+        owners.append(AUTHZ_OWNER_CONTRACT)
+        reasons = ["Existing elo-authz issuer and canonical owner contract verified"]
+
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = (
+        "STRENGTHEN" if scoped_authz and complete
+        else "REUSE" if complete and duplicate
+        else "CREATE" if complete
+        else None
+    )
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
