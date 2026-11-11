@@ -1,7 +1,13 @@
 """Framework-neutral orchestration for GPT↔ELO knowledge access."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from time import perf_counter
+from typing import Callable, Protocol
+
+from elo.observability.cognitive_timing import (
+    CognitiveTimingObservation,
+    CognitiveTimingSink,
+)
 
 from .contracts import (
     IntentSpec, KnowledgeCandidate, KnowledgeContext, KnowledgeConflict,
@@ -95,18 +101,65 @@ class KnowledgeNeedPlanner:
 
 class KnowledgeOrchestrator:
     """Coordinate discovery/curation without owning canonical ELO truth."""
-    def __init__(self, provider: KnowledgeProvider, limits: OrchestrationLimits | None = None) -> None:
+    def __init__(
+        self,
+        provider: KnowledgeProvider,
+        limits: OrchestrationLimits | None = None,
+        *,
+        timing_sink: CognitiveTimingSink | None = None,
+        clock: Callable[[], float] = perf_counter,
+    ) -> None:
         self.provider = provider
         self.limits = limits or OrchestrationLimits()
         self.planner = KnowledgeNeedPlanner()
+        self.timing_sink = timing_sink
+        self._clock = clock
+
+    def _record_timing(
+        self,
+        *,
+        intent: IntentSpec,
+        stage: str,
+        duration_ms: float,
+        requirement_key: str = "",
+        candidate_count: int = 0,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        if self.timing_sink is None:
+            return
+        observation = CognitiveTimingObservation(
+            stage=stage,
+            duration_ms=max(0.0, duration_ms),
+            correlation_id=str(intent.metadata.get("correlation_id", "")),
+            requirement_key=requirement_key,
+            candidate_count=candidate_count,
+            metadata=metadata or {},
+        )
+        try:
+            self.timing_sink.record(observation)
+        except Exception:  # observability must never change cognitive output
+            return
 
     def run(self, intent: IntentSpec) -> KnowledgeContext:
+        total_started = self._clock()
         requirements = self.planner.plan(intent, self.limits)
         candidates: list[KnowledgeCandidate] = []
         gaps: list[KnowledgeGap] = []
         conflicts: list[KnowledgeConflict] = []
+        retrieval_calls = 0
+
         for requirement in requirements:
+            retrieval_started = self._clock()
             found = self.provider.retrieve(intent, requirement)
+            retrieval_calls += 1
+            self._record_timing(
+                intent=intent,
+                stage="knowledge.retrieve",
+                duration_ms=(self._clock() - retrieval_started) * 1000.0,
+                requirement_key=requirement.key,
+                candidate_count=len(found),
+                metadata={"required": str(requirement.required).lower()},
+            )
             if not found and requirement.required:
                 gaps.append(
                     KnowledgeGap(
@@ -117,7 +170,15 @@ class KnowledgeOrchestrator:
                 )
             candidates.extend(found)
 
+        curation_started = self._clock()
         curated = curate(tuple(candidates), self.limits.max_candidates, intent=intent)
+        self._record_timing(
+            intent=intent,
+            stage="knowledge.curate",
+            duration_ms=(self._clock() - curation_started) * 1000.0,
+            candidate_count=len(curated),
+            metadata={"input_candidates": str(len(candidates))},
+        )
         for item in curated:
             if item.status == "CONFLICTING":
                 conflicts.append(
@@ -128,10 +189,23 @@ class KnowledgeOrchestrator:
                     )
                 )
         provenance = {item.source_id: item.provenance for item in curated if item.provenance}
-        return KnowledgeContext(
+        context = KnowledgeContext(
             intent=intent,
             candidates=curated,
             gaps=tuple(gaps),
             conflicts=tuple(conflicts),
             provenance=provenance,
         )
+        self._record_timing(
+            intent=intent,
+            stage="knowledge.total",
+            duration_ms=(self._clock() - total_started) * 1000.0,
+            candidate_count=len(curated),
+            metadata={
+                "requirements": str(len(requirements)),
+                "retrieval_calls": str(retrieval_calls),
+                "gaps": str(len(gaps)),
+                "conflicts": str(len(conflicts)),
+            },
+        )
+        return context

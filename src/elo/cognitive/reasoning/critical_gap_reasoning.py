@@ -127,6 +127,75 @@ class CriticalGapPlan:
     canonical_mutation: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class AdminDecisionQuestion:
+    """Presentation of a proven evidence gap for the authorized administrator."""
+
+    question_id: str
+    gap_id: str
+    parameter: str
+    decision: str
+    prompt: str
+    why_needed: str
+    response_guidance: str
+    owner: str
+    priority_score: int
+    blocks_decision: bool
+    evidence_refs: tuple[str, ...] = ()
+    answer_contract: str = "HUMAN_EVIDENCE_CANDIDATE"
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "question_id": self.question_id,
+            "gap_id": self.gap_id,
+            "parameter": self.parameter,
+            "decision": self.decision,
+            "prompt": self.prompt,
+            "why_needed": self.why_needed,
+            "response_guidance": self.response_guidance,
+            "owner": self.owner,
+            "priority_score": self.priority_score,
+            "blocks_decision": self.blocks_decision,
+            "evidence_refs": list(self.evidence_refs),
+            "answer_contract": self.answer_contract,
+        }
+
+
+def build_admin_decision_questionnaire(
+    plan: CriticalGapPlan,
+    *,
+    max_questions: int = 5,
+    include_non_blocking: bool = False,
+) -> tuple[AdminDecisionQuestion, ...]:
+    """Project existing gaps into questions; never synthesize missing business facts."""
+    if not 1 <= max_questions <= 20:
+        raise ValueError("max_questions must be between 1 and 20")
+    eligible = (
+        plan.ordered_gaps
+        if include_non_blocking
+        else tuple(gap for gap in plan.ordered_gaps if gap.blocks_decision)
+    )
+    return tuple(
+        AdminDecisionQuestion(
+            question_id=f"ADM-{gap.gap_id}",
+            gap_id=gap.gap_id,
+            parameter=gap.parameter,
+            decision=gap.decision,
+            prompt=(
+                f'Para concluir a decisão "{gap.decision}", informe ou valide: '
+                f"{gap.missing_condition}"
+            ),
+            why_needed=gap.operational_impact,
+            response_guidance=gap.collection_action,
+            owner=gap.owner,
+            priority_score=gap.priority_score,
+            blocks_decision=gap.blocks_decision,
+            evidence_refs=gap.evidence_refs,
+        )
+        for gap in eligible[:max_questions]
+    )
+
+
 def prioritize_evidence_gaps(
     gaps: Iterable[CriticalEvidenceGap],
 ) -> CriticalGapPlan:
@@ -198,6 +267,8 @@ def qualify_observation(
 __all__ = [
     "CriticalEvidenceGap",
     "CriticalGapPlan",
+    "AdminDecisionQuestion",
+    "build_admin_decision_questionnaire",
     "GapCriticality",
     "GapPlanState",
     "ObservationBoundary",
