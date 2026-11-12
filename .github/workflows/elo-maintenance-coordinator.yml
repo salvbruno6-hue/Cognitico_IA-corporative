@@ -168,6 +168,7 @@ jobs:
           payload = {
               'schema': 'elo.maintenance-decision.v2',
               'run_id': int(os.environ['GITHUB_RUN_ID']),
+              'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
               'pr': pr['number'],
               'head_sha': evaluated_head,
               'resource_id': f"pr:{pr['number']}@{evaluated_head}",
@@ -185,7 +186,7 @@ jobs:
           if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
             CURRENT_HEAD_SHA="$(gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid)"
             [[ "$CURRENT_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA" ]] || { echo "PR head changed before Maintenance attestation publication."; exit 1; }
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge. ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID} ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER} ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA} ELO_RESOURCE_ID=pr:${PR_NUMBER}@${ELO_EVALUATED_HEAD_SHA}"
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge. ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID} ELO_MAINTENANCE_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT} ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER} ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA} ELO_RESOURCE_ID=pr:${PR_NUMBER}@${ELO_EVALUATED_HEAD_SHA}"
           elif [ "${DECISION}" = "BLOCKED" ]; then
             gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **BLOCKED**. Canonical reconciliation found an existing or parallel capability. Reuse/strengthen/refactor must be resolved before a new authority can proceed."
           else
@@ -195,5 +196,5 @@ jobs:
       - name: Upload audit evidence
         uses: actions/upload-artifact@v4
         with:
-          name: elo-maintenance-audit-${{ github.run_id }}
+          name: elo-maintenance-audit-${{ github.run_id }}-${{ github.run_attempt }}
           path: automation/audit-output/

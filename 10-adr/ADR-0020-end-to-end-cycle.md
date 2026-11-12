@@ -313,3 +313,11 @@ artifact estruturado produzido pela própria run citada. PR-ready e Maintenance
 devem ser validados contra artifacts que vinculem run, PR, SHA e
 `resource_id` antes de qualquer merge. Isso impede reaproveitamento de uma
 run legítima por comentários produzidos por outro workflow.
+
+
+### Idempotência de rerun
+
+Evidência de workflow é identificada pelo par `run_id + run_attempt`.
+Reexecuções não podem sobrescrever nem tornar ambígua uma prova anterior; cada
+tentativa produz artifact próprio e o consumidor exige a mesma tentativa
+declarada no comentário e no payload estruturado.

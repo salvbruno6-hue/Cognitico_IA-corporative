@@ -378,3 +378,13 @@ O mesmo vale para Maintenance: `decision.json` usa schema
 artifact da run citada confirma exatamente esse alvo. Uma run histórica de
 outro PR/SHA não pode ser reutilizada por outro workflow que publique um
 comentário com identidade `github-actions`.
+
+
+### Idempotência por tentativa de workflow
+
+GitHub reutiliza o mesmo `run_id` quando um workflow é reexecutado e incrementa
+`run_attempt`. Portanto, `run_id` isolado não identifica uma evidência
+imutável. PR-ready e Maintenance vinculam comentário, artifact e JSON ao par
+`<run_id, run_attempt>`. Os artifacts usam nomes
+`elo-pr-ready-<run_id>-<attempt>` e
+`elo-maintenance-audit-<run_id>-<attempt>`, evitando colisões entre reruns.

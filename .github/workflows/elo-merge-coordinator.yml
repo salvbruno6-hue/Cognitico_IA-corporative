@@ -41,6 +41,8 @@ jobs:
           set -euo pipefail
           run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}")"
           run_name="$(jq -r '.name' <<<"$run_json")"
+          run_attempt="$(jq -r '.run_attempt // 0' <<<"$run_json")"
+          [[ "$run_attempt" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid workflow run attempt."; exit 1; }
 
           if [[ "$run_name" == "ELO Agent Loop" ]]; then
             run_event="$(jq -r '.event' <<<"$run_json")"
@@ -54,7 +56,7 @@ jobs:
               exit 1
             fi
 
-            artifact_name="elo-pr-ready-${WORKFLOW_RUN_ID}"
+            artifact_name="elo-pr-ready-${WORKFLOW_RUN_ID}-${run_attempt}"
             artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}/artifacts")"
             artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
             [[ "$artifact_count" == "1" ]] || { echo "Exactly one non-expired PR-ready artifact is required."; exit 1; }
@@ -63,11 +65,12 @@ jobs:
             gh run download "$WORKFLOW_RUN_ID" --repo "$REPOSITORY" -n "$artifact_name" -D /tmp/elo-pr-ready
             evidence="/tmp/elo-pr-ready/pr-ready.json"
             test -f "$evidence"
-            jq -e --arg repo "$REPOSITORY" --argjson run "$WORKFLOW_RUN_ID" '
+            jq -e --arg repo "$REPOSITORY" --argjson run "$WORKFLOW_RUN_ID" --argjson attempt "$run_attempt" '
               .schema == "elo.pr-ready.v2"
               and .producer == "ELO Agent Loop"
               and .repository == $repo
               and .run_id == $run
+              and .run_attempt == $attempt
               and .decision == "PR_READY"
               and (.mode == "CREATE_FROM_ISSUE" or .mode == "ATTEST_EXISTING_PR")
               and (.pr_number | type == "number")
@@ -137,28 +140,29 @@ jobs:
           set -euo pipefail
           RESOURCE_ID="pr:${PR_NUMBER}@${HEAD_SHA}"
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
-          run_ids="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
+          run_refs="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
             .comments[]?
             | select(.author.login == "github-actions")
             | select(.body | contains("ELO_PR_READY_V2=1"))
             | select(.body | contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr))
             | select(.body | contains("ELO_HEAD_SHA=" + $sha))
             | select(.body | contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha))
-            | (.body | capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+)")? | .id)
+            | (.body | capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+).*ELO_AGENT_LOOP_RUN_ATTEMPT=(?<attempt>[0-9]+)")? | "\(.id):\(.attempt)")
           ' <<<"$comments")"
           proved=false
-          while IFS= read -r run_id; do
-            [[ "$run_id" =~ ^[0-9]+$ ]] || continue
+          while IFS=: read -r run_id run_attempt; do
+            [[ "$run_id" =~ ^[0-9]+$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || continue
             run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}" || true)"
             [[ -n "$run_json" ]] || continue
             run_event="$(jq -r '.event // ""' <<<"$run_json")"
             run_branch="$(jq -r '.head_branch // ""' <<<"$run_json")"
-            if ! jq -e --arg repo "$REPOSITORY" '
+            if ! jq -e --arg repo "$REPOSITORY" --argjson attempt "$run_attempt" '
               .name == "ELO Agent Loop"
               and .path == ".github/workflows/elo-agent-loop.yml"
               and .status == "completed"
               and .conclusion == "success"
               and .repository.full_name == $repo
+              and .run_attempt == $attempt
             ' <<<"$run_json" >/dev/null; then
               continue
             fi
@@ -166,17 +170,17 @@ jobs:
               continue
             fi
 
-            artifact_name="elo-pr-ready-${run_id}"
+            artifact_name="elo-pr-ready-${run_id}-${run_attempt}"
             artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/artifacts" || true)"
             artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
             [[ "$artifact_count" == "1" ]] || continue
-            evidence_dir="/tmp/elo-pr-ready-${run_id}"
+            evidence_dir="/tmp/elo-pr-ready-${run_id}-${run_attempt}"
             rm -rf "$evidence_dir"
             mkdir -p "$evidence_dir"
             gh run download "$run_id" --repo "$REPOSITORY" -n "$artifact_name" -D "$evidence_dir" >/dev/null
             evidence="$evidence_dir/pr-ready.json"
             [[ -f "$evidence" ]] || continue
-            if jq -e               --arg repo "$REPOSITORY"               --arg pr "$PR_NUMBER"               --arg sha "$HEAD_SHA"               --arg resource "$RESOURCE_ID"               --argjson run "$run_id" '
+            if jq -e               --arg repo "$REPOSITORY"               --arg pr "$PR_NUMBER"               --arg sha "$HEAD_SHA"               --arg resource "$RESOURCE_ID"               --argjson run "$run_id"               --argjson attempt "$run_attempt" '
                 .schema == "elo.pr-ready.v2"
                 and .producer == "ELO Agent Loop"
                 and .repository == $repo
@@ -184,15 +188,16 @@ jobs:
                 and .head_sha == $sha
                 and .resource_id == $resource
                 and .run_id == $run
+                and .run_attempt == $attempt
                 and .decision == "PR_READY"
                 and (.mode == "CREATE_FROM_ISSUE" or .mode == "ATTEST_EXISTING_PR")
               ' "$evidence" >/dev/null; then
               proved=true
               break
             fi
-          done <<<"$run_ids"
+          done <<<"$run_refs"
           [[ "$proved" == "true" ]] || {
-            echo "No genuine Agent Loop PR-ready artifact bound to this PR and head SHA."
+            echo "No genuine Agent Loop PR-ready artifact bound to this PR, head SHA and run attempt."
             exit 1
           }
 
@@ -220,53 +225,55 @@ jobs:
           set -euo pipefail
           RESOURCE_ID="pr:${PR_NUMBER}@${HEAD_SHA}"
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
-          run_ids="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
+          run_refs="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
             .comments[]?
             | select(.author.login == "github-actions")
             | select(.body | startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**."))
             | select(.body | contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr))
             | select(.body | contains("ELO_HEAD_SHA=" + $sha))
             | select(.body | contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha))
-            | (.body | capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+)")? | .id)
+            | (.body | capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+).*ELO_MAINTENANCE_RUN_ATTEMPT=(?<attempt>[0-9]+)")? | "\(.id):\(.attempt)")
           ' <<<"$comments")"
           proved=false
-          while IFS= read -r run_id; do
-            [[ "$run_id" =~ ^[0-9]+$ ]] || continue
+          while IFS=: read -r run_id run_attempt; do
+            [[ "$run_id" =~ ^[0-9]+$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || continue
             run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}" || true)"
-            if [[ -z "$run_json" ]] || ! jq -e --arg repo "$REPOSITORY" '
+            if [[ -z "$run_json" ]] || ! jq -e --arg repo "$REPOSITORY" --argjson attempt "$run_attempt" '
               .name == "ELO Maintenance Coordinator"
               and .path == ".github/workflows/elo-maintenance-coordinator.yml"
               and .status == "completed"
               and .conclusion == "success"
               and .repository.full_name == $repo
+              and .run_attempt == $attempt
             ' <<<"$run_json" >/dev/null; then
               continue
             fi
 
-            artifact_name="elo-maintenance-audit-${run_id}"
+            artifact_name="elo-maintenance-audit-${run_id}-${run_attempt}"
             artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/artifacts" || true)"
             artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
             [[ "$artifact_count" == "1" ]] || continue
-            evidence_dir="/tmp/elo-maintenance-${run_id}"
+            evidence_dir="/tmp/elo-maintenance-${run_id}-${run_attempt}"
             rm -rf "$evidence_dir"
             mkdir -p "$evidence_dir"
             gh run download "$run_id" --repo "$REPOSITORY" -n "$artifact_name" -D "$evidence_dir" >/dev/null
             evidence="$evidence_dir/decision.json"
             [[ -f "$evidence" ]] || continue
-            if jq -e               --arg pr "$PR_NUMBER"               --arg sha "$HEAD_SHA"               --arg resource "$RESOURCE_ID"               --argjson run "$run_id" '
+            if jq -e               --arg pr "$PR_NUMBER"               --arg sha "$HEAD_SHA"               --arg resource "$RESOURCE_ID"               --argjson run "$run_id"               --argjson attempt "$run_attempt" '
                 .schema == "elo.maintenance-decision.v2"
                 and (.pr|tostring) == $pr
                 and .head_sha == $sha
                 and .resource_id == $resource
                 and .run_id == $run
+                and .run_attempt == $attempt
                 and .decision == "APPROVED_FOR_MERGE"
               ' "$evidence" >/dev/null; then
               proved=true
               break
             fi
-          done <<<"$run_ids"
+          done <<<"$run_refs"
           [[ "$proved" == "true" ]] || {
-            echo "No authenticated Maintenance artifact bound to this PR and head SHA."
+            echo "No authenticated Maintenance artifact bound to this PR, head SHA and run attempt."
             exit 1
           }
 

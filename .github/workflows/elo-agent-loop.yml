@@ -274,14 +274,14 @@ jobs:
             --arg resource_id "$RESOURCE_ID" \
             '{schema:$schema,producer:$producer,mode:$mode,repository:$repository,pr_number:$pr_number,head_sha:$head_sha,run_id:$run_id,run_attempt:$run_attempt,resource_id:$resource_id,decision:"PR_READY",mutation_performed:true}' \
             > automation/audit-output/pr-ready.json
-          gh pr comment "$PR_URL" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${COMMIT_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER} ELO_AGENT_LOOP_MODE=CREATE_FROM_ISSUE ELO_HEAD_SHA=${COMMIT_SHA} ELO_RESOURCE_ID=${RESOURCE_ID}"
+          gh pr comment "$PR_URL" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${COMMIT_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER} ELO_AGENT_LOOP_MODE=CREATE_FROM_ISSUE ELO_HEAD_SHA=${COMMIT_SHA} ELO_RESOURCE_ID=${RESOURCE_ID}"
           gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO loop reached PR-ready state: diagnosis → correction → validation → ELO governance → APPROVE_COMMIT → Commit → PR. Awaiting authorized merge; no automatic merge or issue closure performed."
 
       - name: Upload PR-ready V2 evidence
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: elo-pr-ready-${{ github.run_id }}
+          name: elo-pr-ready-${{ github.run_id }}-${{ github.run_attempt }}
           path: automation/audit-output/pr-ready.json
           if-no-files-found: error
 
@@ -453,12 +453,12 @@ jobs:
             --arg resource_id "$RESOURCE_ID" \
             '{schema:$schema,producer:$producer,mode:$mode,repository:$repository,pr_number:$pr_number,head_sha:$head_sha,run_id:$run_id,run_attempt:$run_attempt,resource_id:$resource_id,decision:"PR_READY",mutation_performed:false}' \
             > automation/audit-output/pr-ready.json
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${TARGET_HEAD_SHA} passed ELO attestation gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER} ELO_AGENT_LOOP_MODE=ATTEST_EXISTING_PR ELO_HEAD_SHA=${TARGET_HEAD_SHA} ELO_RESOURCE_ID=${RESOURCE_ID}"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${TARGET_HEAD_SHA} passed ELO attestation gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER} ELO_AGENT_LOOP_MODE=ATTEST_EXISTING_PR ELO_HEAD_SHA=${TARGET_HEAD_SHA} ELO_RESOURCE_ID=${RESOURCE_ID}"
 
       - name: Upload attested PR-ready V2 evidence
         if: steps.target.outputs.bootstrap_blocked != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: elo-pr-ready-${{ github.run_id }}
+          name: elo-pr-ready-${{ github.run_id }}-${{ github.run_attempt }}
           path: automation/audit-output/pr-ready.json
           if-no-files-found: error

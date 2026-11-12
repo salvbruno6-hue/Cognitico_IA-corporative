@@ -197,7 +197,7 @@ def test_pr_ready_provenance_rejects_human_and_wrong_sha():
     query = _jq_filter_for_comment_step("Verify PR-ready evidence")
     good = (
         "ELO execution cycle reached PR-ready state. "
-        "ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=1234 "
+        "ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=1234 ELO_AGENT_LOOP_RUN_ATTEMPT=2 "
         "ELO_AGENT_LOOP_PR_NUMBER=1177 ELO_HEAD_SHA=aabbcc "
         "ELO_RESOURCE_ID=pr:1177@aabbcc"
     )
@@ -209,13 +209,13 @@ def test_pr_ready_provenance_rejects_human_and_wrong_sha():
     args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
     assert _jq_run(query, {"comments": rows}, *args) == []
     rows.append({"author": {"login": "github-actions"}, "body": good})
-    assert _jq_run(query, {"comments": rows}, *args) == ["1234"]
+    assert _jq_run(query, {"comments": rows}, *args) == ["1234:2"]
 
 
 def test_maintenance_provenance_rejects_human_and_stale_sha():
     query = _jq_filter_for_comment_step("Verify applicable ELO gate evidence")
     good = ("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. "
-            "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_PR_NUMBER=1177 "
+            "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_RUN_ATTEMPT=3 ELO_MAINTENANCE_PR_NUMBER=1177 "
             "ELO_HEAD_SHA=aabbcc ELO_RESOURCE_ID=pr:1177@aabbcc")
     rows = [
         {"author": {"login": "salvbruno6-hue"}, "body": good},
@@ -224,7 +224,7 @@ def test_maintenance_provenance_rejects_human_and_stale_sha():
     args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
     assert _jq_run(query, {"comments": rows}, *args) == []
     rows.append({"author": {"login": "github-actions"}, "body": good})
-    assert _jq_run(query, {"comments": rows}, *args) == ["890"]
+    assert _jq_run(query, {"comments": rows}, *args) == ["890:3"]
 
 
 def test_merge_grant_filter_rejects_other_operation_resource_or_session():
@@ -354,7 +354,7 @@ def test_attestation_runs_from_trusted_base_workflow_definition():
 def test_pr_ready_v2_is_uploaded_as_structured_artifact_in_both_lanes():
     data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
     text = AGENT_WORKFLOW.read_text(encoding="utf-8")
-    assert text.count("elo-pr-ready-${{ github.run_id }}") >= 2
+    assert text.count("elo-pr-ready-${{ github.run_id }}-${{ github.run_attempt }}") >= 2
     assert text.count("elo.pr-ready.v2") >= 2
     assert "mutation_performed:true" in text
     assert "mutation_performed:false" in text
@@ -426,7 +426,7 @@ def test_merge_grant_session_belongs_to_canonical_issuer_not_binding_recipient()
 def test_pr_ready_verifier_binds_referenced_run_artifact_to_current_target():
     script = _shell_step(WORKFLOW, "Verify PR-ready evidence")
     for token in (
-        'artifact_name="elo-pr-ready-${run_id}"',
+        'artifact_name="elo-pr-ready-${run_id}-${run_attempt}"',
         'gh run download "$run_id"',
         '.schema == "elo.pr-ready.v2"',
         '(.pr_number|tostring) == $pr',
@@ -449,7 +449,7 @@ def test_maintenance_artifact_is_bound_to_run_pr_sha_and_resource():
     ):
         assert token in producer
     for token in (
-        'artifact_name="elo-maintenance-audit-${run_id}"',
+        'artifact_name="elo-maintenance-audit-${run_id}-${run_attempt}"',
         'gh run download "$run_id"',
         '.schema == "elo.maintenance-decision.v2"',
         '(.pr|tostring) == $pr',
@@ -459,3 +459,23 @@ def test_maintenance_artifact_is_bound_to_run_pr_sha_and_resource():
         '.decision == "APPROVED_FOR_MERGE"',
     ):
         assert token in consumer
+
+
+
+def test_pr_ready_and_maintenance_evidence_are_scoped_to_run_attempt():
+    agent = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    maintenance = MAINTENANCE_WORKFLOW.read_text(encoding="utf-8")
+    merge = WORKFLOW.read_text(encoding="utf-8")
+    assert "ELO_AGENT_LOOP_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" in agent
+    assert "elo-pr-ready-${{ github.run_id }}-${{ github.run_attempt }}" in agent
+    assert "'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])" in maintenance
+    assert "ELO_MAINTENANCE_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" in maintenance
+    assert "elo-maintenance-audit-${{ github.run_id }}-${{ github.run_attempt }}" in maintenance
+    for token in (
+        "ELO_AGENT_LOOP_RUN_ATTEMPT",
+        "ELO_MAINTENANCE_RUN_ATTEMPT",
+        'artifact_name="elo-pr-ready-${run_id}-${run_attempt}"',
+        'artifact_name="elo-maintenance-audit-${run_id}-${run_attempt}"',
+        ".run_attempt == $attempt",
+    ):
+        assert token in merge
