@@ -339,3 +339,12 @@ merge.
 
 Maintenance captura o head SHA antes da coleta de evidência e aborta se o head
 mudar durante a auditoria ou antes da publicação de `APPROVED_FOR_MERGE`.
+
+
+### Identidade do bot na superfície GraphQL
+
+Os filtros que consomem `gh pr view --json comments` usam a representação
+GraphQL do autor, `github-actions`. A identidade REST
+`github-actions[bot]` não é usada nesse payload. A autoria do comentário é
+apenas o primeiro filtro; a run ID ainda é resolvida pela API Actions e deve
+corresponder ao workflow, repositório, evento confiável e conclusão esperados.

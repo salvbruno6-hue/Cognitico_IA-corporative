@@ -138,7 +138,7 @@ jobs:
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
           run_ids="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
             .comments[]?
-            | select(.author.login == "github-actions[bot]")
+            | select(.author.login == "github-actions")
             | select(.body | contains("ELO_PR_READY_V2=1"))
             | select(.body | contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr))
             | select(.body | contains("ELO_HEAD_SHA=" + $sha))
@@ -195,7 +195,7 @@ jobs:
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
           run_ids="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
             .comments[]?
-            | select(.author.login == "github-actions[bot]")
+            | select(.author.login == "github-actions")
             | select(.body | startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**."))
             | select(.body | contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr))
             | select(.body | contains("ELO_HEAD_SHA=" + $sha))

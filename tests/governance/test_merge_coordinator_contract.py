@@ -85,7 +85,7 @@ def test_pr_ready_requires_bot_run_current_pr_and_sha():
     assert "ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID}" in producer
     assert "ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}" in producer
     for token in (
-        '.author.login == "github-actions[bot]"',
+        '.author.login == "github-actions"',
         'contains("ELO_PR_READY_V2=1")',
         'contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr)',
         'contains("ELO_HEAD_SHA=" + $sha)',
@@ -109,7 +109,7 @@ def test_maintenance_requires_bot_run_current_pr_and_sha():
     ):
         assert token in producer
     for token in (
-        '.author.login == "github-actions[bot]"',
+        '.author.login == "github-actions"',
         'startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**.")',
         'contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr)',
         'contains("ELO_HEAD_SHA=" + $sha)',
@@ -201,12 +201,12 @@ def test_pr_ready_provenance_rejects_human_and_wrong_sha():
     )
     rows = [
         {"author": {"login": "salvbruno6-hue"}, "body": good},
-        {"author": {"login": "github-actions[bot]"}, "body": good.replace("aabbcc", "other")},
-        {"author": {"login": "github-actions[bot]"}, "body": good.replace("1177", "9999")},
+        {"author": {"login": "github-actions"}, "body": good.replace("aabbcc", "other")},
+        {"author": {"login": "github-actions"}, "body": good.replace("1177", "9999")},
     ]
     args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
     assert _jq_run(query, {"comments": rows}, *args) == []
-    rows.append({"author": {"login": "github-actions[bot]"}, "body": good})
+    rows.append({"author": {"login": "github-actions"}, "body": good})
     assert _jq_run(query, {"comments": rows}, *args) == ["1234"]
 
 
@@ -216,11 +216,11 @@ def test_maintenance_provenance_rejects_human_and_stale_sha():
             "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_PR_NUMBER=1177 ELO_HEAD_SHA=aabbcc")
     rows = [
         {"author": {"login": "salvbruno6-hue"}, "body": good},
-        {"author": {"login": "github-actions[bot]"}, "body": good.replace("aabbcc", "other")},
+        {"author": {"login": "github-actions"}, "body": good.replace("aabbcc", "other")},
     ]
     args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
     assert _jq_run(query, {"comments": rows}, *args) == []
-    rows.append({"author": {"login": "github-actions[bot]"}, "body": good})
+    rows.append({"author": {"login": "github-actions"}, "body": good})
     assert _jq_run(query, {"comments": rows}, *args) == ["890"]
 
 
@@ -389,3 +389,12 @@ def test_maintenance_binds_attestation_to_evaluated_head_without_toctou():
     assert 'OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in audit_step
     assert 'CURRENT_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in publish
     assert 'ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA}' in publish
+
+
+
+def test_graphql_comment_filters_use_actions_bot_login_without_rest_suffix():
+    pr_ready = _shell_step(WORKFLOW, "Verify PR-ready evidence")
+    maintenance = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for script in (pr_ready, maintenance):
+        assert '.author.login == "github-actions"' in script
+        assert '.author.login == "github-actions[bot]"' not in script
