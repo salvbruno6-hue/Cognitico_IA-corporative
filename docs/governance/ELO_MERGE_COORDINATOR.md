@@ -348,3 +348,17 @@ GraphQL do autor, `github-actions`. A identidade REST
 `github-actions[bot]` não é usada nesse payload. A autoria do comentário é
 apenas o primeiro filtro; a run ID ainda é resolvida pela API Actions e deve
 corresponder ao workflow, repositório, evento confiável e conclusão esperados.
+
+
+### Escopo do grant e propriedade da sessão
+
+A consulta de `elo-merge-authorized` filtra
+`metadata.resource_id=pr:<PR>@<SHA>` no PostgREST antes de aplicar
+ordenação/limite. Grants de outras PRs ou SHAs não podem ocultar o grant
+correto por paginação.
+
+O `binding_id` e `identity_id` do grant continuam vinculados ao operador
+destinatário. Já `session_id` representa a sessão autenticada do
+`CANONICAL_ADMIN` emissor, conforme o contrato de criação do `elo-authz`;
+por isso sua propriedade é validada contra `issued_by_identity_id`. A role
+`CANONICAL_ADMIN` do mesmo emissor também é revalidada.

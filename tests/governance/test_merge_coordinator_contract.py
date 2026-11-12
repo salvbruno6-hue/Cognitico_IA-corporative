@@ -125,10 +125,12 @@ def test_merge_grant_requires_exact_operation_resource_and_live_session():
     for token in (
         "required_resource=\"pr:${PR_NUMBER}@${HEAD_SHA}\"",
         "&operation=eq.merge&",
+        "metadata->>resource_id=eq.${resource_encoded}",
         ".metadata.resource_id == $resource",
         '.metadata.issuer_role == "CANONICAL_ADMIN"',
         ".session_id != null",
         "identity_id == $identity",
+        "identity_id=eq.${issuer}",
         "session_now_epoch < session_expires_epoch",
         "elo_operator_github_bindings",
         "elo_identity_roles",
@@ -398,3 +400,22 @@ def test_graphql_comment_filters_use_actions_bot_login_without_rest_suffix():
     for script in (pr_ready, maintenance):
         assert '.author.login == "github-actions"' in script
         assert '.author.login == "github-actions[bot]"' not in script
+
+
+
+def test_merge_grant_filters_exact_resource_before_limit():
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    resource_filter = "metadata->>resource_id=eq.${resource_encoded}"
+    assert resource_filter in script
+    query_line = next(line for line in script.splitlines() if "authz_url" in line and "authorization_state=eq.elo-merge-authorized" in line)
+    assert query_line.index(resource_filter) < query_line.index("limit=20")
+    assert "order=issued_at.desc" in query_line
+
+
+def test_merge_grant_session_belongs_to_canonical_issuer_not_binding_recipient():
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    assert 'issuer="$(jq -r '.issued_by_identity_id' /tmp/grant.json)"' in script
+    assert "identity_id=eq.${issuer}" in script
+    assert "identity_id=eq.${target_identity}&revoked_at=is.null" not in script
+    assert 'target_identity="$(jq -r '.identity_id' /tmp/grant.json)"' in script
+    assert "identity_id == $identity" in script

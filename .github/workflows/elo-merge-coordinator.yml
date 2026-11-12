@@ -236,7 +236,8 @@ jobs:
           repo_encoded="$(python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["REPOSITORY"], safe=""))')"
 
           required_resource="pr:${PR_NUMBER}@${HEAD_SHA}"
-          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&operation=eq.merge&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&limit=20")"
+          resource_encoded="$(RESOURCE_ID="$required_resource" python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["RESOURCE_ID"], safe=""))')"
+          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&operation=eq.merge&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&metadata->>resource_id=eq.${resource_encoded}&order=issued_at.desc&limit=20")"
 
           valid_grant=""
           while IFS= read -r row; do
@@ -269,7 +270,7 @@ jobs:
 
           session_id="$(jq -r '.session_id' /tmp/grant.json)"
           session_url="${SUPABASE_URL%/}/rest/v1/elo_identity_sessions"
-          session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${session_id}&identity_id=eq.${target_identity}&revoked_at=is.null&limit=1")"
+          session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${session_id}&identity_id=eq.${issuer}&revoked_at=is.null&limit=1")"
           jq -e 'length == 1' <<<"$session" >/dev/null
           session_issued="$(jq -r '.[0].issued_at' <<<"$session")"
           session_expires="$(jq -r '.[0].expires_at' <<<"$session")"
