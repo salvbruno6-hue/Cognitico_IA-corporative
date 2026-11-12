@@ -86,8 +86,10 @@ def test_pr_ready_requires_bot_run_current_pr_and_sha():
     assert "ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}" in producer
     for token in (
         '.author.login == "github-actions[bot]"',
-        'startswith("ELO execution cycle reached PR-ready state. Commit " + $sha',
+        'contains("ELO_PR_READY_V2=1")',
         'contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr)',
+        'contains("ELO_HEAD_SHA=" + $sha)',
+        'contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha)',
         'capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+)")',
         '.name == "ELO Agent Loop"',
         '.conclusion == "success"',
@@ -102,7 +104,8 @@ def test_maintenance_requires_bot_run_current_pr_and_sha():
     for token in (
         "ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID}",
         "ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER}",
-        "ELO_HEAD_SHA=${PR_HEAD_SHA}",
+        "ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA}",
+        "PR head changed before Maintenance attestation publication.",
     ):
         assert token in producer
     for token in (
@@ -190,9 +193,11 @@ def _jq_run(filter_source: str, payload: object, *args: str) -> list[str]:
 
 def test_pr_ready_provenance_rejects_human_and_wrong_sha():
     query = _jq_filter_for_comment_step("Verify PR-ready evidence")
-    prefix = "ELO execution cycle reached PR-ready state. Commit "
-    good = prefix + "aabbcc passed ELO and applicable laboratory gates. " + (
-        "ELO_AGENT_LOOP_RUN_ID=1234 ELO_AGENT_LOOP_PR_NUMBER=1177"
+    good = (
+        "ELO execution cycle reached PR-ready state. "
+        "ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=1234 "
+        "ELO_AGENT_LOOP_PR_NUMBER=1177 ELO_HEAD_SHA=aabbcc "
+        "ELO_RESOURCE_ID=pr:1177@aabbcc"
     )
     rows = [
         {"author": {"login": "salvbruno6-hue"}, "body": good},
@@ -255,8 +260,8 @@ def test_merge_grant_filter_rejects_other_operation_resource_or_session():
 def test_agent_loop_supports_existing_pr_attestation_without_parallel_workflow():
     data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
     triggers = data.get("on") or data.get(True)
-    assert "pull_request" in triggers
-    assert "labeled" in triggers["pull_request"]["types"]
+    assert "pull_request_target" in triggers
+    assert "labeled" in triggers["pull_request_target"]["types"]
     dispatch = triggers["workflow_dispatch"]["inputs"]
     assert dispatch["issue_number"]["required"] is False
     assert dispatch["pr_number"]["required"] is False
@@ -330,3 +335,57 @@ def test_existing_pr_attestation_forbids_self_attestation_of_agent_loop_authorit
     publish = [step for step in job["steps"] if step.get("name") == "Publish authenticated PR-ready V2"]
     assert len(publish) == 1
     assert "bootstrap_blocked != 'true'" in publish[0]["if"]
+
+
+
+def test_attestation_runs_from_trusted_base_workflow_definition():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = data.get("on") or data.get(True)
+    assert "pull_request_target" in triggers
+    assert "pull_request" not in triggers
+    job = data["jobs"]["attest-existing-pr"]
+    assert "pull_request_target" in job["if"]
+    assert "github.event_name == 'pull_request'" not in job["if"]
+
+
+def test_pr_ready_v2_is_uploaded_as_structured_artifact_in_both_lanes():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    text = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    assert text.count("elo-pr-ready-${{ github.run_id }}") >= 2
+    assert text.count("elo.pr-ready.v2") >= 2
+    assert "mutation_performed:true" in text
+    assert "mutation_performed:false" in text
+    upload_steps = [
+        step for job in data["jobs"].values() for step in job.get("steps", [])
+        if step.get("uses") == "actions/upload-artifact@v4"
+        and str(step.get("with", {}).get("name", "")).startswith("elo-pr-ready-")
+    ]
+    assert len(upload_steps) == 2
+
+
+def test_merge_coordinator_resolves_agent_loop_target_from_pr_ready_artifact():
+    script = _shell_step(WORKFLOW, "Resolve PR from completed workflow")
+    for token in (
+        'run_name" == "ELO Agent Loop"',
+        'run_path" == ".github/workflows/elo-agent-loop.yml"',
+        'workflow_dispatch',
+        'pull_request_target',
+        'elo-pr-ready-',
+        'gh run download',
+        '.schema == "elo.pr-ready.v2"',
+        '.resource_id == ("pr:" + (.pr_number|tostring) + "@" + .head_sha)',
+        'number=$number',
+        'sha=$sha',
+    ):
+        assert token in script
+
+
+def test_maintenance_binds_attestation_to_evaluated_head_without_toctou():
+    reconciliation = _shell_step(MAINTENANCE_WORKFLOW, "Canonical repository reconciliation")
+    audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
+    publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert 'ELO_EVALUATED_HEAD_SHA=' in reconciliation
+    assert 'headRefOid' in audit_step
+    assert 'OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in audit_step
+    assert 'CURRENT_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in publish
+    assert 'ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA}' in publish

@@ -293,3 +293,14 @@ A reconciliação canônica continua determinística e fail-closed.
 `ATTEST_EXISTING_PR` não pode certificar uma PR que altere o próprio
 `elo-agent-loop.yml`. Esse caso é `BOOTSTRAP_REQUIRED` e não produz
 `PR-ready`. A autoridade candidata não pode provar a própria legitimidade.
+
+
+### Proveniência da execução e evidência estruturada
+
+A lane de attestation acionada por PR deve executar pela definição confiável
+da branch base (`pull_request_target`) e nunca pela cópia candidata do
+workflow. `workflow_dispatch` é aceito somente a partir de `main`.
+`ELO_PR_READY_V2` possui artifact estruturado por run, permitindo ao Merge
+Coordinator resolver PR e SHA sem inferi-los do head da própria run.
+Maintenance vincula sua decisão ao SHA capturado antes da coleta de evidência
+e falha fechado se o head mudar.

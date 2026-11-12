@@ -321,3 +321,21 @@ Uma PR que modifica `.github/workflows/elo-agent-loop.yml` não pode emitir
 autoridade de PR-ready deve ser promovida por uma versão anteriormente
 confiável do Agent Loop ou por um bootstrap governado explícito; nunca pela
 implementação candidata.
+
+
+### Proveniência confiável da lane de attestation
+
+A attestation por label usa `pull_request_target`, de modo que a definição do
+workflow é carregada da branch base confiável. O job nunca faz checkout nem
+executa código da PR. Execuções manuais `workflow_dispatch` somente são
+aceitas pelo consumidor quando a run foi iniciada em `main`.
+
+Cada `PR_READY` publica também o artifact estruturado
+`elo-pr-ready-<run_id>/pr-ready.json` com schema `elo.pr-ready.v2`, PR,
+head SHA, modo, repository, run id e `resource_id`. O Merge Coordinator usa
+esse artifact para resolver corretamente o alvo de runs do Agent Loop,
+inclusive `workflow_dispatch`, e revalida o comentário e a run antes do
+merge.
+
+Maintenance captura o head SHA antes da coleta de evidência e aborta se o head
+mudar durante a auditoria ou antes da publicação de `APPROVED_FOR_MERGE`.
