@@ -204,6 +204,12 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
             canonical_identity = "elo-ci-validation"
             if duplicate is True:
                 reasons.append("CI owner is declared, but a proven duplicate/parallel blocker remains")
+            elif candidates:
+                # Existing workflow ownership does not disprove a potentially
+                # equivalent executable implementation. Preserve uncertainty.
+                reasons.append(
+                    "CI owner is declared, but executable candidates remain unresolved"
+                )
             else:
                 duplicate = False
                 decision_override = "STRENGTHEN"
