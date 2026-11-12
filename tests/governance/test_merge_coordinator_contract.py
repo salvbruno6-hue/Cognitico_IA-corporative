@@ -419,3 +419,42 @@ def test_merge_grant_session_belongs_to_canonical_issuer_not_binding_recipient()
     assert "identity_id=eq.${target_identity}&revoked_at=is.null" not in script
     assert "target_identity=\"$(jq -r '.identity_id' /tmp/grant.json)\"" in script
     assert "identity_id == $identity" in script
+
+
+
+def test_pr_ready_verifier_binds_referenced_run_artifact_to_current_target():
+    script = _shell_step(WORKFLOW, "Verify PR-ready evidence")
+    for token in (
+        'artifact_name="elo-pr-ready-${run_id}"',
+        'gh run download "$run_id"',
+        '.schema == "elo.pr-ready.v2"',
+        '(.pr_number|tostring) == $pr',
+        '.head_sha == $sha',
+        '.resource_id == $resource',
+        '.run_id == $run',
+        '.decision == "PR_READY"',
+    ):
+        assert token in script
+
+
+def test_maintenance_artifact_is_bound_to_run_pr_sha_and_resource():
+    producer = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    consumer = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for token in (
+        "'schema': 'elo.maintenance-decision.v2'",
+        "'run_id': int(os.environ['GITHUB_RUN_ID'])",
+        "'head_sha': evaluated_head",
+        "'resource_id': f\"pr:{pr['number']}@{evaluated_head}\"",
+    ):
+        assert token in producer
+    for token in (
+        'artifact_name="elo-maintenance-audit-${run_id}"',
+        'gh run download "$run_id"',
+        '.schema == "elo.maintenance-decision.v2"',
+        '(.pr|tostring) == $pr',
+        '.head_sha == $sha',
+        '.resource_id == $resource',
+        '.run_id == $run',
+        '.decision == "APPROVED_FOR_MERGE"',
+    ):
+        assert token in consumer

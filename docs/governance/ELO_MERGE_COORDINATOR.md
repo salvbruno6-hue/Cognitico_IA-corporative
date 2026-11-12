@@ -362,3 +362,19 @@ destinatário. Já `session_id` representa a sessão autenticada do
 `CANONICAL_ADMIN` emissor, conforme o contrato de criação do `elo-authz`;
 por isso sua propriedade é validada contra `issued_by_identity_id`. A role
 `CANONICAL_ADMIN` do mesmo emissor também é revalidada.
+
+
+### Vinculação de comentário à evidência da própria run
+
+Comentários de `github-actions` são apenas índices para localizar uma run,
+não constituem prova suficiente. Ao consumir `ELO_AGENT_LOOP_RUN_ID`, o
+Merge Coordinator baixa o artifact `elo-pr-ready-<run_id>` da própria run e
+exige correspondência exata de repository, PR, SHA, resource id, run id,
+decisão e modo.
+
+O mesmo vale para Maintenance: `decision.json` usa schema
+`elo.maintenance-decision.v2` e registra run id, PR, head SHA e
+`pr:<PR>@<SHA>`. O comentário `APPROVED_FOR_MERGE` só é aceito quando o
+artifact da run citada confirma exatamente esse alvo. Uma run histórica de
+outro PR/SHA não pode ser reutilizada por outro workflow que publique um
+comentário com identidade `github-actions`.

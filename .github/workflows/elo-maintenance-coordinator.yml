@@ -66,6 +66,7 @@ jobs:
           gh pr diff "${PR_NUMBER}" --repo "${REPOSITORY}" --name-only > automation/audit-output/changed-paths.txt
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
           from automation.tasks.elo_canonical_reconciliation import event_facts, reconcile_repository
 
@@ -162,8 +163,13 @@ jobs:
           if pr.get('isDraft', False):
               reasons.append('pull request is draft')
 
+          evaluated_head = os.environ['ELO_EVALUATED_HEAD_SHA']
           payload = {
+              'schema': 'elo.maintenance-decision.v2',
+              'run_id': int(os.environ['GITHUB_RUN_ID']),
               'pr': pr['number'],
+              'head_sha': evaluated_head,
+              'resource_id': f"pr:{pr['number']}@{evaluated_head}",
               'decision': decision,
               'reasons': list(dict.fromkeys(reasons)),
               'canonical_reconciliation': reconciliation,

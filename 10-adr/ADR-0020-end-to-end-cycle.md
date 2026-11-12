@@ -304,3 +304,12 @@ workflow. `workflow_dispatch` é aceito somente a partir de `main`.
 Coordinator resolver PR e SHA sem inferi-los do head da própria run.
 Maintenance vincula sua decisão ao SHA capturado antes da coleta de evidência
 e falha fechado se o head mudar.
+
+
+### Evidência por run, não por comentário
+
+Run IDs publicados em comentários são ponteiros. A confiança deriva do
+artifact estruturado produzido pela própria run citada. PR-ready e Maintenance
+devem ser validados contra artifacts que vinculem run, PR, SHA e
+`resource_id` antes de qualquer merge. Isso impede reaproveitamento de uma
+run legítima por comentários produzidos por outro workflow.
