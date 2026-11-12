@@ -204,11 +204,17 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         if workflow_owner_declared:
             source_of_truth = GOVERNANCE_LIFECYCLE_SOURCE
             canonical_identity = "elo-governed-pr-lifecycle"
-            duplicate = False
-            decision_override = "STRENGTHEN"
-            reasons = [
-                "Existing ELO governance lifecycle owner is declared by ADR-0020 and the repository canonical map"
-            ]
+            if duplicate is True:
+                reasons = [
+                    *reasons,
+                    "ELO governance lifecycle owner is declared, but a proven duplicate/parallel blocker remains",
+                ]
+            else:
+                duplicate = False
+                decision_override = "STRENGTHEN"
+                reasons = [
+                    "Existing ELO governance lifecycle owner is declared by ADR-0020 and the repository canonical map"
+                ]
 
     frontend_changed = any(p.startswith("frontend/") for p in changed_normalised)
     if frontend_changed and owners and not candidates and not maintenance_changed:
