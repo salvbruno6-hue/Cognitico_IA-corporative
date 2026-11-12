@@ -264,3 +264,25 @@ ciclo end-to-end.
 A primeira execução comprovada do ciclo está pendente de
 emissão manual de `elo-merge-authorized` por operador
 `CANONICAL_ADMIN`.
+
+
+## Emenda 2026-11-12 — duas lanes no Agent Loop
+
+Para eliminar duplicação de PR e reduzir latência de governança, o Agent Loop
+passa a admitir duas formas de entrada que convergem na mesma evidência
+`PR-ready`:
+
+1. `CREATE_FROM_ISSUE`: mantém o ciclo issue → implementação → governança →
+   commit → PR.
+2. `ATTEST_EXISTING_PR`: recebe uma PR já existente e apenas certifica o
+   head SHA atual, sem modificar código, branch ou histórico.
+
+A segunda lane é read-only quanto à implementação, não substitui
+`elo-authz`, Maintenance Coordinator ou Merge Coordinator e não promove
+evidência por inferência. O identificador de recurso é
+`pr:<PR_NUMBER>@<HEAD_SHA>` e qualquer alteração do head invalida a
+attestation anterior.
+
+A otimização de performance decorre de evitar nova execução de implementação
+e de Codex quando a mudança já existe e possui CI/Evolution Gate válidos.
+A reconciliação canônica continua determinística e fail-closed.

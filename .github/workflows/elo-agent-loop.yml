@@ -3,15 +3,25 @@ name: ELO Agent Loop
 on:
   issues:
     types: [opened, labeled]
+  pull_request:
+    types: [labeled]
   workflow_dispatch:
     inputs:
       issue_number:
         description: GitHub issue containing the ELO task specification
-        required: true
+        required: false
+        type: string
+      pr_number:
+        description: Existing pull request to attest without modifying its implementation
+        required: false
+        type: string
+      expected_head_sha:
+        description: Optional immutable head SHA expected for existing-PR attestation
+        required: false
         type: string
 
 concurrency:
-  group: elo-agent-${{ github.event.issue.number || inputs.issue_number }}
+  group: elo-agent-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number || inputs.issue_number || github.run_id }}
   cancel-in-progress: false
 
 permissions:
@@ -21,17 +31,17 @@ permissions:
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
   REPO: ${{ github.repository }}
   ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
   MAX_CYCLES: 3
 
 jobs:
   execute-review-correct-pr:
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && inputs.pr_number == '') ||
       (github.event_name == 'issues' &&
        (github.event.label.name == 'codex-ready' ||
         (github.event.action == 'opened' && contains(join(github.event.issue.labels.*.name, ','), 'codex-ready'))))
@@ -249,5 +259,139 @@ jobs:
           set -euo pipefail
           PR_NUMBER="${PR_URL##*/}"
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "Unable to resolve PR number for PR-ready evidence."; exit 1; }
-          gh pr comment "$PR_URL" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${COMMIT_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}"
+          gh pr comment "$PR_URL" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${COMMIT_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER} ELO_AGENT_LOOP_MODE=CREATE_FROM_ISSUE ELO_HEAD_SHA=${COMMIT_SHA} ELO_RESOURCE_ID=pr:${PR_NUMBER}@${COMMIT_SHA}"
           gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "ELO loop reached PR-ready state: diagnosis → correction → validation → ELO governance → APPROVE_COMMIT → Commit → PR. Awaiting authorized merge; no automatic merge or issue closure performed."
+
+
+  attest-existing-pr:
+    name: Attest existing PR
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.pr_number != '') ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'elo/approve-merge')
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Resolve immutable PR target
+        id: target
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "A numeric PR number is required."; exit 1; }
+          pr_json="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json number,state,isDraft,baseRefName,headRefOid,mergeable,mergeStateStatus,reviewDecision,reviews)"
+          jq -e '.state == "OPEN" and .isDraft == false and .baseRefName == "main"' <<<"$pr_json" >/dev/null
+          head_sha="$(jq -r '.headRefOid' <<<"$pr_json")"
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid PR head SHA."; exit 1; }
+          expected="${EXPECTED_HEAD_SHA:-${EVENT_HEAD_SHA:-}}"
+          if [[ -n "$expected" && "$expected" != "$head_sha" ]]; then
+            echo "Existing PR head changed before attestation: expected=$expected actual=$head_sha"
+            exit 1
+          fi
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "resource_id=pr:$PR_NUMBER@$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout canonical repository only
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Prepare attestation evidence
+        run: mkdir -p automation/audit-output
+
+      - name: Verify required GitHub checks
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          checks="$(gh pr checks "$PR_NUMBER" --repo "$REPO" --required --json name,state,bucket)"
+          echo "$checks"
+          jq -e 'length > 0 and all(.[]; .bucket == "pass")' <<<"$checks" >/dev/null
+
+      - name: Verify Evolution Gate for immutable head
+        shell: bash
+        env:
+          TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          runs="$(gh api "repos/$REPO/actions/runs?head_sha=$TARGET_HEAD_SHA&per_page=100")"
+          jq -e '[.workflow_runs[]? | select(.name == "ELO Evolution Gate" and .head_sha == $sha and .status == "completed" and .conclusion == "success")] | length > 0' --arg sha "$TARGET_HEAD_SHA" <<<"$runs" >/dev/null
+
+      - name: Canonical repository reconciliation
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+          gh pr diff "$PR_NUMBER" --repo "$REPO" --name-only > automation/audit-output/changed-paths.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from automation.tasks.elo_canonical_reconciliation import event_facts, reconcile_repository
+
+          changed = [line.strip() for line in Path("automation/audit-output/changed-paths.txt").read_text().splitlines() if line.strip()]
+          terms = []
+          for path in changed:
+              stem = Path(path).stem.replace("-", "_").lower()
+              if len(stem) >= 3:
+                  terms.append(stem)
+          evidence = reconcile_repository(".", changed, terms)
+          payload = {
+              "changed_paths": list(evidence.changed_paths),
+              "candidates": list(evidence.candidates),
+              "references": list(evidence.references),
+              "owners": list(evidence.owners),
+              "source_of_truth": evidence.source_of_truth,
+              "canonical_identity": evidence.canonical_identity,
+              "duplicate_or_parallel": evidence.duplicate_or_parallel,
+              "reuse_analysis_complete": evidence.reuse_analysis_complete,
+              "decision": evidence.decision,
+              "waiting_for_evidence": evidence.waiting_for_evidence,
+              "reasons": list(evidence.reasons),
+              "event_facts": event_facts(evidence),
+          }
+          Path("automation/audit-output/reconciliation.json").write_text(json.dumps(payload, indent=2) + "\n")
+          print(json.dumps(payload, indent=2))
+          PY
+          jq -e '.reuse_analysis_complete == true and .waiting_for_evidence == false and .duplicate_or_parallel == false' automation/audit-output/reconciliation.json >/dev/null
+
+      - name: Revalidate immutable head and reviews
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+          TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          current="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state,isDraft,baseRefName,headRefOid,reviewDecision,reviews)"
+          jq -e --arg sha "$TARGET_HEAD_SHA" '
+            .state == "OPEN"
+            and .isDraft == false
+            and .baseRefName == "main"
+            and .headRefOid == $sha
+            and ((.reviewDecision // "") != "CHANGES_REQUESTED")
+            and ([.reviews[]? | select(.state == "CHANGES_REQUESTED" or .state == "PENDING")] | length == 0)
+          ' <<<"$current" >/dev/null
+
+      - name: Publish authenticated PR-ready V2
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+          TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
+          RESOURCE_ID: ${{ steps.target.outputs.resource_id }}
+        run: |
+          set -euo pipefail
+          current_sha="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid --jq .headRefOid)"
+          [[ "$current_sha" == "$TARGET_HEAD_SHA" ]] || { echo "PR head changed before PR-ready publication."; exit 1; }
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "ELO execution cycle reached PR-ready state. Commit ${TARGET_HEAD_SHA} passed ELO and applicable laboratory gates. Merge is intentionally not executed by this workflow; MERGE_OPERATIONAL requires the canonical authenticated operator binding and all repository/ELO merge gates. ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID} ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER} ELO_AGENT_LOOP_MODE=ATTEST_EXISTING_PR ELO_HEAD_SHA=${TARGET_HEAD_SHA} ELO_RESOURCE_ID=${RESOURCE_ID}"

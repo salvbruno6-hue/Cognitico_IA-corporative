@@ -194,3 +194,12 @@ O domínio está corretamente operando quando:
 `ELO SABE O QUE PROCURAR → ESPECIALISTA SABE O QUE COMPOR → MEMÓRIA SABE COMO FOI CALCULADO → PTS SABE O QUE FOI COMPROVADO → APRENDIZADO SABE O QUE PODE SER REUTILIZADO`
 
 Essa separação é obrigatória para preservar velocidade, completude, rastreabilidade e evolução sem duplicação.
+
+
+## 11. Apresentação do orçamento no domínio — RNF de saída
+
+Para o gatilho `ELO ANALISAR`, para `ORÇAR` e para conferências do ELO, todo orçamento, composição, fechamento e resumo RNF devem ser **exibidos primeiro na tela da conversa**, em tabelas rastreáveis, com fórmulas, valores e pendências. A planilha em arquivo (`xlsx`, CSV ou equivalente) é saída **sob demanda expressa**: não gerar, anexar ou oferecer download automaticamente. Corrigir e validar a versão na tela antes de eventual exportação.
+
+O ELO audita essa regra de apresentação e o Especialista a executa. Fonte normativa: `08-ai/ELO/DIRETRIZES/ELO_DIRETRIZ_MESTRA_ESPECIALISTA_ORCAMENTO.md`; fonte técnica detalhada: `03-process-library/ORCAR_ELO_GPT_ESPECIALISTA.md`. Não alterar modelos, regras financeiras ou governança em razão da escolha do meio de apresentação.
+
+**Aceite:** orçamento atualizado sem pedido de Excel → apenas exibição em tela, sem artefato baixável de planilha.

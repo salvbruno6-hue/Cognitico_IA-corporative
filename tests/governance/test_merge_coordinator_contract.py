@@ -249,3 +249,70 @@ def test_merge_grant_filter_rejects_other_operation_resource_or_session():
     )
     import json
     assert [json.loads(row)["grant_id"] for row in output] == ["good"]
+
+
+
+def test_agent_loop_supports_existing_pr_attestation_without_parallel_workflow():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = data.get("on") or data.get(True)
+    assert "pull_request" in triggers
+    assert "labeled" in triggers["pull_request"]["types"]
+    dispatch = triggers["workflow_dispatch"]["inputs"]
+    assert dispatch["issue_number"]["required"] is False
+    assert dispatch["pr_number"]["required"] is False
+    assert dispatch["expected_head_sha"]["required"] is False
+    assert "attest-existing-pr" in data["jobs"]
+
+
+def test_existing_pr_attestation_is_read_only_and_secret_minimal():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    job = data["jobs"]["attest-existing-pr"]
+    text = str(job)
+    assert "openai/codex-action" not in text
+    assert "SUPABASE_SERVICE_ROLE_KEY" not in text
+    assert "git commit" not in text
+    assert "git push" not in text
+    assert "gh pr create" not in text
+    assert job["permissions"]["contents"] == "read"
+    assert job["permissions"]["pull-requests"] == "write"
+    assert job["permissions"]["actions"] == "read"
+
+
+def test_existing_pr_attestation_freezes_sha_and_reuses_canonical_reconciliation():
+    text = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    for token in (
+        "ATTEST_EXISTING_PR",
+        "expected_head_sha",
+        "pr:$PR_NUMBER@$head_sha",
+        "Verify required GitHub checks",
+        "Verify Evolution Gate for immutable head",
+        "elo_canonical_reconciliation",
+        "reuse_analysis_complete == true",
+        "duplicate_or_parallel == false",
+        "Revalidate immutable head and reviews",
+        "PR head changed before PR-ready publication",
+        "ELO_PR_READY_V2=1",
+        "ELO_RESOURCE_ID=",
+    ):
+        assert token in text
+
+
+def test_create_and_attest_lanes_emit_same_pr_ready_contract():
+    text = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    assert "ELO_AGENT_LOOP_MODE=CREATE_FROM_ISSUE" in text
+    assert "ELO_AGENT_LOOP_MODE=ATTEST_EXISTING_PR" in text
+    assert text.count("ELO_PR_READY_V2=1") >= 2
+    assert text.count("ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID}") >= 2
+    assert text.count("ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}") >= 2
+
+
+def test_attestation_shell_steps_are_valid_bash():
+    import subprocess
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    steps = [step for step in data["jobs"]["attest-existing-pr"]["steps"] if "run" in step]
+    assert steps
+    for step in steps:
+        result = subprocess.run(
+            ["bash", "-n"], input=step["run"], text=True, capture_output=True
+        )
+        assert result.returncode == 0, (step["name"], result.stderr)

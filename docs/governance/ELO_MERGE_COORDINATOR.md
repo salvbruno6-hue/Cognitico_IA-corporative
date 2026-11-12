@@ -283,3 +283,31 @@ O Merge Coordinator exige evidências **emitidas pelas autoridades de execução
   workflow real, nunca por comentário escrito manualmente.
 - Preservar gates de CI, Simbionte, Evolution Gate, revisão independente
   e proteção de branch. Estas verificações não criam autorização adicional.
+
+
+## 17. Agent Loop dual-lane e attestation de PR existente
+
+O `ELO Agent Loop` permanece a única autoridade operacional que publica
+`PR-ready`, mas possui duas lanes internas convergentes:
+
+- `CREATE_FROM_ISSUE`: ciclo existente, com implementação, `APPROVE_COMMIT`,
+  commit e criação da PR;
+- `ATTEST_EXISTING_PR`: certificação read-only de uma PR já existente.
+
+A lane `ATTEST_EXISTING_PR` não executa Codex, não cria commit, não faz push,
+não cria nova PR, não altera a branch e não executa código da PR em contexto
+com segredos. Ela faz checkout somente do cânone em `main` e consome o
+estado da PR pela API do GitHub.
+
+A attestation congela o recurso `pr:<numero>@<head_sha>`, exige checks
+obrigatórios verdes, `ELO Evolution Gate` concluído com sucesso, reconciliação
+canônica determinística e ausência de review bloqueante. O head é revalidado
+imediatamente antes da publicação.
+
+As duas lanes convergem no mesmo contrato `ELO_PR_READY_V2`, emitido por
+`github-actions[bot]` e vinculado a `ELO_AGENT_LOOP_RUN_ID`, PR, SHA, modo
+e resource id. A origem da PR não cria uma segunda autoridade.
+
+O label governado `elo/approve-merge` pode disparar a attestation de PR
+existente. Isso reduz passos manuais sem conceder merge: Maintenance,
+`elo-authz`, branch protection e Merge Coordinator permanecem obrigatórios.
