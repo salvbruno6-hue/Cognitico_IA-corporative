@@ -95,8 +95,14 @@ def _knowledge_status(
     metadata: Mapping[str, str],
     provenance: Mapping[str, str],
 ) -> str:
-    value = _explicit_value(metadata, provenance, "knowledge_status", "status")
-    return value if value in _KNOWLEDGE_STATUSES else "REFERENCE"
+    """Generic RetrievedSource is consultative and cannot self-promote status.
+
+    SourceResolver authorizes access to the source; it does not certify that
+    source-supplied metadata is CANONICAL/GOVERNED. Higher statuses must come
+    from an owner-specific adapter that constructs a governed KnowledgeCandidate
+    under its own contract.
+    """
+    return "REFERENCE"
 
 
 def _authority(
