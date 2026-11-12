@@ -481,3 +481,14 @@ def test_pr_ready_and_maintenance_evidence_are_scoped_to_run_attempt():
         ".run_attempt == $attempt",
     ):
         assert token in merge
+
+
+
+def test_maintenance_does_not_self_block_on_merge_state_status():
+    audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
+    publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert "mergeable" in audit_step
+    assert "mergeable = pr.get('mergeable')" in publish
+    assert "and mergeable == 'MERGEABLE'" in publish
+    assert "merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')" not in publish
+    assert "mergeable={mergeable}" in publish
