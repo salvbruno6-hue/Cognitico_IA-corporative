@@ -316,3 +316,17 @@ def test_attestation_shell_steps_are_valid_bash():
             ["bash", "-n"], input=step["run"], text=True, capture_output=True
         )
         assert result.returncode == 0, (step["name"], result.stderr)
+
+
+
+def test_existing_pr_attestation_forbids_self_attestation_of_agent_loop_authority():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    job = data["jobs"]["attest-existing-pr"]
+    text = str(job)
+    assert '.github/workflows/elo-agent-loop.yml' in text
+    assert "bootstrap_blocked=true" in text
+    assert "BOOTSTRAP_REQUIRED" in text
+    assert "self-attestation is forbidden" in text.lower()
+    publish = [step for step in job["steps"] if step.get("name") == "Publish authenticated PR-ready V2"]
+    assert len(publish) == 1
+    assert "bootstrap_blocked != 'true'" in publish[0]["if"]

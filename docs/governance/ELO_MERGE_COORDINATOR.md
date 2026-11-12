@@ -311,3 +311,13 @@ e resource id. A origem da PR não cria uma segunda autoridade.
 O label governado `elo/approve-merge` pode disparar a attestation de PR
 existente. Isso reduz passos manuais sem conceder merge: Maintenance,
 `elo-authz`, branch protection e Merge Coordinator permanecem obrigatórios.
+
+
+### Bootstrap da autoridade de attestation
+
+Uma PR que modifica `.github/workflows/elo-agent-loop.yml` não pode emitir
+`PR-ready` para si mesma. A lane detecta esse caso, publica apenas
+`BOOTSTRAP_REQUIRED` e encerra sem attestation. A introdução ou alteração da
+autoridade de PR-ready deve ser promovida por uma versão anteriormente
+confiável do Agent Loop ou por um bootstrap governado explícito; nunca pela
+implementação candidata.

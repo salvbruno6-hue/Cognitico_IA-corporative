@@ -286,3 +286,10 @@ attestation anterior.
 A otimização de performance decorre de evitar nova execução de implementação
 e de Codex quando a mudança já existe e possui CI/Evolution Gate válidos.
 A reconciliação canônica continua determinística e fail-closed.
+
+
+### Restrição de bootstrap
+
+`ATTEST_EXISTING_PR` não pode certificar uma PR que altere o próprio
+`elo-agent-loop.yml`. Esse caso é `BOOTSTRAP_REQUIRED` e não produz
+`PR-ready`. A autoridade candidata não pode provar a própria legitimidade.

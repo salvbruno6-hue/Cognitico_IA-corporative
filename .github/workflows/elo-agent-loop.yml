@@ -300,17 +300,37 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
           echo "resource_id=pr:$PR_NUMBER@$head_sha" >> "$GITHUB_OUTPUT"
+          changed_paths="$(gh pr diff "$PR_NUMBER" --repo "$REPO" --name-only)"
+          if grep -Fxq ".github/workflows/elo-agent-loop.yml" <<<"$changed_paths"; then
+            echo "bootstrap_blocked=true" >> "$GITHUB_OUTPUT"
+            echo "PR modifies the PR-ready authority itself; self-attestation is forbidden."
+          else
+            echo "bootstrap_blocked=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record bootstrap-required boundary
+        if: steps.target.outputs.bootstrap_blocked == 'true'
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.target.outputs.pr_number }}
+          TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "ELO Agent Loop: **BOOTSTRAP_REQUIRED**. This PR modifies `.github/workflows/elo-agent-loop.yml`, the authority that emits PR-ready. Self-attestation is forbidden. Head ${TARGET_HEAD_SHA} must be promoted through a previously trusted Agent Loop/bootstrap path; no PR-ready evidence was emitted."
 
       - name: Checkout canonical repository only
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 1
 
       - name: Prepare attestation evidence
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         run: mkdir -p automation/audit-output
 
       - name: Verify required GitHub checks
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         shell: bash
         env:
           PR_NUMBER: ${{ steps.target.outputs.pr_number }}
@@ -321,6 +341,7 @@ jobs:
           jq -e 'length > 0 and all(.[]; .bucket == "pass")' <<<"$checks" >/dev/null
 
       - name: Verify Evolution Gate for immutable head
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         shell: bash
         env:
           TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
@@ -330,6 +351,7 @@ jobs:
           jq -e '[.workflow_runs[]? | select(.name == "ELO Evolution Gate" and .head_sha == $sha and .status == "completed" and .conclusion == "success")] | length > 0' --arg sha "$TARGET_HEAD_SHA" <<<"$runs" >/dev/null
 
       - name: Canonical repository reconciliation
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         shell: bash
         env:
           PR_NUMBER: ${{ steps.target.outputs.pr_number }}
@@ -368,6 +390,7 @@ jobs:
           jq -e '.reuse_analysis_complete == true and .waiting_for_evidence == false and .duplicate_or_parallel == false' automation/audit-output/reconciliation.json >/dev/null
 
       - name: Revalidate immutable head and reviews
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         shell: bash
         env:
           PR_NUMBER: ${{ steps.target.outputs.pr_number }}
@@ -385,6 +408,7 @@ jobs:
           ' <<<"$current" >/dev/null
 
       - name: Publish authenticated PR-ready V2
+        if: steps.target.outputs.bootstrap_blocked != 'true'
         shell: bash
         env:
           PR_NUMBER: ${{ steps.target.outputs.pr_number }}
