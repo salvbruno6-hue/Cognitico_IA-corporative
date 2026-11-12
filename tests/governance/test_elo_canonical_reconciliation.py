@@ -318,3 +318,40 @@ def test_ci_owner_does_not_certify_test_or_docs_only(tmp_path: Path) -> None:
     )
     assert evidence.canonical_identity != "elo-ci-validation"
     assert evidence.waiting_for_evidence
+
+
+def test_ci_owner_preserves_unknown_duplicate_candidate(tmp_path: Path) -> None:
+    """An unresolved executable candidate cannot be cleared by CI workflow ownership."""
+    _write_existing_ci_owner(tmp_path)
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "elo_behavioral_validation.py").write_text(
+        "class PotentialAlternative: pass\n", encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, [".github/workflows/elo-behavioral-validation.yml"],
+        concept_terms=["elo_behavioral_validation"],
+    )
+    assert "legacy/elo_behavioral_validation.py" in evidence.candidates
+    assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
+    assert evidence.canonical_identity == "elo-ci-validation"
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
+    assert any("unresolved" in reason for reason in evidence.reasons)
+
+
+def test_ci_owner_never_interprets_related_candidate_as_standalone_proof(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "elo_behavioral_validation.py").write_text(
+        "class CandidateWithoutAuthority: pass\n", encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, [".github/workflows/elo-behavioral-validation.yml"],
+    )
+    assert evidence.candidates
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.waiting_for_evidence
