@@ -492,3 +492,16 @@ def test_maintenance_does_not_self_block_on_merge_state_status():
     assert "and mergeable == 'MERGEABLE'" in publish
     assert "merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')" not in publish
     assert "mergeable={mergeable}" in publish
+
+
+
+def test_maintenance_requires_other_required_checks_to_pass_but_excludes_own_run():
+    audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
+    publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert "--required --json name,state,bucket,link,workflow" in audit_step
+    assert "required-checks.json" in audit_step
+    assert "current_run_marker" in publish
+    assert "/actions/runs/{os.environ['GITHUB_RUN_ID']}" in publish
+    assert "external_required_checks" in publish
+    assert "check.get('bucket') == 'pass'" in publish
+    assert "bool(external_required_checks)" in publish
