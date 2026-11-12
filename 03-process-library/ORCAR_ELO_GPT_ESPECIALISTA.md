@@ -229,3 +229,48 @@ O Especialista deve cumprir a **matriz de 13 etapas CAD-01 a CAD-13** estabeleci
 **Gates críticos:** CAD-01/CAD-02 documentação e PTS; CAD-03 ticket deduplicado e 14 campos RNF; CAD-04 modelos e quantidades; CAD-05/CAD-06 composição/conciliação; CAD-07 tela obrigatória; CAD-08 respostas/pendências; CAD-09 comentário somente se houver e-mail do cliente compartilhado pela Licitação; CAD-10 fechamento por modelo exige base, indiretos, adm/BDI e validação; CAD-11 só soma itens fechados e passa por PTS Pós + auditoria do ELO; CAD-12 Evolution Gate; CAD-13 somente pedido explícito de Excel. Permitir retorno a etapas anteriores quando nova evidência provocar revisão.
 
 **Registro:** guardar eventos, evidências, conflitos e decisões no contexto existente da SO e na memória/processo canônico; não criar uma segunda tabela de cadência nem gravar custo novo em JSON. O status GDT `Em andamento` é operacional e não atesta fechamento financeiro. A cadência é **por solicitação**, mas o gate de preço é **por modelo/revisão**. Sem pedido explícito, nunca criar/baixar Excel.
+
+
+### RNF — card de portfólio e progresso por produto (12/11/2026)
+
+A **sequência de orçamento** deve ser exibida preferencialmente como **card na tela** com título da SO, barra de progresso, porcentagem `fechados / total`, contadores `em elaboração` e `aguardando orçamento`, além da lista numerada de todos os produtos e do item atualmente em composição. Fonte normativa: `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`, §19. Não substituir a sequência por um gráfico que esconda nome, modelo ou estado dos itens.
+
+O numerador conta somente **equipamentos distintos** com orçamento individual **FECHADO** e valor final homologado e rastreável; não confundir código de modelo-base com produto do lote. `0/5=0%` no caso SO 233.26 (M05 preliminar; depósito MLT.C06 adaptado em composição; os demais a orçar). Não computar `MLT.C06` da ordem 01 e ordem 03 como um único produto. Fórmula `ARRED(100*CONCLUIDOS/TOTAL;0)` com `TOTAL>0`. Se a sequência ou os dados de fechamento não estiverem provados, explicitar pendência. O card é calculado a partir do registro canônico de modelos no contexto Supabase, não substitui o fechamento, o RNF de 14 campos ou a governança ELO. Sem pedido explícito, não gerar Excel.
+
+
+### Registro supervisionado — item 03: seleção elétrica do M01 para depósito Dry 4 m
+
+**Escopo exclusivo: SO 233.26 — FUNBIO / LICITAÇÃO, item 03 do lote (depósito de 4 m, base Dry MLT.C06).** Decisão explícita do Analista em 12/11/2026: usar **somente os componentes necessários do kit elétrico M01** para três tomadas 10 A, uma luminária LED quadrada de **300 × 300 mm** e a instalação **220 V**, nunca o kit completo como custo de conjunto. A documentação do M01 é **referência de seleção**, não a engenharia elétrica final do depósito nem promoção de padrão ao Core.
+
+**Evidências de cadastro:** `public.vw_kit_eletrico_m01_completo` possui 30 itens, valor bruto referencial **R$ 858,22** (não aplicável ao depósito). `ELE131` aparece com **3 unidades** no kit, valor de referência **R$ 4,00/un**, enquanto `public.lista_mae` registra **R$ 4,85/un** — **GAP de preço**, não conciliar automaticamente. O kit M01 tem luminária `ELE098` linear **1000 × 74 mm**, diferente da solicitação **300 × 300 mm**; não incluí-la. `ELE101` é luminária quadrada de 18W na Lista-Mãe, mas o cadastro não comprova 300 × 300 mm; classificar como **candidata sem equivalência validada**.
+
+**Composição segregada existente** em `public.elo_orcamento_composicao_itens`, SO 233.26, modelo-base `MLT.C06`, linhas `I03-E01..I03-E09`: `I03-E01 ELE131` 3 PÇ, `I03-E02` luminária 300 × 300 mm 1 PÇ sem código homologado, cabos `ELE052/ELE051/ELE053` sem metragem definida (neutro só se a topologia requerer), caixas `ELE002`, dutos `ELE005`, quadro `ELE032` e proteção elétrica ainda **condicionais ao projeto**. Em `I03-M02`, o **kit M01 completo ficou `NAO_APLICAVEL` como pacote**; a seleção detalhada não pode ser somada uma segunda vez via kit.
+
+**Prevenção de dupla contagem:** serviço elétrico `I03-S05` refere-se às três tomadas, luminária e 220 V; a mão de obra de eletricista já está dimensionada preliminarmente em `I03-R03` (0,5 dia), e a vista `vw_resumo_custo_mao_obra_kit_eletrico_m01` não deve gerar outra verba de instalação para esta mesma execução. O histórico `EXC-016` de abertura de cinco painéis inclui mão de obra e permanece **não aplicado** aos dois vãos desta SO. Valores de referência não são custos `APLICADO` nem `valor_final_fechado`.
+
+**Gates CAD-05/06:** concluir ficha do painel luminoso com medida 300 × 300, projeto elétrico para alimentação 220 V, bitolas/circuitos, cabos, dutos, quadro/proteções e preços reconciliados antes de promover componentes a `APLICADO`. O item 03 segue `EM_ANALISE`, preço-base C06, corte estrutural e pé-direito incompatível aguardando engenharia/aceite. A SO contém **cinco produtos distintos** e continua com **zero fechamentos**, sem exportação Excel não solicitada.
+
+**Fonte:** decisão do usuário nesta conversa, conferência do catálogo no Supabase e instruções canônicas do Especialista; manter essa evidência como decisão contextual de orçamento, sujeita a PTS Pós, auditoria e Evolution Gate.
+
+
+### Regra supervisionada de quantidade — 80% da lista principal M01 no depósito 4 m (SO 233.26)
+
+**Escopo restrito:** decisão expressa do Analista em 12/11/2026 para o **item 03 (depósito Dry de 4 m) da SO 233.26 — FUNBIO / LICITAÇÃO**. Não instituir multiplicador universal para outros modelos ou SOs, nem alterar a Lista-Mãe, kit M01 canônico, Core ou fontes de preços. A referência de **quantidade**, chamada de «lista principal», é `public.vw_kit_eletrico_m01_completo` (derivada de `lista_montagem_m01`) porque ela possui códigos e quantitativos do kit original. A `public.lista_mae` permanece referência de produtos/preços e não substitui as quantidades da lista principal.
+
+**Critério de cálculo preliminar:** para cada **mesmo código de material selecionado** no depósito, `q_teorica = 0,8 × q_original_M01`. Preservar valor teórico e origem para auditoria. Para itens vendidos em **peças (PÇ)**, `q_proposta = CEIL(q_teorica)`, ainda sujeita à verificação de compatibilidade física/necessidade. Para cabos em **metros (MT)**, conservar o decimal do coeficiente de 80%, ainda sem substituir medição real. Se o projeto/cliente exigir quantidade exata superior (por exemplo, 3 tomadas), **prevalece a exigência expressa**, identificada como exceção. Não considerar a seleção como projeto elétrico validado, requisição de compras ou custo lançado.
+
+| Linha | Código | Quant. original do kit M01 | Quant. teórica 80% | Quant. proposta | Gate |
+| --- | --- | ---: | ---: | ---: | --- |
+| I03-E01 | ELE131 tomadas 10 A | 3 PÇ | 2,4 PÇ | **3 PÇ** | Exceção: três tomadas exigidas; preço kit R$4,00 vs Lista-Mãe R$4,85 pendente |
+| I03-E03 | ELE052 cabo preto 2,5 mm² | 51 MT | 40,8 MT | **40,8 MT** | Rota/bitola e circuito 220 V pendentes |
+| I03-E04 | ELE051 cabo azul 2,5 mm² | 21 MT | 16,8 MT | **16,8 MT** | Condicional: só se a topologia de 220 V exigir neutro |
+| I03-E05 | ELE053 cabo proteção verde 2,5 mm² | 30 MT | 24 MT | **24 MT** | Conferir aterramento/bitola e trajeto |
+| I03-E06 | ELE002 caixas em PVC | 14 PÇ | 11,2 PÇ | **12 PÇ** | Arredondamento para cima, necessidade real a conferir |
+| I03-E07 | ELE005 dutos/canaletas | 10 PÇ | 8 PÇ | **8 PÇ** | Compatibilidade do método de instalação/rota a confirmar |
+| I03-E08 | ELE032 quadro distribuição | 1 PÇ | 0,8 PÇ | **1 PÇ** | Condicional: confirmar se é necessário e dimensioná-lo |
+
+**Itens não convertidos por 80%:** `I03-E02` permanece em **uma luminária LED 300×300 mm**, pois a `ELE098` M01 é linear 1000×74 mm e não equivale à especificação. A `ELE101` é quadrada, mas sua dimensão exata ainda não foi confirmada. `I03-E09` permanece sem quantidade: disjuntores `ELE141` e `ELE170` são **alternativas de proteção**, não somar ambos ou multiplicá-los sem projeto. O kit elétrico M01 completo (`I03-M02`) permanece `NAO_APLICAVEL`, e a mão de obra do kit não entra novamente sobre `I03-R03`.
+
+**Persistência rastreável (executada e conferida):** linhas `I03-E01,E03,E04,E05,E06,E07,E08` em `public.elo_orcamento_composicao_itens` com quantidades propostas e `status=EM_ANALISE`, `valor_unitario = NULL`, `valor_parcial = NULL`. Memória original, valor teórico, exceções e regras em `public.elo_orcamentos.contexto.analise_item_03_deposito_4m.kit_eletrico.quantitativos_80_pct`. **Não homologar preço, não fechar orçamento, não gerar Excel sem solicitação.** `CAD-05` permanece `EM_ANALISE` e `CAD-06` `BLOQUEADA` até comprovação de dimensionamento, equivalência, conciliação de preço e dupla contagem.
+
+**Proveniência:** comando do Analista para 80% das quantidades da lista principal dos mesmos itens; registro e verificação das quantidades M01 no Supabase em 12/11/2026. Caso contextual sujeito a supervisão, auditoria e Evolution Gate.
