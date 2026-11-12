@@ -26,21 +26,52 @@ jobs:
         run: python -m pip install -e '.[test,agentic]'
       - name: Compile source
         run: python -m compileall src
-      - name: Run tests
+      - name: Run focused behavioral tests (full suite remains in PR1 and Evolution)
         shell: bash
         run: |
           set +e
-          python -m pytest -ra --tb=short > pytest.log 2>&1
+          python -m pytest -ra --tb=short \
+            tests/test_core_behavioral_baseline.py \
+            tests/test_next_behavioral_hardening.py \
+            tests/agentic/test_agentic_safety_and_context.py \
+            tests/agentic/test_graph_runtime_contract.py \
+            tests/agentic/test_orchestrator_contract.py \
+            > pytest.log 2>&1
           status=$?
           echo "$status" > pytest.exit
           cat pytest.log
           exit "$status"
+      - name: Record scoped evidence provenance
+        if: always()
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+        run: |
+          set -euo pipefail
+          TESTED_SHA="$(git rev-parse HEAD)"
+          PYTEST_EXIT="$(cat pytest.exit 2>/dev/null || printf 'not-run')"
+          jq -n \
+            --arg schema "elo.ci-observation.v1" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow "ELO Behavioral Validation" \
+            --arg test_scope "behavioral-focused" \
+            --arg tested_sha "$TESTED_SHA" \
+            --arg pr_head_sha "$PR_HEAD_SHA" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg pytest_exit "$PYTEST_EXIT" \
+            '{schema:$schema, repository:$repository, workflow:$workflow,
+              test_scope:$test_scope, tested_sha:$tested_sha, pr_head_sha:$pr_head_sha,
+              run_id:$run_id, run_attempt:$run_attempt, pytest_exit:$pytest_exit,
+              gate_authority:false, reusable_as_full_suite:false}' > pytest-scope.json
+
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: elo-test-evidence
+          name: elo-behavioral-test-evidence
           path: |
             pytest.log
             pytest.exit
+            pytest-scope.json
           if-no-files-found: error
