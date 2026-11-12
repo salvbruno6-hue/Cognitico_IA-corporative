@@ -213,3 +213,108 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+
+def _write_existing_ci_owner(tmp_path: Path) -> None:
+    from automation.tasks.elo_canonical_reconciliation import (
+        CI_VALIDATION_OWNER_ROW,
+        CI_VALIDATION_WORKFLOWS,
+    )
+
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "# ELO canonical structure map\\n" + CI_VALIDATION_OWNER_ROW +
+        " existing CI checks | canonical |\\n",
+        encoding="utf-8",
+    )
+    for path in CI_VALIDATION_WORKFLOWS:
+        workflow = tmp_path / path
+        workflow.parent.mkdir(parents=True, exist_ok=True)
+        workflow.write_text("name: existing CI workflow\\n", encoding="utf-8")
+
+
+def test_existing_ci_workflow_bundle_strengthens_proven_owner(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    evidence = reconcile_repository(
+        tmp_path,
+        [
+            ".github/workflows/elo-behavioral-validation.yml",
+            "tests/governance/test_perf01_ci_scope.py",
+            "docs/implementation/ELO_PERF_01_CI_EVIDENCE_REUSE_20261112.md",
+            "automation/tasks/elo_canonical_reconciliation.py",
+            "tests/governance/test_elo_canonical_reconciliation.py",
+            CANONICAL_STRUCTURE_MAP,
+        ],
+    )
+    assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
+    assert evidence.canonical_identity == "elo-ci-validation"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "STRENGTHEN"
+
+
+def test_ci_owner_does_not_accept_unrelated_workflow(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    evidence = reconcile_repository(
+        tmp_path,
+        [
+            ".github/workflows/elo-behavioral-validation.yml",
+            ".github/workflows/new-unguarded-gate.yml",
+        ],
+    )
+    assert evidence.canonical_identity != "elo-ci-validation"
+    assert evidence.waiting_for_evidence
+
+
+def test_ci_owner_requires_explicit_canonical_map_declaration(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.write_text("# no CI ownership declared\\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, [".github/workflows/elo-behavioral-validation.yml"]
+    )
+    assert evidence.source_of_truth is None
+    assert evidence.waiting_for_evidence
+
+
+def test_ci_owner_requires_all_existing_workflow_files(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    (tmp_path / ".github/workflows/elo-pr1-validation.yml").unlink()
+    evidence = reconcile_repository(
+        tmp_path, [".github/workflows/elo-behavioral-validation.yml"]
+    )
+    assert evidence.canonical_identity != "elo-ci-validation"
+    assert evidence.waiting_for_evidence
+
+
+def test_ci_owner_never_overwrites_a_proven_duplicate(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "elo_behavioral_validation.py").write_text(
+        "class ParallelValidation: pass\\n", encoding="utf-8",
+    )
+    (legacy / "owner.md").write_text(
+        "canonical owner: legacy/elo_behavioral_validation.py\\n"
+        "source of truth: legacy/elo_behavioral_validation.py\\n"
+        "elo_behavioral_validation is declared here\\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, [".github/workflows/elo-behavioral-validation.yml"],
+        concept_terms=["elo_behavioral_validation"],
+    )
+    assert evidence.canonical_identity == "elo-ci-validation"
+    assert evidence.duplicate_or_parallel is True
+    assert evidence.decision != "STRENGTHEN"
+
+
+def test_ci_owner_does_not_certify_test_or_docs_only(tmp_path: Path) -> None:
+    _write_existing_ci_owner(tmp_path)
+    evidence = reconcile_repository(
+        tmp_path, ["tests/governance/test_perf01_ci_scope.py"]
+    )
+    assert evidence.canonical_identity != "elo-ci-validation"
+    assert evidence.waiting_for_evidence
