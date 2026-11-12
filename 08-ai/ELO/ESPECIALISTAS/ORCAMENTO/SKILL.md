@@ -37,6 +37,7 @@ Fontes canônicas relacionadas:
 - `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md`
 - `prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml`
 - `docs/orcamento/ELO_ORCAMENTO_EXECUTION_ARCHITECTURE.md`
+- `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/REQUISITOS/RF_SUBCONTRATACAO_PARCIAL_SERVICOS_EXTERNOS.md` — gate documental para subcontratação parcial
 - `automation/ELO_CHAT_CODEX_BRIDGE.md`
 
 ## 2. Regra anti-duplicidade
@@ -74,6 +75,7 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 16. **Aprendizado contínuo** — consultar conhecimento armazenado antes de compor, confrontar o caso atual e produzir revisão de aprendizado ao final de cada solicitação.
 17. **Varredura de recorrências** — reconhecer serviços/itens recorrentes e suas dependências em toda PTS Técnica e toda PTS Pós; recorrência gera verificação, nunca inclusão automática.
 18. **Reconciliação composição × memória** — abrir a composição-base/EXC, classificar componentes por etapa executiva, localizar memórias específicas associadas e decidir se cada parcela está integrada, complementar, duplicada, conflitante ou pendente.
+19. **Gate de subcontratação parcial** — quando houver serviços externos potencialmente terceirizáveis, verificar documentalmente permissão, limites, anuência, responsabilidade e prazo; sem evidência, bloquear a opção como executável e abrir GAP, conforme RF-ORC-SUB-001 a 010.
 
 ## 4. Encadeamento operacional canônico
 
@@ -122,6 +124,10 @@ MEMÓRIA COGNITIVA E ESTRUTURAS PERSISTENTES CANÔNICAS
 ```
 
 A Skill não executa composição/precificação em paralelo ao Especialista e não grava diretamente em memória canônica fora do fluxo autorizado.
+
+## 4.1 Gate documental de terceirização na PTS Técnica e Pós
+
+Antes de adotar subcontratação parcial como estratégia executável, aplicar `RF_SUBCONTRATACAO_PARCIAL_SERVICOS_EXTERNOS.md`. A experiência UEMG Passos não comprova autorização para subcontratar; a opção é apenas hipótese a verificar no instrumento da SO atual. Classificar `APTO`, `CONDICIONAL` ou `BLOQUEADO`, registrar a cláusula e o risco de prazo; não duplicar custos de serviços civis e instalações. Revalidar na PTS Pós e antes do compromisso comercial. A Skill somente orquestra: não cria autoridade contratual ou regra jurídica independente.
 
 ## 5. Regras de decisão
 
