@@ -461,7 +461,7 @@ def _retrieved_quality(source_id, *, status="CURRENT", relevance="0.8",
     )
 
 
-def test_low_criticality_shadow_mode_detects_sufficient_source_without_stopping():
+def test_low_criticality_shadow_mode_does_not_treat_generic_reference_as_sufficient():
     sink = InMemoryCognitiveTimingSink()
     provider, first, second = _multi_source_provider(
         first=_retrieved_quality("first"),
@@ -487,10 +487,11 @@ def test_low_criticality_shadow_mode_detects_sufficient_source_without_stopping(
     total = [x for x in sink.observations if x.stage == "knowledge.provider.retrieve"][-1]
     assert total.metadata["source_attempts"] == "2"
     assert total.metadata["early_stop_applied"] == "false"
-    assert total.metadata["early_stop_eligible_detected"] == "true"
-    assert total.metadata["shadow_attempts_after_sufficient"] == "1"
+    assert total.metadata["early_stop_eligible_detected"] == "false"
+    assert total.metadata["shadow_attempts_after_sufficient"] == "0"
     assert total.metadata["early_stop_mode"] == "SHADOW_BASELINE"
     assert total.metadata["decision_criticality"] == "LOW"
+    assert all(item.status == "REFERENCE" for item in found)
 
 
 def test_low_criticality_continues_when_first_source_is_not_sufficient():
