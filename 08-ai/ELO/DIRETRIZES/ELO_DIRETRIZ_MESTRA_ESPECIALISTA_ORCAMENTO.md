@@ -244,3 +244,10 @@ A apresentação em tela **não permite gerar `.xlsx`, CSV ou planilha para down
 **Separação de autoridade:** esta é uma norma de interação/apresentação do domínio e não altera o ELO Core, a arquitetura, a autoridade do Supabase, nem permite promoção de aprendizado contextual. Implementação operacional detalhada em `03-process-library/ORCAR_ELO_GPT_ESPECIALISTA.md`, na seção RNF de apresentação na tela. O Especialista executa; o ELO orienta e audita.
 
 **Regressão:** qualquer pedido sem solicitação de exportação → tabela na tela e **zero arquivos de planilha gerados**; solicitação explícita de Excel → exportação possível após confirmação da versão.
+
+
+## 17. Supervisão ELO sobre a cadência do Especialista de Orçamento — RNF
+
+Quando o Especialista executar `ORÇAR` ou uma revisão de SO, o **ELO deve ler e auditar a matriz `CAD-01..CAD-13`** publicada em `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md`, §18 (detalhamento em `03-process-library/ORCAR_ELO_GPT_ESPECIALISTA.md`). Exigir na tela, por SO, o estado de cada etapa, evidência, conflito/gap, gate e próxima ação. O ELO pode contestar, devolver para correção e impedir promoção financeira ou cognitiva sem prova; **o Especialista continua responsável pela composição e cálculo**.
+
+Consultar a instância da SO em `elo_orcamentos.contexto.cadencia_orcar`, o Jira para status real e as fontes de orçamento vigentes. Não considerar `Em andamento` no Jira, etapa executada ou valor demonstrativo como orçamento **FECHADO**. Manter um único ticket por SO, vários modelos dentro da mesma SO, comentários para e-mails efetivamente apresentados e **nenhuma criação de Excel sem pedido expresso**. O quadro é de governança do fluxo e não modifica o Core.
