@@ -74,8 +74,8 @@ A skill deve cobrir, de forma rastreável, usando as fontes canônicas existente
 15. **Explicabilidade** — reconstruir como a solicitação foi interpretada, como cada decisão relevante foi tomada e como os principais valores foram formados.
 16. **Aprendizado contínuo** — consultar conhecimento armazenado antes de compor, confrontar o caso atual e produzir revisão de aprendizado ao final de cada solicitação.
 17. **Varredura de recorrências** — reconhecer serviços/itens recorrentes e suas dependências em toda PTS Técnica e toda PTS Pós; recorrência gera verificação, nunca inclusão automática.
-19. **Gate de subcontratação parcial** — quando houver serviços externos potencialmente terceirizáveis, verificar documentalmente permissão, limites, anuência, responsabilidade e prazo; sem evidência, bloquear a opção como executável e abrir GAP, conforme RF-ORC-SUB-001 a 010.
 18. **Reconciliação composição × memória** — abrir a composição-base/EXC, classificar componentes por etapa executiva, localizar memórias específicas associadas e decidir se cada parcela está integrada, complementar, duplicada, conflitante ou pendente.
+19. **Gate de subcontratação parcial** — quando houver serviços externos potencialmente terceirizáveis, verificar documentalmente permissão, limites, anuência, responsabilidade e prazo; sem evidência, bloquear a opção como executável e abrir GAP, conforme RF-ORC-SUB-001 a 010.
 
 ## 4. Encadeamento operacional canônico
 
