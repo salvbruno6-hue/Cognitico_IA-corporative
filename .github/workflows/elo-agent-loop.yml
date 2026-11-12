@@ -339,7 +339,7 @@ jobs:
           TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
         run: |
           set -euo pipefail
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "ELO Agent Loop: **BOOTSTRAP_REQUIRED**. This PR modifies `.github/workflows/elo-agent-loop.yml`, the authority that emits PR-ready. Self-attestation is forbidden. Head ${TARGET_HEAD_SHA} must be promoted through a previously trusted Agent Loop/bootstrap path; no PR-ready evidence was emitted."
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "ELO Agent Loop: **BOOTSTRAP_REQUIRED**. This PR modifies .github/workflows/elo-agent-loop.yml, the authority that emits PR-ready. Self-attestation is forbidden. Head ${TARGET_HEAD_SHA} must be promoted through a previously trusted Agent Loop/bootstrap path; no PR-ready evidence was emitted."
 
       - name: Checkout canonical repository only
         if: steps.target.outputs.bootstrap_blocked != 'true'
