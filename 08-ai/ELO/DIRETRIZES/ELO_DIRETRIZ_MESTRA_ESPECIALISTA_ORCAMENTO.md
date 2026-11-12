@@ -256,3 +256,8 @@ Consultar a instância da SO em `elo_orcamentos.contexto.cadencia_orcar`, o Jira
 ## 18. Auditoria ELO — card e percentual de produtos concluídos (RNF)
 
 O Especialista apresenta no início do `ELO ORÇAR` um **card de controle e sequência** com barra de progresso, fração e percentual de produtos **concluídos e fechados**. O ELO confronta a lista de itens distintos e o numerador com `elo_orcamentos.contexto.sequencia_modelos_orcamento` e a evidência de aprovação por modelo; jamais concluir pelo status Jira ou pelo preço demonstrativo. Em composições em andamento, preservar o estado de rascunho e a distinção entre progresso de trabalho (iniciado) e progresso de fechamento (concluído). Reutilizar a especificação de cálculo/aceite do PROMPT do Especialista, §19, e o procedimento canônico, sem criar regra paralela no Core. Não gerar Excel sem solicitação expressa.
+
+
+## 19. Auditoria ELO — valores unitários rastreáveis mesmo sem quantidade (RNF)
+
+Nas revisões ORÇAR, o ELO deve verificar se todo material da composição com **código, unidade e registro único, ativo e precificado na Lista-Mãe** apresenta `valor_unitario` na tela e no registro da SO, mesmo que `quantidade` e `valor_parcial` estejam pendentes. Para item com quantidade conhecida, o total gerado é **referência de orçamento**, não item aprovado: só `status=APLICADO` e os gates financeiros podem compor o fechamento. Rejeitar a falsa equivalência `quantidade ausente → preço unitário vazio` e exigir a identificação de preços informados pelo cliente/Analista fora da Lista-Mãe. Preservar `NAO_APLICAVEL` e evidenciar conflitos de preço/código/especificação. Cálculo e regressão: PROMPT do Especialista §20 e procedimento `ORCAR_ELO_GPT_ESPECIALISTA.md`. Não gerar Excel sem comando explícito.
