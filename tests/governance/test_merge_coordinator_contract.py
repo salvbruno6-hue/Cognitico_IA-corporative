@@ -215,7 +215,8 @@ def test_pr_ready_provenance_rejects_human_and_wrong_sha():
 def test_maintenance_provenance_rejects_human_and_stale_sha():
     query = _jq_filter_for_comment_step("Verify applicable ELO gate evidence")
     good = ("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. "
-            "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_PR_NUMBER=1177 ELO_HEAD_SHA=aabbcc")
+            "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_PR_NUMBER=1177 "
+            "ELO_HEAD_SHA=aabbcc ELO_RESOURCE_ID=pr:1177@aabbcc")
     rows = [
         {"author": {"login": "salvbruno6-hue"}, "body": good},
         {"author": {"login": "github-actions"}, "body": good.replace("aabbcc", "other")},
