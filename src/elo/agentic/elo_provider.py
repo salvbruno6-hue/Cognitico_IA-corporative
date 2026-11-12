@@ -106,8 +106,8 @@ def _knowledge_status(
     metadata: Mapping[str, str],
     provenance: Mapping[str, str],
 ) -> str:
-    value = _explicit_value(metadata, provenance, "knowledge_status", "status")
-    return value if value in _KNOWLEDGE_STATUSES else "REFERENCE"
+    """Generic RetrievedSource cannot self-promote canonical/governed status."""
+    return "REFERENCE"
 
 
 def _authority(

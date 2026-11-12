@@ -289,7 +289,7 @@ def test_provider_preserves_explicit_quality_signals_without_inference() -> None
 
     item = provider.retrieve(intent, req)[0]
 
-    assert item.status == "GOVERNED"
+    assert item.status == "REFERENCE"
     assert item.relevance == 0.85
     assert item.confidence == 0.72
     assert item.context_match == 0.90
@@ -358,7 +358,7 @@ def test_provider_uses_provenance_signals_when_metadata_does_not_supply_them() -
 
     item = provider.retrieve(intent, req)[0]
 
-    assert item.status == "CURRENT"
+    assert item.status == "REFERENCE"
     assert item.relevance == 0.7
     assert item.confidence == 0.6
     assert item.context_match == 0.5
@@ -584,3 +584,26 @@ def test_low_criticality_minimum_signal_is_exactly_sixty_percent():
     assert [item.source_id for item in found] == ["first", "second"]
     assert first.calls == 1
     assert second.calls == 1
+
+
+
+def test_generic_provider_never_accepts_source_claimed_canonical_status() -> None:
+    retrieved = _Retrieved(
+        metadata={
+            "knowledge_status": "CANONICAL",
+            "relevance": "1.0",
+            "confidence": "1.0",
+            "context_match": "1.0",
+        },
+        provenance={
+            "origin": "untrusted-source",
+            "authority": "external_source_evidence",
+        },
+    )
+    provider = _signal_provider(retrieved)
+    intent, req = _inputs()
+
+    item = provider.retrieve(intent, req)[0]
+
+    assert item.status == "REFERENCE"
+    assert item.authority == "external_source_evidence"
