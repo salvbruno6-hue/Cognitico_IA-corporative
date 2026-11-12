@@ -103,7 +103,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json number,title,state,isDraft,mergeStateStatus,reviewDecision,labels,reviews,statusCheckRollup,headRefName,headRefOid,baseRefName > automation/audit-output/pr.json
+          gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json number,title,state,isDraft,mergeable,mergeStateStatus,reviewDecision,labels,reviews,statusCheckRollup,headRefName,headRefOid,baseRefName > automation/audit-output/pr.json
           OBSERVED_HEAD_SHA="$(jq -r '.headRefOid' automation/audit-output/pr.json)"
           [[ "$OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA" ]] || { echo "PR head changed during Maintenance evidence collection."; exit 1; }
           gh pr checks "${PR_NUMBER}" --repo "${REPOSITORY}" --required > automation/audit-output/required-checks.txt || true
@@ -126,6 +126,7 @@ jobs:
           labels = {x['name'] for x in pr.get('labels', [])}
           review_decision = pr.get('reviewDecision')
           merge_state = pr.get('mergeStateStatus')
+          mergeable = pr.get('mergeable')
           checks = Path('automation/audit-output/required-checks.txt').read_text()
           checks_pass = not any(x in checks.lower() for x in ('fail', 'cancel', 'timed out'))
           explicit_merge = 'elo/approve-merge' in labels
@@ -139,7 +140,7 @@ jobs:
               and canonical_clear
               and review_decision in (None, '', 'APPROVED')
               and checks_pass
-              and merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')
+              and mergeable == 'MERGEABLE'
               and not pr.get('isDraft', False)
           )
 
@@ -159,8 +160,8 @@ jobs:
               reasons.append(f'reviewDecision={review_decision}')
           if not checks_pass:
               reasons.append('required checks are not passing')
-          if merge_state in ('BLOCKED', 'DIRTY', 'UNKNOWN'):
-              reasons.append(f'mergeStateStatus={merge_state}')
+          if mergeable != 'MERGEABLE':
+              reasons.append(f'mergeable={mergeable}')
           if pr.get('isDraft', False):
               reasons.append('pull request is draft')
 
