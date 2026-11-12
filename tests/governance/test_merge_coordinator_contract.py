@@ -414,8 +414,8 @@ def test_merge_grant_filters_exact_resource_before_limit():
 
 def test_merge_grant_session_belongs_to_canonical_issuer_not_binding_recipient():
     script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
-    assert 'issuer="$(jq -r '.issued_by_identity_id' /tmp/grant.json)"' in script
+    assert "issuer=\"$(jq -r '.issued_by_identity_id' /tmp/grant.json)\"" in script
     assert "identity_id=eq.${issuer}" in script
     assert "identity_id=eq.${target_identity}&revoked_at=is.null" not in script
-    assert 'target_identity="$(jq -r '.identity_id' /tmp/grant.json)"' in script
+    assert "target_identity=\"$(jq -r '.identity_id' /tmp/grant.json)\"" in script
     assert "identity_id == $identity" in script
