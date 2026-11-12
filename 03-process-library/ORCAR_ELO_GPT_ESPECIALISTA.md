@@ -158,3 +158,41 @@ A conclusão de um modelo-base permanece condicionada à evidência da TR e do l
 - **Gate de fechamento:** fórmula e total de teste não homologam orçamento comercial se preço do modelo-base, logística ou outras parcelas essenciais faltam. Proibir substituir preços pendentes por zero sem justificativa; vigiar duplicidade de mão de obra em `EXC-011` e seção 2.3.
 
 **Artefatos de verificação:** `PLANILHA_CANONICA_M05_REGRA_ADMIN_10.xlsx` (modelo com bloqueio por preço-base ausente) e `SO_233_26_ORCAMENTO_M05_FORMULAS_CORRIGIDAS.xlsx` (exemplo demonstrativo); ambos gerados no contexto da SO. Não confundí-los com aprovação de todos os custos.
+
+
+## RNF de preenchimento e estrutura — planilha de orçamento e Clientes e Tarefas (12/11/2026)
+
+**Decisão do Analista:** a versão corrigida da planilha MLT.M05, com seções 0 Controle, 1 Comercial, 2.1 Serviço, 2.2 Material, 2.3 Mão de Obra Interna, 2.4 Mão de Obra Externa, 3 Fechamento e 4 Observações, é a **referência normativa funcional (RNF)** de estrutura e preenchimento. Preservar ordem, campos, fórmulas e regras já homologadas; não criar segunda planilha canônica. A folha adicional **RNF_CLIENTES_TAREFAS** é projeção de dados operacionais do orçamento para Jira GDT, não substitui orçamento nem a Lista-Mãe.
+
+### Campos gerados para Clientes e Tarefas
+`SETOR SOLICITANTE | Nº SOLICITAÇÃO/ATIVIDADE | STATUS | TIPO DE CONTRATO | PERÍODO | DATA DA SOLICITAÇÃO | LOCAL | MODULAR | QUANT. | MARÍTIMO | QUANT | ACESSÓRIOS | SOLICITANTE | OBSERVAÇÕES`.
+
+**Origem de cada campo:** controle comercial/identificação da SO → nº e cliente; classificação do modelo → modular/marítimo, descrição e quantidade; documentação vigente → local, data da solicitação, setor solicitante, solicitante, período e tipo contratual; especialidades → acessórios; Jira → status real; observações técnicas → pendências e premissas. Distinções obrigatórias: elaborador ≠ solicitante; data da revisão ≠ data da solicitação; modalidade VENDA ≠ tipo de contrato; item marítimo não informado ≠ quantidade 0.
+
+**Tratamento de lacuna:** cada dado ausente ou conflitante recebe `PENDENTE` ou `CONFLITO`, origem e pergunta específica, sem inferir 0, data ou unidade. Formular perguntas somente para campos faltantes, receber respostas e atualizar o MESMO registro RNF e ticket Jira após validação. A interface de formulário nesta conversa é coleta supervisionada; o gatilho de atualização depende do executor Atlassian conectado.
+
+### Fluxo Jira obrigatório ao gerar orçamento
+1. Extrair campos RNF e normalizar identificador da SO como `numero/ano` (ex.: `233/2026`) e cliente.
+2. Consultar `public.elo_orcamentos.contexto.jira_integracao` e pesquisar tickets do projeto **GDT — GESTÃO DE SOLICITAÇÃO** via conector Atlassian. Comparar chave normalizada e título equivalente `SO 233.26 - FUNBIO`, admitindo variações de espaço/pontuação mas SEM confundir `233.25` com `233.26`. A busca não substitui a checagem do contexto persistido.
+3. **Se existir:** reutilizar a issue e atualizar somente campos comprovados, sem duplicar nem apagar informações já confirmadas.
+4. **Se não existir:** criar issue tipo `Tarefa` em GDT com título `SO NNN.AA - CLIENTE`, descrição RNF estruturada e lista de pendências; executar transição real ao status **Em andamento** consultando as transições disponíveis (não presumir IDs entre instâncias). Conferir retorno de criação e de transição.
+5. Persistir `issue_key`, título, status, chave de deduplicação, instante/fonte da última conferência no contexto do orçamento no Supabase. Se falhar a criação ou a transição, registrar GAP, não declarar sucesso.
+6. Executar coleta de pendências via formulário na tela e posterior atualização da mesma issue; não reabrir ticket a cada revisão.
+7. **Limite de execução:** esta norma habilita o procedimento ao ORÇAR quando invocado em executor com o conector Atlassian. Implementar/homologar separadamente o disparo event-driven de produção caso se exija execução autônoma, sem chat ou sessão ativa. Documento não é, por si só, integração daemon/webhook.
+
+### Teste supervisionado SO 233.26 — FUNBIO
+- Jira GDT consultado em 12/11/2026: a busca retornou apenas `GDT-143 — 233.25 - AMAN`, outra SO/ano/cliente.
+- Criada a issue `GDT-399` (título `SO 233.26 - FUNBIO`) e a transição `Iniciar progresso` foi executada; retorno confirmado `Em andamento`.
+- Vínculo `GDT-399` persistido em `public.elo_orcamentos.contexto.jira_integracao`, com `dedup_key=233/2026|FUNBIO`.
+- Campos comprovados: cliente FUNBIO, modelo `MLT.M05`, quantidade modular 1, venda como modalidade. Outros campos pendentes. Local em **CONFLITO**: planilhas/contexto anteriores `Mossoró/RN` e última apresentação `MOSSORÓ/RS`; pedir confirmação sem substituir silenciosamente.
+- Total demonstrativo `R$ 3.152,56` não é preço comercial aprovado (base M05, riscos de duplicidade e serviços pendentes).
+
+### Testes mínimos RNF (Evolution Gate)
+- Extração reproduz todos os 14 cabeçalhos na mesma ordem.
+- Campos conhecidos preenchem RNF a partir do orçamento por referência; faltantes ficam explícitos e geram perguntas específicas.
+- Chave normalizada evita duplicar ticket já criado, inclusive sob variação de espaços no título.
+- Controle de falso positivo bloqueia `233.25` para solicitação `233.26`.
+- Novo ticket pode transicionar a `Em andamento` e retornar status real, com `issue_key` persistido; falhas não são mascaradas.
+- Resposta do formulário deve atualizar `GDT-399`, não abrir outro ticket.
+- A planilha conserva regras de administração 10% e BDI 96% para VENDA e bloqueio de fechamento por custos faltantes.
+- Separar **teste do fluxo com conector em conversa (executado)** de **execução autônoma via evento (ainda não demonstrada)**.
