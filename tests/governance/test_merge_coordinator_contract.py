@@ -83,6 +83,7 @@ def test_pr_ready_requires_bot_run_current_pr_and_sha():
     producer = AGENT_WORKFLOW.read_text(encoding="utf-8")
     consumer = _shell_step(WORKFLOW, "Verify PR-ready evidence")
     assert "ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID}" in producer
+    assert "ELO_AGENT_LOOP_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" in producer
     assert "ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}" in producer
     for token in (
         '.author.login == "github-actions"',
@@ -90,7 +91,7 @@ def test_pr_ready_requires_bot_run_current_pr_and_sha():
         'contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr)',
         'contains("ELO_HEAD_SHA=" + $sha)',
         'contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha)',
-        'capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+)")',
+        'capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+).*ELO_AGENT_LOOP_RUN_ATTEMPT=(?<attempt>[0-9]+)")',
         '.name == "ELO Agent Loop"',
         '.conclusion == "success"',
         '.repository.full_name == $repo',
@@ -103,6 +104,7 @@ def test_maintenance_requires_bot_run_current_pr_and_sha():
     consumer = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
     for token in (
         "ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID}",
+        "ELO_MAINTENANCE_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}",
         "ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER}",
         "ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA}",
         "PR head changed before Maintenance attestation publication.",
@@ -113,7 +115,7 @@ def test_maintenance_requires_bot_run_current_pr_and_sha():
         'startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**.")',
         'contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr)',
         'contains("ELO_HEAD_SHA=" + $sha)',
-        'capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+)")',
+        'capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+).*ELO_MAINTENANCE_RUN_ATTEMPT=(?<attempt>[0-9]+)")',
         '.name == "ELO Maintenance Coordinator"',
         '.conclusion == "success"',
     ):
