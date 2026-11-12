@@ -142,3 +142,19 @@ A conclusão de um modelo-base permanece condicionada à evidência da TR e do l
 **Validação mínima antes de registrar a linha:** `referência lateral → seta/destino visível → seção canônica → item/código/fonte → unidade e quantidade → escopo incluso → preço e memória → fórmula/subtotal → verificação de duplicidade`. Em cada seção, deixar linha vazia/pendente quando não houver vínculo comprovado; não preencher indiscriminadamente uma coluna apenas porque há valores na margem.
 
 **Teste de regressão:** (1) anotação auxiliar não vira custo sem seta e escopo confirmados; (2) o preço de uma tomada isolada não substitui `EXC-011` completo; (3) `EXC-011` e M.O. própria não duplicam elétrica; (4) `ELE032` e `ELE069` permanecem escolhas contextuais; (5) uma palavra na célula de valor não é aceita como preço; (6) subtotal e fechamento permanecem pendentes quando dados essenciais estão ausentes.
+
+
+### Regra operacional de fechamento — taxa de administração em VENDA (SO 233.26, revisão supervisionada 12/11/2026)
+
+**Regra aprovada para a planilha de VENDA apresentada pelo Analista:** a célula que contém `0,10` é a **alíquota de administração de 10%**, e não uma despesa fixa de R$ 0,10. A célula monetária "Taxa de Administração" deve ser **calculada** como `SUBTOTAL_GERAL × TAXA_ADMINISTRACAO`, apresentando duas casas decimais mas preservando a precisão interna. Para esta planilha de venda, o BDI de 96% incide sobre o mesmo subtotal e é adicionado separadamente. O **arredondamento monetário ocorre apenas no total final** para reproduzir a política demonstrada, evitando discrepância de um centavo pelo arredondamento de componentes.
+
+- `ADM_PERCENTUAL = 10% = 0,10` (parâmetro separado da célula que exibe o custo).
+- `ADMINISTRACAO = SUBTOTAL_GERAL * ADM_PERCENTUAL` (armazenar precisão integral; apenas formatar em reais com duas casas).
+- `BDI_VALOR = SUBTOTAL_GERAL * 96%` (manter precisão integral até o fechamento).
+- `TOTAL_GERAL = ARRED(SUBTOTAL_GERAL + ADMINISTRACAO + BDI_VALOR; 2)`.
+- Fórmula Excel equivalente: `=ARRED(SUBTOTAL_GERAL*(1+BDI_PERCENTUAL)+SUBTOTAL_GERAL*ADM_PERCENTUAL;2)`.
+- **Regressão M05:** subtotal R$ 1.530,37; administração subjacente R$ 153,037, exibida R$ 153,04; BDI 96%; total R$ 3.152,56. Uma soma de parcelas arredondadas individualmente daria R$ 3.152,57 e não reflete a demonstração recebida.
+- **Sem promoção de valores de caso a regra geral:** os percentuais de VENDA acima decorrem da planilha e do template vigentes; LOCAÇÃO mantém regra própria (BDI 65% e administração não aplicável). Conferir revisão comercial antes de outras SOs.
+- **Gate de fechamento:** fórmula e total de teste não homologam orçamento comercial se preço do modelo-base, logística ou outras parcelas essenciais faltam. Proibir substituir preços pendentes por zero sem justificativa; vigiar duplicidade de mão de obra em `EXC-011` e seção 2.3.
+
+**Artefatos de verificação:** `PLANILHA_CANONICA_M05_REGRA_ADMIN_10.xlsx` (modelo com bloqueio por preço-base ausente) e `SO_233_26_ORCAMENTO_M05_FORMULAS_CORRIGIDAS.xlsx` (exemplo demonstrativo); ambos gerados no contexto da SO. Não confundí-los com aprovação de todos os custos.
