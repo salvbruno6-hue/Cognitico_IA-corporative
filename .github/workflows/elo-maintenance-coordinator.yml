@@ -106,7 +106,7 @@ jobs:
           gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json number,title,state,isDraft,mergeable,mergeStateStatus,reviewDecision,labels,reviews,statusCheckRollup,headRefName,headRefOid,baseRefName > automation/audit-output/pr.json
           OBSERVED_HEAD_SHA="$(jq -r '.headRefOid' automation/audit-output/pr.json)"
           [[ "$OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA" ]] || { echo "PR head changed during Maintenance evidence collection."; exit 1; }
-          gh pr checks "${PR_NUMBER}" --repo "${REPOSITORY}" --required > automation/audit-output/required-checks.txt || true
+          gh pr checks "${PR_NUMBER}" --repo "${REPOSITORY}" --required --json name,state,bucket,link,workflow > automation/audit-output/required-checks.json || true
 
       - name: Publish governed audit decision
         if: github.event.pull_request.number != ''
@@ -127,8 +127,15 @@ jobs:
           review_decision = pr.get('reviewDecision')
           merge_state = pr.get('mergeStateStatus')
           mergeable = pr.get('mergeable')
-          checks = Path('automation/audit-output/required-checks.txt').read_text()
-          checks_pass = not any(x in checks.lower() for x in ('fail', 'cancel', 'timed out'))
+          checks = json.loads(Path('automation/audit-output/required-checks.json').read_text() or '[]')
+          current_run_marker = f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          external_required_checks = [
+              check for check in checks
+              if current_run_marker not in str(check.get('link') or '')
+          ]
+          checks_pass = bool(external_required_checks) and all(
+              check.get('bucket') == 'pass' for check in external_required_checks
+          )
           explicit_merge = 'elo/approve-merge' in labels
           canonical_clear = (
               reconciliation['reuse_analysis_complete']
@@ -159,7 +166,12 @@ jobs:
           if review_decision not in (None, '', 'APPROVED'):
               reasons.append(f'reviewDecision={review_decision}')
           if not checks_pass:
-              reasons.append('required checks are not passing')
+              pending = [
+                  f"{check.get('name')}={check.get('bucket')}"
+                  for check in external_required_checks
+                  if check.get('bucket') != 'pass'
+              ]
+              reasons.append('required checks are not passing' + (': ' + ', '.join(pending) if pending else ''))
           if mergeable != 'MERGEABLE':
               reasons.append(f'mergeable={mergeable}')
           if pr.get('isDraft', False):
