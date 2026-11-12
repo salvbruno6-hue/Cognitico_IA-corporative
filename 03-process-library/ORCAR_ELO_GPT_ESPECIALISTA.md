@@ -251,3 +251,26 @@ O numerador conta somente **equipamentos distintos** com orçamento individual *
 **Gates CAD-05/06:** concluir ficha do painel luminoso com medida 300 × 300, projeto elétrico para alimentação 220 V, bitolas/circuitos, cabos, dutos, quadro/proteções e preços reconciliados antes de promover componentes a `APLICADO`. O item 03 segue `EM_ANALISE`, preço-base C06, corte estrutural e pé-direito incompatível aguardando engenharia/aceite. A SO contém **cinco produtos distintos** e continua com **zero fechamentos**, sem exportação Excel não solicitada.
 
 **Fonte:** decisão do usuário nesta conversa, conferência do catálogo no Supabase e instruções canônicas do Especialista; manter essa evidência como decisão contextual de orçamento, sujeita a PTS Pós, auditoria e Evolution Gate.
+
+
+### Regra supervisionada de quantidade — 80% da lista principal M01 no depósito 4 m (SO 233.26)
+
+**Escopo restrito:** decisão expressa do Analista em 12/11/2026 para o **item 03 (depósito Dry de 4 m) da SO 233.26 — FUNBIO / LICITAÇÃO**. Não instituir multiplicador universal para outros modelos ou SOs, nem alterar a Lista-Mãe, kit M01 canônico, Core ou fontes de preços. A referência de **quantidade**, chamada de «lista principal», é `public.vw_kit_eletrico_m01_completo` (derivada de `lista_montagem_m01`) porque ela possui códigos e quantitativos do kit original. A `public.lista_mae` permanece referência de produtos/preços e não substitui as quantidades da lista principal.
+
+**Critério de cálculo preliminar:** para cada **mesmo código de material selecionado** no depósito, `q_teorica = 0,8 × q_original_M01`. Preservar valor teórico e origem para auditoria. Para itens vendidos em **peças (PÇ)**, `q_proposta = CEIL(q_teorica)`, ainda sujeita à verificação de compatibilidade física/necessidade. Para cabos em **metros (MT)**, conservar o decimal do coeficiente de 80%, ainda sem substituir medição real. Se o projeto/cliente exigir quantidade exata superior (por exemplo, 3 tomadas), **prevalece a exigência expressa**, identificada como exceção. Não considerar a seleção como projeto elétrico validado, requisição de compras ou custo lançado.
+
+| Linha | Código | Quant. original do kit M01 | Quant. teórica 80% | Quant. proposta | Gate |
+| --- | --- | ---: | ---: | ---: | --- |
+| I03-E01 | ELE131 tomadas 10 A | 3 PÇ | 2,4 PÇ | **3 PÇ** | Exceção: três tomadas exigidas; preço kit R$4,00 vs Lista-Mãe R$4,85 pendente |
+| I03-E03 | ELE052 cabo preto 2,5 mm² | 51 MT | 40,8 MT | **40,8 MT** | Rota/bitola e circuito 220 V pendentes |
+| I03-E04 | ELE051 cabo azul 2,5 mm² | 21 MT | 16,8 MT | **16,8 MT** | Condicional: só se a topologia de 220 V exigir neutro |
+| I03-E05 | ELE053 cabo proteção verde 2,5 mm² | 30 MT | 24 MT | **24 MT** | Conferir aterramento/bitola e trajeto |
+| I03-E06 | ELE002 caixas em PVC | 14 PÇ | 11,2 PÇ | **12 PÇ** | Arredondamento para cima, necessidade real a conferir |
+| I03-E07 | ELE005 dutos/canaletas | 10 PÇ | 8 PÇ | **8 PÇ** | Compatibilidade do método de instalação/rota a confirmar |
+| I03-E08 | ELE032 quadro distribuição | 1 PÇ | 0,8 PÇ | **1 PÇ** | Condicional: confirmar se é necessário e dimensioná-lo |
+
+**Itens não convertidos por 80%:** `I03-E02` permanece em **uma luminária LED 300×300 mm**, pois a `ELE098` M01 é linear 1000×74 mm e não equivale à especificação. A `ELE101` é quadrada, mas sua dimensão exata ainda não foi confirmada. `I03-E09` permanece sem quantidade: disjuntores `ELE141` e `ELE170` são **alternativas de proteção**, não somar ambos ou multiplicá-los sem projeto. O kit elétrico M01 completo (`I03-M02`) permanece `NAO_APLICAVEL`, e a mão de obra do kit não entra novamente sobre `I03-R03`.
+
+**Persistência rastreável (executada e conferida):** linhas `I03-E01,E03,E04,E05,E06,E07,E08` em `public.elo_orcamento_composicao_itens` com quantidades propostas e `status=EM_ANALISE`, `valor_unitario = NULL`, `valor_parcial = NULL`. Memória original, valor teórico, exceções e regras em `public.elo_orcamentos.contexto.analise_item_03_deposito_4m.kit_eletrico.quantitativos_80_pct`. **Não homologar preço, não fechar orçamento, não gerar Excel sem solicitação.** `CAD-05` permanece `EM_ANALISE` e `CAD-06` `BLOQUEADA` até comprovação de dimensionamento, equivalência, conciliação de preço e dupla contagem.
+
+**Proveniência:** comando do Analista para 80% das quantidades da lista principal dos mesmos itens; registro e verificação das quantidades M01 no Supabase em 12/11/2026. Caso contextual sujeito a supervisão, auditoria e Evolution Gate.
