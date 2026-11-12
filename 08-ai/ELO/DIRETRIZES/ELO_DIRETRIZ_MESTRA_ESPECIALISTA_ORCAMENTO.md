@@ -233,3 +233,14 @@ Esta diretriz define o comportamento e a ordem de operação. Para execução de
 - Conhecimento Corporativo.
 
 Não duplicar integralmente essas fontes no Core.
+
+
+## 16. RNF — contrato de apresentação ELO × Especialista de Orçamento
+
+**Diretriz do ELO Cognitivo para o domínio Análise de Solicitações:** na execução e na auditoria de orçamento, inclusive `ORÇAR`, a resposta **prioritária e obrigatória é a visualização da planilha diretamente na tela da conversa**. O Especialista deve mostrar seções, itens, códigos, quantitativos, preços, cálculos, fórmulas, diferenças e pendências; o ELO confere essa apresentação conforme as fontes e o estágio real do orçamento.
+
+A apresentação em tela **não permite gerar `.xlsx`, CSV ou planilha para download por iniciativa do ELO ou do Especialista**. Exportação e disponibilização de arquivo exigem solicitação explícita do usuário, após conferência da versão em tela. Essa restrição também vale para RNF, atualização da SO, fechamento e integração com Jira; criação/atualização de ticket não autoriza criação de Excel.
+
+**Separação de autoridade:** esta é uma norma de interação/apresentação do domínio e não altera o ELO Core, a arquitetura, a autoridade do Supabase, nem permite promoção de aprendizado contextual. Implementação operacional detalhada em `03-process-library/ORCAR_ELO_GPT_ESPECIALISTA.md`, na seção RNF de apresentação na tela. O Especialista executa; o ELO orienta e audita.
+
+**Regressão:** qualquer pedido sem solicitação de exportação → tabela na tela e **zero arquivos de planilha gerados**; solicitação explícita de Excel → exportação possível após confirmação da versão.
