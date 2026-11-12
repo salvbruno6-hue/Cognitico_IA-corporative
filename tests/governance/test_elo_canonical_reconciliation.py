@@ -225,14 +225,14 @@ def _write_existing_ci_owner(tmp_path: Path) -> None:
     structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
     structure_map.parent.mkdir(parents=True, exist_ok=True)
     structure_map.write_text(
-        "# ELO canonical structure map\\n" + CI_VALIDATION_OWNER_ROW +
-        " existing CI checks | canonical |\\n",
+        "# ELO canonical structure map\n" + CI_VALIDATION_OWNER_ROW +
+        " existing CI checks | canonical |\n",
         encoding="utf-8",
     )
     for path in CI_VALIDATION_WORKFLOWS:
         workflow = tmp_path / path
         workflow.parent.mkdir(parents=True, exist_ok=True)
-        workflow.write_text("name: existing CI workflow\\n", encoding="utf-8")
+        workflow.write_text("name: existing CI workflow\n", encoding="utf-8")
 
 
 def test_existing_ci_workflow_bundle_strengthens_proven_owner(tmp_path: Path) -> None:
@@ -271,7 +271,7 @@ def test_ci_owner_does_not_accept_unrelated_workflow(tmp_path: Path) -> None:
 def test_ci_owner_requires_explicit_canonical_map_declaration(tmp_path: Path) -> None:
     _write_existing_ci_owner(tmp_path)
     structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
-    structure_map.write_text("# no CI ownership declared\\n", encoding="utf-8")
+    structure_map.write_text("# no CI ownership declared\n", encoding="utf-8")
     evidence = reconcile_repository(
         tmp_path, [".github/workflows/elo-behavioral-validation.yml"]
     )
@@ -294,12 +294,12 @@ def test_ci_owner_never_overwrites_a_proven_duplicate(tmp_path: Path) -> None:
     legacy = tmp_path / "legacy"
     legacy.mkdir()
     (legacy / "elo_behavioral_validation.py").write_text(
-        "class ParallelValidation: pass\\n", encoding="utf-8",
+        "class ParallelValidation: pass\n", encoding="utf-8",
     )
     (legacy / "owner.md").write_text(
-        "canonical owner: legacy/elo_behavioral_validation.py\\n"
-        "source of truth: legacy/elo_behavioral_validation.py\\n"
-        "elo_behavioral_validation is declared here\\n",
+        "canonical owner: legacy/elo_behavioral_validation.py\n"
+        "source of truth: legacy/elo_behavioral_validation.py\n"
+        "elo_behavioral_validation is declared here\n",
         encoding="utf-8",
     )
     evidence = reconcile_repository(
