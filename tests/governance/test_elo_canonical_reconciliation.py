@@ -213,3 +213,76 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+
+def _write_governance_lifecycle_owners(tmp_path: Path) -> None:
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "# ELO Repository Canonical Structure Map\n"
+        "| `.github/workflows/elo-*.yml` | ELO Governance | governed automation | canonical operational workflows |\n",
+        encoding="utf-8",
+    )
+    adr = tmp_path / "10-adr/ADR-0020-end-to-end-cycle.md"
+    adr.parent.mkdir(parents=True, exist_ok=True)
+    adr.write_text(
+        "ELO lifecycle uses elo-agent-loop.yml and elo-merge-coordinator.yml as governed workflows.\n",
+        encoding="utf-8",
+    )
+    contract = tmp_path / "docs/governance/ELO_MERGE_COORDINATOR.md"
+    contract.parent.mkdir(parents=True, exist_ok=True)
+    contract.write_text(
+        "---\nowner: ELO Governance\n---\nELO Merge Coordinator contract.\n",
+        encoding="utf-8",
+    )
+
+
+def test_governance_workflow_bundle_reuses_existing_lifecycle_owner(tmp_path: Path):
+    _write_governance_lifecycle_owners(tmp_path)
+    changed = [
+        ".github/workflows/elo-agent-loop.yml",
+        ".github/workflows/elo-maintenance-coordinator.yml",
+        ".github/workflows/elo-merge-coordinator.yml",
+        "docs/governance/ELO_MERGE_COORDINATOR.md",
+        "10-adr/ADR-0020-end-to-end-cycle.md",
+        "tests/governance/test_merge_coordinator_contract.py",
+        "automation/tasks/elo_canonical_reconciliation.py",
+        CANONICAL_STRUCTURE_MAP,
+        "tests/governance/test_elo_canonical_reconciliation.py",
+    ]
+    evidence = reconcile_repository(tmp_path, changed)
+    assert evidence.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert evidence.canonical_identity == "elo-governed-pr-lifecycle"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "STRENGTHEN"
+    assert not evidence.waiting_for_evidence
+
+
+def test_governance_workflow_bundle_rejects_unknown_workflow_path(tmp_path: Path):
+    _write_governance_lifecycle_owners(tmp_path)
+    evidence = reconcile_repository(
+        tmp_path,
+        [
+            ".github/workflows/elo-agent-loop.yml",
+            ".github/workflows/parallel-merge-authority.yml",
+        ],
+    )
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.waiting_for_evidence
+
+
+def test_governance_workflow_bundle_requires_existing_adr_and_contract(tmp_path: Path):
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "| `.github/workflows/elo-*.yml` | ELO Governance | governed automation | canonical operational workflows |\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path,
+        [".github/workflows/elo-agent-loop.yml"],
+    )
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.waiting_for_evidence

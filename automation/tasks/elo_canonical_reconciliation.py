@@ -8,6 +8,21 @@ from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
+GOVERNANCE_LIFECYCLE_SOURCE = "10-adr/ADR-0020-end-to-end-cycle.md"
+GOVERNANCE_LIFECYCLE_CONTRACT = "docs/governance/ELO_MERGE_COORDINATOR.md"
+GOVERNANCE_LIFECYCLE_WORKFLOWS = {
+    ".github/workflows/elo-agent-loop.yml",
+    ".github/workflows/elo-maintenance-coordinator.yml",
+    ".github/workflows/elo-merge-coordinator.yml",
+}
+GOVERNANCE_LIFECYCLE_ALLOWED_PATHS = GOVERNANCE_LIFECYCLE_WORKFLOWS | {
+    GOVERNANCE_LIFECYCLE_SOURCE,
+    GOVERNANCE_LIFECYCLE_CONTRACT,
+    "tests/governance/test_merge_coordinator_contract.py",
+    "automation/tasks/elo_canonical_reconciliation.py",
+    CANONICAL_STRUCTURE_MAP,
+    "tests/governance/test_elo_canonical_reconciliation.py",
+}
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
@@ -150,6 +165,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
 
     source_of_truth = owners[0] if owners else None
     canonical_identity = next(iter(changed_stems)) if owners and len(changed_stems) == 1 else None
+    decision_override: str | None = None
     structure_map = root / CANONICAL_STRUCTURE_MAP
 
     if changed_in_runtime and structure_map.is_file() and not owner_evidence:
@@ -165,6 +181,35 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
 
+    governance_workflow_changed = bool(changed_normalised.intersection(GOVERNANCE_LIFECYCLE_WORKFLOWS))
+    governance_lifecycle_scoped = (
+        governance_workflow_changed
+        and changed_normalised.issubset(GOVERNANCE_LIFECYCLE_ALLOWED_PATHS)
+    )
+    if governance_lifecycle_scoped and structure_map.is_file():
+        lifecycle_source = root / GOVERNANCE_LIFECYCLE_SOURCE
+        lifecycle_contract = root / GOVERNANCE_LIFECYCLE_CONTRACT
+        try:
+            map_text = structure_map.read_text(encoding="utf-8", errors="ignore")
+            source_text = lifecycle_source.read_text(encoding="utf-8", errors="ignore")
+            contract_text = lifecycle_contract.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            map_text = source_text = contract_text = ""
+        workflow_owner_declared = (
+            "`.github/workflows/elo-*.yml` | ELO Governance" in map_text
+            and "elo-agent-loop.yml" in source_text
+            and "elo-merge-coordinator.yml" in source_text
+            and "owner: ELO Governance" in contract_text
+        )
+        if workflow_owner_declared:
+            source_of_truth = GOVERNANCE_LIFECYCLE_SOURCE
+            canonical_identity = "elo-governed-pr-lifecycle"
+            duplicate = False
+            decision_override = "STRENGTHEN"
+            reasons = [
+                "Existing ELO governance lifecycle owner is declared by ADR-0020 and the repository canonical map"
+            ]
+
     frontend_changed = any(p.startswith("frontend/") for p in changed_normalised)
     if frontend_changed and owners and not candidates and not maintenance_changed:
         source_of_truth = owners[0]
@@ -173,7 +218,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = decision_override or ("REUSE" if complete and duplicate else "CREATE" if complete else None)
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
