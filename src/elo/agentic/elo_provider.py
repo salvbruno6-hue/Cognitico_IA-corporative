@@ -239,6 +239,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         provider_started = self._clock()
         source_attempts = 0
         early_stop_applied = False
+        early_stop_eligible_detected = False
+        first_sufficient_attempt = 0
         criticality = self._decision_criticality(intent)
 
         for source_candidate in self.context_engine.candidate_sources(pack):
@@ -341,10 +343,18 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                     "low_criticality_sufficient": str(source_sufficient).lower(),
                 },
             )
-            if source_sufficient:
-                early_stop_applied = True
-                break
+            if source_sufficient and not early_stop_eligible_detected:
+                # Q6-C is in shadow/baseline mode: measure when LOW retrieval
+                # *could* stop, but do not reduce evidence before a real baseline
+                # proves quality is preserved.
+                early_stop_eligible_detected = True
+                first_sufficient_attempt = source_attempts
 
+        shadow_attempts_after_sufficient = (
+            source_attempts - first_sufficient_attempt
+            if early_stop_eligible_detected
+            else 0
+        )
         self._record_timing(
             intent=intent,
             requirement=requirement,
@@ -354,6 +364,13 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             metadata={
                 "source_attempts": str(source_attempts),
                 "early_stop_applied": str(early_stop_applied).lower(),
+                "early_stop_eligible_detected": str(
+                    early_stop_eligible_detected
+                ).lower(),
+                "shadow_attempts_after_sufficient": str(
+                    shadow_attempts_after_sufficient
+                ),
+                "early_stop_mode": "SHADOW_BASELINE",
                 "decision_criticality": criticality,
             },
         )

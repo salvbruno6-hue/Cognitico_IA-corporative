@@ -461,7 +461,7 @@ def _retrieved_quality(source_id, *, status="CURRENT", relevance="0.8",
     )
 
 
-def test_low_criticality_stops_after_first_explicitly_sufficient_source():
+def test_low_criticality_shadow_mode_detects_sufficient_source_without_stopping():
     sink = InMemoryCognitiveTimingSink()
     provider, first, second = _multi_source_provider(
         first=_retrieved_quality("first"),
@@ -481,12 +481,15 @@ def test_low_criticality_stops_after_first_explicitly_sufficient_source():
 
     found = provider.retrieve(intent, req)
 
-    assert [item.source_id for item in found] == ["first"]
+    assert [item.source_id for item in found] == ["first", "second"]
     assert first.calls == 1
-    assert second.calls == 0
+    assert second.calls == 1
     total = [x for x in sink.observations if x.stage == "knowledge.provider.retrieve"][-1]
-    assert total.metadata["source_attempts"] == "1"
-    assert total.metadata["early_stop_applied"] == "true"
+    assert total.metadata["source_attempts"] == "2"
+    assert total.metadata["early_stop_applied"] == "false"
+    assert total.metadata["early_stop_eligible_detected"] == "true"
+    assert total.metadata["shadow_attempts_after_sufficient"] == "1"
+    assert total.metadata["early_stop_mode"] == "SHADOW_BASELINE"
     assert total.metadata["decision_criticality"] == "LOW"
 
 
@@ -578,6 +581,6 @@ def test_low_criticality_minimum_signal_is_exactly_sixty_percent():
 
     found = provider.retrieve(intent, req)
 
-    assert [item.source_id for item in found] == ["first"]
+    assert [item.source_id for item in found] == ["first", "second"]
     assert first.calls == 1
-    assert second.calls == 0
+    assert second.calls == 1
