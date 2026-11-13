@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from elo.cognitive.symbiont_governance_contract import MandateAcknowledgement, validate_symbiont_operation
+
 FORBIDDEN_INFRASTRUCTURE_KEYS = frozenset(
     {"project_id", "project_ref", "supabase_project", "database_url", "supabase_url"}
 )
@@ -88,4 +90,30 @@ def build_skill_execution_envelope(intent: IntentSpec) -> dict[str, Any]:
         "canonical_promotion": "elo_only",
     }
     _reject_infrastructure(payload)
+    return payload
+
+
+def build_governed_skill_execution_envelope(
+    intent: IntentSpec,
+    *,
+    acknowledgement: MandateAcknowledgement,
+    operation: str = "query",
+    pii_exposure: bool = False,
+    canonical_mutation: bool = False,
+) -> dict[str, Any]:
+    """Build the external skill envelope only after the mandate guard passes."""
+    if acknowledgement.request_id != intent.request_id:
+        raise ValueError("mandate acknowledgement request_id does not match intent")
+    if acknowledgement.tenant_scope != intent.tenant_scope:
+        raise ValueError("mandate acknowledgement tenant scope does not match intent")
+    validate_symbiont_operation(
+        acknowledgement=acknowledgement,
+        operation=operation,
+        pii_exposure=pii_exposure,
+        canonical_mutation=canonical_mutation,
+    )
+    payload = build_skill_execution_envelope(intent)
+    payload["governance"]["mandate_acknowledged"] = True
+    payload["governance"]["mandate_version"] = acknowledgement.mandate_version
+    payload["governance"]["operation"] = operation
     return payload
