@@ -316,6 +316,62 @@ def test_authz_scope_rejects_unknown_owner_map(tmp_path: Path) -> None:
     assert evidence.waiting_for_evidence
 
 
+def test_authz_scope_rejects_unresolved_executable_candidate_without_owner(tmp_path: Path) -> None:
+    """P2 regression: a candidate needs investigation even without owner claim."""
+    _make_existing_authz_owner(tmp_path)
+    (tmp_path / "parallel_authz.py").write_text(
+        "elo_authz capability\n", encoding="utf-8"
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["elo_authz"],
+    )
+    assert "parallel_authz.py" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.decision != "STRENGTHEN"
+    assert evidence.source_of_truth is None
+
+
+def test_authz_scope_ignores_only_verified_existing_consumers(tmp_path: Path) -> None:
+    """Proven MCP and data-gateway consumers are not duplicate grant issuers."""
+    _make_existing_authz_owner(tmp_path)
+    for name in ("elo-mcp", "elo-data-gateway"):
+        candidate = tmp_path / f"supabase/functions/{name}/index.ts"
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text(
+            'const AUTHZ_URL="/functions/v1/elo-authz";\n'
+            'export async function consult() { return fetch(AUTHZ_URL); }\n',
+            encoding="utf-8",
+        )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["elo-authz"],
+    )
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+    assert len(evidence.candidates) == 2
+
+
+def test_authz_scope_blocks_consumer_that_starts_issuing_grants(tmp_path: Path) -> None:
+    """A known consumer stops being exempt when it contains issuer behavior."""
+    _make_existing_authz_owner(tmp_path)
+    consumer = tmp_path / "supabase/functions/elo-mcp/index.ts"
+    consumer.parent.mkdir(parents=True, exist_ok=True)
+    consumer.write_text(
+        'const AUTHZ_URL="/functions/v1/elo-authz";\n'
+        'const issue_authorization_grant = true;\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["elo-authz"],
+    )
+    assert "supabase/functions/elo-mcp/index.ts" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision != "STRENGTHEN"
+
+
 def test_authz_scope_does_not_override_competing_owner(tmp_path: Path) -> None:
     _make_existing_authz_owner(tmp_path)
     (tmp_path / "rogue_authz.py").write_text("elo_authz capability\n", encoding="utf-8")
