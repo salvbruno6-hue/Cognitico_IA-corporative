@@ -64,3 +64,20 @@ def test_scoped_result_cannot_masquerade_as_full_suite_or_authorization() -> Non
     assert len(upload) == 1
     assert upload[0]["with"]["name"] == "elo-behavioral-test-evidence"
     assert "pytest-scope.json" in upload[0]["with"]["path"]
+
+
+def test_stale_pr_runs_cancel_without_cancelling_main_push_validation() -> None:
+    """Cancel only superseded PR revisions; preserve required current SHA evidence."""
+    for filename in ("elo-pr1-validation.yml", "elo-behavioral-validation.yml"):
+        workflow = _workflow(filename)
+        concurrency = workflow.get("concurrency")
+        assert concurrency is not None, filename
+        assert concurrency["group"] == (
+            "${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}"
+        )
+        assert concurrency["cancel-in-progress"] == (
+            "${{ github.event_name == 'pull_request' }}"
+        )
+        # Cancellations cannot promote results; PR1 still runs its full suite,
+        # and Behavioral remains focused with provenance marked non-authoritative.
+        assert "test" in workflow["jobs"]
