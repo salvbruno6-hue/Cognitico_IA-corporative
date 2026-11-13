@@ -97,12 +97,18 @@ async function authenticate(req: Request) {
 }
 
 async function resolveActiveSession(identityId: string) {
+  // Restrict to currently eligible sessions before LIMIT, so expired or
+  // future-issued rows cannot hide an active authenticated ELO session.
+  const now=Date.now();
+  const nowISO=new Date(now).toISOString();
   const { data, error } = await supabase.from("elo_identity_sessions")
     .select("session_id,issued_at,expires_at,revoked_at,last_seen_at")
-    .eq("identity_id", identityId).is("revoked_at", null)
+    .eq("identity_id", identityId)
+    .is("revoked_at", null)
+    .lte("issued_at", nowISO)
+    .gt("expires_at", nowISO)
     .order("issued_at",{ascending:false}).limit(10);
   if (error) return { ok:false as const, reason:"session_lookup_failed" };
-  const now=Date.now();
   const session=(data ?? []).find((s:any)=>{
     const i=Date.parse(String(s.issued_at)), e=Date.parse(String(s.expires_at));
     return Number.isFinite(i)&&Number.isFinite(e)&&i<=now&&e>now;
