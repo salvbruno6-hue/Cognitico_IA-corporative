@@ -405,3 +405,24 @@ Crédito da 1 janela original PEND-M01-019:   -R$ 1.325,72
 **Persistência e restrições do Supabase:** `public.elo_orcamento_composicao_itens` aceita quantidades e unitários **não negativos**, e `valor_parcial` é calculado. Para não registrar crédito como compra positiva nem inventar valor negativo na coluna gerada, linha `I05-M01` mantém **PEND-M01-019**, unitário R$1.325,72 **visível**, status `NAO_APLICAVEL` e quantidade/parcial nulos; o **crédito −R$1.325,72** com quantidade 1 está em `public.elo_orcamentos.contexto.analise_item_05_m01.delta_credito_janela`. Linha `I05-M02` registra 1 ESQ006 R$162,50, e `I05-M03` 3 EXC-011 R$95,65 cada, gerando R$286,95. `I05-S01` documenta serviço de troca estrutural sem preço e `I05-S02` está `NAO_APLICAVEL` como instalação separada já incluída no EXC. Soma dos parciais positivos gerados = R$449,45, **não confundir** com o ajuste líquido −R$876,27 do contexto. Nenhuma linha `APLICADO`.
 
 **Fluxo:** `sequencia_modelos_orcamento.indice_atual=5` e item físico M01 agora `EM_ANALISE_TECNICA`; M05 permanece padrão aceito somente quanto à configuração, M02 contém 3 tomadas adicionais e basculante sanitário incluso, depósito Dry segue distinto do Dry de 6m. `CAD-05 EM_ANALISE`, `CAD-06 BLOQUEADA` e `CAD-10/11` não liberam preço final. Exigir validação de demais portas, luminárias, ar-condicionado, altura interna e preço-base, sem promover experiência ao Core. Preservar planilha canônica BASE MESTRE A:H, **não gerar Excel sem solicitação explícita**.
+
+
+### Revisão prevalecente do M01 — crédito ESQ004 R$891,80 em vez de painel PEND-M01-019 (13/11/2026)
+
+**Decisão mais recente e vinculante do Analista:** corrigir a memória anterior do item 05 da SO 233.26: **não** abater o valor de R$1.325,72 do `PEND-M01-019` (painel janela original do kit M01). O abatimento unitário expressamente definido é o valor **somente da janela de alumínio**, código **`ESQ004`**, R$**891,80/PÇ** na Lista-Mãe, para **uma janela substituída**. Acrescentar **uma báscula `ESQ006` R$162,50**, mantendo uma das duas janelas do M01 original; e **três tomadas `EXC-011` R$95,65/un, total R$286,95**, já com mão de obra. A janela do ar-condicionado `PEND-M01-020` é distinta e não entra nesta substituição.
+
+**Proveniência:** consulta `public.lista_mae` confirmou `ESQ004` *JANELA ALUMÍNIO 1200×900 MM* ativa a R$891,80/PÇ e `ESQ006` *JANELA BASCULANTE ALUMÍNIO 600×600 MM* ativa a R$162,50/PÇ. `public.vw_kit_montagem_m01_completo` continua contendo `2 × PEND-M01-019` *JANELA SALOMÃO 900×1200* R$1.325,72/un; **esse custo do painel completo não foi alterado na Lista-Mãe nem no kit**. A decisão do Analista estabelece o **critério de abatimento do orçamento da SO**, e não afirma que o preço da peça ESQ004 já era discriminado no kit. Preservar separação entre composição completa do painel e preço avulso da janela. Não aplicar outros créditos presumidos.
+
+**Memória correta do ajuste líquido referencial em relação ao M01 padrão:**
+```text
+1 janela alumínio ESQ004 retirada:      - R$ 891,80
+1 janela basculante ESQ006 inserida:    + R$ 162,50
+Diferença da esquadria:                  - R$ 729,30
+3 tomadas EXC-011 (M.O. incluída):      + R$ 286,95
+DELTA LÍQUIDO M01:                      - R$ 442,35
+```
+**Supera e revoga expressamente a memória anterior `-R$876,27` e o crédito anterior `-R$1.325,72`** para este caso. Não reutilizar esses valores na planilha, no resumo da SO ou na próxima exportação; histórico permanece para auditoria, **não** é ativo.
+
+**Supabase confirmado:** `public.elo_orcamento_composicao_itens` na SO 233.26, MLT.M01: `I05-M01` agora tem `cod_item=ESQ004`, `valor_unitario=891.80`, `unidade=PÇ`, `status=NAO_APLICAVEL` e `quantidade/valor_parcial=NULL` porque crédito negativo é armazenado em `elo_orcamentos.contexto.analise_item_05_m01.delta_credito_janela` com `valor_credito_sinalizado=-891.80`; preservar `PEND-M01-019` como `codigo_kit_original` e não reescrever seu cadastro. `I05-M02=ESQ006` 1 × R$162,50 e `I05-M03=EXC-011` 3 × R$95,65 (=R$286,95) continuam `EM_ANALISE`, subtotais positivos gerados = R$449,45. `contexto.analise_item_05_m01.ajuste_liquido.total_delta_referencia=-442.35`; o item da sequência física 05 foi atualizado e `CAD-05` segue `EM_ANALISE`, `CAD-06` `BLOQUEADA`. No layout canônico BASE MESTRE A:H, exibir o **crédito negativo** como linha de ajuste e não apenas a soma positiva dos materiais, sem falsear o valor gerado no banco.
+
+**Bloqueios:** delta não é preço final ou custo-base do M01. Ainda faltam validações de montagem/vedação no vão substituído, preço-base, exigências técnicas e conciliação. Não marcar nada `APLICADO` ou `FECHADO` pela decisão de valor; não alterar Core nem emitir Excel sem novo pedido explícito.
