@@ -316,6 +316,45 @@ def test_authz_scope_rejects_unknown_owner_map(tmp_path: Path) -> None:
     assert evidence.waiting_for_evidence
 
 
+def test_authz_scope_scans_executable_automation_for_parallel_issuers(tmp_path: Path) -> None:
+    """An automation task can issue grants and cannot be excluded wholesale."""
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / "automation/tasks/parallel_authz.py"
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(
+        'import requests\n'
+        'requests.post("/rest/v1/elo_authorization_grants")\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert "automation/tasks/parallel_authz.py" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision != "STRENGTHEN"
+
+
+def test_authz_scope_scans_unreviewed_workflow_grant_writer(tmp_path: Path) -> None:
+    """A workflow that writes authorization grants is not a read-only consumer."""
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / ".github/workflows/parallel-authz.yml"
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(
+        'name: parallel-authz\n'
+        'steps:\n'
+        '  - run: curl -X POST /rest/v1/elo_authorization_grants\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    assert ".github/workflows/parallel-authz.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision != "STRENGTHEN"
+
+
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
     """Actual Maintenance terms are filenames; they must not hide another issuer."""
     _make_existing_authz_owner(tmp_path)
