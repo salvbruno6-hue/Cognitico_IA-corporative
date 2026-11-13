@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from automation.tasks.elo_canonical_reconciliation import (
     CANONICAL_STRUCTURE_MAP,
     event_facts,
@@ -463,6 +465,59 @@ def test_authz_scope_accepts_curl_forced_get_with_query_parameters(tmp_path: Pat
     )
     assert evidence.decision == "STRENGTHEN", evidence.reasons
     assert evidence.duplicate_or_parallel is False
+
+
+@pytest.mark.parametrize("script", [
+    "curl -g '$SUPABASE_URL/rest/v1/elo_authorization_grants' --data '{}'",
+    "curl -G https://telemetry.example && curl '$SUPABASE_URL/rest/v1/elo_authorization_grants' --data '{}'",
+    "curl -G https://telemetry.example && curl -X POST '$SUPABASE_URL/rest/v1/elo_authorization_grants'",
+    "curl '$SUPABASE_URL/rest/v1/elo_authorization_grants' -d '{}' && curl -G https://telemetry.example",
+    "curl -X POST -H 'X-Trace: this-is-a-very-long-trace-header' '$SUPABASE_URL/rest/v1/elo_authorization_grants'",
+    "curl --request=PATCH '$SUPABASE_URL/rest/v1/elo_authorization_grants' -d '{}'",
+])
+def test_authz_curl_shell_method_semantics_reject_writers(
+    tmp_path: Path, script: str,
+) -> None:
+    """Each POST/PATCH remains blocked, including -g and command chaining."""
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / ".github/workflows/shadow-grant.yml"
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(f"steps:\n  - run: |\n      {script}\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert ".github/workflows/shadow-grant.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+    assert event_facts(evidence)["contract_conflict"] is None
+
+
+@pytest.mark.parametrize("script", [
+    "curl -G '$SUPABASE_URL/rest/v1/elo_authorization_grants' --data '{}'",
+    "curl -X GET '$SUPABASE_URL/rest/v1/elo_authorization_grants' --data '{}'",
+    "curl --request GET '$SUPABASE_URL/rest/v1/elo_authorization_grants' --data '{}'",
+    "curl --request=GET '$SUPABASE_URL/rest/v1/elo_authorization_grants' --data '{}'",
+    "curl --get --data-urlencode 'select=grant_id' '$SUPABASE_URL/rest/v1/elo_authorization_grants'",
+    "curl -G '$SUPABASE_URL/rest/v1/elo_authorization_grants' && curl -X POST https://telemetry.example",
+    "curl '$SUPABASE_URL/rest/v1/elo_authorization_grants' && curl -X POST https://telemetry.example",
+])
+def test_authz_curl_shell_method_semantics_preserve_read_only(
+    tmp_path: Path, script: str,
+) -> None:
+    """Explicit GET and unrelated POST must not invent an alternate issuer."""
+    _make_existing_authz_owner(tmp_path)
+    reader = tmp_path / ".github/workflows/read-grants.yml"
+    reader.parent.mkdir(parents=True, exist_ok=True)
+    reader.write_text(f"steps:\n  - run: |\n      {script}\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete
+    assert ".github/workflows/read-grants.yml" not in evidence.candidates
 
 
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
