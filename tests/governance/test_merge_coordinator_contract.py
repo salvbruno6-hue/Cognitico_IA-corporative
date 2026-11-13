@@ -415,13 +415,73 @@ def test_merge_grant_filters_exact_resource_before_limit():
     assert "order=issued_at.desc" in query_line
 
 
-def test_merge_grant_session_belongs_to_canonical_issuer_not_binding_recipient():
+def test_merge_grant_checks_recipient_session_and_canonical_issuer_audit():
+    """Grant recipient and CANONICAL_ADMIN issuer are different authorities."""
     script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
-    assert "issuer=\"$(jq -r '.issued_by_identity_id' /tmp/grant.json)\"" in script
-    assert "identity_id=eq.${issuer}" in script
-    assert "identity_id=eq.${target_identity}&revoked_at=is.null" not in script
-    assert "target_identity=\"$(jq -r '.identity_id' /tmp/grant.json)\"" in script
-    assert "identity_id == $identity" in script
+    for required in (
+        "issuer=\"$(jq -r '.issued_by_identity_id' /tmp/grant.json)\"",
+        "target_identity=\"$(jq -r '.identity_id' /tmp/grant.json)\"",
+        "identity_id == $identity",
+        "recipient_session_id=\"$(jq -r '.session_id' /tmp/grant.json)\"",
+        "session_id=eq.${recipient_session_id}&identity_id=eq.${target_identity}",
+        "recipient_now_epoch < recipient_expires_epoch",
+        "request_id,issued_at,expires_at",
+        "grant_request_id=\"$(jq -r '.request_id // \"\"' /tmp/grant.json)\"",
+        "elo_authorization_audit",
+        "request_id=eq.${request_encoded}&identity_id=eq.${issuer}",
+        "and .[0].action == \"issue_authorization_grant\"",
+        "and .[0].reason == \"canonical_admin_issued_authorization_state\"",
+        "issuer_session_id=\"$(jq -r '.[0].session_id' <<<\"$issuer_audit\")\"",
+        "session_id=eq.${issuer_session_id}&identity_id=eq.${issuer}",
+        "issuer_audit_epoch >= grant_issued_epoch",
+        "session_now_epoch < session_expires_epoch",
+    ):
+        assert required in script
+    assert "session_id=eq.${recipient_session_id}&identity_id=eq.${issuer}" not in script
+
+
+def test_canonical_issuer_audit_filter_rejects_missing_or_ambiguous_attestation():
+    """Exercise the actual jq audit predicate for cross-identity grant issuance."""
+    import json
+    import shutil
+    import subprocess
+
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq executable required")
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    start = '''jq -e --arg issuer "$issuer" --arg req "$grant_request_id" --arg repo "$REPOSITORY" '\n'''
+    begin = script.index(start) + len(start)
+    end = script.index("""' <<<"$issuer_audit" >/dev/null""", begin)
+    expr = script[begin:end].strip()
+    audit = {
+        "session_id": "issuer-session",
+        "identity_id": "admin-A",
+        "request_id": "request-123",
+        "action": "issue_authorization_grant",
+        "resource": "org/repo",
+        "decision": "ALLOW",
+        "reason": "canonical_admin_issued_authorization_state",
+    }
+    def accepted(rows):
+        result = subprocess.run(
+            ["jq", "-e", "--arg", "issuer", "admin-A",
+             "--arg", "req", "request-123", "--arg", "repo", "org/repo", expr],
+            input=json.dumps(rows), capture_output=True, text=True, check=False,
+        )
+        return result.returncode == 0
+
+    assert accepted([audit])
+    assert not accepted([])
+    assert not accepted([audit, audit])
+    for field, value in (
+        ("session_id", None), ("identity_id", "different-admin"),
+        ("request_id", "different-request"), ("action", "other"),
+        ("resource", "wrong/repository"), ("decision", "DENY"),
+        ("reason", "unrelated"),
+    ):
+        assert not accepted([{**audit, field: value}]), field
 
 
 
