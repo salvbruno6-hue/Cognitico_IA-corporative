@@ -318,3 +318,26 @@ def test_governance_lifecycle_does_not_erase_proven_duplicate_blocker(tmp_path: 
     assert evidence.decision == "REUSE"
     assert not evidence.waiting_for_evidence
     assert any("blocker remains" in reason for reason in evidence.reasons)
+
+
+
+def test_governance_lifecycle_preserves_unresolved_executable_candidate(tmp_path: Path):
+    """A declared workflow owner cannot disprove an unclassified parallel module."""
+    _write_governance_lifecycle_owners(tmp_path)
+    legacy = tmp_path / "legacy/elo_merge_coordinator.py"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text("class CandidateWithoutOwner: pass\n", encoding="utf-8")
+
+    evidence = reconcile_repository(
+        tmp_path,
+        [".github/workflows/elo-merge-coordinator.yml"],
+    )
+
+    assert "legacy/elo_merge_coordinator.py" in evidence.candidates
+    assert evidence.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert evidence.canonical_identity == "elo-governed-pr-lifecycle"
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
+    assert any("unresolved" in reason for reason in evidence.reasons)
