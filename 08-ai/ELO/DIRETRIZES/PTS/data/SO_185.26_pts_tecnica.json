@@ -1,0 +1,170 @@
+{
+  "identificacao": {
+    "so": "SO 185.26",
+    "cliente": "TRANSPETRO",
+    "local": "ILHA D AGUA/RJ",
+    "tipo_negociacao": "LOCAÇÃO",
+    "revisao": "0",
+    "data_base_documento": "29/09/2026",
+    "produto": "MLT.C06_Contêiner Depósito 20 pés",
+    "quantidade": 1
+  },
+  "objetivo": "Preparar tecnicamente o orçamento da SO 185.26, estruturando requisito, solução, quantitativo, referências consultivas e pendências sem transformar lacunas em fatos.",
+  "escopo": [
+    "Locação de 1 contêiner depósito de 20 pés, identificado como MLT.C06.",
+    "Adequações e materiais indicados na planilha de orçamento.",
+    "Abertura de vão em 5 painéis de aço, conforme referência consultiva EXC-016.",
+    "Pintura externa do contêiner, mantendo a distinção em relação ao EXC-007 de pintura interna epóxi.",
+    "Instalação elétrica interna com QDF e circuito de iluminação.",
+    "Readequação para reparo do contêiner: pintura, solda, remoção de reforço e remoção de elétrica."
+  ],
+  "matriz_tecnica": [
+    {
+      "id": "T185-001",
+      "item_tr": "2.2.5",
+      "trecho_tr": "Custo de abertura de vão",
+      "exigencia": "Executar abertura de vão em 5 painéis de aço na lateral do contêiner.",
+      "tipo": "EXC",
+      "adequacao": "Adequado quanto à correspondência com a referência EXC-016 e ao valor consultivo informado.",
+      "status": "🟢",
+      "curva": "A",
+      "motivo": "A planilha usa 13,923 m² × R$71,03/m² = R$988,95, compatível com a referência consultiva vigente do EXC-016.",
+      "responsavel": "CONTRATADA",
+      "consulta_id": "C185-001"
+    },
+    {
+      "id": "T185-002",
+      "item_tr": "2.2.1–2.2.4",
+      "trecho_tr": "Perfis, rodízios e metalon associados à adequação",
+      "exigencia": "Fornecer perfis Stanley, rodízios quadruplos, perfil U simples e metalon 50×30×1,20 mm.",
+      "tipo": "PAD",
+      "adequacao": "Itens explicitamente presentes na planilha; dimensionamento estrutural não demonstrado na fonte.",
+      "status": "🟡",
+      "curva": "A",
+      "motivo": "Há quantitativos e valores, porém não há desenho/memória estrutural na fonte para validar dimensionamento e aplicação.",
+      "responsavel": "ENG",
+      "consulta_id": "C185-002"
+    },
+    {
+      "id": "T185-003",
+      "item_tr": "2.2.6",
+      "trecho_tr": "Pintura externa do conteiner",
+      "exigencia": "Executar pintura externa do contêiner conforme quantidade e valor da planilha.",
+      "tipo": "EXC",
+      "adequacao": "Parcial; o valor unitário coincide numericamente com EXC-007, mas a unidade e o tipo de pintura não são equivalentes.",
+      "status": "🟡",
+      "curva": "B",
+      "motivo": "EXC-007 é pintura interna epóxi em m²; a SO registra pintura externa em m. Não há memória de cálculo da área nem sistema de pintura na fonte.",
+      "responsavel": "ENG",
+      "consulta_id": "C185-003"
+    },
+    {
+      "id": "T185-004",
+      "item_tr": "2.2.7",
+      "trecho_tr": "Instalação elétrica interna com QDF e circuito de iluminação",
+      "exigencia": "Instalação elétrica interna com QDF e circuito de iluminação.",
+      "tipo": "PRJ",
+      "adequacao": "Parcial; verba indicada, mas sem detalhamento de circuitos, cargas, quantitativos ou projeto na fonte.",
+      "status": "🟡",
+      "curva": "B",
+      "motivo": "O item existe como 1 verba de R$307,00, porém a composição técnica não está demonstrada.",
+      "responsavel": "ENG",
+      "consulta_id": "C185-004"
+    },
+    {
+      "id": "T185-005",
+      "item_tr": "2.2.8",
+      "trecho_tr": "Custo de readequação para reparo do conteiner",
+      "exigencia": "Executar pintura, solda, remoção de reforço e remoção de elétrica.",
+      "tipo": "PRJ",
+      "adequacao": "Não decomposta; verba agregada preservada como informada.",
+      "status": "🟡",
+      "curva": "A",
+      "motivo": "O valor de R$2.752,08 reúne quatro tipos de intervenção sem memória quantitativa individual na fonte.",
+      "responsavel": "CONTRATADA",
+      "consulta_id": "C185-005"
+    },
+    {
+      "id": "T185-006",
+      "item_tr": "2.3",
+      "trecho_tr": "Mão de Obra Interna",
+      "exigencia": "Mobilizar encarregado, profissional, ajudante, soldador e serralheiro.",
+      "tipo": "PAD",
+      "adequacao": "Adequado quanto aos quantitativos e valores apresentados.",
+      "status": "🟢",
+      "curva": "A",
+      "motivo": "Os cinco itens de mão de obra estão discriminados e o subtotal informado fecha em R$942,71.",
+      "responsavel": "CONTRATADA",
+      "consulta_id": null
+    },
+    {
+      "id": "T185-007",
+      "item_tr": "1.1",
+      "trecho_tr": "MLT.C06_Contêiner Depósito 20 pés",
+      "exigencia": "Disponibilizar 1 unidade de contêiner depósito 20 pés.",
+      "tipo": "PAD",
+      "adequacao": "Adequado quanto à identificação do produto na planilha; demais características contratuais não estão documentadas nesta fonte.",
+      "status": "🟡",
+      "curva": "A",
+      "motivo": "A planilha identifica o modelo MLT.C06 e quantidade 1, mas não apresenta nesta fonte especificações completas de uso, conservação, instalação ou logística.",
+      "responsavel": "FOR",
+      "consulta_id": "C185-006"
+    }
+  ],
+  "consultas": [
+    {
+      "id": "C185-001",
+      "texto": "Confirmar desenho/memória geométrica da abertura dos 5 painéis e detalhes da intervenção estrutural.",
+      "item_ids": ["T185-001", "T185-002"]
+    },
+    {
+      "id": "C185-002",
+      "texto": "Confirmar dimensionamento e função dos perfis Stanley, perfil U, metalon e rodízios.",
+      "item_ids": ["T185-002"]
+    },
+    {
+      "id": "C185-003",
+      "texto": "Confirmar área real, unidade de medição e sistema de pintura externa; não assumir equivalência com EXC-007.",
+      "item_ids": ["T185-003"]
+    },
+    {
+      "id": "C185-004",
+      "texto": "Apresentar escopo elétrico mínimo: QDF, circuitos, cargas, pontos e quantitativos.",
+      "item_ids": ["T185-004"]
+    },
+    {
+      "id": "C185-005",
+      "texto": "Decompor, quando necessário, a verba de readequação de R$2.752,08 ou manter formalmente como verba.",
+      "item_ids": ["T185-005"]
+    },
+    {
+      "id": "C185-006",
+      "texto": "Confirmar requisitos contratuais e logísticos do contêiner MLT.C06 em Ilha d'Água/RJ.",
+      "item_ids": ["T185-007"]
+    }
+  ],
+  "resumo_executivo": [
+    "A SO 185.26 é uma locação de 1 contêiner depósito 20 pés, identificado como MLT.C06.",
+    "A planilha contém R$5.492,88 em materiais e R$942,71 em mão de obra interna, totalizando subtotal geral de R$6.435,59.",
+    "O orçamento informa BDI de 65% e total geral de R$10.618,72.",
+    "A abertura de vão utiliza EXC-016 a R$71,03/m², com 13,923 m² e parcial de R$988,95.",
+    "A pintura externa não deve ser automaticamente associada ao EXC-007: apesar do mesmo número de preço, a unidade e o tipo de pintura diferem.",
+    "O item de readequação de R$2.752,08 é uma verba agregada e não deve ser artificialmente redistribuído.",
+    "O dimensionamento estrutural e o detalhamento elétrico permanecem pendentes na fonte analisada."
+  ],
+  "legenda": {
+    "tipo": ["PAD", "EXC", "PRJ", "FOR", "CLI"],
+    "responsavel": ["ENG", "PLA", "FOR", "CONTRATADA", "FAB"],
+    "curva": ["A", "B", "C"],
+    "status": ["🟢", "🟡", "🔴"]
+  },
+  "rastreabilidade": [
+    "SO/planilha fornecida → requisito identificado → solução/escopo → quantitativo → referência consultiva → orçamento.",
+    "Fonte primária desta instância: planilha de orçamento SO 185.26, revisão 0, datada de 29/09/2026.",
+    "EXC-016 é referência consultiva do ELO; sua aplicação foi explicitamente identificada no item 2.2.5.",
+    "EXC-007 permanece referência consultiva apenas para comparação; não foi promovido como origem da pintura externa.",
+    "Lacunas de engenharia, elétrica, pintura e logística permanecem registradas como consulta/pendência.",
+    "A PTS Técnica não redefine valores nem cria quantitativos que não estejam sustentados pela fonte.",
+    "Estrutura aplicada conforme o owner canônico PTS do ELO: DOCUMENTO → REQUISITO → SOLUÇÃO → QUANTITATIVO → ORÇAMENTO."
+  ]
+}
