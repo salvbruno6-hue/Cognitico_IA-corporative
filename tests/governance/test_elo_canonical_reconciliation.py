@@ -335,6 +335,41 @@ def test_authz_scope_scans_executable_automation_for_parallel_issuers(tmp_path: 
     assert evidence.decision != "STRENGTHEN"
 
 
+def test_authz_scope_allows_workflow_that_only_reads_grants(tmp_path: Path) -> None:
+    """Read-only ELO workflow consumers must not become synthetic issuers."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/elo-agent-loop.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: curl -fsS "$SUPABASE_URL/rest/v1/elo_authorization_grants?select=grant_id"\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+
+
+def test_authz_scope_rejects_grant_write_in_known_workflow(tmp_path: Path) -> None:
+    """Even the canonical Agent Loop cannot secretly issue its own grants."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/elo-agent-loop.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: curl -X POST "$SUPABASE_URL/rest/v1/elo_authorization_grants"\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    assert ".github/workflows/elo-agent-loop.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision != "STRENGTHEN"
+
+
 def test_authz_scope_scans_unreviewed_workflow_grant_writer(tmp_path: Path) -> None:
     """A workflow that writes authorization grants is not a read-only consumer."""
     _make_existing_authz_owner(tmp_path)
