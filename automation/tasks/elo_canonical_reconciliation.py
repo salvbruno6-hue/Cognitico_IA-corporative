@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 from typing import Iterable
 
-DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
+DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE", "RELOCATE", "CONSOLIDATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
@@ -34,6 +34,11 @@ class ReconciliationEvidence:
     reuse_analysis_complete: bool
     decision: str | None
     reasons: tuple[str, ...] = field(default_factory=tuple)
+    transformation: str | None = None
+    identity_continuity: bool | None = None
+    responsibility_continuity: bool | None = None
+    semantic_continuity: bool | None = None
+    references_reconciled: bool | None = None
 
     @property
     def waiting_for_evidence(self) -> bool:
@@ -69,6 +74,31 @@ def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
             targets.add(declared_stem)
     return targets
 
+def _metadata_value(text: str, key: str) -> str | None:
+    prefix = key.lower() + ":"
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith(prefix):
+            value = stripped.split(":", 1)[1].strip()
+            return value or None
+    return None
+
+
+def _relocation_facts(root: Path, changed: tuple[str, ...]):
+    if len(changed) != 2:
+        return None, None, None, None
+    paths = [root / path for path in changed]
+    if not all(path.is_file() for path in paths):
+        return None, None, None, None
+    texts = [path.read_text(encoding="utf-8", errors="ignore") for path in paths]
+    identities = [_metadata_value(text, "id") or _metadata_value(text, "artifact_id") for text in texts]
+    responsibilities = [_metadata_value(text, "responsibility") for text in texts]
+    if not identities[0] or identities[0] != identities[1]:
+        return None, None, None, None
+    responsibility_continuity = bool(responsibilities[0] and responsibilities[0] == responsibilities[1])
+    semantic_continuity = texts[0] == texts[1]
+    return "RELOCATE", True, responsibility_continuity, semantic_continuity
+
 
 def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
     root = Path(root)
@@ -81,6 +111,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     terms = _normalise_terms(concept_terms or ())
     changed_in_runtime = any(p.startswith("src/elo/") for p in changed_normalised)
     all_files = list(_text_files(root))
+    transformation, identity_continuity, responsibility_continuity, semantic_continuity = _relocation_facts(root, changed)
 
     candidates: list[str] = []
     references: list[str] = []
@@ -129,6 +160,14 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     references = sorted(set(references))
     owners = sorted(set(owners))
     independent_references = sorted(set(independent_references))
+    references_reconciled = True
+    if transformation == "RELOCATE":
+        references_reconciled = not any(
+            path.replace("\\", "/") in (root / reference).read_text(encoding="utf-8", errors="ignore")
+            for reference in references
+            for path in changed
+            if path not in reference
+        )
     candidate_stems = {Path(candidate).stem.lower().replace("-", "_") for candidate in candidates}
     owner_targets = {
         stem
@@ -172,8 +211,15 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
+    if transformation == "RELOCATE":
+        reasons.append("Changed artifacts preserve an explicit identity across locations")
+        if not references_reconciled:
+            reasons.append("Legacy reference remains after relocation")
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    if transformation == "RELOCATE":
+        decision = "RELOCATE"
+    else:
+        decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
@@ -190,6 +236,11 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         reuse_analysis_complete=complete,
         decision=decision,
         reasons=tuple(dict.fromkeys(reasons)),
+        transformation=transformation,
+        identity_continuity=identity_continuity,
+        responsibility_continuity=responsibility_continuity,
+        semantic_continuity=semantic_continuity,
+        references_reconciled=references_reconciled if transformation == "RELOCATE" else None,
     )
 
 
@@ -201,4 +252,9 @@ def event_facts(evidence: ReconciliationEvidence) -> dict[str, object]:
         "reuse_analysis_complete": evidence.reuse_analysis_complete,
         "duplicate_or_parallel_found": evidence.duplicate_or_parallel,
         "contract_conflict": False if evidence.reuse_analysis_complete else None,
+        "transformation": evidence.transformation,
+        "identity_continuity": evidence.identity_continuity,
+        "responsibility_continuity": evidence.responsibility_continuity,
+        "semantic_continuity": evidence.semantic_continuity,
+        "references_reconciled": evidence.references_reconciled,
     }
