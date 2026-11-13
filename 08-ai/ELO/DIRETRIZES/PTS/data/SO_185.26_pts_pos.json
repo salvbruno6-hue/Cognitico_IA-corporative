@@ -1,0 +1,332 @@
+{
+  "so": "SO 185.26",
+  "cliente": "TRANSPETRO",
+  "objeto": "Locação de 1 contêiner depósito 20 pés MLT.C06, com adequações e serviços associados.",
+  "revisao": "0",
+  "pts_tecnica_ref": "SO_185.26_pts_tecnica.json",
+  "itens_herdados": ["T185-001","T185-002","T185-003","T185-004","T185-005","T185-006","T185-007"],
+  "consultas_abertas": ["C185-001","C185-002","C185-003","C185-004","C185-005","C185-006"],
+  "documentos": [
+    "SO/planilha de orçamento SO 185.26, revisão 0",
+    "PTS Técnica SO 185.26",
+    "Referência consultiva ELO EXC-016 — abertura de vão",
+    "Referência consultiva ELO EXC-007 — pintura interna epóxi, usada apenas para confronto"
+  ],
+  "objetivo_texto": "Confrontar a PTS Técnica da SO 185.26 com o orçamento efetivamente elaborado, verificando correspondência de requisitos, quantitativos, valores, premissas, responsabilidades, riscos e pendências.",
+  "matriz_principal": [
+    {
+      "n": 1,
+      "ref_tecnica": "T185-001",
+      "topico": "Abertura de vão",
+      "ref_tr": "2.2.5",
+      "requisito": "Abertura de vão em 5 painéis de aço na lateral do contêiner.",
+      "q_prev": "5 painéis / referência 13,923 m²",
+      "q_orc": "13,923 m²",
+      "ref_orc": "2.2.5 / EXC-016",
+      "valor": "R$ 988,95",
+      "status": "🟢",
+      "divergencia": "Nenhuma divergência quantitativa identificada na fonte; permanece pendente a comprovação geométrica detalhada."
+    },
+    {
+      "n": 2,
+      "ref_tecnica": "T185-002",
+      "topico": "Perfis, rodízios e metalon",
+      "ref_tr": "2.2.1–2.2.4",
+      "requisito": "Fornecimento de perfis Stanley, rodízios quadruplos, perfil U simples e metalon 50×30×1,20 mm.",
+      "q_prev": "Conforme planilha",
+      "q_orc": "Conforme planilha",
+      "ref_orc": "2.2.1–2.2.4",
+      "valor": "Não consolidado individualmente nesta auditoria",
+      "status": "🟡",
+      "divergencia": "Não há memória estrutural suficiente na fonte para validar dimensionamento e aplicação."
+    },
+    {
+      "n": 3,
+      "ref_tecnica": "T185-003",
+      "topico": "Pintura externa",
+      "ref_tr": "2.2.6",
+      "requisito": "Pintura externa do contêiner.",
+      "q_prev": "Não demonstrado",
+      "q_orc": "Conforme planilha",
+      "ref_orc": "2.2.6",
+      "valor": "Não consolidado individualmente nesta auditoria",
+      "status": "🟡",
+      "divergencia": "A referência EXC-007 não pode ser tratada como origem: ela corresponde a pintura interna epóxi em m², enquanto a SO registra pintura externa."
+    },
+    {
+      "n": 4,
+      "ref_tecnica": "T185-004",
+      "topico": "Instalação elétrica interna",
+      "ref_tr": "2.2.7",
+      "requisito": "Instalação elétrica interna com QDF e circuito de iluminação.",
+      "q_prev": "1 verba",
+      "q_orc": "1 verba",
+      "ref_orc": "2.2.7",
+      "valor": "R$ 307,00",
+      "status": "🟡",
+      "divergencia": "Valor presente, mas composição técnica, circuitos, cargas e quantitativos não estão demonstrados."
+    },
+    {
+      "n": 5,
+      "ref_tecnica": "T185-005",
+      "topico": "Readequação para reparo",
+      "ref_tr": "2.2.8",
+      "requisito": "Pintura, solda, remoção de reforço e remoção de elétrica.",
+      "q_prev": "1 verba",
+      "q_orc": "1 verba",
+      "ref_orc": "2.2.8",
+      "valor": "R$ 2.752,08",
+      "status": "🟡",
+      "divergencia": "Verba agregada; não há decomposição quantitativa individual das quatro intervenções."
+    },
+    {
+      "n": 6,
+      "ref_tecnica": "T185-006",
+      "topico": "Mão de obra interna",
+      "ref_tr": "2.3",
+      "requisito": "Encarregado, profissional, ajudante, soldador e serralheiro.",
+      "q_prev": "Conforme composição da SO",
+      "q_orc": "Conforme composição da SO",
+      "ref_orc": "2.3",
+      "valor": "R$ 942,71",
+      "status": "🟢",
+      "divergencia": "Nenhuma divergência identificada no subtotal informado."
+    },
+    {
+      "n": 7,
+      "ref_tecnica": "T185-007",
+      "topico": "Contêiner MLT.C06",
+      "ref_tr": "1.1",
+      "requisito": "Disponibilizar 1 contêiner depósito 20 pés.",
+      "q_prev": "1 UN",
+      "q_orc": "1 UN",
+      "ref_orc": "1.1",
+      "valor": "Conforme orçamento",
+      "status": "🟡",
+      "divergencia": "A quantidade é correspondente; requisitos contratuais e logísticos completos não foram confirmados na fonte disponível."
+    }
+  ],
+  "blocos_quantitativos": [
+    {
+      "titulo": "Abertura de vão",
+      "corpo": "PTS Técnica: 5 painéis. Orçamento: 13,923 m². Referência EXC-016: R$71,03/m². Parcial orçado: R$988,95."
+    },
+    {
+      "titulo": "Mão de obra",
+      "corpo": "Subtotal informado para mão de obra interna: R$942,71."
+    },
+    {
+      "titulo": "Subtotal geral",
+      "corpo": "Materiais informados: R$5.492,88. Mão de obra interna: R$942,71. Subtotal geral informado: R$6.435,59."
+    }
+  ],
+  "conferencia_valores": {
+    "Subtotal geral": "R$6.435,59",
+    "Taxa administrativa": "Não evidenciada na fonte analisada",
+    "BDI": "65%",
+    "Total geral": "R$10.618,72"
+  },
+  "auditoria_reversa": [
+    {
+      "item": "Abertura de vão",
+      "ref": "2.2.5 / EXC-016",
+      "valor": "R$988,95",
+      "base": "13,923 m² × R$71,03/m²",
+      "justificativa": "Referência consultiva EXC-016 aplicada explicitamente na SO atual."
+    },
+    {
+      "item": "Instalação elétrica interna",
+      "ref": "2.2.7",
+      "valor": "R$307,00",
+      "base": "1 verba",
+      "justificativa": "Valor informado diretamente na planilha; composição técnica não evidenciada."
+    },
+    {
+      "item": "Readequação para reparo",
+      "ref": "2.2.8",
+      "valor": "R$2.752,08",
+      "base": "1 verba",
+      "justificativa": "Valor informado diretamente na planilha; não foi decomposto."
+    }
+  ],
+  "itens_premissa": [
+    {
+      "item": "Pintura externa",
+      "origem": "2.2.6",
+      "premissa": "A pintura externa foi orçada sem memória de área/sistema suficiente na fonte disponível.",
+      "impacto": "Pode haver divergência de unidade, consumo ou sistema de pintura.",
+      "tratamento": "Manter como pendência e não promover EXC-007 como origem."
+    },
+    {
+      "item": "Readequação para reparo",
+      "origem": "2.2.8",
+      "premissa": "Quatro intervenções foram agrupadas em uma verba.",
+      "impacto": "Baixa auditabilidade individual do custo.",
+      "tratamento": "Preservar a verba; decompor somente mediante evidência."
+    }
+  ],
+  "logistica": [
+    {
+      "componente": "Local de atendimento",
+      "calculo": "Ilha d'Água/RJ",
+      "valor": "Não isolado",
+      "criterio": "Local informado para a SO; custo logístico detalhado não evidenciado nesta fonte."
+    },
+    {
+      "componente": "Transporte/mobilização",
+      "calculo": "Não demonstrado",
+      "valor": "Não isolado",
+      "criterio": "Não criar composição na ausência de fonte."
+    }
+  ],
+  "mao_de_obra": [
+    {
+      "titulo": "MO interna",
+      "linhas": [
+        {"funcao": "Encarregado", "dias": "Conforme SO", "colab": "Conforme SO", "v_unit": "Conforme SO", "parcial": "Incluído no subtotal"},
+        {"funcao": "Profissional", "dias": "Conforme SO", "colab": "Conforme SO", "v_unit": "Conforme SO", "parcial": "Incluído no subtotal"},
+        {"funcao": "Ajudante", "dias": "Conforme SO", "colab": "Conforme SO", "v_unit": "Conforme SO", "parcial": "Incluído no subtotal"},
+        {"funcao": "Soldador", "dias": "Conforme SO", "colab": "Conforme SO", "v_unit": "Conforme SO", "parcial": "Incluído no subtotal"},
+        {"funcao": "Serralheiro", "dias": "Conforme SO", "colab": "Conforme SO", "v_unit": "Conforme SO", "parcial": "Incluído no subtotal"}
+      ],
+      "total": "R$942,71"
+    }
+  ],
+  "exclusoes": [
+    {
+      "item": "Detalhamento estrutural da abertura e perfis",
+      "responsavel": "ENG",
+      "orcado": "Não confirmado",
+      "status": "PENDENTE"
+    },
+    {
+      "item": "Detalhamento de circuitos, cargas e quantitativos elétricos",
+      "responsavel": "ENG",
+      "orcado": "Não confirmado",
+      "status": "PENDENTE"
+    },
+    {
+      "item": "Decomposição da verba de readequação",
+      "responsavel": "CONTRATADA",
+      "orcado": "1 verba",
+      "status": "SEM DECOMPOSIÇÃO"
+    }
+  ],
+  "divergencias": [
+    {
+      "n": 1,
+      "item": "Pintura externa",
+      "tipo": "referência/composição",
+      "previsto": "Pintura externa",
+      "orcado": "Valor presente na planilha",
+      "motivo": "EXC-007 é pintura interna epóxi e não comprova a composição da pintura externa.",
+      "impacto": "Risco de aplicação indevida de referência.",
+      "acao": "Confirmar sistema, unidade e memória de área."
+    },
+    {
+      "n": 2,
+      "item": "Instalação elétrica",
+      "tipo": "evidência",
+      "previsto": "QDF + circuito de iluminação",
+      "orcado": "R$307,00 em 1 verba",
+      "motivo": "Composição técnica não evidenciada.",
+      "impacto": "Auditabilidade limitada.",
+      "acao": "Confirmar projeto/quantitativos."
+    },
+    {
+      "n": 3,
+      "item": "Readequação",
+      "tipo": "composição",
+      "previsto": "Pintura + solda + remoções",
+      "orcado": "R$2.752,08 em 1 verba",
+      "motivo": "Não há decomposição individual.",
+      "impacto": "Baixa rastreabilidade dos custos.",
+      "acao": "Decompor somente se exigido para validação."
+    }
+  ],
+  "riscos": [
+    {
+      "risco": "Dimensionamento dos elementos da abertura",
+      "tipo": "TÉCNICO",
+      "impacto": "Possível necessidade de revisão de material/mão de obra.",
+      "condicao": "Ausência de memória/desenho estrutural na fonte.",
+      "tratamento": "Confirmar engenharia antes da execução."
+    },
+    {
+      "risco": "Pintura externa",
+      "tipo": "CUSTO/ESPECIFICAÇÃO",
+      "impacto": "Variação de custo caso sistema ou área sejam diferentes.",
+      "condicao": "Unidade e sistema não comprovados.",
+      "tratamento": "Confirmar especificação e quantitativo."
+    },
+    {
+      "risco": "Readequação agregada",
+      "tipo": "ORÇAMENTO",
+      "impacto": "Dificuldade de auditoria e comparação futura.",
+      "condicao": "Verba única para quatro intervenções.",
+      "tratamento": "Preservar como verba até existir evidência de decomposição."
+    }
+  ],
+  "pendencias": [
+    {
+      "pendencia": "C185-001 — memória geométrica da abertura",
+      "origem": "PTS Técnica",
+      "impacto": "Validação estrutural incompleta.",
+      "acao": "Confirmar desenho/memória.",
+      "status": "ABERTA"
+    },
+    {
+      "pendencia": "C185-002 — dimensionamento dos perfis/rodízios/metalon",
+      "origem": "PTS Técnica",
+      "impacto": "Aplicação estrutural não comprovada.",
+      "acao": "Confirmar dimensionamento.",
+      "status": "ABERTA"
+    },
+    {
+      "pendencia": "C185-003 — pintura externa",
+      "origem": "PTS Técnica",
+      "impacto": "Composição não comprovada.",
+      "acao": "Confirmar área, unidade e sistema.",
+      "status": "ABERTA"
+    },
+    {
+      "pendencia": "C185-004 — instalação elétrica",
+      "origem": "PTS Técnica",
+      "impacto": "Escopo técnico insuficientemente detalhado.",
+      "acao": "Confirmar QDF, circuitos, cargas e quantitativos.",
+      "status": "ABERTA"
+    },
+    {
+      "pendencia": "C185-005 — verba de readequação",
+      "origem": "PTS Técnica",
+      "impacto": "Baixa rastreabilidade.",
+      "acao": "Decompor se necessário.",
+      "status": "ABERTA"
+    },
+    {
+      "pendencia": "C185-006 — logística e requisitos contratuais",
+      "origem": "PTS Técnica",
+      "impacto": "Condições de atendimento não completamente confirmadas.",
+      "acao": "Confirmar requisitos da SO.",
+      "status": "ABERTA"
+    }
+  ],
+  "itens_nao_orcados": "Não foram confirmados, na fonte disponível, correspondentes detalhados para dimensionamento estrutural, detalhamento elétrico, memória de pintura externa, logística isolada e decomposição da verba de readequação.",
+  "checklist": {
+    "Todos os requisitos principais possuem correspondência?": "PARCIAL — os principais itens identificados possuem correspondência, mas alguns sem detalhamento suficiente.",
+    "Itens relevantes possuem origem/justificativa?": "PARCIAL",
+    "Quantitativos confrontados?": "PARCIAL",
+    "Áreas molhadas reavaliadas?": "NÃO APLICÁVEL / NÃO EVIDENCIADO",
+    "Valores conferidos?": "SIM — subtotal R$6.435,59, BDI 65% e total R$10.618,72 conforme fonte.",
+    "Maiores custos justificados?": "PARCIAL — readequação possui verba agregada.",
+    "Premissas registradas?": "SIM",
+    "Exclusões registradas?": "SIM",
+    "Pendências registradas?": "SIM",
+    "Riscos registrados?": "SIM",
+    "Responsabilidades verificadas?": "PARCIAL",
+    "Logística conferida?": "PARCIAL",
+    "Licenças/ART/RRT completamente confirmadas?": "NÃO EVIDENCIADO",
+    "BDI/taxa/total conferidos?": "PARCIAL — BDI e total confirmados; taxa administrativa isolada não evidenciada."
+  },
+  "conclusao": "RESULTADO PROPOSTO PARA VALIDAÇÃO: VALIDADO_COM_PENDÊNCIAS. O orçamento possui correspondência com os principais requisitos da PTS Técnica e registra quantitativos/valores para os itens identificados, incluindo a aplicação explícita do EXC-016 a R$71,03/m² no item de abertura de vão. Permanecem pendências de evidência para dimensionamento estrutural, pintura externa, detalhamento elétrico, logística e decomposição da verba de readequação. A PTS Pós não promove essas lacunas a fatos nem altera automaticamente o orçamento."
+}
