@@ -47,9 +47,42 @@ AUTHZ_DIRECT_WRITE_SIGNATURES = (
 # Unlike TS/Python source, reject the endpoint only when a write verb is
 # present close to the same operation; a mere GET is not an alternate issuer.
 AUTHZ_WORKFLOW_REST_WRITE = re.compile(
-    r"(?is)(?:\b(?:POST|PUT|PATCH)\b.{0,120}?/rest/v1/elo_authorization_grants"
-    r"|/rest/v1/elo_authorization_grants.{0,160}?\b(?:POST|PUT|PATCH)\b)"
+    r"(?is)(?:\b(?:POST|PUT|PATCH|DELETE)\b.{0,120}?/rest/v1/elo_authorization_grants"
+    r"|/rest/v1/elo_authorization_grants.{0,160}?\b(?:POST|PUT|PATCH|DELETE)\b)"
 )
+# A curl command may POST implicitly with --data/-d/--json; explicit -X POST
+# can be far from the endpoint when long headers intervene. Restrict inspection
+# to a logical curl command (including backslash continuations).
+AUTHZ_CURL_EXPLICIT_WRITE = re.compile(
+    r"(?i)(?:^|\s)(?:-X\s*|--request(?:\s+|=))(?:POST|PUT|PATCH|DELETE)\b"
+)
+AUTHZ_CURL_BODY_WRITE = re.compile(
+    r"""(?ix)(?:^|\s)(?:--data(?:-raw|-binary|-urlencode)?(?:=|\b)
+      |-d(?=[\s'"=])|--form(?:=|\b)|-F(?=[\s'"=])
+      |--json(?:=|\b)|--upload-file(?:=|\b)|-T(?=[\s'"=]))"""
+)
+AUTHZ_CURL_GET = re.compile(r"(?i)(?:^|\s)(?:--get\b|-G(?=\s|$))")
+
+
+def _workflow_has_curl_grant_write(content: str) -> bool:
+    """Find direct REST grant writes without conflating unrelated curl calls."""
+    lines = content.splitlines()
+    for index, line in enumerate(lines):
+        match = re.search(r"\bcurl(?=\s|$)", line, flags=re.IGNORECASE)
+        if not match:
+            continue
+        command = line[match.start():].strip()
+        next_line = index + 1
+        while command.endswith("\\") and next_line < len(lines):
+            command = command[:-1].rstrip() + " " + lines[next_line].strip()
+            next_line += 1
+        if "/rest/v1/elo_authorization_grants" not in command.lower():
+            continue
+        if AUTHZ_CURL_EXPLICIT_WRITE.search(command):
+            return True
+        if AUTHZ_CURL_BODY_WRITE.search(command) and not AUTHZ_CURL_GET.search(command):
+            return True
+    return False
 
 
 def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[str]:
@@ -77,6 +110,7 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
             direct_write = (
                 any(sig.search(content) for sig in AUTHZ_DIRECT_WRITE_SIGNATURES[1:])
                 or AUTHZ_WORKFLOW_REST_WRITE.search(content) is not None
+                or _workflow_has_curl_grant_write(content)
             )
         else:
             direct_write = any(
