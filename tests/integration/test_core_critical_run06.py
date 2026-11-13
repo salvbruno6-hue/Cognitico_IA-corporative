@@ -118,40 +118,90 @@ def run_transport(sequence, max_retries=2, timeout=0.5):
         return evidence, "DEGRADED", _SequenceHandler.attempts
 
 
-def build_context():
+def _source_id(item: TransportEvidence) -> str:
+    # Attempt-specific IDs retain the same historical transport identity.
+    return f"{item.historical_id}-attempt-{item.attempt}"
+
+
+def build_context(transport_evidence: tuple[TransportEvidence, ...] | list[TransportEvidence]):
+    """Feed real HTTP attempt outcomes into existing governed Core context."""
+    if not transport_evidence:
+        raise ValueError("RUN-06 transport evidence is required")
     engine = ContextResolutionEngine()
-    pack = engine.resolve(ContextQuery("recuperar capacidade apos falha", tenant_id="tenant-mt", domain="PCP"))
+    pack = engine.resolve(ContextQuery(
+        "recuperar capacidade apos falha",
+        tenant_id="tenant-mt",
+        domain="PCP",
+    ))
+    sources = tuple(
+        ContextSource(
+            _source_id(item), "localhost-http-transport", "observed-test",
+            tenant_id="tenant-mt", domain="PCP",
+            provenance={
+                "historical_id": item.historical_id,
+                "origin": item.provenance,
+                "attempt": str(item.attempt),
+                "transport_status": item.status,
+            },
+        )
+        for item in transport_evidence
+    )
+    facts = tuple(
+        ContextEvidence(
+            _source_id(item),
+            f"real HTTP attempt {item.attempt}: {item.status}",
+            0.9,
+            tenant_id="tenant-mt", domain="PCP",
+            provenance={
+                "historical_id": item.historical_id,
+                "origin": item.provenance,
+                "attempt": str(item.attempt),
+                "transport_status": item.status,
+            },
+        )
+        for item in transport_evidence
+    )
+    exhausted = transport_evidence[-1].status != "SUCCESS"
     return engine.enrich(
-        pack,
-        sources=(ContextSource("src-capacity", "capacity-record", "authorized", tenant_id="tenant-mt", domain="PCP"),),
-        evidence=(ContextEvidence("src-capacity", "capacity evidence", 0.91, tenant_id="tenant-mt", domain="PCP"),),
+        pack, sources=sources, evidence=facts,
+        gaps=("transport retry budget exhausted",) if exhausted else (),
     )
 
 
-def observation(status=DiagnosticStatus.SUPPORTED):
-    return DiagnosticObservation(
-        evidence_id="src-capacity",
-        dimension=DiagnosticLens.CAPACITY.value,
-        value=0.9,
-        statement="validated-capacity",
+def run_core(transport_evidence: tuple[TransportEvidence, ...] | list[TransportEvidence]):
+    """Core receives the actual final attempt, not a synthetic capacity fact."""
+    if not transport_evidence:
+        raise ValueError("RUN-06 transport evidence is required")
+    last = transport_evidence[-1]
+    recovered = last.status == "SUCCESS"
+    diagnostic = DiagnosticObservation(
+        evidence_id=_source_id(last),
+        dimension=DiagnosticLens.OPERATIONAL.value,
+        value=1.0 if recovered else 0.0,
+        statement=f"transport-final-{last.status.lower()}",
         confidence=0.9,
-        lens=DiagnosticLens.CAPACITY,
-        status=status,
+        lens=DiagnosticLens.OPERATIONAL,
+        status=DiagnosticStatus.SUPPORTED if recovered else DiagnosticStatus.BLOCKED,
+        metadata={
+            "historical_id": last.historical_id,
+            "origin": last.provenance,
+            "attempt": str(last.attempt),
+            "transport_status": last.status,
+        },
     )
-
-
-def run_core(resilience_state):
     scenario = DiagnosticScenario(
-        f"run06-{resilience_state.lower()}",
+        f"run06-{last.historical_id.lower()}-{last.status.lower()}",
         "avaliar capacidade apos evento de resiliencia",
-        observations=(observation(),),
+        observations=(diagnostic,),
     )
-    return CoreLoopEngine().run(CoreLoopRequest(build_context(), scenario, (observation(),)))
+    return CoreLoopEngine().run(CoreLoopRequest(
+        build_context(transport_evidence), scenario, (diagnostic,),
+    ))
 
 
 def test_run06_real_timeout_then_recovery_preserves_attempt_history():
     evidence, resilience_state, attempts = run_transport(["timeout", "success"])
-    result = run_core(resilience_state)
+    result = run_core(evidence)
     assert resilience_state == "RECOVERED"
     assert [item.status for item in evidence] == ["TIMEOUT", "SUCCESS"]
     assert [item.attempt for item in evidence] == [1, 2]
@@ -159,26 +209,58 @@ def test_run06_real_timeout_then_recovery_preserves_attempt_history():
     assert result.status == "RECOMMENDATION"
     assert result.handoff_required is False
     assert result.can_execute is False
-    assert set(result.evidence_ids) == {"src-capacity"}
+    assert result.evidence_ids == tuple(_source_id(item) for item in evidence)
+    assert result.gaps == ()
+    pack = build_context(evidence)
+    assert all(
+        item.provenance["historical_id"] == "RUN06-H001"
+        and item.provenance["origin"] == "local-http-lab"
+        and item.provenance["transport_status"] == original.status
+        for item, original in zip(pack.scoped_evidence(), evidence)
+    )
 
 
-def test_run06_real_503_is_bounded_and_never_synthetic_success():
-    evidence, resilience_state, attempts = run_transport(["unavailable", "unavailable", "unavailable"])
+def test_run06_real_503_is_bounded_and_governed_handoff():
+    evidence, resilience_state, attempts = run_transport(
+        ["unavailable", "unavailable", "unavailable"]
+    )
+    result = run_core(evidence)
     assert resilience_state == "DEGRADED"
     assert [item.status for item in evidence] == ["UNAVAILABLE"] * 3
     assert [item.attempt for item in evidence] == [1, 2, 3]
     assert attempts == 3
-    assert resilience_state != "RECOVERED"
+    assert result.evidence_ids == tuple(_source_id(item) for item in evidence)
+    assert result.status == "HANDOFF"
+    assert result.handoff_required is True
+    assert result.can_execute is False
+    assert "transport retry budget exhausted" in result.gaps
+    assert "blocked evidence or governance condition" in result.gaps
+    assert result.recommendation is None
 
 
-def test_run06_timeout_503_then_recovery_is_real_and_reproducible():
+def test_run06_timeout_503_then_recovery_reaches_core_and_is_reproducible():
     first = run_transport(["timeout", "unavailable", "success"])
     second = run_transport(["timeout", "unavailable", "success"])
-    assert first[1] == "RECOVERED"
-    assert second[1] == "RECOVERED"
+    assert first[1] == second[1] == "RECOVERED"
     assert [item.status for item in first[0]] == ["TIMEOUT", "UNAVAILABLE", "SUCCESS"]
     assert [item.attempt for item in first[0]] == [1, 2, 3]
     assert [item.provenance for item in first[0]] == ["local-http-lab"] * 3
     assert [item.historical_id for item in first[0]] == ["RUN06-H001"] * 3
     assert first[0] == second[0]
     assert first[2] == second[2] == 3
+    first_core = run_core(first[0])
+    second_core = run_core(second[0])
+    assert first_core == second_core
+    assert first_core.status == "RECOMMENDATION"
+    assert first_core.handoff_required is False
+    assert first_core.evidence_ids == tuple(_source_id(item) for item in first[0])
+    assert set(first_core.evidence_ids) != {"src-capacity"}
+
+
+def test_run06_does_not_promote_empty_or_synthetic_evidence_to_core():
+    import pytest
+
+    with pytest.raises(ValueError, match="transport evidence is required"):
+        run_core(())
+    with pytest.raises(ValueError, match="transport evidence is required"):
+        build_context(())
