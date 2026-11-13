@@ -27,11 +27,11 @@ AUTHZ_KNOWN_DISTINCT_CONSUMERS = frozenset({
 # This scan is additional evidence, not a second authorization authority.
 AUTHZ_DIRECT_WRITE_SIGNATURES = (
     re.compile(r"/rest/v1/elo_authorization_grants", re.IGNORECASE),
-    re.compile(r"\\binsert\\s+into\\s+(?:public\\.)?elo_authorization_grants\\b", re.IGNORECASE),
-    re.compile(r"\\belo_atomic_issue_authorization_grant\\s*\\(", re.IGNORECASE),
+    re.compile(r"\binsert\s+into\s+(?:public\.)?elo_authorization_grants\b", re.IGNORECASE),
+    re.compile(r"\belo_atomic_issue_authorization_grant\s*\(", re.IGNORECASE),
     re.compile(
-        r"\\.from\\(\\s*['\\\"](?:public\\.)?elo_authorization_grants['\\\"]\\s*\\)"
-        r"[\\s\\S]{0,240}?\\.(?:insert|upsert)\\s*\\(",
+        r"\.from\(\s*['\\"](?:public\.)?elo_authorization_grants['\\"]\s*\)"
+        r"[\s\S]{0,240}?\.(?:insert|upsert)\s*\(",
         re.IGNORECASE,
     ),
 )
@@ -41,7 +41,7 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
     """Find executable grant writers even when filename-derived terms miss them."""
     unreviewed: set[str] = set()
     for path in source_files:
-        relative = str(path.relative_to(root)).replace("\\\\", "/")
+        relative = str(path.relative_to(root)).replace("\\", "/")
         if relative in AUTHZ_GOVERNED_PATHS:
             continue
         # Never promote test mocks, docs or reconciler implementation as issuers.
