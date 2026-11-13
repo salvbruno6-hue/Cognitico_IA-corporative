@@ -12,6 +12,29 @@ AUTHZ_CANONICAL_RUNTIME = "supabase/functions/elo-authz/index.ts"
 AUTHZ_OWNER_CONTRACT = "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
 # Only exact, already-reviewed implementation and test paths; no broad migration
 # or workflow wildcard. The owner remains the existing elo-authz runtime.
+# Existing specialized consumers of elo-authz. These two providers call the
+# canonical issuer but are not grant issuers themselves. Anything else found
+# during discovery is unresolved until disambiguated, never silently safe.
+AUTHZ_KNOWN_DISTINCT_CONSUMERS = frozenset({
+    "supabase/functions/elo-data-gateway/index.ts",
+    "supabase/functions/elo-mcp/index.ts",
+})
+
+
+def _is_distinct_authz_consumer(root: Path, candidate: str) -> bool:
+    if candidate not in AUTHZ_KNOWN_DISTINCT_CONSUMERS:
+        return False
+    path = root / candidate
+    if not path.is_file():
+        return False
+    content = path.read_text(encoding="utf-8", errors="ignore")
+    return (
+        "elo-authz" in content
+        and "issue_authorization_grant" not in content
+        and "elo_authorization_grants" not in content
+    )
+
+
 AUTHZ_GOVERNED_PATHS = frozenset({
     AUTHZ_CANONICAL_RUNTIME,
     "tests/security/test_operator_github_binding_runtime.py",
@@ -222,10 +245,17 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     # A source-only authz change is not a new capability. Require the existing
     # canonical owner contract and map. Unlisted paths and competing owners
     # remain unresolved, never treated as safe reuse.
+    # A scoped owner contract does not prove that newly discovered executable
+    # candidates are harmless. Only the two explicitly known, verified
+    # consumers may be disregarded; unknown potential issuers remain a GAP.
+    authz_candidates_disambiguated = all(
+        _is_distinct_authz_consumer(root, candidate) for candidate in candidates
+    )
     scoped_authz = (
         not owner_evidence
         and duplicate is None
         and _is_governed_authz_change(root, changed_normalised)
+        and authz_candidates_disambiguated
     )
     if scoped_authz:
         source_of_truth = AUTHZ_OWNER_CONTRACT
