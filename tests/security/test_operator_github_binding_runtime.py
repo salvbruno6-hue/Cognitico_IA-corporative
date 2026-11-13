@@ -117,6 +117,27 @@ def test_grant_lookup_is_bound_to_active_elo_session() -> None:
     assert 'reason:"authorization_state_not_granted"' in resolver
 
 
+
+def test_grant_lookup_pushes_resource_and_time_filters_before_limit() -> None:
+    """Prevent valid grants from being hidden by ten newer unrelated/expired rows."""
+    resolver = AUTHZ.split("async function resolveAuthorizationGrant(", 1)[1].split("Deno.serve(", 1)[0]
+    lookup = resolver.split('supabase.from("elo_authorization_grants")', 1)[1].split("if(error)", 1)[0]
+    for exact in (
+        '.contains("metadata",metadataScope)',
+        '.lte("issued_at",nowISO)',
+        '.gt("expires_at",nowISO)',
+        '.eq("session_id",sessionId)',
+        '.is("revoked_at",null)',
+        '.limit(10)',
+    ):
+        assert exact in lookup
+    assert lookup.index('.contains("metadata",metadataScope)') < lookup.index(".limit(10)")
+    assert 'resource_id:resourceId,tenant_id:tenantId' in resolver
+    assert 'resource_id:resourceId};' in resolver
+    # Keep the in-memory check as defense-in-depth against stale/malformed rows.
+    assert 'metadataResourceId===resourceId' in resolver
+    assert 'metadataTenantId===tenantId' in resolver
+
 def test_grant_issuance_uses_recipient_session_and_fails_closed() -> None:
     """A grant issued by an administrator targets the recipient session."""
     issuer = AUTHZ.split('const bindingId=typeof body.binding_id', 1)[1].split('if(action==="portal_access")', 1)[0]
@@ -173,15 +194,32 @@ const binding = {
 let tables = {};
 let dbErrors = {};
 class Query {
-  constructor(name) { this.name = name; this.filters = []; }
+  constructor(name) { this.name = name; this.filters = []; this.sort = null; }
   select() { return this; }
-  eq(key,value) { this.filters.push([key,value]); return this; }
-  is(key,value) { this.filters.push([key,value]); return this; }
-  order() { return this; }
+  eq(key,value) { this.filters.push(["eq",key,value]); return this; }
+  is(key,value) { this.filters.push(["eq",key,value]); return this; }
+  contains(key,value) { this.filters.push(["contains",key,value]); return this; }
+  lte(key,value) { this.filters.push(["lte",key,value]); return this; }
+  gt(key,value) { this.filters.push(["gt",key,value]); return this; }
+  order(key,options={}) { this.sort = {key,ascending:options.ascending!==false}; return this; }
   _rows() {
-    return (tables[this.name]||[]).filter(row =>
-      this.filters.every(([key,value]) => row[key] === value)
+    const result = (tables[this.name]||[]).filter(row =>
+      this.filters.every(([op,key,value]) => {
+        if(op==="eq") return row[key]===value;
+        if(op==="contains") return row[key] && typeof row[key]==="object"
+          && Object.entries(value).every(([field,required]) => row[key][field]===required);
+        if(op==="lte") return row[key] <= value;
+        if(op==="gt") return row[key] > value;
+        throw new Error("Unsupported mock filter: "+op);
+      })
     );
+    if(this.sort) {
+      const {key,ascending} = this.sort;
+      result.sort((a,b)=>ascending
+        ? String(a[key]).localeCompare(String(b[key]))
+        : String(b[key]).localeCompare(String(a[key])));
+    }
+    return result;
   }
   limit(n) {
     const error = dbErrors[this.name] || null;
@@ -198,9 +236,9 @@ function isObjectiveContinuation(operation) {
 }
 async function check(label, config={},expected=null) {
   tables = {
-    elo_authorization_grants:config.noGrant ? [] : [{
+    elo_authorization_grants:config.noGrant ? [] : (config.grants || [{
       ...base,...(config.grant||{})
-    }],
+    }]),
     elo_operator_github_bindings:config.noBinding ? [] : [{
       ...binding,...(config.binding||{})
     }]
@@ -227,6 +265,38 @@ async function check(label, config={},expected=null) {
 }
 (async () => {
   await check("valid same identity and session");
+  const unrelated = Array.from({length:12},(_,i)=>({
+    ...base,grant_id:"other-"+i,metadata:{resource_id:"other-"+i},
+    issued_at:new Date(now-1000-i).toISOString()
+  }));
+  await check("older exact resource survives 12 newer unrelated grants",{
+    grants:[...unrelated,base]
+  });
+  const expired = Array.from({length:12},(_,i)=>({
+    ...base,grant_id:"expired-"+i,
+    issued_at:new Date(now-1000-i).toISOString(),
+    expires_at:new Date(now-500).toISOString()
+  }));
+  await check("older exact resource survives 12 newer expired grants",{
+    grants:[...expired,base]
+  });
+  const future = Array.from({length:12},(_,i)=>({
+    ...base,grant_id:"future-"+i,
+    issued_at:new Date(now+10000+i).toISOString()
+  }));
+  await check("older exact resource survives 12 future-issued grants",{
+    grants:[...future,base]
+  });
+  const otherTenant = Array.from({length:12},(_,i)=>({
+    ...base,grant_id:"tenant-"+i,
+    operation:"continue_objective:resourceA",
+    metadata:{resource_id:"resourceA",tenant_id:"other-"+i},
+    issued_at:new Date(now-1000-i).toISOString()
+  }));
+  await check("older exact tenant survives 12 newer wrong-tenant grants",{
+    grants:[...otherTenant,{...base,operation:"continue_objective:resourceA"}],
+    args:{operation:"continue_objective:resourceA"}
+  });
   await check("valid objective scope",{
     grant:{operation:"continue_objective:resourceA"},
     args:{operation:"continue_objective:resourceA"}
@@ -259,7 +329,7 @@ async function check(label, config={},expected=null) {
   await check("lookup failure",{errors:{elo_authorization_grants:{message:"db"}}},"authorization_grant_lookup_failed");
   await check("binding lookup failure",{errors:{elo_operator_github_bindings:{message:"db"}}},"operator_binding_lookup_failed");
   await check("unsupported state",{args:{state:"unknown"}},"authorization_state_not_supported");
-  process.stdout.write("23 grant resolver behavior cases passed\n");
+  process.stdout.write("27 grant resolver behavior cases passed\n");
 })().catch(error=>{console.error(error);process.exitCode=1});
 """
     result = subprocess.run(
@@ -270,7 +340,7 @@ async function check(label, config={},expected=null) {
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
-    assert "23 grant resolver behavior cases passed" in result.stdout
+    assert "27 grant resolver behavior cases passed" in result.stdout
 
 
 def test_grant_issuance_behavior_with_isolated_supabase() -> None:
