@@ -351,7 +351,7 @@ jobs:
 
           required_resource="pr:${PR_NUMBER}@${HEAD_SHA}"
           resource_encoded="$(RESOURCE_ID="$required_resource" python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["RESOURCE_ID"], safe=""))')"
-          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&operation=eq.merge&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&metadata->>resource_id=eq.${resource_encoded}&order=issued_at.desc&limit=20")"
+          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&operation=eq.merge&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&metadata->>resource_id=eq.${resource_encoded}&order=issued_at.desc&limit=20")"
 
           valid_grant=""
           while IFS= read -r row; do
@@ -382,12 +382,47 @@ jobs:
           target_identity="$(jq -r '.identity_id' /tmp/grant.json)"
           jq -e --arg identity "$target_identity" 'length == 1 and .[0].identity_id == $identity and .[0].active == true' <<<"$binding" >/dev/null
 
-          session_id="$(jq -r '.session_id' /tmp/grant.json)"
+          # Grant.session_id belongs to the RECIPIENT (elo-authz #1171).
+          # The issuance audit carries the separate CANONICAL_ADMIN issuer session
+          # (#1173 atomic RPC). Both must be valid for a governed merge.
+          recipient_session_id="$(jq -r '.session_id' /tmp/grant.json)"
           session_url="${SUPABASE_URL%/}/rest/v1/elo_identity_sessions"
-          session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${session_id}&identity_id=eq.${issuer}&revoked_at=is.null&limit=1")"
-          jq -e 'length == 1' <<<"$session" >/dev/null
-          session_issued="$(jq -r '.[0].issued_at' <<<"$session")"
-          session_expires="$(jq -r '.[0].expires_at' <<<"$session")"
+          recipient_session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${recipient_session_id}&identity_id=eq.${target_identity}&revoked_at=is.null&limit=2")"
+          jq -e --arg target "$target_identity" --arg sid "$recipient_session_id" '
+            length == 1 and .[0].identity_id == $target and .[0].session_id == $sid
+          ' <<<"$recipient_session" >/dev/null
+          recipient_issued_epoch="$(date -u -d "$(jq -r '.[0].issued_at' <<<"$recipient_session")" +%s 2>/dev/null || true)"
+          recipient_expires_epoch="$(date -u -d "$(jq -r '.[0].expires_at' <<<"$recipient_session")" +%s 2>/dev/null || true)"
+          recipient_now_epoch="$(date -u +%s)"
+          [[ -n "$recipient_issued_epoch" && -n "$recipient_expires_epoch" ]] && (( recipient_issued_epoch <= recipient_now_epoch && recipient_now_epoch < recipient_expires_epoch ))
+
+          # Verify the issuer's own authenticated session against the canonical
+          # ALLOW audit for THIS issuance request, not the recipient's session.
+          grant_request_id="$(jq -r '.request_id // ""' /tmp/grant.json)"
+          [[ -n "$grant_request_id" ]] || { echo "Missing grant issuance request ID."; exit 1; }
+          request_encoded="$(REQUEST_ID="$grant_request_id" python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["REQUEST_ID"], safe=""))')"
+          audit_url="${SUPABASE_URL%/}/rest/v1/elo_authorization_audit"
+          issuer_audit="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${audit_url}?select=session_id,identity_id,request_id,action,resource,decision,reason,created_at&request_id=eq.${request_encoded}&identity_id=eq.${issuer}&action=eq.issue_authorization_grant&resource=eq.${repo_encoded}&decision=eq.ALLOW&reason=eq.canonical_admin_issued_authorization_state&limit=2")"
+          jq -e --arg issuer "$issuer" --arg req "$grant_request_id" --arg repo "$REPOSITORY" '
+            length == 1 and .[0].session_id != null
+            and .[0].identity_id == $issuer
+            and .[0].request_id == $req
+            and .[0].action == "issue_authorization_grant"
+            and .[0].resource == $repo
+            and .[0].decision == "ALLOW"
+            and .[0].reason == "canonical_admin_issued_authorization_state"
+          ' <<<"$issuer_audit" >/dev/null
+          issuer_session_id="$(jq -r '.[0].session_id' <<<"$issuer_audit")"
+          issuer_audit_epoch="$(date -u -d "$(jq -r '.[0].created_at' <<<"$issuer_audit")" +%s 2>/dev/null || true)"
+          grant_issued_epoch="$(date -u -d "$(jq -r '.issued_at' /tmp/grant.json)" +%s 2>/dev/null || true)"
+          [[ -n "$issuer_audit_epoch" && -n "$grant_issued_epoch" ]] && (( issuer_audit_epoch >= grant_issued_epoch ))
+
+          issuer_session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${issuer_session_id}&identity_id=eq.${issuer}&revoked_at=is.null&limit=2")"
+          jq -e --arg issuer "$issuer" --arg sid "$issuer_session_id" '
+            length == 1 and .[0].identity_id == $issuer and .[0].session_id == $sid
+          ' <<<"$issuer_session" >/dev/null
+          session_issued="$(jq -r '.[0].issued_at' <<<"$issuer_session")"
+          session_expires="$(jq -r '.[0].expires_at' <<<"$issuer_session")"
           session_issued_epoch="$(date -u -d "$session_issued" +%s 2>/dev/null || true)"
           session_expires_epoch="$(date -u -d "$session_expires" +%s 2>/dev/null || true)"
           session_now_epoch="$(date -u +%s)"
