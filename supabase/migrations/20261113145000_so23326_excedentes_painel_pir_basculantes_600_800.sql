@@ -6,6 +6,24 @@
 -- Os preços de referência de ESQ006/ESQ007/M30 são extraídos da Lista-Mãe vigente na inserção.
 -- O perfil M30 (40x42x40) e um CANDIDATO ao perfil U da memoria antiga.
 -- O custo de painel PIR 40 mm novo nao foi fornecido: NULL / NAO INCLUSO, sem assumir gratis.
+-- CORRECAO DE GAP DE INFRAESTRUTURA observado na aplicacao inicial:
+-- elo_orcamento_memoria_id_seq estava em 153, mas MAX(id) da memoria era 155.
+-- Sincronizar a sequencia de forma monotônica, sem substituir nem duplicar memórias.
+-- Bloqueio da tabela durante sincronizacao impede corrida com outros inserts.
+LOCK TABLE public.elo_orcamento_memoria IN SHARE ROW EXCLUSIVE MODE;
+DO $sync_mem_seq$
+DECLARE
+  v_max bigint;
+  v_seq bigint;
+BEGIN
+  SELECT coalesce(max(id),0) INTO v_max FROM public.elo_orcamento_memoria;
+  SELECT last_value INTO v_seq FROM public.elo_orcamento_memoria_id_seq;
+  IF v_seq < v_max THEN
+    PERFORM setval('public.elo_orcamento_memoria_id_seq',v_max,true);
+  END IF;
+END;
+$sync_mem_seq$;
+
 DO $exc_pir$
 DECLARE
   r record;
