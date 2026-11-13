@@ -179,7 +179,7 @@ SELECT
   v.preco_perfil_u_lista_mae_brl_m,
   v.custo_abertura_historico_brl,
   v.custo_mo_historica_brl,
-  pir.custo_painel_novo_cadastrado_brl AS custo_painel_pir_novo_brl,
+  pir.custo_painel_novo_cadastrado_brl::numeric AS custo_painel_pir_novo_brl,
   CASE WHEN pir.custo_painel_novo_atual_brl IS NOT NULL
        AND v.custo_adequacao_painel_existente_referencial_brl IS NOT NULL
        THEN round(v.custo_adequacao_painel_existente_referencial_brl+pir.custo_painel_novo_atual_brl,2)
