@@ -7,10 +7,12 @@ on:
     types: [opened, edited, labeled, unlabeled, reopened]
   issue_comment:
     types: [created]
-  pull_request:
+  # A PR under review may alter this workflow. Attestation must run from
+  # the trusted base branch, never the candidate workflow/merge checkout.
+  pull_request_target:
     types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
-  pull_request_review:
-    types: [submitted, dismissed]
+  # Review approval is reflected by a subsequent label event; do not execute
+  # the review-event workflow definition from an untrusted PR merge commit.
   workflow_dispatch:
 
 permissions:
@@ -32,7 +34,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout canonical repository
+        # On pull_request_target the default checkout is the base branch.
+        # Never checkout the PR head with a write-enabled token here.
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Prepare audit output
         run: mkdir -p automation/audit-output
@@ -60,9 +66,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          ELO_EVALUATED_HEAD_SHA="$(gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid)"
+          [[ "$ELO_EVALUATED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid evaluated PR head SHA."; exit 1; }
+          echo "ELO_EVALUATED_HEAD_SHA=$ELO_EVALUATED_HEAD_SHA" >> "$GITHUB_ENV"
           gh pr diff "${PR_NUMBER}" --repo "${REPOSITORY}" --name-only > automation/audit-output/changed-paths.txt
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
           from automation.tasks.elo_canonical_reconciliation import event_facts, reconcile_repository
 
@@ -99,8 +109,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json number,title,state,isDraft,mergeStateStatus,reviewDecision,labels,reviews,statusCheckRollup,headRefName,baseRefName > automation/audit-output/pr.json
-          gh pr checks "${PR_NUMBER}" --repo "${REPOSITORY}" --required > automation/audit-output/required-checks.txt || true
+          gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json number,title,state,isDraft,mergeable,mergeStateStatus,reviewDecision,labels,reviews,statusCheckRollup,headRefName,headRefOid,baseRefName > automation/audit-output/pr.json
+          OBSERVED_HEAD_SHA="$(jq -r '.headRefOid' automation/audit-output/pr.json)"
+          [[ "$OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA" ]] || { echo "PR head changed during Maintenance evidence collection."; exit 1; }
+          gh pr checks "${PR_NUMBER}" --repo "${REPOSITORY}" --required --json name,state,bucket,link,workflow > automation/audit-output/required-checks.json || true
 
       - name: Publish governed audit decision
         if: github.event.pull_request.number != ''
@@ -112,6 +124,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           pr = json.loads(Path('automation/audit-output/pr.json').read_text())
@@ -119,8 +132,16 @@ jobs:
           labels = {x['name'] for x in pr.get('labels', [])}
           review_decision = pr.get('reviewDecision')
           merge_state = pr.get('mergeStateStatus')
-          checks = Path('automation/audit-output/required-checks.txt').read_text()
-          checks_pass = not any(x in checks.lower() for x in ('fail', 'cancel', 'timed out'))
+          mergeable = pr.get('mergeable')
+          checks = json.loads(Path('automation/audit-output/required-checks.json').read_text() or '[]')
+          current_run_marker = f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          external_required_checks = [
+              check for check in checks
+              if current_run_marker not in str(check.get('link') or '')
+          ]
+          checks_pass = bool(external_required_checks) and all(
+              check.get('bucket') == 'pass' for check in external_required_checks
+          )
           explicit_merge = 'elo/approve-merge' in labels
           canonical_clear = (
               reconciliation['reuse_analysis_complete']
@@ -132,7 +153,7 @@ jobs:
               and canonical_clear
               and review_decision in (None, '', 'APPROVED')
               and checks_pass
-              and merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')
+              and mergeable == 'MERGEABLE'
               and not pr.get('isDraft', False)
           )
 
@@ -151,14 +172,25 @@ jobs:
           if review_decision not in (None, '', 'APPROVED'):
               reasons.append(f'reviewDecision={review_decision}')
           if not checks_pass:
-              reasons.append('required checks are not passing')
-          if merge_state in ('BLOCKED', 'DIRTY', 'UNKNOWN'):
-              reasons.append(f'mergeStateStatus={merge_state}')
+              pending = [
+                  f"{check.get('name')}={check.get('bucket')}"
+                  for check in external_required_checks
+                  if check.get('bucket') != 'pass'
+              ]
+              reasons.append('required checks are not passing' + (': ' + ', '.join(pending) if pending else ''))
+          if mergeable != 'MERGEABLE':
+              reasons.append(f'mergeable={mergeable}')
           if pr.get('isDraft', False):
               reasons.append('pull request is draft')
 
+          evaluated_head = os.environ['ELO_EVALUATED_HEAD_SHA']
           payload = {
+              'schema': 'elo.maintenance-decision.v2',
+              'run_id': int(os.environ['GITHUB_RUN_ID']),
+              'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
               'pr': pr['number'],
+              'head_sha': evaluated_head,
+              'resource_id': f"pr:{pr['number']}@{evaluated_head}",
               'decision': decision,
               'reasons': list(dict.fromkeys(reasons)),
               'canonical_reconciliation': reconciliation,
@@ -171,7 +203,9 @@ jobs:
 
           DECISION=$(python -c "import json; print(json.load(open('automation/audit-output/decision.json'))['decision'])")
           if [ "${DECISION}" = "APPROVED_FOR_MERGE" ]; then
-            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge."
+            CURRENT_HEAD_SHA="$(gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid)"
+            [[ "$CURRENT_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA" ]] || { echo "PR head changed before Maintenance attestation publication."; exit 1; }
+            gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. Canonical reconciliation and configured evidence gates pass. Merge remains a separate governed action; this workflow performs no merge. ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID} ELO_MAINTENANCE_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT} ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER} ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA} ELO_RESOURCE_ID=pr:${PR_NUMBER}@${ELO_EVALUATED_HEAD_SHA}"
           elif [ "${DECISION}" = "BLOCKED" ]; then
             gh pr comment "${PR_NUMBER}" --repo "${REPOSITORY}" --body "ELO Maintenance Coordinator: **BLOCKED**. Canonical reconciliation found an existing or parallel capability. Reuse/strengthen/refactor must be resolved before a new authority can proceed."
           else
@@ -181,5 +215,5 @@ jobs:
       - name: Upload audit evidence
         uses: actions/upload-artifact@v4
         with:
-          name: elo-maintenance-audit-${{ github.run_id }}
+          name: elo-maintenance-audit-${{ github.run_id }}-${{ github.run_attempt }}
           path: automation/audit-output/

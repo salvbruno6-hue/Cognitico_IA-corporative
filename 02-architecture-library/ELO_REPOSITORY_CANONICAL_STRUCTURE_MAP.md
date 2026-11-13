@@ -44,6 +44,8 @@ The physical directory is not itself authority. Authority is determined by:
 | `15-assets/` | Assets | reusable assets | canonical |
 | `15-ativos/` | Assets | historical Portuguese assets | migration source; review before removal |
 | `Docs/` | Documentation | evolution/supporting docs | supporting only unless explicitly canonical |
+| `.github/workflows/elo-*.yml` | ELO Governance | governed operational automation and lifecycle gates | canonical operational workflows |
+| `docs/governance/` | ELO Governance | governance contracts, boundaries and operational references | canonical governance documentation |
 | `src/elo/` | Executable ELO | current implementation core | canonical executable root |
 | `tests/` | Verification | automated tests and behavioral evidence | canonical test root |
 

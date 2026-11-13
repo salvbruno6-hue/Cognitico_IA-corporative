@@ -173,6 +173,32 @@ Por isso:
   a operação GitHub governada;
 - nenhum dado retornado pela PR pode criar ou alterar uma autorização.
 
+### Proveniência confiável do Maintenance e atomicidade do merge
+
+A definição do `elo-maintenance-coordinator.yml` que produz
+`elo.maintenance-decision.v2` deve executar a partir do branch-base
+confiável via `pull_request_target`; um evento `pull_request` ou
+`pull_request_review` executado a partir do merge commit de uma PR
+não é fonte autorizada de aprovação, mesmo que seu run esteja marcado
+`success`. A coleta de dados da PR permanece somente leitura, sem
+checkout/execução do código candidato, e o artefato aponta para
+`pr:<numero>@<SHA>`. Após uma revisão, a reavaliação imediata
+pode ser acionada por um evento de label governado; ausência de uma
+nova execução não autoriza reutilizar prova incompatível.
+
+O Merge Coordinator valida no GitHub o evento, repositório, branch,
+workflow path, conclusão e tentativa da execução que publicou a prova,
+além de conferir o artefato vinculado à PR e ao head SHA. Provas de
+`pull_request` não são aceitas. A versão da workflow em `main`
+anterior a esta alteração não pode certificar retroativamente a
+própria PR que introduz a verificação: aplicar bootstrap governado
+explícito e registrar GAP até existir evidência realmente confiável.
+
+Na integração, após reconsultar os gates, o executor usa
+`gh pr merge --squash --match-head-commit "$HEAD_SHA"` para
+impedir troca de head entre validação e commit do merge.
+Sem autorização escopada ativa e sem gate válido, **não há merge**.
+
 ## 10. Estados operacionais
 
 O coordinator deve produzir estados observáveis, pelo menos:
@@ -264,3 +290,140 @@ Este contrato é uma referência operacional subordinada aos contratos canônico
 
 Em caso de conflito, prevalecem a autoridade canônica, a proteção do repositório,
 o `elo-authz` e os gates existentes.
+
+
+## 13. Provas de origem e de autorização por PR/commit (GAP P0 #1176)
+
+O Merge Coordinator exige evidências **emitidas pelas autoridades de execução**:
+- PR-ready em comentário de \`github-actions[bot]\` com o SHA vigente,
+  a PR correta e \`ELO_AGENT_LOOP_RUN_ID\`; a run consultada deve ser
+  \`ELO Agent Loop\`, concluída com sucesso no repositório canônico.
+- Maintenance \`APPROVED_FOR_MERGE\` em comentário de \`github-actions[bot]\`
+  com \`ELO_MAINTENANCE_RUN_ID\`, PR e SHA; a run de \`ELO Maintenance Coordinator\`
+  também deve ter sido concluída com sucesso.
+- Grant emitido pelo \`elo-authz\`: estado \`elo-merge-authorized\`,
+  operação \`merge\`, \`metadata.resource_id=pr:<numero>@<head_sha>\`,
+  identidade, binding, sessão e janela de validade coerentes.
+- Revalidar o mesmo head SHA antes do merge. Provas antigas sem run ID
+  deixam de ser suficientes. A nova evidência deve ser produzida pelo
+  workflow real, nunca por comentário escrito manualmente.
+- Preservar gates de CI, Simbionte, Evolution Gate, revisão independente
+  e proteção de branch. Estas verificações não criam autorização adicional.
+
+
+## 17. Agent Loop dual-lane e attestation de PR existente
+
+O `ELO Agent Loop` permanece a única autoridade operacional que publica
+`PR-ready`, mas possui duas lanes internas convergentes:
+
+- `CREATE_FROM_ISSUE`: ciclo existente, com implementação, `APPROVE_COMMIT`,
+  commit e criação da PR;
+- `ATTEST_EXISTING_PR`: certificação read-only de uma PR já existente.
+
+A lane `ATTEST_EXISTING_PR` não executa Codex, não cria commit, não faz push,
+não cria nova PR, não altera a branch e não executa código da PR em contexto
+com segredos. Ela faz checkout somente do cânone em `main` e consome o
+estado da PR pela API do GitHub.
+
+A attestation congela o recurso `pr:<numero>@<head_sha>`, exige checks
+obrigatórios verdes, `ELO Evolution Gate` concluído com sucesso, reconciliação
+canônica determinística e ausência de review bloqueante. O head é revalidado
+imediatamente antes da publicação.
+
+As duas lanes convergem no mesmo contrato `ELO_PR_READY_V2`, emitido por
+`github-actions[bot]` e vinculado a `ELO_AGENT_LOOP_RUN_ID`, PR, SHA, modo
+e resource id. A origem da PR não cria uma segunda autoridade.
+
+O label governado `elo/approve-merge` pode disparar a attestation de PR
+existente. Isso reduz passos manuais sem conceder merge: Maintenance,
+`elo-authz`, branch protection e Merge Coordinator permanecem obrigatórios.
+
+
+### Bootstrap da autoridade de attestation
+
+Uma PR que modifica `.github/workflows/elo-agent-loop.yml` não pode emitir
+`PR-ready` para si mesma. A lane detecta esse caso, publica apenas
+`BOOTSTRAP_REQUIRED` e encerra sem attestation. A introdução ou alteração da
+autoridade de PR-ready deve ser promovida por uma versão anteriormente
+confiável do Agent Loop ou por um bootstrap governado explícito; nunca pela
+implementação candidata.
+
+
+### Proveniência confiável da lane de attestation
+
+A attestation por label usa `pull_request_target`, de modo que a definição do
+workflow é carregada da branch base confiável. O job nunca faz checkout nem
+executa código da PR. Execuções manuais `workflow_dispatch` somente são
+aceitas pelo consumidor quando a run foi iniciada em `main`.
+
+Cada `PR_READY` publica também o artifact estruturado
+`elo-pr-ready-<run_id>/pr-ready.json` com schema `elo.pr-ready.v2`, PR,
+head SHA, modo, repository, run id e `resource_id`. O Merge Coordinator usa
+esse artifact para resolver corretamente o alvo de runs do Agent Loop,
+inclusive `workflow_dispatch`, e revalida o comentário e a run antes do
+merge.
+
+Maintenance captura o head SHA antes da coleta de evidência e aborta se o head
+mudar durante a auditoria ou antes da publicação de `APPROVED_FOR_MERGE`.
+
+
+### Identidade do bot na superfície GraphQL
+
+Os filtros que consomem `gh pr view --json comments` usam a representação
+GraphQL do autor, `github-actions`. A identidade REST
+`github-actions[bot]` não é usada nesse payload. A autoria do comentário é
+apenas o primeiro filtro; a run ID ainda é resolvida pela API Actions e deve
+corresponder ao workflow, repositório, evento confiável e conclusão esperados.
+
+
+### Escopo do grant e propriedade da sessão
+
+A consulta de `elo-merge-authorized` filtra
+`metadata.resource_id=pr:<PR>@<SHA>` no PostgREST antes de aplicar
+ordenação/limite. Grants de outras PRs ou SHAs não podem ocultar o grant
+correto por paginação.
+
+O `binding_id`, `identity_id` e `session_id` do grant são vinculados
+ao operador **destinatário** e à sessão ELO ativa desse destinatário.
+O emissor pode ser uma identidade distinta, `issued_by_identity_id` com role
+`CANONICAL_ADMIN`. A sessão do emissor **não** é inferida de
+`grant.session_id`: é recuperada do registro canônico
+`elo_authorization_audit`, na emissão `issue_authorization_grant` com
+`decision=ALLOW`, `reason=canonical_admin_issued_authorization_state`,
+`request_id`, repositório e identidade de emissor idênticos ao grant. O
+auditor exige um único registro e confere sua data contra `issued_at`;
+as **duas** sessões (destinatário e emissor) precisam estar ativas e não
+revogadas. A role atual `CANONICAL_ADMIN` é conferida separadamente.
+
+Essa separação corrige o conflito com #1171 e #1173, onde grants pertencem
+à sessão do destinatário e o RPC atômico de emissão registra a sessão do
+administrador emissor na auditoria. Ausência ou ambiguidade de auditoria,
+sessão expirada ou trocada, grant órfão e inconsistência de identidade são
+bloqueios, nunca autorização implícita. Nenhum grant ou sessão é criado pelo
+Merge Coordinator.
+
+
+### Vinculação de comentário à evidência da própria run
+
+Comentários de `github-actions` são apenas índices para localizar uma run,
+não constituem prova suficiente. Ao consumir `ELO_AGENT_LOOP_RUN_ID`, o
+Merge Coordinator baixa o artifact `elo-pr-ready-<run_id>` da própria run e
+exige correspondência exata de repository, PR, SHA, resource id, run id,
+decisão e modo.
+
+O mesmo vale para Maintenance: `decision.json` usa schema
+`elo.maintenance-decision.v2` e registra run id, PR, head SHA e
+`pr:<PR>@<SHA>`. O comentário `APPROVED_FOR_MERGE` só é aceito quando o
+artifact da run citada confirma exatamente esse alvo. Uma run histórica de
+outro PR/SHA não pode ser reutilizada por outro workflow que publique um
+comentário com identidade `github-actions`.
+
+
+### Idempotência por tentativa de workflow
+
+GitHub reutiliza o mesmo `run_id` quando um workflow é reexecutado e incrementa
+`run_attempt`. Portanto, `run_id` isolado não identifica uma evidência
+imutável. PR-ready e Maintenance vinculam comentário, artifact e JSON ao par
+`<run_id, run_attempt>`. Os artifacts usam nomes
+`elo-pr-ready-<run_id>-<attempt>` e
+`elo-maintenance-audit-<run_id>-<attempt>`, evitando colisões entre reruns.

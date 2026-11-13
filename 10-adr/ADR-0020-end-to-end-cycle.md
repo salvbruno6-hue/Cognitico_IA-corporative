@@ -264,3 +264,60 @@ ciclo end-to-end.
 A primeira execução comprovada do ciclo está pendente de
 emissão manual de `elo-merge-authorized` por operador
 `CANONICAL_ADMIN`.
+
+
+## Emenda 2026-11-12 — duas lanes no Agent Loop
+
+Para eliminar duplicação de PR e reduzir latência de governança, o Agent Loop
+passa a admitir duas formas de entrada que convergem na mesma evidência
+`PR-ready`:
+
+1. `CREATE_FROM_ISSUE`: mantém o ciclo issue → implementação → governança →
+   commit → PR.
+2. `ATTEST_EXISTING_PR`: recebe uma PR já existente e apenas certifica o
+   head SHA atual, sem modificar código, branch ou histórico.
+
+A segunda lane é read-only quanto à implementação, não substitui
+`elo-authz`, Maintenance Coordinator ou Merge Coordinator e não promove
+evidência por inferência. O identificador de recurso é
+`pr:<PR_NUMBER>@<HEAD_SHA>` e qualquer alteração do head invalida a
+attestation anterior.
+
+A otimização de performance decorre de evitar nova execução de implementação
+e de Codex quando a mudança já existe e possui CI/Evolution Gate válidos.
+A reconciliação canônica continua determinística e fail-closed.
+
+
+### Restrição de bootstrap
+
+`ATTEST_EXISTING_PR` não pode certificar uma PR que altere o próprio
+`elo-agent-loop.yml`. Esse caso é `BOOTSTRAP_REQUIRED` e não produz
+`PR-ready`. A autoridade candidata não pode provar a própria legitimidade.
+
+
+### Proveniência da execução e evidência estruturada
+
+A lane de attestation acionada por PR deve executar pela definição confiável
+da branch base (`pull_request_target`) e nunca pela cópia candidata do
+workflow. `workflow_dispatch` é aceito somente a partir de `main`.
+`ELO_PR_READY_V2` possui artifact estruturado por run, permitindo ao Merge
+Coordinator resolver PR e SHA sem inferi-los do head da própria run.
+Maintenance vincula sua decisão ao SHA capturado antes da coleta de evidência
+e falha fechado se o head mudar.
+
+
+### Evidência por run, não por comentário
+
+Run IDs publicados em comentários são ponteiros. A confiança deriva do
+artifact estruturado produzido pela própria run citada. PR-ready e Maintenance
+devem ser validados contra artifacts que vinculem run, PR, SHA e
+`resource_id` antes de qualquer merge. Isso impede reaproveitamento de uma
+run legítima por comentários produzidos por outro workflow.
+
+
+### Idempotência de rerun
+
+Evidência de workflow é identificada pelo par `run_id + run_attempt`.
+Reexecuções não podem sobrescrever nem tornar ambígua uma prova anterior; cada
+tentativa produz artifact próprio e o consumidor exige a mesma tentativa
+declarada no comentário e no payload estruturado.
