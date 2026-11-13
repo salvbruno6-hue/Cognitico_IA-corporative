@@ -383,11 +383,24 @@ A consulta de `elo-merge-authorized` filtra
 ordenação/limite. Grants de outras PRs ou SHAs não podem ocultar o grant
 correto por paginação.
 
-O `binding_id` e `identity_id` do grant continuam vinculados ao operador
-destinatário. Já `session_id` representa a sessão autenticada do
-`CANONICAL_ADMIN` emissor, conforme o contrato de criação do `elo-authz`;
-por isso sua propriedade é validada contra `issued_by_identity_id`. A role
-`CANONICAL_ADMIN` do mesmo emissor também é revalidada.
+O `binding_id`, `identity_id` e `session_id` do grant são vinculados
+ao operador **destinatário** e à sessão ELO ativa desse destinatário.
+O emissor pode ser uma identidade distinta, `issued_by_identity_id` com role
+`CANONICAL_ADMIN`. A sessão do emissor **não** é inferida de
+`grant.session_id`: é recuperada do registro canônico
+`elo_authorization_audit`, na emissão `issue_authorization_grant` com
+`decision=ALLOW`, `reason=canonical_admin_issued_authorization_state`,
+`request_id`, repositório e identidade de emissor idênticos ao grant. O
+auditor exige um único registro e confere sua data contra `issued_at`;
+as **duas** sessões (destinatário e emissor) precisam estar ativas e não
+revogadas. A role atual `CANONICAL_ADMIN` é conferida separadamente.
+
+Essa separação corrige o conflito com #1171 e #1173, onde grants pertencem
+à sessão do destinatário e o RPC atômico de emissão registra a sessão do
+administrador emissor na auditoria. Ausência ou ambiguidade de auditoria,
+sessão expirada ou trocada, grant órfão e inconsistência de identidade são
+bloqueios, nunca autorização implícita. Nenhum grant ou sessão é criado pelo
+Merge Coordinator.
 
 
 ### Vinculação de comentário à evidência da própria run
