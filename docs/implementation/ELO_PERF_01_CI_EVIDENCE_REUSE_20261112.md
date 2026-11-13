@@ -1,6 +1,6 @@
 # PERF-01 — CI evidence reuse: first governed reduction
 
-Status: **candidate / awaiting current-head CI and Evolution Gate**  
+Status: **Phase A candidate / current-head revalidation required after concurrency refinement**  
 Canonical owner: existing GitHub Actions CI workflows; no new approval authority.
 
 ## Confirmed redundancy
@@ -56,3 +56,37 @@ merge. Preserve required named checks and the Evolution Gate.
 
 Revert this PR; all three original full-suite invocations remain available
 in `main`. No database migration or stored authority requires rollback.
+
+## Phase A follow-up — avoid obsolete PR check work (13 Nov 2026)
+
+The existing `ELO PR1 Validation` and `ELO Behavioral Validation`
+workflows now use per-workflow/per-PR GitHub Actions concurrency with
+`cancel-in-progress` **only for `pull_request`** events. A new PR revision
+supersedes an in-flight run of that same workflow for the same PR. Main/feature
+push checks keep `cancel-in-progress=false` and use the commit SHA as their
+group identity; independent workflow names remain distinct.
+
+This **does not** reuse, alter, or approve an old run; cancellation is
+explicitly non-success. The current head still needs all required CI, two
+full-suite gates, and the original ELO Evolution/Governance/authorization
+checks. No cancel policy is added to the Evolution Gate, Agent Loop,
+Maintenance, or Merge Coordinator, which may publish governed evidence.
+
+### Measured GitHub workflow timing — baseline samples only
+
+Using real GitHub Actions metadata
+(`updated_at - run_started_at`, approximate workflow wall-clock elapsed,
+**not** billable runner minutes or Python test time):
+
+| Head | PR1 | Behavioral | Evolution | Maintenance |
+|---|---:|---:|---:|---:|
+| PR #1210 `a3a78b1e` | 27 s | 26 s | 65 s | 18 s (later label run) |
+| PR #1177 `c5262e99` | 35 s | 34 s | 80 s | Not a comparable PR-head run |
+
+These are **two observational snapshots across different changes**, so
+neither percent improvements nor causal speedups are claimed. The longest
+measured required workflow was Evolution, which must keep full-suite,
+Symbiont, Hermes, security and handoff gates intact. The new concurrency
+change targets wasted runner/queue work on superseded PR commits; it does
+not claim to shorten an individual latest-head run. Track at least three
+comparable revisions including canceled/queued runs before claiming gains.
