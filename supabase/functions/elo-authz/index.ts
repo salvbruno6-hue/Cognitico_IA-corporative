@@ -161,6 +161,14 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   ]);
   if(!allowed.has(state)) return {ok:false as const,reason:"authorization_state_not_supported"};
 
+  const continuation=isObjectiveContinuation(operation);
+  const now=Date.now();
+  // Scope at the database before LIMIT: otherwise newer unrelated or expired
+  // grants can hide a valid exact resource/session grant (fail-closed starvation).
+  const metadataScope=continuation
+    ? {resource_id:resourceId,tenant_id:tenantId}
+    : {resource_id:resourceId};
+  const nowISO=new Date(now).toISOString();
   const {data,error}=await supabase.from("elo_authorization_grants")
     .select("grant_id,binding_id,session_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
     .eq("identity_id",identityId)
@@ -168,14 +176,14 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
     .eq("authorization_state",state)
     .eq("operation",operation)
     .eq("repository_full_name",repository)
+    .contains("metadata",metadataScope)
+    .lte("issued_at",nowISO)
+    .gt("expires_at",nowISO)
     .is("revoked_at",null)
     .order("issued_at",{ascending:false})
     .limit(10);
 
   if(error) return {ok:false as const,reason:"authorization_grant_lookup_failed"};
-
-  const continuation=isObjectiveContinuation(operation);
-  const now=Date.now();
   const grant=(data??[]).find((g:any)=>{
     const issued=Date.parse(String(g.issued_at));
     const expires=Date.parse(String(g.expires_at));
