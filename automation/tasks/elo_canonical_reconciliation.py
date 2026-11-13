@@ -30,8 +30,7 @@ AUTHZ_DIRECT_WRITE_SIGNATURES = (
     re.compile(r"\binsert\s+into\s+(?:public\.)?elo_authorization_grants\b", re.IGNORECASE),
     re.compile(r"\belo_atomic_issue_authorization_grant\s*\(", re.IGNORECASE),
     re.compile(
-        r"\.from\(\s*['\\"](?:public\.)?elo_authorization_grants['\\"]\s*\)"
-        r"[\s\S]{0,240}?\.(?:insert|upsert)\s*\(",
+        r"""\.from\(\s*['"](?:public\.)?elo_authorization_grants['"]\s*\)[\s\S]{0,240}?\.(?:insert|upsert)\s*\(""",
         re.IGNORECASE,
     ),
 )
