@@ -44,3 +44,25 @@ def test_symbiont_lab_keeps_canonical_authorities_outside_its_ownership():
         "aprovação humana",
     ):
         assert authority in text
+
+
+def test_symbionte_external_intake_preserves_source_authority():
+    text = Path("docs/architecture/SIMBIONTE_EXTERNAL_INTAKE_BOUNDARY.md").read_text(encoding="utf-8")
+    assert "AUTHORIZED SOURCE → OBSERVE → UNDERSTAND → RELATE → ASSESS UTILITY → CANDIDATE → GOVERN" in text
+    assert "The source remains operationally independent within its authorized role." in text
+    assert "The Simbionte does not control the source." in text
+
+
+def test_symbionte_external_intake_keeps_figma_as_design_only():
+    text = Path("docs/architecture/SIMBIONTE_EXTERNAL_INTAKE_BOUNDARY.md").read_text(encoding="utf-8")
+    assert "Figma remains an authorized design/UX surface." in text
+    assert "ELO Web implementation" in text
+    assert "GitHub/Main" in text
+    assert "deployment" in text
+
+
+def test_symbionte_external_intake_forbids_automatic_assimilation():
+    text = Path("docs/architecture/SIMBIONTE_EXTERNAL_INTAKE_BOUNDARY.md").read_text(encoding="utf-8")
+    assert "No automatic assimilation" in text
+    assert "EVOLUTION_GATE" in text
+    assert "POSSIBLE ASSIMILATION" in text
