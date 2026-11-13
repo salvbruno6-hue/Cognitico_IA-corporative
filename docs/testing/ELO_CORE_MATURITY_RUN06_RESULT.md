@@ -25,7 +25,7 @@ PR validation:
 - ELO Evolution Gate run `34920488523`: PASS; canonical validation, full suite, external access contract and decision handoff completed successfully.
 - ELO Maintenance Coordinator run `34920488520`: PASS.
 
-The PR was merged by squash as `79ed019903179cf9d4e03f2b7ff4c4f67bda3a80`, and `main` now points exactly to that SHA.
+The PR was merged by squash as `79ed019903179cf9d4e03f2b7ff4c4f67bda3a80`. At the time of its post-merge verification, `main` pointed to that SHA; subsequent `main` commits do not invalidate the historical ON_MAIN evidence.
 
 ## Required cases and observed behavior
 
