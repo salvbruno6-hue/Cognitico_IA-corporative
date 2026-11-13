@@ -21,6 +21,43 @@ AUTHZ_KNOWN_DISTINCT_CONSUMERS = frozenset({
 })
 
 
+# Independently identify potential grant writers. The Maintenance workflow
+# derives concept_terms from changed filenames (often just "index"), which
+# cannot be trusted to discover an unreviewed parallel issuer with another name.
+# This scan is additional evidence, not a second authorization authority.
+AUTHZ_DIRECT_WRITE_SIGNATURES = (
+    re.compile(r"/rest/v1/elo_authorization_grants", re.IGNORECASE),
+    re.compile(r"\\binsert\\s+into\\s+(?:public\\.)?elo_authorization_grants\\b", re.IGNORECASE),
+    re.compile(r"\\belo_atomic_issue_authorization_grant\\s*\\(", re.IGNORECASE),
+    re.compile(
+        r"\\.from\\(\\s*['\\\"](?:public\\.)?elo_authorization_grants['\\\"]\\s*\\)"
+        r"[\\s\\S]{0,240}?\\.(?:insert|upsert)\\s*\\(",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[str]:
+    """Find executable grant writers even when filename-derived terms miss them."""
+    unreviewed: set[str] = set()
+    for path in source_files:
+        relative = str(path.relative_to(root)).replace("\\\\", "/")
+        if relative in AUTHZ_GOVERNED_PATHS:
+            continue
+        # Never promote test mocks, docs or reconciler implementation as issuers.
+        if relative.startswith(("tests/", "docs/", ".github/", "automation/")):
+            continue
+        if path.suffix.lower() not in {".py", ".ts", ".tsx", ".js", ".jsx", ".sql"}:
+            continue
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if any(signature.search(content) for signature in AUTHZ_DIRECT_WRITE_SIGNATURES):
+            unreviewed.add(relative)
+    return unreviewed
+
+
 def _is_distinct_authz_consumer(root: Path, candidate: str) -> bool:
     if candidate not in AUTHZ_KNOWN_DISTINCT_CONSUMERS:
         return False
@@ -189,6 +226,11 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         if source_candidate:
             candidates.append(relative)
 
+    # Search for potential grant writers separately from generic concept/stem
+    # discovery. A parallel issuer must remain an unresolved GAP even if it
+    # does not mention "index" or the filenames changed by this PR.
+    if AUTHZ_CANONICAL_RUNTIME in changed_normalised:
+        candidates.extend(sorted(_unreviewed_authz_writers(root, all_files)))
     candidates = sorted(set(candidates))
     references = sorted(set(references))
     owners = sorted(set(owners))
