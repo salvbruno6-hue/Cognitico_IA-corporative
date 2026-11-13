@@ -1,5 +1,11 @@
 name: ELO Behavioral Validation
 
+# A newer PR head supersedes stale CI, never the required current-head check.
+# Preserve independent push validation and all named GitHub gates.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 on:
   pull_request:
     branches: [main]
