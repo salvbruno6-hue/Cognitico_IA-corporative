@@ -3,8 +3,9 @@
 Status: candidate-only / audit application
 Authority: ELO governance
 Hermes authority: reference-only
+OpenClaw role: operational source of concrete experience candidates
 
-This manifest applies the governed capability-evolution model to the eight identified Hermes mechanisms. It does not claim functional integration or promotion.
+This manifest applies the governed capability-evolution model to the eight identified Hermes mechanisms. OpenClaw may provide concrete operational skill candidates for the HERMES-SKILLS capability, with source revision and path preserved for provenance. Neither Hermes nor OpenClaw becomes an ELO authority, and source presence alone never implies promotion.
 
 ## State model
 
@@ -25,11 +26,31 @@ Failure returns to `CANDIDATE` with a new variant. Exhaustion never promotes.
 | HERMES-MCP | MCP/Plugins | ELO External Capability Gateway | structure + function | candidate | trust boundary, allowlist, lifecycle, failure isolation, provenance |
 | HERMES-CHECKPOINT | Checkpoints/Execution | ELO State Recovery Engine | structure + function | candidate | snapshot/restore, atomicity, rollback, crash-safe state semantics |
 
+## OpenClaw concrete skill-source rule
+
+For `HERMES-SKILLS`, OpenClaw is an **operational source of concrete skill candidates**, not a parallel ELO registry.
+
+The source surface currently used by the integration is:
+
+`salvbruno6-hue/https-github.com-salvbruno6-hue-openclaw-dedicated` → `src/agents/skills/plugin-skills.ts`
+
+Concrete candidate records must preserve:
+
+1. candidate identifier;
+2. skill name;
+3. source repository;
+4. source ref/revision;
+5. source path;
+6. native ELO capability target;
+7. candidate-only governance state.
+
+The ingestion layer records metadata only. It does not execute OpenClaw code, copy OpenClaw into the native runtime, or promote a source skill. Functional validation and Evolution Gate remain ELO-owned.
+
 ## Readiness rule
 
 A candidate is **READY_FOR_APPROVAL** only when all of these are independently evidenced:
 
-1. Hermes source and revision are recorded.
+1. Hermes/OpenClaw source and revision are recorded.
 2. Native ELO contract is defined.
 3. Consistency evaluation passes.
 4. Controlled functional test passes.
@@ -42,12 +63,12 @@ READY_FOR_APPROVAL is not approval and does not promote knowledge.
 
 ## Current audit result
 
-All eight are intentionally `CANDIDATE` at this stage. The generic evolution loops are ready to process them, but no candidate is marked green merely because Hermes implements the source mechanism.
+All eight are intentionally `CANDIDATE` at this stage. The generic evolution loops are ready to process them. OpenClaw concrete skills may now enter the HERMES-SKILLS candidate stream, but no candidate is marked green merely because OpenClaw implements the source mechanism.
 
 ### Next execution order
 
 1. Memory
-2. Skills
+2. Skills — including concrete OpenClaw skill candidates
 3. Toolsets
 4. Hierarchical Context
 5. Delegation/Subagents
