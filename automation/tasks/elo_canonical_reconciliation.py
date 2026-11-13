@@ -43,45 +43,101 @@ AUTHZ_DIRECT_WRITE_SIGNATURES = (
 )
 
 
-# YAML workflows may legitimately READ /rest/v1/elo_authorization_grants.
-# Unlike TS/Python source, reject the endpoint only when a write verb is
-# present close to the same operation; a mere GET is not an alternate issuer.
+# GitHub workflows can read authorization grants. Examine each shell command,
+# including backslash continuations, before deciding whether it issues grants.
+# This is evidence collection for the existing elo-authz owner, not an issuer.
 AUTHZ_WORKFLOW_REST_WRITE = re.compile(
     r"(?is)(?:\b(?:POST|PUT|PATCH|DELETE)\b.{0,120}?/rest/v1/elo_authorization_grants"
     r"|/rest/v1/elo_authorization_grants.{0,160}?\b(?:POST|PUT|PATCH|DELETE)\b)"
 )
-# A curl command may POST implicitly with --data/-d/--json; explicit -X POST
-# can be far from the endpoint when long headers intervene. Restrict inspection
-# to a logical curl command (including backslash continuations).
-AUTHZ_CURL_EXPLICIT_WRITE = re.compile(
-    r"(?i)(?:^|\s)(?:-X\s*|--request(?:\s+|=))(?:POST|PUT|PATCH|DELETE)\b"
+AUTHZ_GRANT_REST_ENDPOINT = "/rest/v1/elo_authorization_grants"
+AUTHZ_CURL_BODY_OPTIONS = (
+    "--data", "--form", "--json", "--upload-file",
 )
-AUTHZ_CURL_BODY_WRITE = re.compile(
-    r"""(?ix)(?:^|\s)(?:--data(?:-raw|-binary|-urlencode)?(?:=|\b)
-      |-d(?=[\s'"=])|--form(?:=|\b)|-F(?=[\s'"=])
-      |--json(?:=|\b)|--upload-file(?:=|\b)|-T(?=[\s'"=]))"""
-)
-AUTHZ_CURL_GET = re.compile(r"(?i)(?:^|\s)(?:--get\b|-G(?=\s|$))")
+
+
+def _curl_grant_write(args: list[str]) -> bool:
+    """Resolve the method on a *single* curl call, without losing -g/-G case."""
+    if not any(AUTHZ_GRANT_REST_ENDPOINT in item.lower() for item in args):
+        return False
+
+    method: str | None = None
+    for index, item in enumerate(args):
+        if item in ("-X", "--request") and index + 1 < len(args):
+            method = args[index + 1].upper()
+        elif item.startswith("--request="):
+            method = item.partition("=")[2].upper()
+        elif item.startswith("-X") and len(item) > 2:
+            method = item[2:].upper()
+
+    # An explicit -X/--request method takes precedence over body flags.
+    # An unknown or unsupported explicit verb must not be certified read-only.
+    if method is not None:
+        return method != "GET"
+    if "-G" in args or "--get" in args:
+        return False
+
+    # Without an explicit method, curl body flags trigger implicit POST/PUT.
+    return any(
+        item == "-d" or item.startswith("-d")
+        or item == "-F" or item.startswith("-F")
+        or item == "-T" or item.startswith("-T")
+        or item.startswith(AUTHZ_CURL_BODY_OPTIONS)
+        for item in args
+    )
 
 
 def _workflow_has_curl_grant_write(content: str) -> bool:
-    """Find direct REST grant writes without conflating unrelated curl calls."""
-    lines = content.splitlines()
-    for index, line in enumerate(lines):
-        match = re.search(r"\bcurl(?=\s|$)", line, flags=re.IGNORECASE)
-        if not match:
+    """Classify grant HTTP calls independently across shell control operators."""
+    import shlex
+
+    pending = ""
+    logical_lines: list[str] = []
+    for line in content.splitlines():
+        pending = (pending + " " + line.strip()).strip() if pending else line.strip()
+        if pending.endswith("\\"):
+            pending = pending[:-1].rstrip()
             continue
-        command = line[match.start():].strip()
-        next_line = index + 1
-        while command.endswith("\\") and next_line < len(lines):
-            command = command[:-1].rstrip() + " " + lines[next_line].strip()
-            next_line += 1
-        if "/rest/v1/elo_authorization_grants" not in command.lower():
+        logical_lines.append(pending)
+        pending = ""
+    if pending:
+        logical_lines.append(pending)
+
+    for line in logical_lines:
+        if AUTHZ_GRANT_REST_ENDPOINT not in line.lower():
             continue
-        if AUTHZ_CURL_EXPLICIT_WRITE.search(command):
+        try:
+            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|")
+            lexer.whitespace_split = True
+            lexer.commenters = "#"
+            tokens = list(lexer)
+        except ValueError:
+            # A malformed grant command cannot prove absence of a writer.
             return True
-        if AUTHZ_CURL_BODY_WRITE.search(command) and not AUTHZ_CURL_GET.search(command):
-            return True
+
+        commands: list[list[str]] = []
+        current: list[str] = []
+        for item in tokens:
+            if item and set(item) <= {";", "&", "|"}:
+                commands.append(current)
+                current = []
+            else:
+                current.append(item)
+        commands.append(current)
+
+        for command in commands:
+            curl_positions = [
+                index for index, item in enumerate(command)
+                if item == "curl" or item.endswith("/curl")
+            ]
+            if curl_positions:
+                for index in curl_positions:
+                    if _curl_grant_write(command[index + 1:]):
+                        return True
+            elif AUTHZ_WORKFLOW_REST_WRITE.search(" ".join(command)):
+                # Keep detection for non-curl clients (fetch, HTTPie, etc.)
+                # but never associate verbs from another shell command.
+                return True
     return False
 
 
@@ -109,7 +165,6 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
             # they are still inspected; grant-writing edits must fail closed.
             direct_write = (
                 any(sig.search(content) for sig in AUTHZ_DIRECT_WRITE_SIGNATURES[1:])
-                or AUTHZ_WORKFLOW_REST_WRITE.search(content) is not None
                 or _workflow_has_curl_grant_write(content)
             )
         else:
