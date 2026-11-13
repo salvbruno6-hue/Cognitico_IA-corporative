@@ -524,3 +524,134 @@ async function check(label,overrides={},expectedStatus=200,expectedReason=null) 
     )
     assert result.returncode == 0, result.stderr or result.stdout
     assert "23 grant issuance behavior cases passed" in result.stdout
+
+
+def test_active_session_lookup_filters_time_before_limit() -> None:
+    """The latest 10 expired or future sessions may not mask a valid session."""
+    resolver = AUTHZ.split("async function resolveActiveSession(", 1)[1].split(
+        "async function establishSession(", 1
+    )[0]
+    lookup = resolver.split('supabase.from("elo_identity_sessions")', 1)[1].split(
+        "if (error)", 1
+    )[0]
+    for requirement in (
+        '.eq("identity_id", identityId)',
+        '.is("revoked_at", null)',
+        '.lte("issued_at", nowISO)',
+        '.gt("expires_at", nowISO)',
+        '.limit(10)',
+    ):
+        assert requirement in lookup
+    assert lookup.index('.gt("expires_at", nowISO)') < lookup.index(".limit(10)")
+    assert "Number.isFinite(i)&&Number.isFinite(e)&&i<=now&&e>now" in resolver
+
+
+def test_active_session_lookup_behavior_with_isolated_supabase() -> None:
+    """Execute the actual TS resolver, without creating or reading live sessions."""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    assert node is not None, "Node is required for authorization behavior tests"
+    resolver = "async function resolveActiveSession(" + AUTHZ.split(
+        "async function resolveActiveSession(", 1
+    )[1].split("\nasync function establishSession(", 1)[0]
+    assert resolver.count("identityId: string") == 1
+    assert resolver.count("(s:any)") == 1
+    resolver = (
+        resolver.replace("identityId: string", "identityId")
+        .replace("(s:any)", "(s)")
+        .replace(" as const", "")
+    )
+    harness = r"""
+const assert = require("node:assert/strict");
+const now=Date.now();
+const iso = offset => new Date(now+offset).toISOString();
+const base = {
+  session_id:"valid",identity_id:"owner",
+  issued_at:iso(-3600000),expires_at:iso(3600000),
+  revoked_at:null,last_seen_at:iso(-3600000)
+};
+let rows=[], fail=false;
+class Query {
+  constructor() {this.filters=[];this.sorted=null;}
+  select() {return this;}
+  eq(k,v){this.filters.push(["eq",k,v]);return this;}
+  is(k,v){this.filters.push(["eq",k,v]);return this;}
+  lte(k,v){this.filters.push(["lte",k,v]);return this;}
+  gt(k,v){this.filters.push(["gt",k,v]);return this;}
+  order(k,opts={}) {this.sorted={key:k,asc:opts.ascending!==false};return this;}
+  limit(n){
+    if(fail) return Promise.resolve({data:null,error:{message:"db error"}});
+    const filtered=rows.filter(row=>this.filters.every(([op,key,value])=>{
+      if(op==="eq")return row[key]===value;
+      if(op==="lte")return row[key]!=null&&row[key]<=value;
+      if(op==="gt")return row[key]!=null&&row[key]>value;
+      throw Error("unknown filter "+op);
+    }));
+    if(this.sorted) {
+      const {key,asc}=this.sorted;
+      filtered.sort((a,b)=>asc
+        ? String(a[key]).localeCompare(String(b[key]))
+        : String(b[key]).localeCompare(String(a[key])));
+    }
+    return Promise.resolve({data:filtered.slice(0,n),error:null});
+  }
+}
+const supabase={from:(table)=>{
+  assert.equal(table,"elo_identity_sessions");
+  return new Query();
+}};
+async function check(label,data,expectedSession=null,expectedReason=null,identity="owner"){
+  rows=data;fail=false;
+  const r=await resolveActiveSession(identity);
+  if(expectedSession!==null){
+    assert.equal(r.ok,true,label+": "+JSON.stringify(r));
+    assert.equal(r.session.session_id,expectedSession,label);
+  }else{
+    assert.equal(r.ok,false,label);
+    assert.equal(r.reason,expectedReason,label);
+  }
+}
+(async()=>{
+  await check("valid session",[base],"valid");
+  const expired=Array.from({length:13},(_,i)=>({
+    ...base,session_id:"expired-"+i,issued_at:iso(-1000-i),
+    expires_at:iso(-200)
+  }));
+  await check("13 newer expired sessions do not hide valid", [...expired,base],"valid");
+  const future=Array.from({length:13},(_,i)=>({
+    ...base,session_id:"future-"+i,issued_at:iso(360000+i)
+  }));
+  await check("13 newer future sessions do not hide valid",[...future,base],"valid");
+  await check("revoked sessions excluded",[
+    {...base,session_id:"revoked",issued_at:iso(-1000),revoked_at:iso(-500)},
+    base
+  ],"valid");
+  await check("wrong identity excluded",[
+    {...base,session_id:"wrong",identity_id:"other",issued_at:iso(-1000)},
+    base
+  ],"valid");
+  await check("null expiry excluded",[
+    {...base,session_id:"no-expiry",expires_at:null,issued_at:iso(-1000)},
+    base
+  ],"valid");
+  await check("only expired denied",expired,null,"active_elo_session_required");
+  await check("only future denied",future,null,"active_elo_session_required");
+  await check("missing denied",[],null,"active_elo_session_required");
+  rows=[base];fail=true;
+  const rejected=await resolveActiveSession("owner");
+  assert.equal(rejected.ok,false);
+  assert.equal(rejected.reason,"session_lookup_failed");
+  process.stdout.write("10 active session resolver behavior cases passed\n");
+})().catch(e=>{console.error(e);process.exitCode=1});
+"""
+    result = subprocess.run(
+        [node, "-e", resolver + "\n" + harness],
+        capture_output=True,
+        text=True,
+        timeout=25,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "10 active session resolver behavior cases passed" in result.stdout
