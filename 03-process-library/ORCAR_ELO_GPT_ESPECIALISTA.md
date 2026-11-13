@@ -548,3 +548,31 @@ A simulação de R$591,12 é **somente dos excedentes**, sem custo/preço do M02
 **Gates e fronteira:** `CAD-07=EXECUTADA_COM_PENDENCIAS`; `CAD-11=BLOQUEADA`; **0 linhas financeiras `APLICADO` e 0/5 equipamentos `FECHADO`**. A PTS Pós preliminar propõe `NAO_VALIDADO` **somente para fechamento comercial**, com `resultado_arbitrado.status=AGUARDANDO_ARBITRAGEM`; não declarar arbitragem, aceite cliente, PTS Pós final ou valor homologado. Curva ABC, pesos e cenários monetários são **NÃO CALCULÁVEIS**: não misturar valores de venda demonstrativos, custo parcial, excedentes e delta negativo. Nenhum DOC/DOCX foi pedido e não deve ser gerado automaticamente. A instanciação de PTS Pós vive em Supabase, não se cria cópia paralela de autoridade nem se promove caso ao Core.
 
 **Testes já executados em banco:** `27` PTS Técnica x `27` PTS Pós, `0` referências órfãs, `0` repetidas, `0` linhas incompletas, `11` consultas abertas válidas, `10` divergências, `10` pendências; `0` custos APLICADO, `0/5` finalizados. Reprocessar a PTS Pós somente quando os orçamentos e aceites da SO avançarem, sem sobrescrever decisão do Analista.
+
+
+### SO 233.26 — ELO APRENDER: experiência observada com revisão do owner pendente (13/11/2026)
+
+**Ativação e fronteira.** Após o comando `elo aprender` do Analista, o especialista `FORGE-BUDGETING-001` consultou o owner canônico `08-ai/ELO/ESPECIALISTAS/ORCAMENTO/APRENDIZADOS/ELO_ORCAMENTISTA_APRENDIZADO_CONTINUO.md`, `08-ai/ELO/DIRETRIZES/PTS/POS_ORCAMENTO.md` e `src/elo/core/learning_governance.py`. A PTS Pós da SO 233.26 ainda está `PRELIMINAR_AUDITORIA_SEM_HOMOLOGACAO`, com `integracao.validacao.status_proposto=NAO_VALIDADO` e `resultado_arbitrado.status=AGUARDANDO_ARBITRAGEM`; **o pacote pós-arbitragem destinado a promoção não pode ser emitido**. A captura de **experiência OBSERVADA** (sem promoção) é permitida ao longo do ciclo de orçamento e não substitui essa condição.
+
+**Instância ÚNICA de aprendizado de caso (Supabase):** `public.elo_aprendizado_experiencias.id=f3ed8453-5610-4286-8230-c26b2c280da4`, `origem_referencia="SO 233.26 — PTS TEC → ORÇAR → PTS PÓS, execução 2026-11-13"`, `status_validacao=OBSERVADA`, confiança inicial `0,25`, domínio Análise e Planejamento; sem aprovação do owner. O campo `entrada` identifica a SO e fontes; `decomposicao` estrutura quatro fases; `decisoes` lista **10 observações** com condição/decisão/motivo/limite/evidência e classificação ainda **RASCUNHO**; `verificacoes.revisao_owner_questions` preserva **12 perguntas QA01–QA12 com status AGUARDANDO_OWNER**; `resultado.pacote_promocao=NAO_GERADO_PENDENTE_ARBITRAGEM`. `public.elo_orcamentos.contexto.elo_aprender.experience_id` aponta para a mesma experiência e não replica sua autoridade; `contexto.pts_pos_orcamento.integracao.elo_aprender` foi referenciado sem alterar a auditoria.
+
+**Observações de caso e métodos, classificados antes de aprovação:**
+
+| Id | Observação | Classificação provisória | Fronteira/GAP |
+|---|---|---|---|
+| L01 | Aproximação de padrão Multiteiner versus texto literal TR | CASE | Premissa do Analista SO atual; exige ressalva contratual |
+| L02 | Excedente ao padrão e componente de base são distintos | PRECEDENT | Já relacionado a SO182.26, não duplicar regra |
+| L03 | Abertura 2×0,60×0,60=0,72m², perímetro reforço 4,80m e corte estrutural separado | LEARNING_CANDIDATE | Não copiar preço EXC-016 cinco painéis com RH |
+| L04 | EST040 60×60×1,5: conversão R$8,50/KG ×2,765KG/M=R$23,5025/M, lançamento R$23,50/M e 7,23M=R$169,91 | LEARNING_CANDIDATE | Peso/fornecedor/barras/perdas não homologados |
+| L05 | Prevenir MO duplicada entre EXC-011/016/040 e diárias | PRECEDENT | Dependência condicionada, não supressão automática |
+| L06 | Crédito janela avulsa ESQ004 −R$891,80 ≠ painel completo; delta M01 −R$442,35 | CASE | Ajuste SO específica; base M01 não homologada |
+| L07 | Substituição de ELE002 por caixa 4×2 condulete sem SKU/preço | GAP | 12 peças provisórias, preço ausente |
+| L08 | +2 ESQ006 M05 materiais R$454,18; M.O. montagem não segregada | GAP | Conciliar M.O. agregada R$418,65 e fonte de preço |
+| L09 | Valores de natureza diferente não são somados em total de SO | PRECEDENT | Cinco modelos 0/5 fechados e Curva ABC não calculável |
+| L10 | Não reapresentar decisão interna já respondida; manter ressalva externa | PRECEDENT | Resposta do Analista ≠ aceite formal do cliente |
+
+**Memória consultada e deduplicação:** consultas a `elo_aprendizado_experiencias` de SO182.26 (layout/composição e premissas), SO178.26 (PTS TEC→orçamento→Pós) e SO199.26 (interferência/layout e orçamento); `elo_orcamento_memoria` e `elo_orcamento_calculos_aprendidos` não tinham registros da SO 233.26 no momento da análise. Não se criou conceito maturado, fórmula aprendida independente ou outra estrutura paralela; as geometrias e preços permanecem referenciados em `elo_orcamentos` e `elo_orcamento_composicao_itens`.
+
+**Revisão do owner — QA01–QA12:** perguntas materiais sobre (1) evidência de basculantes padrão M05; (2) cobertura de instalação de +2; (3) conflito R$227,09/R$162,50 ESQ006; (4) massa real EST040; (5) compra/uso de barras e perdas; (6) RH do EXC016 versus diárias; (7) SKU e componentes condulete; (8) base que sustenta crédito ESQ004; (9) documento de aceite das diferenças TR/padrão; (10) origem nova e garantia de cinco anos; (11) rateio de frete/descarga/seguro sem duplicação; (12) critérios de teste e gates para fechamento e eventual aprendizagem. Estas perguntas **não repetem** as decisões sobre porta marítima, portas internas do M05, LED e janela padrão M01 já respondidas.
+
+**Estado e próximo gate:** `CAD-12=NAO_INICIADA` por falta de arbitragem, 0/5 preços homologados, 0 linhas APLICADO e revisão do owner pendente. `OBSERVADA` não significa `LEARNING_CANDIDATE` formalmente despachada à governança. Quando houver respostas reais às QA01–QA12, classificar com evidências e comparar duplicidade/conflito, depois iniciar despacho pelo fluxo canônico; requer aprovação humana explícita e Evolution Gate compatível antes de qualquer promoção. **NÃO** adicionar nova regra ao Core nem atualizar a Lista-Mãe, orçamento, PTS TEC ou Pós por esta observação.
