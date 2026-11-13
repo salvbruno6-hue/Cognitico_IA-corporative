@@ -241,6 +241,11 @@ jobs:
             if [[ -z "$run_json" ]] || ! jq -e --arg repo "$REPOSITORY" --argjson attempt "$run_attempt" '
               .name == "ELO Maintenance Coordinator"
               and .path == ".github/workflows/elo-maintenance-coordinator.yml"
+              # A successful PR-branch workflow can forge decision.json.
+              # Only an attestation produced by the trusted base definition is valid.
+              and .event == "pull_request_target"
+              and .head_branch == "main"
+              and .head_repository.full_name == $repo
               and .status == "completed"
               and .conclusion == "success"
               and .repository.full_name == $repo
