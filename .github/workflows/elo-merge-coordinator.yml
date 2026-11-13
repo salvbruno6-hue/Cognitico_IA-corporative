@@ -351,7 +351,7 @@ jobs:
           set -euo pipefail
           pr_json="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,mergeable,mergeStateStatus,headRefOid,baseRefName)"
           jq -e --arg sha "$HEAD_SHA" '.state == "OPEN" and .headRefOid == $sha and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
-          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --delete-branch=false
+          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --match-head-commit "$HEAD_SHA" --delete-branch=false
 
       - name: Verify merge result
         if: steps.pr.outputs.number != ''
