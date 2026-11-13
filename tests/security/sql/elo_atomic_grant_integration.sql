@@ -55,7 +55,8 @@ $access$;
 create function public.elo_test_call(
   p_req text,
   p_resource text default 'resource-A',
-  p_session uuid default '55555555-5555-4555-8555-555555555555'::uuid
+  p_session uuid default '55555555-5555-4555-8555-555555555555'::uuid,
+  p_issuer_session uuid default '44444444-4444-4444-8444-444444444444'::uuid
 ) returns uuid language sql security invoker as $helper$
   select (public.elo_atomic_issue_authorization_grant(
     '66666666-6666-4666-8666-666666666666'::uuid,
@@ -63,7 +64,7 @@ create function public.elo_test_call(
     p_session,
     'elo-execution-authorized','execute','org/repo',
     '11111111-1111-4111-8111-111111111111'::uuid,
-    '44444444-4444-4444-8444-444444444444'::uuid,
+    p_issuer_session,
     p_req,now()+interval '1 hour',
     jsonb_build_object(
       'issuer_role','CANONICAL_ADMIN',
@@ -87,6 +88,62 @@ begin
   then raise exception 'exactly one grant and one ALLOW audit required'; end if;
 end
 $accepted$;
+
+-- The merge consumer (#1177) must observe two different ACTIVE identity
+-- sessions: grant.session_id = recipient, audit.session_id = CANONICAL_ADMIN
+-- issuer, both bound by the immutable issuance request_id and repository.
+do $cross_identity_provenance$
+begin
+  if not exists (
+    select 1
+    from public.elo_authorization_grants g
+    join public.elo_authorization_audit a
+      on a.request_id = g.request_id
+     and a.identity_id = g.issued_by_identity_id
+     and a.resource = g.repository_full_name
+    join public.elo_identity_sessions recipient
+      on recipient.session_id = g.session_id
+     and recipient.identity_id = g.identity_id
+    join public.elo_identity_sessions issuer
+      on issuer.session_id = a.session_id
+     and issuer.identity_id = g.issued_by_identity_id
+    where g.request_id = 'req-ok'
+      and g.identity_id = '22222222-2222-4222-8222-222222222222'::uuid
+      and g.issued_by_identity_id = '11111111-1111-4111-8111-111111111111'::uuid
+      and g.session_id = '55555555-5555-4555-8555-555555555555'::uuid
+      and a.session_id = '44444444-4444-4444-8444-444444444444'::uuid
+      and a.action = 'issue_authorization_grant'
+      and a.decision = 'ALLOW'
+      and a.reason = 'canonical_admin_issued_authorization_state'
+      and a.created_at >= g.issued_at
+      and recipient.revoked_at is null and recipient.expires_at > now()
+      and issuer.revoked_at is null and issuer.expires_at > now()
+  ) then
+    raise exception 'recipient grant session and issuer audit session provenance mismatch';
+  end if;
+end
+$cross_identity_provenance$;
+
+do $invalid_issuer_session$
+begin
+  perform public.elo_test_call(
+    'req-wrong-issuer-session',
+    'resource-A',
+    '55555555-5555-4555-8555-555555555555'::uuid,
+    '55555555-5555-4555-8555-555555555555'::uuid
+  );
+  raise exception 'recipient session incorrectly accepted as issuer session';
+exception when sqlstate '42501' then null;
+end
+$invalid_issuer_session$;
+
+do $invalid_issuer_no_persist$
+begin
+  if exists(select 1 from public.elo_authorization_grants where request_id='req-wrong-issuer-session')
+    or exists(select 1 from public.elo_authorization_audit where request_id='req-wrong-issuer-session')
+  then raise exception 'invalid issuer session persisted authorization evidence'; end if;
+end
+$invalid_issuer_no_persist$;
 
 do $mismatch$
 begin
