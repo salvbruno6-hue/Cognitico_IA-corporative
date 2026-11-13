@@ -109,9 +109,11 @@ async function resolveActiveSession(identityId: string) {
     .gt("expires_at", nowISO)
     .order("issued_at",{ascending:false}).limit(10);
   if (error) return { ok:false as const, reason:"session_lookup_failed" };
+  // Re-evaluate after the awaited query: expiry may occur during IO.
+  const verifiedAt=Date.now();
   const session=(data ?? []).find((s:any)=>{
     const i=Date.parse(String(s.issued_at)), e=Date.parse(String(s.expires_at));
-    return Number.isFinite(i)&&Number.isFinite(e)&&i<=now&&e>now;
+    return Number.isFinite(i)&&Number.isFinite(e)&&i<=verifiedAt&&e>verifiedAt;
   });
   return session ? {ok:true as const,session} : {ok:false as const,reason:"active_elo_session_required"};
 }
@@ -190,13 +192,15 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
     .limit(10);
 
   if(error) return {ok:false as const,reason:"authorization_grant_lookup_failed"};
+  // The SQL cutoff is a prefilter, not a perpetual grant of validity.
+  const verifiedAt=Date.now();
   const grant=(data??[]).find((g:any)=>{
     const issued=Date.parse(String(g.issued_at));
     const expires=Date.parse(String(g.expires_at));
     const metadata=(g.metadata && typeof g.metadata==="object") ? g.metadata as Record<string,unknown> : {};
     const metadataResourceId=String(metadata.resource_id??"").trim();
     const metadataTenantId=String(metadata.tenant_id??"").trim();
-    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=now&&expires>now
+    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=verifiedAt&&expires>verifiedAt
       && metadataResourceId===resourceId
       && (!continuation || (Boolean(tenantId) && metadataTenantId===tenantId));
   });
@@ -210,6 +214,11 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   if(bindingError) return {ok:false as const,reason:"operator_binding_lookup_failed"};
   if(!binding) return {ok:false as const,reason:"operator_binding_inactive"};
 
+  // The binding lookup is also asynchronous; fail closed if the grant expired
+  // between the first verification and the final authorization response.
+  const finalAt=Date.now();
+  if(Date.parse(String(grant.issued_at))>finalAt || Date.parse(String(grant.expires_at))<=finalAt)
+    return {ok:false as const,reason:"authorization_state_not_granted"};
   return {ok:true as const,grant,binding};
 }
 
