@@ -390,6 +390,81 @@ def test_authz_scope_scans_unreviewed_workflow_grant_writer(tmp_path: Path) -> N
     assert evidence.decision != "STRENGTHEN"
 
 
+def test_authz_scope_rejects_curl_implicit_post_without_explicit_verb(tmp_path: Path) -> None:
+    """curl --data defaults to POST and must not bypass canonical issuer checks."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/shadow-implicit.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: curl "$SUPABASE_URL/rest/v1/elo_authorization_grants" --data \'{}\'\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert ".github/workflows/shadow-implicit.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision != "STRENGTHEN"
+    assert event_facts(evidence)["contract_conflict"] is None
+
+
+def test_authz_scope_rejects_distant_curl_post_across_headers(tmp_path: Path) -> None:
+    """Long headers and backslash continuations must not hide explicit POST."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/shadow-headers.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: |\n'
+        '      curl -X POST \\\n'
+        + '        -H "X-Trace: ' + ("z" * 400) + '" \\\n'
+        '        "$SUPABASE_URL/rest/v1/elo_authorization_grants"\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"], concept_terms=["index"],
+    )
+    assert ".github/workflows/shadow-headers.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision != "STRENGTHEN"
+
+
+def test_authz_scope_rejects_curl_implicit_post_with_continuation(tmp_path: Path) -> None:
+    """curl -d on the next continued shell line still posts grant data."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/shadow-continued.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: |\n'
+        '      curl "$SUPABASE_URL/rest/v1/elo_authorization_grants" \\\n'
+        '        -d \'{}\'\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"], concept_terms=["index"],
+    )
+    assert ".github/workflows/shadow-continued.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert event_facts(evidence)["reuse_analysis_complete"] is False
+
+
+def test_authz_scope_accepts_curl_forced_get_with_query_parameters(tmp_path: Path) -> None:
+    """curl -G --data-urlencode sends GET, not a new grant issuance."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/read-only-query.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: curl -G --data-urlencode \'select=grant_id\' '
+        '"$SUPABASE_URL/rest/v1/elo_authorization_grants"\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"], concept_terms=["index"],
+    )
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+
+
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
     """Actual Maintenance terms are filenames; they must not hide another issuer."""
     _make_existing_authz_owner(tmp_path)
