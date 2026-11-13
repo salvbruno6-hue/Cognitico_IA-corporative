@@ -209,6 +209,12 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
                     *reasons,
                     "ELO governance lifecycle owner is declared, but a proven duplicate/parallel blocker remains",
                 ]
+            elif candidates:
+                # Declared workflow ownership is not evidence that a related
+                # executable implementation is absent or equivalent.
+                reasons.append(
+                    "ELO governance lifecycle owner is declared, but executable candidates remain unresolved"
+                )
             else:
                 duplicate = False
                 decision_override = "STRENGTHEN"
