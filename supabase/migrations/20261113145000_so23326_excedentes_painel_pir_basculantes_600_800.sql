@@ -152,50 +152,50 @@ BEGIN
     -- Item 1: componente de serie ESQ006/ESQ007; o trigger cadastral recupera cod_produt e o preco.
     INSERT INTO public.excedente_itens
     (excedente_id,cod_excedente,sequencia,cod_item,descricao,unidade,quantidade,
-     valor_unitario,valor_parcial,valor_total,tipo_componente,observacao)
+     valor_unitario,valor_parcial,tipo_componente,observacao)
     VALUES
     (v_exc_id,r.codigo,1,r.cod_basculante,
      'Basculante de aluminio '||r.lado_mm||'x'||r.lado_mm||' mm',
-     'PÇ',1,v_unit_esq,v_unit_esq,v_unit_esq,'MATERIAL',
+     'PÇ',1,v_unit_esq,v_unit_esq,'MATERIAL',
      'Preco da Lista-Mae na data do cadastro. Revisar se preco se alterar; nao confundir 800mm ESQ007 com 600mm ESQ006.');
 
     -- Item 2: perfil U de acabamento pelo perimetro, com equivalencia geometrica condicionada.
     INSERT INTO public.excedente_itens
     (excedente_id,cod_excedente,sequencia,cod_item,descricao,unidade,quantidade,
-     valor_unitario,valor_parcial,valor_total,tipo_componente,observacao)
+     valor_unitario,valor_parcial,tipo_componente,observacao)
     VALUES
     (v_exc_id,r.codigo,2,'M30','Perfil U de contorno de basculante — candidato M30','m',
-     r.perimetro_m,v_unit_u,round(r.perimetro_m*v_unit_u,2),
-     round(r.perimetro_m*v_unit_u,2),'MATERIAL',
+     r.perimetro_m,v_unit_u,round(r.perimetro_m*v_unit_u,2),'MATERIAL',
      'Perfil de catalogo M30 40x42x40mm e CANDIDATO ao U historico; seccao real/fixacao a validar. Comprimento =4x lado.');
 
     -- Item 3: custo historico de abertura de vao por UN, sem equivalencia automatica ao EXC-016 aco.
     INSERT INTO public.excedente_itens
     (excedente_id,cod_excedente,sequencia,descricao,unidade,quantidade,
-     valor_unitario,valor_parcial,valor_total,tipo_componente,observacao)
+     valor_unitario,valor_parcial,tipo_componente,observacao)
     VALUES
     (v_exc_id,r.codigo,3,'Abertura do vao em PAINEL PIR 40mm — memoria 2023','UN',1,
-     25.59,25.59,25.59,'SERVICO',
+     25.59,25.59,'SERVICO',
      'R$25,59/UN na memoria 2023; custo e produtividade nao revalidados. Diferente de corte em aco EXC-016.');
 
     -- Item 4: painel base preexistente, sem criar custo ficticio zero de painel novo.
     INSERT INTO public.excedente_itens
     (excedente_id,cod_excedente,sequencia,descricao,unidade,quantidade,
-     valor_unitario,valor_parcial,valor_total,tipo_componente,observacao)
+     valor_unitario,valor_parcial,tipo_componente,observacao)
     VALUES
     (v_exc_id,r.codigo,4,'PAINEL PIR 40mm EXISTENTE — elemento de base, nao fornecido','UN',1,
-     NULL,NULL,NULL,'REFERENCIA_NAO_FATURAVEL',
+     NULL,NULL,'REFERENCIA_NAO_FATURAVEL',
      'Linha informativa: memoria 2023 mostra painel STUC PIR40mm com parcial 0. Custo de painel novo DESCONHECIDO, NAO INCLUSO e NAO HOMOLOGADO.');
 
+    -- Colunas valor_total e valor_parcial da equipe são GENERATED ALWAYS pelo schema; nunca fornecer valores nessas colunas.
     -- A fonte 2023 traz RH de uma dupla por dia, apropriada em 1/10 de dia por painel.
     -- 0,10 x 275,82 = 27,58; 0,10 x 235,92 = 23,59. Soma = 51,17.
     INSERT INTO public.excedente_mao_obra
     (excedente_id,sequencia,funcao,quantidade,tempo,unidade_tempo,
-     valor_unitario,valor_parcial,valor_total,observacao)
+     valor_unitario,observacao)
     VALUES
-    (v_exc_id,1,'Profissional',1,0.10,'DIA',275.82,27.58,275.82,
+    (v_exc_id,1,'Profissional',1,0.10,'DIA',275.82,
      'Valor DIA historico 2023, rateado por 10; produtividade de 10 un/dia NAO comprovada. Potencial sobreposicao com equipe M05.'),
-    (v_exc_id,2,'Ajudante',1,0.10,'DIA',235.92,23.59,235.92,
+    (v_exc_id,2,'Ajudante',1,0.10,'DIA',235.92,
      'Valor DIA historico 2023, rateado por 10; produtividade de 10 un/dia NAO comprovada. Potencial sobreposicao com equipe M05.');
   END LOOP;
 END;
