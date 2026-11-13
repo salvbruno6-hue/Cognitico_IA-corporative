@@ -552,3 +552,62 @@ def test_governed_merge_is_atomic_to_the_evidenced_head_sha():
     assert 'gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --match-head-commit "$HEAD_SHA"' in merge
     assert "--admin" not in merge
     assert "--auto" not in merge
+
+
+
+def test_maintenance_run_provenance_filter_rejects_untrusted_successful_run():
+    """Exercise the jq trust filter, not only string-match its existence."""
+    import json
+    import shutil
+    import subprocess
+
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq executable required for integration contract test")
+
+    script = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    start_marker = (
+        'if [[ -z "$run_json" ]] || ! jq -e --arg repo "$REPOSITORY" '
+        '--argjson attempt "$run_attempt" \''
+    )
+    start = script.index(start_marker) + len(start_marker)
+    end = script.index("' <<<\"$run_json\" >/dev/null; then", start)
+    expression = script[start:end].strip()
+
+    repo = "salvbruno6-hue/Cognitico_IA-corporative"
+    trusted = {
+        "name": "ELO Maintenance Coordinator",
+        "path": ".github/workflows/elo-maintenance-coordinator.yml",
+        "event": "pull_request_target",
+        "head_branch": "main",
+        "head_repository": {"full_name": repo},
+        "repository": {"full_name": repo},
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 3,
+    }
+
+    def verified(run):
+        result = subprocess.run(
+            ["jq", "-e", "--arg", "repo", repo, "--argjson", "attempt", "3", expression],
+            input=json.dumps(run), text=True, capture_output=True, check=False,
+        )
+        return result.returncode == 0
+
+    assert verified(trusted)
+    for field, value in (
+        ("event", "pull_request"),
+        ("event", "pull_request_review"),
+        ("event", "workflow_dispatch"),
+        ("head_branch", "feature/modified-workflow"),
+        ("conclusion", "failure"),
+        ("status", "in_progress"),
+        ("run_attempt", 2),
+        ("path", ".github/workflows/fake-maintenance.yml"),
+    ):
+        candidate = dict(trusted)
+        candidate[field] = value
+        assert not verified(candidate), (field, value)
+    wrong_origin = dict(trusted, head_repository={"full_name": "attacker/fork"})
+    assert not verified(wrong_origin)
