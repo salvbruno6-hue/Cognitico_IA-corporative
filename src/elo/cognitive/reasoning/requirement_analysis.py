@@ -23,6 +23,7 @@ class RequirementState(StrEnum):
     INFERRED = "INFERRED"
     ASSUMPTION_REQUIRED = "ASSUMPTION_REQUIRED"
     CONFLICT = "CONFLICT"
+    BLOCKED = "BLOCKED"
     MISSING = "MISSING"
     GAP_CANDIDATE = "GAP_CANDIDATE"
     GAP_CONFIRMED = "GAP_CONFIRMED"
@@ -126,6 +127,7 @@ class RequirementNode:
     claims: tuple[RequirementClaim, ...] = ()
     dependencies: tuple[str, ...] = ()
     metadata: Mapping[str, str] = field(default_factory=dict)
+    requirement_dependencies: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.requirement_id or not self.text:
@@ -338,5 +340,6 @@ def audit_requirement(node: RequirementNode) -> Mapping[str, object]:
         ),
         "evidence_ids": evidence_ids,
         "dependencies": node.dependencies,
+        "requirement_dependencies": node.requirement_dependencies,
         "metadata": audit_metadata,
     }
