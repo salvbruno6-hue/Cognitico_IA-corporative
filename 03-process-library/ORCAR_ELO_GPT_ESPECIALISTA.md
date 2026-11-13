@@ -381,3 +381,27 @@ O Analista forneceu como **layout canônico** a planilha `PLANILHA DE ORÇAMENTO
 Na linha `I04-M02 / 2.2.2`, o basculante `ESQ006` foi marcado `NAO_APLICAVEL` como excedente, `quantidade=NULL` e `valor_unitario=NULL`, preservando código, histórico e decisão. **O componente padrão continua existindo no M02**; não removê-lo da solução física, não cobrar outro basculante e não inventar preço-base em função dessa correção. `I04-S04` segue como conferência das **demais** portas/janelas do padrão, sem reabrir o basculante já confirmado.
 
 **Governança/estado:** `contexto.analise_item_04_m02.tomadas` indica 3 padrão + 3 adicionais = 6, com origem da confirmação do Analista, e `contexto.analise_item_04_m02.esquadrias` marca `basculante_sanitario_incluso_no_padrao=true`. `contexto.sequencia_modelos_orcamento.itens` mantém cinco equipamentos, M05 padrão aceito **configuracionalmente** sem preço homologado e M02 ativo em `EM_ANALISE_TECNICA`. `CAD-05=EM_ANALISE` e `CAD-06=BLOQUEADA`. Persistem GAP de custo-base M02 nulo, kit hidrossanitário nominal sem `kit_itens`, pé-direito interno, demais esquadrias, circuitos e projeto. Não gerar novo Excel por esta correção isolada; preservar Planilha BASE MESTRE A:H na apresentação. Esta é evidência contextual, não mudança no Core ou aprovação da venda.
+
+
+### SO 233.26 item 05 — M01: uma janela substituída por basculante e três tomadas adicionais (13/11/2026)
+
+**Decisão expressa do Analista (13/11/2026) e escopo:** último modelo físico da SO, `05 — MLT.M01 Habitável`, terá **1 basculante**. O M01 padrão possui **2 janelas**, das quais uma permanece e a outra é **substituída pelo basculante**, abatendo o custo da janela original; também terá **+3 tomadas 10A**, além das três no padrão, para totalizar seis. Não converter a substituição em terceira esquadria nem somar ambas as janelas originais com uma basculante.
+
+**Fontes reais consultadas:**
+- `public.vw_kit_montagem_m01_completo`: 2 × `PEND-M01-019` *JANELA SALOMÃO 900×1200*; `public.lista_mae` código PEND-M01-019 ativo, descrição *PAINEL JANELA 900X1200MM*, **R$1.325,72/un**. A `PEND-M01-020` *janela ar-condicionado 410×690* é OUTRA linha do kit, não foi confundida com as duas janelas objeto da troca.
+- `public.lista_mae`: `ESQ006` janela basculante alumínio **600×600 mm**, **R$162,50/pç**, **candidata à basculante especificada**, ainda sujeita à conferência de vidro/dimensões/encaixe. Uma peça.
+- `public.excedentes`: `EXC-011` adição de tomada simples 10 A em circuito existente **R$95,65/un**, `inclui_mao_obra=true`. Três unidades = R$286,95, **sem mão de obra elétrica duplicada**.
+- `public.modelos` contém código `M01`, Habitacional Amplo 20 pés, `valor_total=R$28.500`, mas não se comprovou a natureza custo/preço de venda nem a correspondência direta ao registro `MLT.M01` da sequência; **não aplicar esse valor como custo-base ou como venda homologada** sem conciliar cadastro e escopo.
+
+**Memória de substituição, só referencial:**
+```text
+Crédito da 1 janela original PEND-M01-019:   -R$ 1.325,72
+1 basculante ESQ006:                          +R$   162,50
+3 tomadas adicionais EXC-011:                 +R$   286,95
+Δ referencial sobre M01 padrão:               -R$   876,27
+```
+É **ajuste incremental**, não custo total nem preço de venda. O preço do PEND-M01-019 se refere a um **painel janela completo**, e o do ESQ006 a **peça basculante avulsa**; a diferença só é financeiramente aplicável após validar se o painel original está no preço-base e se a troca exige obra, vedação, estrutura/instalação. Não fabricar homologação ou tratar equivalência como comprovada.
+
+**Persistência e restrições do Supabase:** `public.elo_orcamento_composicao_itens` aceita quantidades e unitários **não negativos**, e `valor_parcial` é calculado. Para não registrar crédito como compra positiva nem inventar valor negativo na coluna gerada, linha `I05-M01` mantém **PEND-M01-019**, unitário R$1.325,72 **visível**, status `NAO_APLICAVEL` e quantidade/parcial nulos; o **crédito −R$1.325,72** com quantidade 1 está em `public.elo_orcamentos.contexto.analise_item_05_m01.delta_credito_janela`. Linha `I05-M02` registra 1 ESQ006 R$162,50, e `I05-M03` 3 EXC-011 R$95,65 cada, gerando R$286,95. `I05-S01` documenta serviço de troca estrutural sem preço e `I05-S02` está `NAO_APLICAVEL` como instalação separada já incluída no EXC. Soma dos parciais positivos gerados = R$449,45, **não confundir** com o ajuste líquido −R$876,27 do contexto. Nenhuma linha `APLICADO`.
+
+**Fluxo:** `sequencia_modelos_orcamento.indice_atual=5` e item físico M01 agora `EM_ANALISE_TECNICA`; M05 permanece padrão aceito somente quanto à configuração, M02 contém 3 tomadas adicionais e basculante sanitário incluso, depósito Dry segue distinto do Dry de 6m. `CAD-05 EM_ANALISE`, `CAD-06 BLOQUEADA` e `CAD-10/11` não liberam preço final. Exigir validação de demais portas, luminárias, ar-condicionado, altura interna e preço-base, sem promover experiência ao Core. Preservar planilha canônica BASE MESTRE A:H, **não gerar Excel sem solicitação explícita**.
