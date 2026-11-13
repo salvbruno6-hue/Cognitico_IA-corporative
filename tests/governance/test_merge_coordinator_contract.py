@@ -505,3 +505,50 @@ def test_maintenance_requires_other_required_checks_to_pass_but_excludes_own_run
     assert "external_required_checks" in publish
     assert "check.get('bucket') == 'pass'" in publish
     assert "bool(external_required_checks)" in publish
+
+
+def test_maintenance_attestation_uses_trusted_base_branch_workflow_only():
+    """A candidate pull_request workflow may not fabricate an approval artifact."""
+    data = yaml.safe_load(MAINTENANCE_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = data.get("on") or data.get(True)
+    assert "pull_request_target" in triggers
+    assert "pull_request" not in triggers
+    # Reviews use the PR merge workflow definition; rely on a subsequent
+    # governed PR label/synchronize event rather than executing untrusted code.
+    assert "pull_request_review" not in triggers
+    checkout = [
+        step for step in data["jobs"]["audit"]["steps"]
+        if step.get("name") == "Checkout canonical repository"
+    ]
+    assert len(checkout) == 1
+    assert checkout[0]["uses"] == "actions/checkout@v4"
+    assert checkout[0].get("with", {}).get("persist-credentials") is False
+    assert "ref" not in checkout[0].get("with", {})
+    assert "gh pr checkout" not in MAINTENANCE_WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_maintenance_consumer_rejects_successful_untrusted_pr_artifacts():
+    verifier = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for token in (
+        '.event == "pull_request_target"',
+        '.head_branch == "main"',
+        '.head_repository.full_name == $repo',
+        '.path == ".github/workflows/elo-maintenance-coordinator.yml"',
+        '.status == "completed"',
+        '.conclusion == "success"',
+        '.run_attempt == $attempt',
+        '.schema == "elo.maintenance-decision.v2"',
+        '.resource_id == $resource',
+    ):
+        assert token in verifier
+    # Never accept successful pull_request runs merely because their run and
+    # artifact names match the trusted Maintenance contract.
+    assert '.event == "pull_request"' not in verifier
+
+
+def test_governed_merge_is_atomic_to_the_evidenced_head_sha():
+    merge = _shell_step(WORKFLOW, "Execute governed squash merge")
+    assert 'jq -e --arg sha "$HEAD_SHA"' in merge
+    assert 'gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --match-head-commit "$HEAD_SHA"' in merge
+    assert "--admin" not in merge
+    assert "--auto" not in merge
