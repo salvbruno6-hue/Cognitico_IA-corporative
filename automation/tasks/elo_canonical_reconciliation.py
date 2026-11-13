@@ -8,6 +8,24 @@ from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
+CI_VALIDATION_WORKFLOWS = {
+    ".github/workflows/elo-pr1-validation.yml",
+    ".github/workflows/elo-behavioral-validation.yml",
+    ".github/workflows/elo-evolution-gate.yml",
+}
+CI_VALIDATION_ALLOWED_PATHS = CI_VALIDATION_WORKFLOWS | {
+    "docs/implementation/ELO_PERF_01_CI_EVIDENCE_REUSE_20261112.md",
+    "tests/governance/test_perf01_ci_scope.py",
+    "automation/tasks/elo_canonical_reconciliation.py",
+    "tests/governance/test_elo_canonical_reconciliation.py",
+    CANONICAL_STRUCTURE_MAP,
+}
+CI_VALIDATION_OWNER_ROW = (
+    "| `.github/workflows/elo-pr1-validation.yml`, "
+    "`.github/workflows/elo-behavioral-validation.yml`, "
+    "`.github/workflows/elo-evolution-gate.yml` | ELO Governance / CI Validation |"
+)
+
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
@@ -150,6 +168,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
 
     source_of_truth = owners[0] if owners else None
     canonical_identity = next(iter(changed_stems)) if owners and len(changed_stems) == 1 else None
+    decision_override: str | None = None
     structure_map = root / CANONICAL_STRUCTURE_MAP
 
     if changed_in_runtime and structure_map.is_file() and not owner_evidence:
@@ -165,6 +184,37 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
 
+    # PERF-01 strengthens existing CI workflows; it does not authorize new gates.
+    # Exact-path scope and an explicit canonical owner row are mandatory.
+    ci_validation_scoped = (
+        bool(changed_normalised.intersection(CI_VALIDATION_WORKFLOWS))
+        and changed_normalised.issubset(CI_VALIDATION_ALLOWED_PATHS)
+    )
+    if ci_validation_scoped and structure_map.is_file():
+        try:
+            map_text = structure_map.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            map_text = ""
+        ci_owner_declared = (
+            any(line.startswith(CI_VALIDATION_OWNER_ROW) for line in map_text.splitlines())
+            and all((root / workflow).is_file() for workflow in CI_VALIDATION_WORKFLOWS)
+        )
+        if ci_owner_declared:
+            source_of_truth = CANONICAL_STRUCTURE_MAP
+            canonical_identity = "elo-ci-validation"
+            if duplicate is True:
+                reasons.append("CI owner is declared, but a proven duplicate/parallel blocker remains")
+            elif candidates:
+                # Existing workflow ownership does not disprove a potentially
+                # equivalent executable implementation. Preserve uncertainty.
+                reasons.append(
+                    "CI owner is declared, but executable candidates remain unresolved"
+                )
+            else:
+                duplicate = False
+                decision_override = "STRENGTHEN"
+                reasons = ["Existing CI validation workflows are explicitly owned by the repository canonical map"]
+
     frontend_changed = any(p.startswith("frontend/") for p in changed_normalised)
     if frontend_changed and owners and not candidates and not maintenance_changed:
         source_of_truth = owners[0]
@@ -173,7 +223,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = decision_override or ("REUSE" if complete and duplicate else "CREATE" if complete else None)
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
