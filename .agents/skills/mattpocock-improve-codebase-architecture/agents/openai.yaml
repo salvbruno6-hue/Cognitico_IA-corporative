@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-improve-codebase-architecture"
+  short_description: "Manual ELO-governed source for improve-codebase-architecture."
+policy:
+  allow_implicit_invocation: false

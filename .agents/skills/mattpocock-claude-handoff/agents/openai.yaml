@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-claude-handoff"
+  short_description: "Manual ELO-governed source for claude-handoff."
+policy:
+  allow_implicit_invocation: false

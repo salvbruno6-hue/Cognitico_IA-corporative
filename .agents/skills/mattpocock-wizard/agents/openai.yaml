@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-wizard"
+  short_description: "Manual ELO-governed source for wizard."
+policy:
+  allow_implicit_invocation: false

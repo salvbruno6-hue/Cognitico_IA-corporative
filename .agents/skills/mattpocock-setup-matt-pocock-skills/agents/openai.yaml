@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-setup-matt-pocock-skills"
+  short_description: "Manual ELO-governed source for setup-matt-pocock-skills."
+policy:
+  allow_implicit_invocation: false

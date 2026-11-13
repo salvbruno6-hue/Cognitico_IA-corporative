@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-to-tickets"
+  short_description: "Manual ELO-governed source for to-tickets."
+policy:
+  allow_implicit_invocation: false

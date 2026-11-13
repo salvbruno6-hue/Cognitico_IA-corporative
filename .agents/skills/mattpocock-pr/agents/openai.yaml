@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-pr"
+  short_description: "Manual ELO-governed source for pr."
+policy:
+  allow_implicit_invocation: false

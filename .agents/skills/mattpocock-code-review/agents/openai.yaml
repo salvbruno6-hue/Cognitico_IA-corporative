@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-code-review"
+  short_description: "Manual ELO-governed source for code-review."
+policy:
+  allow_implicit_invocation: false
