@@ -29,8 +29,6 @@ AUTHZ_KNOWN_DISTINCT_CONSUMERS = frozenset({
 # .github/ trees: either may contain executable code capable of issuing grants.
 AUTHZ_REVIEWED_NON_ISSUER_PATHS = frozenset({
     "automation/tasks/elo_canonical_reconciliation.py",  # own regex definitions
-    ".github/workflows/elo-agent-loop.yml",  # read-only grant consumer
-    ".github/workflows/elo-merge-coordinator.yml",  # read-only grant consumer
 })
 
 
@@ -42,6 +40,15 @@ AUTHZ_DIRECT_WRITE_SIGNATURES = (
         r"""\.from\(\s*['"](?:public\.)?elo_authorization_grants['"]\s*\)[\s\S]{0,240}?\.(?:insert|upsert)\s*\(""",
         re.IGNORECASE,
     ),
+)
+
+
+# YAML workflows may legitimately READ /rest/v1/elo_authorization_grants.
+# Unlike TS/Python source, reject the endpoint only when a write verb is
+# present close to the same operation; a mere GET is not an alternate issuer.
+AUTHZ_WORKFLOW_REST_WRITE = re.compile(
+    r"(?is)(?:\b(?:POST|PUT|PATCH)\b.{0,120}?/rest/v1/elo_authorization_grants"
+    r"|/rest/v1/elo_authorization_grants.{0,160}?\b(?:POST|PUT|PATCH)\b)"
 )
 
 
@@ -64,7 +71,18 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
             content = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if any(signature.search(content) for signature in AUTHZ_DIRECT_WRITE_SIGNATURES):
+        if path.suffix.lower() in {".yml", ".yaml"}:
+            # The two known Agent/Merge workflows are read-only consumers, but
+            # they are still inspected; grant-writing edits must fail closed.
+            direct_write = (
+                any(sig.search(content) for sig in AUTHZ_DIRECT_WRITE_SIGNATURES[1:])
+                or AUTHZ_WORKFLOW_REST_WRITE.search(content) is not None
+            )
+        else:
+            direct_write = any(
+                signature.search(content) for signature in AUTHZ_DIRECT_WRITE_SIGNATURES
+            )
+        if direct_write:
             unreviewed.add(relative)
     return unreviewed
 
