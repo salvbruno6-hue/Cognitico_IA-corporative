@@ -316,6 +316,45 @@ def test_authz_scope_rejects_unknown_owner_map(tmp_path: Path) -> None:
     assert evidence.waiting_for_evidence
 
 
+def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
+    """Actual Maintenance terms are filenames; they must not hide another issuer."""
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / "providers/parallel_authz.ts"
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(
+        'export async function issue() { return fetch("/rest/v1/elo_authorization_grants", '
+        '{method:"POST"}); }\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert "providers/parallel_authz.ts" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.decision != "STRENGTHEN"
+    assert event_facts(evidence)["contract_conflict"] is None
+
+
+def test_authz_scope_finds_unreviewed_sql_grant_writer(tmp_path: Path) -> None:
+    """A differently named SQL source cannot issue grants outside the owner."""
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / "sql/another_writer.sql"
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(
+        "INSERT INTO public.elo_authorization_grants (grant_id) VALUES (gen_random_uuid());\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    assert "sql/another_writer.sql" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
 def test_authz_scope_rejects_unresolved_executable_candidate_without_owner(tmp_path: Path) -> None:
     """P2 regression: a candidate needs investigation even without owner claim."""
     _make_existing_authz_owner(tmp_path)
