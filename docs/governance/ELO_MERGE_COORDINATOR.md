@@ -173,6 +173,32 @@ Por isso:
   a operação GitHub governada;
 - nenhum dado retornado pela PR pode criar ou alterar uma autorização.
 
+### Proveniência confiável do Maintenance e atomicidade do merge
+
+A definição do `elo-maintenance-coordinator.yml` que produz
+`elo.maintenance-decision.v2` deve executar a partir do branch-base
+confiável via `pull_request_target`; um evento `pull_request` ou
+`pull_request_review` executado a partir do merge commit de uma PR
+não é fonte autorizada de aprovação, mesmo que seu run esteja marcado
+`success`. A coleta de dados da PR permanece somente leitura, sem
+checkout/execução do código candidato, e o artefato aponta para
+`pr:<numero>@<SHA>`. Após uma revisão, a reavaliação imediata
+pode ser acionada por um evento de label governado; ausência de uma
+nova execução não autoriza reutilizar prova incompatível.
+
+O Merge Coordinator valida no GitHub o evento, repositório, branch,
+workflow path, conclusão e tentativa da execução que publicou a prova,
+além de conferir o artefato vinculado à PR e ao head SHA. Provas de
+`pull_request` não são aceitas. A versão da workflow em `main`
+anterior a esta alteração não pode certificar retroativamente a
+própria PR que introduz a verificação: aplicar bootstrap governado
+explícito e registrar GAP até existir evidência realmente confiável.
+
+Na integração, após reconsultar os gates, o executor usa
+`gh pr merge --squash --match-head-commit "$HEAD_SHA"` para
+impedir troca de head entre validação e commit do merge.
+Sem autorização escopada ativa e sem gate válido, **não há merge**.
+
 ## 10. Estados operacionais
 
 O coordinator deve produzir estados observáveis, pelo menos:
