@@ -113,7 +113,7 @@ def test_grant_lookup_is_bound_to_active_elo_session() -> None:
     assert '.is("revoked_at",null)' in lookup
     assert 'metadataResourceId===resourceId' in resolver
     assert 'metadataTenantId===tenantId' in resolver
-    assert "issued<=now&&expires>now" in resolver
+    assert "issued<=verifiedAt&&expires>verifiedAt" in resolver
     assert 'reason:"authorization_state_not_granted"' in resolver
 
 
@@ -178,6 +178,8 @@ def test_grant_resolver_behavior_with_isolated_supabase() -> None:
     harness = r"""
 const assert = require("node:assert/strict");
 const now = Date.now();
+let virtualNow=now, grantAdvanceMs=0, bindingAdvanceMs=0;
+Date.now=()=>virtualNow;
 const base = {
   grant_id:"grant1", binding_id:"binding1", identity_id:"identityA",
   session_id:"sessionA", authorization_state:"elo-execution-authorized",
@@ -223,11 +225,19 @@ class Query {
   }
   limit(n) {
     const error = dbErrors[this.name] || null;
-    return Promise.resolve({data:error?null:this._rows().slice(0,n),error});
+    const data=error?null:this._rows().slice(0,n);
+    if(this.name==="elo_authorization_grants") {
+      virtualNow+=grantAdvanceMs; grantAdvanceMs=0;
+    }
+    return Promise.resolve({data,error});
   }
   maybeSingle() {
     const error = dbErrors[this.name] || null;
-    return Promise.resolve({data:error?null:(this._rows()[0]||null),error});
+    const data=error?null:(this._rows()[0]||null);
+    if(this.name==="elo_operator_github_bindings") {
+      virtualNow+=bindingAdvanceMs; bindingAdvanceMs=0;
+    }
+    return Promise.resolve({data,error});
   }
 }
 const supabase = {from:(name)=>new Query(name)};
@@ -235,6 +245,9 @@ function isObjectiveContinuation(operation) {
   return operation.startsWith("continue_objective:");
 }
 async function check(label, config={},expected=null) {
+  virtualNow=now;
+  grantAdvanceMs=config.grantAdvanceMs||0;
+  bindingAdvanceMs=config.bindingAdvanceMs||0;
   tables = {
     elo_authorization_grants:config.noGrant ? [] : (config.grants || [{
       ...base,...(config.grant||{})
@@ -329,7 +342,15 @@ async function check(label, config={},expected=null) {
   await check("lookup failure",{errors:{elo_authorization_grants:{message:"db"}}},"authorization_grant_lookup_failed");
   await check("binding lookup failure",{errors:{elo_operator_github_bindings:{message:"db"}}},"operator_binding_lookup_failed");
   await check("unsupported state",{args:{state:"unknown"}},"authorization_state_not_supported");
-  process.stdout.write("27 grant resolver behavior cases passed\n");
+  await check("grant expires while grant query is in flight",{
+    grant:{expires_at:new Date(now+100).toISOString()},
+    grantAdvanceMs:200
+  },denied);
+  await check("grant expires while binding lookup is in flight",{
+    grant:{expires_at:new Date(now+100).toISOString()},
+    bindingAdvanceMs:200
+  },denied);
+  process.stdout.write("29 grant resolver behavior cases passed\n");
 })().catch(error=>{console.error(error);process.exitCode=1});
 """
     result = subprocess.run(
@@ -340,7 +361,7 @@ async function check(label, config={},expected=null) {
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
-    assert "27 grant resolver behavior cases passed" in result.stdout
+    assert "29 grant resolver behavior cases passed" in result.stdout
 
 
 def test_grant_issuance_behavior_with_isolated_supabase() -> None:
@@ -543,7 +564,7 @@ def test_active_session_lookup_filters_time_before_limit() -> None:
     ):
         assert requirement in lookup
     assert lookup.index('.gt("expires_at", nowISO)') < lookup.index(".limit(10)")
-    assert "Number.isFinite(i)&&Number.isFinite(e)&&i<=now&&e>now" in resolver
+    assert "Number.isFinite(i)&&Number.isFinite(e)&&i<=verifiedAt&&e>verifiedAt" in resolver
 
 
 def test_active_session_lookup_behavior_with_isolated_supabase() -> None:
@@ -566,6 +587,8 @@ def test_active_session_lookup_behavior_with_isolated_supabase() -> None:
     harness = r"""
 const assert = require("node:assert/strict");
 const now=Date.now();
+let virtualNow=now,queryAdvanceMs=0;
+Date.now=()=>virtualNow;
 const iso = offset => new Date(now+offset).toISOString();
 const base = {
   session_id:"valid",identity_id:"owner",
@@ -595,7 +618,10 @@ class Query {
         ? String(a[key]).localeCompare(String(b[key]))
         : String(b[key]).localeCompare(String(a[key])));
     }
-    return Promise.resolve({data:filtered.slice(0,n),error:null});
+    const data=filtered.slice(0,n);
+    virtualNow+=queryAdvanceMs;
+    queryAdvanceMs=0;
+    return Promise.resolve({data,error:null});
   }
 }
 const supabase={from:(table)=>{
@@ -603,7 +629,7 @@ const supabase={from:(table)=>{
   return new Query();
 }};
 async function check(label,data,expectedSession=null,expectedReason=null,identity="owner"){
-  rows=data;fail=false;
+  rows=data;fail=false;virtualNow=now;queryAdvanceMs=0;
   const r=await resolveActiveSession(identity);
   if(expectedSession!==null){
     assert.equal(r.ok,true,label+": "+JSON.stringify(r));
@@ -643,7 +669,12 @@ async function check(label,data,expectedSession=null,expectedReason=null,identit
   const rejected=await resolveActiveSession("owner");
   assert.equal(rejected.ok,false);
   assert.equal(rejected.reason,"session_lookup_failed");
-  process.stdout.write("10 active session resolver behavior cases passed\n");
+  virtualNow=now;queryAdvanceMs=200;fail=false;
+  rows=[{...base,session_id:"expires-in-flight",expires_at:iso(100)}];
+  const midQueryExpiry=await resolveActiveSession("owner");
+  assert.equal(midQueryExpiry.ok,false);
+  assert.equal(midQueryExpiry.reason,"active_elo_session_required");
+  process.stdout.write("11 active session resolver behavior cases passed\n");
 })().catch(e=>{console.error(e);process.exitCode=1});
 """
     result = subprocess.run(
@@ -654,4 +685,4 @@ async function check(label,data,expectedSession=null,expectedReason=null,identit
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
-    assert "10 active session resolver behavior cases passed" in result.stdout
+    assert "11 active session resolver behavior cases passed" in result.stdout
