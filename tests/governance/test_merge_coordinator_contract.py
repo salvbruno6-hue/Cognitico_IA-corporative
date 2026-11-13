@@ -611,3 +611,97 @@ def test_maintenance_run_provenance_filter_rejects_untrusted_successful_run():
         assert not verified(candidate), (field, value)
     wrong_origin = dict(trusted, head_repository={"full_name": "attacker/fork"})
     assert not verified(wrong_origin)
+
+
+def test_maintenance_completion_resolves_trusted_target_from_bound_artifact():
+    """A trusted base-branch Maintenance run must not be mistaken for the PR SHA."""
+    script = _shell_step(WORKFLOW, "Resolve PR from completed workflow")
+    start = script.index('if [[ "$run_name" == "ELO Maintenance Coordinator" ]]')
+    end = script.index('event_pr="$(jq -r', start)
+    resolver = script[start:end]
+    for part in (
+        '.event == "pull_request_target"',
+        '.head_branch == "main"',
+        '.head_repository.full_name == $repo',
+        '.repository.full_name == $repo',
+        '.status == "completed"',
+        '.conclusion == "success"',
+        '.run_attempt == $attempt',
+        'elo-maintenance-audit-${WORKFLOW_RUN_ID}-${run_attempt}',
+        'gh run download "$WORKFLOW_RUN_ID"',
+        '.schema == "elo.maintenance-decision.v2"',
+        '.decision == "APPROVED_FOR_MERGE"',
+        '.run_id == $run',
+        '.run_attempt == $attempt',
+        '.resource_id == ("pr:" + (.pr|tostring) + "@" + .head_sha)',
+        '.canonical_reconciliation.reuse_analysis_complete == true',
+        '.canonical_reconciliation.duplicate_or_parallel == false',
+        'number="$(jq -r \'.pr\' "$evidence")"',
+        'sha="$(jq -r \'.head_sha\' "$evidence")"',
+    ):
+        assert part in resolver
+    assert script.index('if [[ "$run_name" == "ELO Maintenance Coordinator" ]]') < script.index('event_pr="$(jq -r')
+    assert 'sha=$EVENT_HEAD_SHA' not in resolver
+
+
+def test_maintenance_completion_artifact_filter_rejects_bad_scope_and_decisions():
+    """Execute the exact verifier jq expression, including its binding checks."""
+    import json
+    import shutil
+    import subprocess
+
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq is required for jq behavior testing")
+
+    script = _shell_step(WORKFLOW, "Resolve PR from completed workflow")
+    start = script.index('if [[ "$run_name" == "ELO Maintenance Coordinator" ]]')
+    fragment = script[start:script.index('event_pr="$(jq -r', start)]
+    marker = '''jq -e --argjson run "$WORKFLOW_RUN_ID" --argjson attempt "$run_attempt" '\n'''
+    begin = fragment.index(marker) + len(marker)
+    end = fragment.index("' \"$evidence\" >/dev/null", begin)
+    expression = fragment[begin:end].strip()
+
+    sha = "a" * 40
+    good = {
+        "schema": "elo.maintenance-decision.v2",
+        "run_id": 12345,
+        "run_attempt": 2,
+        "decision": "APPROVED_FOR_MERGE",
+        "pr": 1177,
+        "head_sha": sha,
+        "resource_id": "pr:1177@" + sha,
+        "canonical_reconciliation": {
+            "reuse_analysis_complete": True,
+            "duplicate_or_parallel": False,
+            "source_of_truth": "10-adr/ADR-0020-end-to-end-cycle.md",
+        },
+    }
+    def accepted(payload):
+        proc = subprocess.run(
+            ["jq", "-e", "--argjson", "run", "12345",
+             "--argjson", "attempt", "2", expression],
+            input=json.dumps(payload), capture_output=True, text=True, check=False,
+        )
+        return proc.returncode == 0
+
+    assert accepted(good)
+    for key, value in (
+        ("schema", "elo.fake"),
+        ("run_id", 999),
+        ("run_attempt", 1),
+        ("decision", "READY_FOR_ELO_DECISION"),
+        ("pr", 0),
+        ("head_sha", "a" * 39),
+        ("resource_id", "pr:1177@" + "b"*40),
+    ):
+        bad = dict(good, **{key: value})
+        assert not accepted(bad), (key, value)
+    for key, value in (
+        ("reuse_analysis_complete", False),
+        ("duplicate_or_parallel", True),
+        ("source_of_truth", None),
+    ):
+        bad = dict(good, canonical_reconciliation={**good["canonical_reconciliation"], key: value})
+        assert not accepted(bad), (key, value)
