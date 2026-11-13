@@ -25,6 +25,15 @@ AUTHZ_KNOWN_DISTINCT_CONSUMERS = frozenset({
 # derives concept_terms from changed filenames (often just "index"), which
 # cannot be trusted to discover an unreviewed parallel issuer with another name.
 # This scan is additional evidence, not a second authorization authority.
+# Exact existing non-issuers. Never exempt the entire automation/ or
+# .github/ trees: either may contain executable code capable of issuing grants.
+AUTHZ_REVIEWED_NON_ISSUER_PATHS = frozenset({
+    "automation/tasks/elo_canonical_reconciliation.py",  # own regex definitions
+    ".github/workflows/elo-agent-loop.yml",  # read-only grant consumer
+    ".github/workflows/elo-merge-coordinator.yml",  # read-only grant consumer
+})
+
+
 AUTHZ_DIRECT_WRITE_SIGNATURES = (
     re.compile(r"/rest/v1/elo_authorization_grants", re.IGNORECASE),
     re.compile(r"\binsert\s+into\s+(?:public\.)?elo_authorization_grants\b", re.IGNORECASE),
@@ -41,12 +50,15 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
     unreviewed: set[str] = set()
     for path in source_files:
         relative = str(path.relative_to(root)).replace("\\", "/")
-        if relative in AUTHZ_GOVERNED_PATHS:
+        if relative in AUTHZ_GOVERNED_PATHS or relative in AUTHZ_REVIEWED_NON_ISSUER_PATHS:
             continue
-        # Never promote test mocks, docs or reconciler implementation as issuers.
-        if relative.startswith(("tests/", "docs/", ".github/", "automation/")):
+        # Test fixtures and documentation are not authorization runtimes;
+        # executable automation and workflow paths MUST still be inspected.
+        if relative.startswith(("tests/", "docs/")):
             continue
-        if path.suffix.lower() not in {".py", ".ts", ".tsx", ".js", ".jsx", ".sql"}:
+        if path.suffix.lower() not in {
+            ".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml",
+        }:
             continue
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
