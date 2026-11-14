@@ -689,3 +689,29 @@ def test_authz_owner_reconciles_real_pr1173_paths_in_repository() -> None:
     assert evidence.canonical_identity == "elo-authz"
     assert evidence.duplicate_or_parallel is False
     assert evidence.decision == "STRENGTHEN"
+
+
+def test_authz_scope_rejects_nested_shell_curl_writer(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/nested-writer.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\\n  - run: echo "$(curl -X POST "$URL/rest/v1/elo_authorization_grants")"\\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert ".github/workflows/nested-writer.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+
+
+def test_authz_scope_rejects_multiline_python_http_writer(tmp_path: Path) -> None:
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / "automation/tasks/hidden_writer.py"
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(
+        'import requests\\nrequests.post(\\n  "/rest/v1/elo_authorization_grants",\\n  json={}\\n)\\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert "automation/tasks/hidden_writer.py" in evidence.candidates
+    assert evidence.waiting_for_evidence
