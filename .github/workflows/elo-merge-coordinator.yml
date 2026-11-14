@@ -64,7 +64,7 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           set -euo pipefail
-          gh pr view "$PR_NUMBER" --repo "$REPOSITORY"             --json number,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,mergeStateStatus,reviewDecision,reviews,comments,statusCheckRollup > /tmp/pr.json
+          gh pr view "$PR_NUMBER" --repo "$REPOSITORY"             --json number,state,isDraft,baseRefName,headRefName,headRefOid,mergeable,mergeStateStatus,reviewDecision,reviews,author,comments,statusCheckRollup > /tmp/pr.json
           cat /tmp/pr.json
 
           jq -e '.state == "OPEN" and .isDraft == false and .baseRefName == "main"' /tmp/pr.json >/dev/null
