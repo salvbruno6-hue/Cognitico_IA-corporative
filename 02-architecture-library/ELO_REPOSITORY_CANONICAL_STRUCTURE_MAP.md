@@ -45,6 +45,7 @@ The physical directory is not itself authority. Authority is determined by:
 | `15-ativos/` | Assets | historical Portuguese assets | migration source; review before removal |
 | `Docs/` | Documentation | evolution/supporting docs | supporting only unless explicitly canonical |
 | `src/elo/` | Executable ELO | current implementation core | canonical executable root |
+| `supabase/functions/elo-authz/` | ELO Authorization | sole governed issuer and validator of execution/commit/merge grants; contract: `docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md`; persistence: `supabase/migrations/20260919220335_elo_operator_github_binding_runtime.sql` | canonical existing authorization boundary; not a second Core |
 | `tests/` | Verification | automated tests and behavioral evidence | canonical test root |
 
 ## Consolidation policy
