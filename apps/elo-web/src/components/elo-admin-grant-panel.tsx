@@ -29,7 +29,8 @@ export function ELOAdminGrantPanel({ accessToken }: { accessToken: string }) {
         resource_id: sha.toLowerCase(),
         expires_in_seconds: duration,
       });
-      setResult(`Grant emitido pelo elo-authz: ${response.grant_id ?? "ID indisponível"}; expira em ${response.expires_at ?? "horário não informado"}. A emissão não executa merge.`);
+      const issuedGrant = response.grant as { grant_id?: string; expires_at?: string } | undefined;
+      setResult(`Grant emitido pelo elo-authz: ${issuedGrant?.grant_id ?? "ID indisponível"}; expira em ${issuedGrant?.expires_at ?? "horário não informado"}. A emissão não executa merge.`);
       setConfirmed(false);
     } catch (error) {
       setResult(`Autorização recusada: ${error instanceof Error ? error.message : "erro desconhecido"}`);
