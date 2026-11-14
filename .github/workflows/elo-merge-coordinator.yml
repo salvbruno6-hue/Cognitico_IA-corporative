@@ -69,6 +69,7 @@ jobs:
 
           jq -e '.state == "OPEN" and .isDraft == false and .baseRefName == "main"' /tmp/pr.json >/dev/null
           jq -e --arg sha "${{ steps.pr.outputs.sha }}" '.headRefOid == $sha' /tmp/pr.json >/dev/null
+          jq -e '.reviewDecision == "APPROVED" and any(.reviews[]?; .state == "APPROVED" and .author.login != null)' /tmp/pr.json >/dev/null
 
           if jq -e '[.reviews[]? | select(.state == "CHANGES_REQUESTED")] | length > 0' /tmp/pr.json >/dev/null; then
             echo "Blocking review detected."
@@ -128,6 +129,7 @@ jobs:
         shell: bash
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           : "${SUPABASE_URL:?SUPABASE_URL secret is required}"
@@ -147,7 +149,7 @@ jobs:
             expires_epoch="$(date -u -d "$expires" +%s 2>/dev/null || true)"
             now_epoch="$(date -u +%s)"
             if [[ -n "$issued_epoch" && -n "$expires_epoch" ]] &&                (( issued_epoch <= now_epoch && now_epoch < expires_epoch )); then
-              if [[ "$(jq -r '.metadata.issuer_role // ""' <<<"$row")" == "CANONICAL_ADMIN" ]]; then
+              if jq -e --arg pr "$PR_NUMBER" --arg sha "$HEAD_SHA" '.metadata.issuer_role == "CANONICAL_ADMIN" and .metadata.resource_id == $sha and .operation == ("merge_pr:" + $pr + ":" + $sha)' <<<"$row" >/dev/null; then
                 valid_grant="$row"
                 break
               fi
@@ -181,7 +183,8 @@ jobs:
           set -euo pipefail
           pr_json="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,mergeable,mergeStateStatus,headRefOid,baseRefName)"
           jq -e '.state == "OPEN" and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
-          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --delete-branch=false
+          jq -e --arg sha "${{ steps.pr.outputs.sha }}" '.headRefOid == $sha' <<<"$pr_json" >/dev/null
+          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --delete-branch=false --match-head-commit "${{ steps.pr.outputs.sha }}"
 
       - name: Verify merge result
         if: steps.pr.outputs.number != ''
