@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { playELOSound, startELOAmbient } from '../eloSound';
 import './login.css';
@@ -59,10 +59,6 @@ export async function establishELOAuthorizationSession(session: Session) {
   return result.session_id;
 }
 
-async function revokeELOAuthorizationSession(session: Session) {
-  await callELOAuthz(session, 'revoke_session');
-}
-
 function GoogleIcon() {
   return (
     <svg className="elo-google-icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -85,125 +81,25 @@ function getOperationalWorkspaceUrl() {
 }
 
 
-export function ELOGoogleLogin({ children }: Props) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authorizationReady, setAuthorizationReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    void supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
-      if (!active) return;
-      if (sessionError) {
-        setError(sessionError.message);
-        setLoading(false);
-        return;
-      }
-
-      setSession(data.session);
-      if (!data.session) {
-        setAuthorizationReady(false);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        await establishELOAuthorizationSession(data.session);
-        if (active) setAuthorizationReady(true);
-      } catch (authorizationError) {
-        if (active) {
-          setAuthorizationReady(false);
-          setError(authorizationError instanceof Error ? authorizationError.message : 'Não foi possível estabelecer a sessão de autorização do ELO.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) return;
-      setSession(nextSession);
-      if (!nextSession) setAuthorizationReady(false);
-    });
-
-    return () => { active = false; data.subscription.unsubscribe(); };
-  }, []);
-
-  useEffect(() => {
-    if (!loading && session && authorizationReady) {
-      window.location.replace(`${getOperationalWorkspaceUrl()}?start=google`);
-    }
-  }, [loading, session, authorizationReady]);
-
-  async function signInWithGoogle() {
-    setError(null);
+/** Pages is the public entry; OAuth/session authority runs on the ELO Web origin.
+ * Do not forward tokens or rely on origin-isolated browser storage.
+ * The Pages callback remains available for the separate OAuth consent route.
+ */
+export function ELOGoogleLogin(_props: Props) {
+  function openWorkspace() {
     startELOAmbient();
     playELOSound('click');
-
-    window.location.replace(`${getOperationalWorkspaceUrl()}?start=google`);
-  }
-
-  async function signOut() {
-    setError(null);
-    try {
-      if (session) await revokeELOAuthorizationSession(session);
-    } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : 'Não foi possível revogar a sessão de autorização do ELO.');
-      return;
-    }
-
-    const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) setError(signOutError.message);
-    else {
-      setAuthorizationReady(false);
-      setSession(null);
-    }
-  }
-
-  if (loading) return <div role="status" className="elo-loading">Verificando sessão…</div>;
-
-  if (session && !authorizationReady) {
-    return (
-      <main data-elo-auth="authorization-error" className="elo-setup-page">
-        <section className="elo-login-panel elo-setup-panel">
-          <div className="elo-login-content">
-            <ELOLogo />
-            <span className="elo-setup-kicker">AUTORIZAÇÃO ELO</span>
-            <h1>Acesso não estabelecido</h1>
-            <p className="elo-setup-lead">A autenticação Google/Supabase foi concluída, mas a sessão de autorização do ELO não pôde ser estabelecida.</p>
-            {error && <p className="elo-login-error" role="alert">{error}</p>}
-            <button className="elo-setup-secondary" type="button" onClick={() => window.location.reload()}>Tentar novamente</button>
-            <button className="elo-setup-signout" type="button" onClick={signOut}>Sair</button>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (session && authorizationReady) {
-    return (
-      <main data-elo-auth="handoff" className="elo-setup-page">
-        <section className="elo-login-panel elo-setup-panel">
-          <div className="elo-login-content">
-            <ELOLogo />
-            <span className="elo-setup-kicker">WORKSPACE OPERACIONAL</span>
-            <h1>Abrindo o ELO…</h1>
-            <p className="elo-setup-lead">Autenticação Google e autorização ELO concluídas. Transferindo a sessão para o workspace operacional.</p>
-          </div>
-        </section>
-      </main>
-    );
+    window.location.assign(`${getOperationalWorkspaceUrl()}/?start=google`);
   }
 
   return (
     <main data-elo-auth="login" aria-labelledby="elo-login-title">
       <section className="elo-login-panel"><div className="elo-login-content">
         <ELOLogo /><h1 id="elo-login-title">Entrar no ELO</h1>
-        <button className="elo-google-button" type="button" onClick={signInWithGoogle} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') startELOAmbient(); }}><GoogleIcon /><span>Continuar com Google</span></button>
-        <p className="elo-login-description">Use sua conta Google para acessar o ELO.</p>
-        {error && <p className="elo-login-error" role="alert">Não foi possível iniciar o login: {error}</p>}
+        <button className="elo-google-button" type="button" onClick={openWorkspace}>
+          <GoogleIcon /><span>Continuar com Google</span>
+        </button>
+        <p className="elo-login-description">A autenticação e o Workspace operacional são concluídos no ELO Web.</p>
       </div></section>
     </main>
   );
