@@ -50,6 +50,12 @@ AUTHZ_WORKFLOW_REST_WRITE = re.compile(
     r"(?is)(?:\b(?:POST|PUT|PATCH|DELETE)\b.{0,120}?/rest/v1/elo_authorization_grants"
     r"|/rest/v1/elo_authorization_grants.{0,160}?\b(?:POST|PUT|PATCH|DELETE)\b)"
 )
+# Conservatively recognize multiline Python HTTP clients and nested shell calls.
+# An unreviewed candidate blocks reconciliation; this does not authorize writes.
+AUTHZ_PYTHON_REST_WRITE = re.compile(
+    r"""(?is)\\b(?:requests|httpx)\\s*\\.\\s*(?:post|put|patch|delete)\\s*\\([\\s\\S]{0,600}?/rest/v1/elo_authorization_grants"""
+)
+AUTHZ_SHELL_SUBSTITUTION = re.compile(r"\\$\\(\\s*(?:[^\\n)]*?\\b)?curl\\b", re.IGNORECASE)
 AUTHZ_GRANT_REST_ENDPOINT = "/rest/v1/elo_authorization_grants"
 AUTHZ_CURL_BODY_OPTIONS = (
     "--data", "--form", "--json", "--upload-file",
@@ -102,6 +108,13 @@ def _workflow_has_curl_grant_write(content: str) -> bool:
         pending = ""
     if pending:
         logical_lines.append(pending)
+
+    # A nested command substitution may not tokenize as a bare `curl`.
+    # Fail closed when a grant endpoint occurs in a nested curl invocation
+    # with a non-GET method or body, even if the outer command is read-only.
+    if AUTHZ_SHELL_SUBSTITUTION.search(content) and AUTHZ_GRANT_REST_ENDPOINT in content.lower():
+        if re.search(r"(?is)\\$\\([^\\n]{0,600}?\\bcurl\\b[^\\n]{0,600}?(?:-X\\s*(?:POST|PUT|PATCH|DELETE)|--request(?:=|\\s+)(?:POST|PUT|PATCH|DELETE)|--data|\\s-d(?:\\s|[\'\"])|--json)", content):
+            return True
 
     for line in logical_lines:
         if AUTHZ_GRANT_REST_ENDPOINT not in line.lower():
@@ -166,9 +179,10 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
             direct_write = (
                 any(sig.search(content) for sig in AUTHZ_DIRECT_WRITE_SIGNATURES[1:])
                 or _workflow_has_curl_grant_write(content)
+                or bool(AUTHZ_PYTHON_REST_WRITE.search(content))
             )
         else:
-            direct_write = any(
+            direct_write = bool(AUTHZ_PYTHON_REST_WRITE.search(content)) or any(
                 signature.search(content) for signature in AUTHZ_DIRECT_WRITE_SIGNATURES
             )
         if direct_write:
