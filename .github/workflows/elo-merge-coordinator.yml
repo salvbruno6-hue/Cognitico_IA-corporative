@@ -69,7 +69,7 @@ jobs:
 
           jq -e '.state == "OPEN" and .isDraft == false and .baseRefName == "main"' /tmp/pr.json >/dev/null
           jq -e --arg sha "${{ steps.pr.outputs.sha }}" '.headRefOid == $sha' /tmp/pr.json >/dev/null
-          jq -e '.reviewDecision == "APPROVED" and (.author.login as $author | any(.reviews[]?; .state == "APPROVED" and .author.login != null and .author.login != $author))' /tmp/pr.json >/dev/null
+          jq -e --arg sha "${{ steps.pr.outputs.sha }}" '.reviewDecision == "APPROVED" and (.author.login as $author | any(.reviews[]?; .state == "APPROVED" and .author.login != null and .author.login != $author and .commit.oid == $sha))' /tmp/pr.json >/dev/null
 
           if jq -e '[.reviews[]? | select(.state == "CHANGES_REQUESTED")] | length > 0' /tmp/pr.json >/dev/null; then
             echo "Blocking review detected."
