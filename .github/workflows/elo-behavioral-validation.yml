@@ -19,6 +19,8 @@ jobs:
           node-version: '24'
       - name: ELO Web OAuth regression
         run: node --test apps/elo-web/tests/oauthFlow.test.mjs
+      - name: ELO Web authorization resource regression
+        run: node --test apps/elo-web/tests/authorization-resource.test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
