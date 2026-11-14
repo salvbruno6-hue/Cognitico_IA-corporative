@@ -43,8 +43,56 @@ pipeline:
       - compare_summary_text_with_structured_components
       - detect_embedded_or_complementary_costs
       - resolve_or_raise_conflict
+  - id: composition_build_pre_spreadsheet
+    action: specialist_build_or_reconcile_missing_compositions
+    mandatory: true
+    owner: budget_specialist
+    after: composition_memory_reconciliation_pre_budget
+    before: specialist_gate
+    source_precedence: [documentation_SO, canonical_model_composition, lista_mae, specific_memory, validated_external_quote]
+    service_classifications: [EXISTENTE_COMPATIVEL, ADAPTAVEL, PARCIAL, INEXISTENTE, CONFLITANTE]
+    line_operations: [REUTILIZADA, SUBSTITUIDA, ADICIONADA, EXCLUIDA, PENDENTE]
+    required_fields: [service_id, item_reference, description, unit, quantity, quantity_evidence, unit_price, price_source, total_cost, base_reconciliation, validation_status]
+    safeguards:
+      - reuse_existing_compositions_before_creating
+      - calculate_only_missing_or_changed_parts
+      - distinguish_consumption_from_purchase_packaging
+      - validate_code_description_unit_and_price_together
+      - treat_zero_or_missing_price_as_gap_not_confirmed_free
+      - retain_external_quote_provenance_without_master_list_mutation
+      - reconcile_labor_and_execution_stages_without_double_count
+      - record_dependencies_as_checks_not_auto_inclusions
+      - do_not_promote_case_experience_to_core
   - id: specialist_gate
     action: request_specialist_validation_when_needed
+  - id: composition_pre_spreadsheet_gate
+    action: validate_compositions_before_final_spreadsheet
+    mandatory: true
+    owner: budget_specialist
+    after: specialist_gate
+    results: [PASS, REVIEW, BLOCKED]
+    pass_requires: [scope_covered, quantities_and_units_verified, price_provenance, labor_evidence, no_unresolved_double_count, critical_decisions_arbitrated]
+    blocked_on: [unresolved_critical_gap, conflicting_item_identity, incompatible_technical_solution, material_double_count]
+    review_output: full_canonical_base_master_in_chat_marked_provisional
+    blocked_output: full_canonical_base_master_in_chat_marked_blocked_with_gaps
+    final_spreadsheet_requires: PASS
+  - id: canonical_budget_master_render
+    action: assemble_and_display_current_canonical_budget_base_master_in_chat
+    mandatory_on_trigger: "elo orçar"
+    owner: budget_specialist
+    after: composition_pre_spreadsheet_gate
+    before: budget_decision
+    canonical_template: "Planilha de Orçamento — Base Mestre vigente"
+    required_sections: ["0 Controle", "1 Comercial", "2 Serviços/Materiais/Mão de Obra", "3 Fechamento", "4 Observações"]
+    preserve: [original_columns, taxonomy, units, formulas, calculation_rules]
+    display: full_in_conversation_before_file
+    no_parallel_template: true
+    gate_handling:
+      PASS: "display validated canonical budget"
+      REVIEW: "display full canonical budget marked provisional with pending fields; do not approve final"
+      BLOCKED: "display full canonical budget marked blocked with GAPs and pending fields; do not approve final"
+    missing_evidence: "PENDENTE/NA, never invented value or implicit zero"
+    file_creation: "only_on_separate_explicit_request_after_gate_PASS"
   - id: budget_decision
     action: produce_budget_decision
   - id: pts_post_budget
@@ -98,7 +146,7 @@ pipeline:
     action: evaluate_dispatched_candidates_without_auto_promotion
 triggers:
   analysis_request: ["elo analisar", "ELO ANALISAR"]
-  budget_request: ["orçar", "orcamento", "montar orçamento", "levantar orçamento"]
+  budget_request: ["elo orçar", "ELO ORÇAR", "orçar", "orcamento", "montar orçamento", "levantar orçamento"]
   pts_technical_request: ["pts tec", "pts técnica", "criar pts técnica"]
   pts_post_request: ["pts pos", "pts pós", "pts pós-orçamento", "criar pts pós"]
   comparison_request: ["comparar valores", "comparar orçamento", "diferença de preço"]
@@ -131,6 +179,9 @@ outputs:
   - pts_technical_recurring_audit
   - composition_memory_reconciliation
   - structured_budget
+  - canonical_budget_master_render
+  - composition_build_report
+  - composition_pre_spreadsheet_gate_result
   - relation_audit
   - specialist_questions
   - pts_post_budget_audit
