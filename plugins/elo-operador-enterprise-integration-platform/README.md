@@ -1,19 +1,14 @@
-# ELO Operador — Enterprise Integration Platform
+# ELO Operador 0.2.0
 
-Plugin privado que conecta o ChatGPT ao ELO-MCP existente.
+Entrada única de consulta no ChatGPT para o banco ELO e o sistema cognitivo.
 
-## Escopo do MVP
+- Supabase: projeto Elo-forge, `fxbpevjrkwhbicpmecow`.
+- GitHub: `salvbruno6-hue/Cognitico_IA-corporative`, main.
+- Conexões: apps Supabase e GitHub já autenticados no ChatGPT.
+- Nenhuma dependência do frontend ELO, Vercel, GitHub Pages ou do login customizado ELO-MCP.
 
-- leitura autenticada e auditável;
-- consulta de dados canônicos permitidos, estado PCP, indicadores, Decision Outcome Loop, calibração e precedentes;
-- sem gravação operacional, alteração de schema, promoção de conhecimento ou bypass de gates.
+A habilidade orienta somente leitura e proveniência. Não reduz permissões técnicas dos conectores nem substitui elo-authz ou controles de acesso. Um status das fontes não comprova saúde do runtime ELO. Escrita, deploy, merge, schema e promoção ficam fora deste fluxo.
 
-## Fonte de verdade
+O registro ELO MCP existente é separado e não é necessário para usar esta versão. Não é removido automaticamente, para preservar conexão e histórico.
 
-- ELO Cognitivo: orquestração e decisão;
-- GitHub: evidência operacional e ledger de versionamento;
-- Supabase/ELO-MCP: memória consultiva e fronteira segura de leitura.
-
-## Autenticação
-
-O servidor usa Supabase Auth OAuth 2.1 e autorização delegada ao `elo-authz`. Após instalar, autentique o MCP `elo_mcp`; o operador precisa de identidade ativa e autorização de leitura no ELO.
+Ative ELO Operador em um novo chat e solicite: "Consulte o banco e o repositório cognitivo e mostre as evidências e lacunas do ELO."
