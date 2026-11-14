@@ -8,10 +8,218 @@ from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
+AUTHZ_CANONICAL_RUNTIME = "supabase/functions/elo-authz/index.ts"
+AUTHZ_OWNER_CONTRACT = "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+# Only exact, already-reviewed implementation and test paths; no broad migration
+# or workflow wildcard. The owner remains the existing elo-authz runtime.
+# Existing specialized consumers of elo-authz. These two providers call the
+# canonical issuer but are not grant issuers themselves. Anything else found
+# during discovery is unresolved until disambiguated, never silently safe.
+AUTHZ_KNOWN_DISTINCT_CONSUMERS = frozenset({
+    "supabase/functions/elo-data-gateway/index.ts",
+    "supabase/functions/elo-mcp/index.ts",
+})
+
+
+# Independently identify potential grant writers. The Maintenance workflow
+# derives concept_terms from changed filenames (often just "index"), which
+# cannot be trusted to discover an unreviewed parallel issuer with another name.
+# This scan is additional evidence, not a second authorization authority.
+# Exact existing non-issuers. Never exempt the entire automation/ or
+# .github/ trees: either may contain executable code capable of issuing grants.
+AUTHZ_REVIEWED_NON_ISSUER_PATHS = frozenset({
+    "automation/tasks/elo_canonical_reconciliation.py",  # own regex definitions
+})
+
+
+AUTHZ_DIRECT_WRITE_SIGNATURES = (
+    re.compile(r"/rest/v1/elo_authorization_grants", re.IGNORECASE),
+    re.compile(r"\binsert\s+into\s+(?:public\.)?elo_authorization_grants\b", re.IGNORECASE),
+    re.compile(r"\belo_atomic_issue_authorization_grant\s*\(", re.IGNORECASE),
+    re.compile(
+        r"""\.from\(\s*['"](?:public\.)?elo_authorization_grants['"]\s*\)[\s\S]{0,240}?\.(?:insert|upsert)\s*\(""",
+        re.IGNORECASE,
+    ),
+)
+
+
+# GitHub workflows can read authorization grants. Examine each shell command,
+# including backslash continuations, before deciding whether it issues grants.
+# This is evidence collection for the existing elo-authz owner, not an issuer.
+AUTHZ_WORKFLOW_REST_WRITE = re.compile(
+    r"(?is)(?:\b(?:POST|PUT|PATCH|DELETE)\b.{0,120}?/rest/v1/elo_authorization_grants"
+    r"|/rest/v1/elo_authorization_grants.{0,160}?\b(?:POST|PUT|PATCH|DELETE)\b)"
+)
+# Conservatively recognize multiline Python HTTP clients and nested shell calls.
+# An unreviewed candidate blocks reconciliation; this does not authorize writes.
+AUTHZ_PYTHON_REST_WRITE = re.compile(
+    r"""(?is)\b(?:requests|httpx)\s*\.\s*(?:post|put|patch|delete)\s*\([\s\S]{0,600}?/rest/v1/elo_authorization_grants"""
+)
+AUTHZ_SHELL_SUBSTITUTION = re.compile(r"\$\(\s*(?:[^\n)]*?\b)?curl\b", re.IGNORECASE)
+AUTHZ_GRANT_REST_ENDPOINT = "/rest/v1/elo_authorization_grants"
+AUTHZ_CURL_BODY_OPTIONS = (
+    "--data", "--form", "--json", "--upload-file",
+)
+
+
+def _curl_grant_write(args: list[str]) -> bool:
+    """Resolve the method on a *single* curl call, without losing -g/-G case."""
+    if not any(AUTHZ_GRANT_REST_ENDPOINT in item.lower() for item in args):
+        return False
+
+    method: str | None = None
+    for index, item in enumerate(args):
+        if item in ("-X", "--request") and index + 1 < len(args):
+            method = args[index + 1].upper()
+        elif item.startswith("--request="):
+            method = item.partition("=")[2].upper()
+        elif item.startswith("-X") and len(item) > 2:
+            method = item[2:].upper()
+
+    # An explicit -X/--request method takes precedence over body flags.
+    # An unknown or unsupported explicit verb must not be certified read-only.
+    if method is not None:
+        return method != "GET"
+    if "-G" in args or "--get" in args:
+        return False
+
+    # Without an explicit method, curl body flags trigger implicit POST/PUT.
+    return any(
+        item == "-d" or item.startswith("-d")
+        or item == "-F" or item.startswith("-F")
+        or item == "-T" or item.startswith("-T")
+        or item.startswith(AUTHZ_CURL_BODY_OPTIONS)
+        for item in args
+    )
+
+
+def _workflow_has_curl_grant_write(content: str) -> bool:
+    """Classify grant HTTP calls independently across shell control operators."""
+    import shlex
+
+    pending = ""
+    logical_lines: list[str] = []
+    for line in content.splitlines():
+        pending = (pending + " " + line.strip()).strip() if pending else line.strip()
+        if pending.endswith("\\"):
+            pending = pending[:-1].rstrip()
+            continue
+        logical_lines.append(pending)
+        pending = ""
+    if pending:
+        logical_lines.append(pending)
+
+    # A nested command substitution may not tokenize as a bare `curl`.
+    # Fail closed when a grant endpoint occurs in a nested curl invocation
+    # with a non-GET method or body, even if the outer command is read-only.
+    if AUTHZ_SHELL_SUBSTITUTION.search(content) and AUTHZ_GRANT_REST_ENDPOINT in content.lower():
+        if re.search(r"(?is)\$\([^\n]{0,600}?\bcurl\b[^\n]{0,600}?(?:-X\s*(?:POST|PUT|PATCH|DELETE)|--request(?:=|\s+)(?:POST|PUT|PATCH|DELETE)|--data|\s-d\b|--json)", content):
+            return True
+
+    for line in logical_lines:
+        if AUTHZ_GRANT_REST_ENDPOINT not in line.lower():
+            continue
+        try:
+            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|")
+            lexer.whitespace_split = True
+            lexer.commenters = "#"
+            tokens = list(lexer)
+        except ValueError:
+            # A malformed grant command cannot prove absence of a writer.
+            return True
+
+        commands: list[list[str]] = []
+        current: list[str] = []
+        for item in tokens:
+            if item and set(item) <= {";", "&", "|"}:
+                commands.append(current)
+                current = []
+            else:
+                current.append(item)
+        commands.append(current)
+
+        for command in commands:
+            curl_positions = [
+                index for index, item in enumerate(command)
+                if item == "curl" or item.endswith("/curl")
+            ]
+            if curl_positions:
+                for index in curl_positions:
+                    if _curl_grant_write(command[index + 1:]):
+                        return True
+            elif AUTHZ_WORKFLOW_REST_WRITE.search(" ".join(command)):
+                # Keep detection for non-curl clients (fetch, HTTPie, etc.)
+                # but never associate verbs from another shell command.
+                return True
+    return False
+
+
+def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[str]:
+    """Find executable grant writers even when filename-derived terms miss them."""
+    unreviewed: set[str] = set()
+    for path in source_files:
+        relative = str(path.relative_to(root)).replace("\\", "/")
+        if relative in AUTHZ_GOVERNED_PATHS or relative in AUTHZ_REVIEWED_NON_ISSUER_PATHS:
+            continue
+        # Test fixtures and documentation are not authorization runtimes;
+        # executable automation and workflow paths MUST still be inspected.
+        if relative.startswith(("tests/", "docs/")):
+            continue
+        if path.suffix.lower() not in {
+            ".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml",
+        }:
+            continue
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if path.suffix.lower() in {".yml", ".yaml"}:
+            # The two known Agent/Merge workflows are read-only consumers, but
+            # they are still inspected; grant-writing edits must fail closed.
+            direct_write = (
+                any(sig.search(content) for sig in AUTHZ_DIRECT_WRITE_SIGNATURES[1:])
+                or _workflow_has_curl_grant_write(content)
+                or bool(AUTHZ_PYTHON_REST_WRITE.search(content))
+            )
+        else:
+            direct_write = bool(AUTHZ_PYTHON_REST_WRITE.search(content)) or any(
+                signature.search(content) for signature in AUTHZ_DIRECT_WRITE_SIGNATURES
+            )
+        if direct_write:
+            unreviewed.add(relative)
+    return unreviewed
+
+
+def _is_distinct_authz_consumer(root: Path, candidate: str) -> bool:
+    if candidate not in AUTHZ_KNOWN_DISTINCT_CONSUMERS:
+        return False
+    path = root / candidate
+    if not path.is_file():
+        return False
+    content = path.read_text(encoding="utf-8", errors="ignore")
+    return (
+        "elo-authz" in content
+        and "issue_authorization_grant" not in content
+        and "elo_authorization_grants" not in content
+    )
+
+
+AUTHZ_GOVERNED_PATHS = frozenset({
+    AUTHZ_CANONICAL_RUNTIME,
+    "tests/security/test_operator_github_binding_runtime.py",
+    "tests/security/test_elo_atomic_grant_issuance_contract.py",
+    "tests/security/sql/elo_atomic_grant_integration.sql",
+    "supabase/migrations/20261110185000_elo_atomic_grant_audit_rpc.sql",
+    ".github/workflows/elo-authz-atomic-db-test.yml",
+})
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
     "automation/tasks/elo_maintenance_coordinator.py",
+}
+SELF_AUDIT_SUPPORT_PATHS = {
+    CANONICAL_STRUCTURE_MAP,
+    "tests/governance/test_elo_canonical_reconciliation.py",
 }
 AUDIT_INFRA_PREFIXES = (".github/", "automation/", "docs/", "tests/")
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml"}
@@ -70,6 +278,31 @@ def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
     return targets
 
 
+def _is_governed_authz_change(root: Path, changed: set[str]) -> bool:
+    """Resolve the existing authz issuer only from its real contract and map."""
+    if AUTHZ_CANONICAL_RUNTIME not in changed:
+        return False
+    if not changed.issubset(AUTHZ_GOVERNED_PATHS):
+        return False
+
+    runtime = root / AUTHZ_CANONICAL_RUNTIME
+    owner_contract = root / AUTHZ_OWNER_CONTRACT
+    structure_map = root / CANONICAL_STRUCTURE_MAP
+    if not (runtime.is_file() and owner_contract.is_file() and structure_map.is_file()):
+        return False
+
+    contract = owner_contract.read_text(encoding="utf-8", errors="ignore")
+    structure = structure_map.read_text(encoding="utf-8", errors="ignore")
+    runtime_text = runtime.read_text(encoding="utf-8", errors="ignore")
+    return (
+        "elo-authz" in contract
+        and "issue_authorization_grant" in contract
+        and "ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md" in structure
+        and "| supabase/functions/elo-authz/ |" in structure
+        and "resolveAuthorizationGrant" in runtime_text
+    )
+
+
 def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
     root = Path(root)
     changed = tuple(sorted(set(changed_paths)))
@@ -125,6 +358,11 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         if source_candidate:
             candidates.append(relative)
 
+    # Search for potential grant writers separately from generic concept/stem
+    # discovery. A parallel issuer must remain an unresolved GAP even if it
+    # does not mention "index" or the filenames changed by this PR.
+    if AUTHZ_CANONICAL_RUNTIME in changed_normalised:
+        candidates.extend(sorted(_unreviewed_authz_writers(root, all_files)))
     candidates = sorted(set(candidates))
     references = sorted(set(references))
     owners = sorted(set(owners))
@@ -158,7 +396,13 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Canonical structure map resolves src/elo as the executable ELO owner"]
 
-    maintenance_changed = all(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
+    maintenance_changed = (
+        any(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
+        and all(
+            p.replace("\\", "/") in SELF_AUDIT_PATHS | SELF_AUDIT_SUPPORT_PATHS
+            for p in changed
+        )
+    )
     if maintenance_changed and structure_map.is_file():
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "elo-maintenance-governance"
@@ -172,8 +416,35 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
+    # A source-only authz change is not a new capability. Require the existing
+    # canonical owner contract and map. Unlisted paths and competing owners
+    # remain unresolved, never treated as safe reuse.
+    # A scoped owner contract does not prove that newly discovered executable
+    # candidates are harmless. Only the two explicitly known, verified
+    # consumers may be disregarded; unknown potential issuers remain a GAP.
+    authz_candidates_disambiguated = all(
+        _is_distinct_authz_consumer(root, candidate) for candidate in candidates
+    )
+    scoped_authz = (
+        not owner_evidence
+        and duplicate is None
+        and _is_governed_authz_change(root, changed_normalised)
+        and authz_candidates_disambiguated
+    )
+    if scoped_authz:
+        source_of_truth = AUTHZ_OWNER_CONTRACT
+        canonical_identity = "elo-authz"
+        duplicate = False
+        owners.append(AUTHZ_OWNER_CONTRACT)
+        reasons = ["Existing elo-authz issuer and canonical owner contract verified"]
+
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = (
+        "STRENGTHEN" if scoped_authz and complete
+        else "REUSE" if complete and duplicate
+        else "CREATE" if complete
+        else None
+    )
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
