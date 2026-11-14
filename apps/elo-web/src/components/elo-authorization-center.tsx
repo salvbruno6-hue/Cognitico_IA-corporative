@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { callELOAuthorization } from "@/auth/eloAuthorization";
+import { CANONICAL_REPOSITORY, mergeGrantResource } from "@/lib/authorization-resource";
 
 type Check = { status: "idle" | "loading" | "verified" | "denied"; message: string; identity?: string; session?: string };
 
@@ -10,13 +11,14 @@ export function EloAuthorizationCenter({ accessToken }: { accessToken: string })
   const [pr, setPr] = useState("");
   const [sha, setSha] = useState("");
   async function verify() {
-    if (!/^[1-9][0-9]*$/.test(pr) || !/^[a-fA-F0-9]{40}$/.test(sha)) {
+    const resourceId = mergeGrantResource(pr, sha);
+    if (!resourceId) {
       setCheck({ status: "denied", message: "Informe número da PR e SHA completo (40 caracteres) para consulta de grant específico." });
       return;
     }
     setCheck({ status: "loading", message: "Consultando a autoridade canônica..." });
     try {
-      const result = await callELOAuthorization(accessToken, "check_authorization_state", { authorization_state: "elo-merge-authorized", operation: "merge", repository: "salvbruno6-hue/Cognitico_IA-corporative", resource_id: `pr:${pr}@${sha.toLowerCase()}` });
+      const result = await callELOAuthorization(accessToken, "check_authorization_state", { authorization_state: "elo-merge-authorized", operation: "merge", repository: CANONICAL_REPOSITORY, resource_id: resourceId });
       setCheck({ status: "verified", message: `Grant de merge válido para PR #${pr} no SHA informado, conforme elo-authz. Outros gates ainda são obrigatórios.`, identity: result.identity_id, session: result.session_id });
     } catch {
       setCheck({ status: "denied", message: "Grant não comprovado para PR/SHA informado ou consulta indisponível. Nenhuma operação privilegiada está disponível." });
@@ -34,7 +36,7 @@ export function EloAuthorizationCenter({ accessToken }: { accessToken: string })
     <article className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-6">
       <h3 className="font-semibold">Verificação de identidade e política</h3>
       <p className="mt-2 text-sm text-slate-500">Consulta de grant de merge vinculada a PR e SHA completos. Não emite grants nem modifica permissões.</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm">Número da PR<input aria-label="Número da PR" value={pr} onChange={e => setPr(e.target.value)} inputMode="numeric" placeholder="1237" className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent p-2" /></label><label className="text-sm">SHA completo da PR<input aria-label="SHA completo" value={sha} onChange={e => setSha(e.target.value)} placeholder="40 caracteres hexadecimais" className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent p-2 font-mono text-xs" /></label></div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-sm">Número da PR<input aria-label="Número da PR" value={pr} onChange={e => { setPr(e.target.value); setCheck({ status: "idle", message: "Consulta necessária para os dados atuais." }); }} inputMode="numeric" placeholder="1237" className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent p-2" /></label><label className="text-sm">SHA completo da PR<input aria-label="SHA completo" value={sha} onChange={e => { setSha(e.target.value); setCheck({ status: "idle", message: "Consulta necessária para os dados atuais." }); }} placeholder="40 caracteres hexadecimais" className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent p-2 font-mono text-xs" /></label></div>
       <button type="button" onClick={() => void verify()} disabled={check.status === "loading"} className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">Consultar grant de merge</button>
       <p role="status" aria-live="polite" className="mt-4 text-sm text-slate-600">{check.message}</p>
     </article>
