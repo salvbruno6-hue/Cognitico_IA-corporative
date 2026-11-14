@@ -53,9 +53,9 @@ AUTHZ_WORKFLOW_REST_WRITE = re.compile(
 # Conservatively recognize multiline Python HTTP clients and nested shell calls.
 # An unreviewed candidate blocks reconciliation; this does not authorize writes.
 AUTHZ_PYTHON_REST_WRITE = re.compile(
-    r"""(?is)\\b(?:requests|httpx)\\s*\\.\\s*(?:post|put|patch|delete)\\s*\\([\\s\\S]{0,600}?/rest/v1/elo_authorization_grants"""
+    r"""(?is)\b(?:requests|httpx)\s*\.\s*(?:post|put|patch|delete)\s*\([\s\S]{0,600}?/rest/v1/elo_authorization_grants"""
 )
-AUTHZ_SHELL_SUBSTITUTION = re.compile(r"\\$\\(\\s*(?:[^\\n)]*?\\b)?curl\\b", re.IGNORECASE)
+AUTHZ_SHELL_SUBSTITUTION = re.compile(r"\$\(\s*(?:[^\n)]*?\b)?curl\b", re.IGNORECASE)
 AUTHZ_GRANT_REST_ENDPOINT = "/rest/v1/elo_authorization_grants"
 AUTHZ_CURL_BODY_OPTIONS = (
     "--data", "--form", "--json", "--upload-file",
