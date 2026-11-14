@@ -10,7 +10,8 @@ in with ``allow_temporal_trace=True``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from time import perf_counter
+from typing import Callable, Mapping
 
 from elo.agent_intake.hermes_context_plugin_adapter import ContextPluginAdapter
 from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
@@ -29,6 +30,10 @@ from elo.core.source_resolver import (
     SourceResolutionRequest,
     SourceResolver,
     SourceResolverAdapter,
+)
+from elo.observability.cognitive_timing import (
+    CognitiveTimingObservation,
+    CognitiveTimingSink,
 )
 
 from .contracts import IntentSpec, KnowledgeCandidate, KnowledgeRequirement
@@ -54,6 +59,64 @@ class _NullTemporalMemory:
         return None
 
 
+_LOW_CRITICALITY_MINIMUM_SIGNAL = 0.60
+_LOW_CRITICALITY_EARLY_STOP_STATUSES = frozenset({
+    "CANONICAL", "GOVERNED", "APPLICABLE", "CURRENT",
+})
+
+
+_KNOWLEDGE_STATUSES = frozenset({
+    "APPLICABLE", "CANONICAL", "GOVERNED", "CURRENT", "REFERENCE",
+    "HISTORICAL", "CONFLICTING", "OUTDATED", "UNVERIFIED", "INSUFFICIENT",
+})
+
+
+def _explicit_value(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+    *keys: str,
+) -> str | None:
+    """Return the first explicitly supplied signal without synthesizing one."""
+    for mapping in (metadata, provenance):
+        for key in keys:
+            if key not in mapping:
+                continue
+            value = str(mapping[key]).strip()
+            return value or None
+    return None
+
+
+def _bounded_signal(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+    key: str,
+) -> float:
+    """Preserve a declared 0..1 score; malformed/out-of-range stays neutral."""
+    value = _explicit_value(metadata, provenance, key)
+    if value is None:
+        return 0.0
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return parsed if 0.0 <= parsed <= 1.0 else 0.0
+
+
+def _knowledge_status(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+) -> str:
+    """Generic RetrievedSource cannot self-promote canonical/governed status."""
+    return "REFERENCE"
+
+
+def _authority(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+) -> str | None:
+    return _explicit_value(metadata, provenance, "authority")
+
+
 class ELOKnowledgeProvider(KnowledgeProvider):
     """Translate agentic requirements into governed ELO retrieval calls."""
 
@@ -69,6 +132,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         context_plugin_signal: ContextEnginePluginSignal | None = None,
         hermes_memory_provider_signal: MemoryProviderSignal | None = None,
         runtime_evidence_sink=None,
+        timing_sink: CognitiveTimingSink | None = None,
+        clock: Callable[[], float] = perf_counter,
     ) -> None:
         self.context_engine = context_engine or ContextResolutionEngine()
         self.source_resolver = source_resolver or SourceResolver()
@@ -79,6 +144,51 @@ class ELOKnowledgeProvider(KnowledgeProvider):
         self.context_plugin_signal = context_plugin_signal
         self.hermes_memory_provider_signal = hermes_memory_provider_signal
         self.runtime_evidence_sink = runtime_evidence_sink
+        self.timing_sink = timing_sink
+        self._clock = clock
+
+    @staticmethod
+    def _decision_criticality(intent: IntentSpec) -> str:
+        value = str(intent.metadata.get("decision_criticality", "")).strip().upper()
+        return value if value in {"LOW", "MEDIUM", "HIGH", "CRITICAL"} else "UNSPECIFIED"
+
+    @staticmethod
+    def _low_criticality_candidate_is_sufficient(item: KnowledgeCandidate) -> bool:
+        return (
+            item.status in _LOW_CRITICALITY_EARLY_STOP_STATUSES
+            and item.relevance >= _LOW_CRITICALITY_MINIMUM_SIGNAL
+            and item.confidence >= _LOW_CRITICALITY_MINIMUM_SIGNAL
+            and item.context_match >= _LOW_CRITICALITY_MINIMUM_SIGNAL
+            and bool(item.authority and item.authority.strip())
+            and bool(item.provenance)
+        )
+
+    def _record_timing(
+        self,
+        *,
+        intent: IntentSpec,
+        requirement: KnowledgeRequirement,
+        stage: str,
+        duration_ms: float,
+        candidate_count: int = 0,
+        metadata: Mapping[str, str] | None = None,
+    ) -> None:
+        if self.timing_sink is None:
+            return
+        try:
+            self.timing_sink.record(
+                CognitiveTimingObservation(
+                    stage=stage,
+                    duration_ms=max(0.0, duration_ms),
+                    correlation_id=str(intent.metadata.get("correlation_id", "")),
+                    requirement_key=requirement.key,
+                    candidate_count=candidate_count,
+                    metadata=dict(metadata or {}),
+                )
+            )
+        except Exception:
+            # Observability must never alter retrieval or cognitive output.
+            return
 
     def retrieve(
         self,
@@ -126,9 +236,17 @@ class ELOKnowledgeProvider(KnowledgeProvider):
             if memory_contract.tenant_scope != request_context.tenant_id:
                 raise PermissionError("Hermes memory-provider tenant scope mismatch")
 
+        provider_started = self._clock()
+        source_attempts = 0
+        early_stop_applied = False
+        early_stop_eligible_detected = False
+        first_sufficient_attempt = 0
+        criticality = self._decision_criticality(intent)
+
         for source_candidate in self.context_engine.candidate_sources(pack):
             if memory_contract is not None and source_candidate.kind != memory_contract.provider_id:
                 continue
+            source_started = self._clock()
             resolution = resolver.resolve(
                 source_candidate,
                 SourceResolutionRequest(
@@ -149,6 +267,8 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                     },
                 ),
             )
+            source_attempts += 1
+            source_candidates: list[KnowledgeCandidate] = []
             for item in resolution.retrieved:
                 if memory_contract is not None:
                     provenance_refs = tuple(
@@ -180,26 +300,80 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                             repeatability=RepeatabilityEvidence(1, 1, 1.0),
                         ))
                 metadata = dict(item.metadata)
+                provenance = dict(item.provenance)
                 metadata.setdefault("agentic_requirement", requirement.key)
                 product_code = (
                     metadata.get("cod_produt")
                     or metadata.get("produto_codigo")
                     or metadata.get("product_code")
                 )
-                candidates.append(
-                    KnowledgeCandidate(
-                        source_id=item.source_id,
-                        content=item.content,
-                        source_type=item.source_type,
-                        status="REFERENCE",
-                        relevance=0.0,
-                        confidence=0.0,
-                        context_match=0.0,
-                        product_code=product_code,
-                        provenance=item.provenance,
-                        metadata=metadata,
-                    )
+                candidate = KnowledgeCandidate(
+                    source_id=item.source_id,
+                    content=item.content,
+                    source_type=item.source_type,
+                    status=_knowledge_status(metadata, provenance),
+                    relevance=_bounded_signal(metadata, provenance, "relevance"),
+                    confidence=_bounded_signal(metadata, provenance, "confidence"),
+                    context_match=_bounded_signal(metadata, provenance, "context_match"),
+                    authority=_authority(metadata, provenance),
+                    product_code=product_code,
+                    provenance=provenance,
+                    metadata=metadata,
                 )
+                candidates.append(candidate)
+                source_candidates.append(candidate)
+
+            source_sufficient = (
+                criticality == "LOW"
+                and any(
+                    self._low_criticality_candidate_is_sufficient(item)
+                    for item in source_candidates
+                )
+            )
+            self._record_timing(
+                intent=intent,
+                requirement=requirement,
+                stage="source.resolve",
+                duration_ms=(self._clock() - source_started) * 1000.0,
+                candidate_count=len(source_candidates),
+                metadata={
+                    "source_kind": str(source_candidate.kind),
+                    "resolution_status": resolution.status,
+                    "decision_criticality": criticality,
+                    "low_criticality_sufficient": str(source_sufficient).lower(),
+                },
+            )
+            if source_sufficient and not early_stop_eligible_detected:
+                # Q6-C is in shadow/baseline mode: measure when LOW retrieval
+                # *could* stop, but do not reduce evidence before a real baseline
+                # proves quality is preserved.
+                early_stop_eligible_detected = True
+                first_sufficient_attempt = source_attempts
+
+        shadow_attempts_after_sufficient = (
+            source_attempts - first_sufficient_attempt
+            if early_stop_eligible_detected
+            else 0
+        )
+        self._record_timing(
+            intent=intent,
+            requirement=requirement,
+            stage="knowledge.provider.retrieve",
+            duration_ms=(self._clock() - provider_started) * 1000.0,
+            candidate_count=len(candidates),
+            metadata={
+                "source_attempts": str(source_attempts),
+                "early_stop_applied": str(early_stop_applied).lower(),
+                "early_stop_eligible_detected": str(
+                    early_stop_eligible_detected
+                ).lower(),
+                "shadow_attempts_after_sufficient": str(
+                    shadow_attempts_after_sufficient
+                ),
+                "early_stop_mode": "SHADOW_BASELINE",
+                "decision_criticality": criticality,
+            },
+        )
         return tuple(candidates)
 
     def _resolver_for_mode(self) -> SourceResolver:
