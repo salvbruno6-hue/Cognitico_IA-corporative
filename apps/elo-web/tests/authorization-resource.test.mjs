@@ -5,10 +5,10 @@ import ts from "typescript";
 
 const file = new URL("../src/lib/authorization-resource.ts", import.meta.url);
 const source = readFileSync(file, "utf8");
-const transpiled = ts.transpileModule(source.replace(/export /g, ""), {
-  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+const transpiled = ts.transpileModule(source, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText;
-const validate = new Function(`${transpiled}; return mergeGrantResource;`)();
+const { mergeGrantResource: validate } = await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString("base64")}`);
 const sha = "A".repeat(40);
 
 test("validates exact PR/SHA-bound merge grant resource", () => {
