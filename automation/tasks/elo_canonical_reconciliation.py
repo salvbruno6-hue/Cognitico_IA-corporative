@@ -113,7 +113,7 @@ def _workflow_has_curl_grant_write(content: str) -> bool:
     # Fail closed when a grant endpoint occurs in a nested curl invocation
     # with a non-GET method or body, even if the outer command is read-only.
     if AUTHZ_SHELL_SUBSTITUTION.search(content) and AUTHZ_GRANT_REST_ENDPOINT in content.lower():
-        if re.search(r"(?is)\\$\\([^\\n]{0,600}?\\bcurl\\b[^\\n]{0,600}?(?:-X\\s*(?:POST|PUT|PATCH|DELETE)|--request(?:=|\\s+)(?:POST|PUT|PATCH|DELETE)|--data|\\s-d(?:\\s|[\'\"])|--json)", content):
+        if re.search(r"(?is)\$\([^\n]{0,600}?\bcurl\b[^\n]{0,600}?(?:-X\s*(?:POST|PUT|PATCH|DELETE)|--request(?:=|\s+)(?:POST|PUT|PATCH|DELETE)|--data|\s-d\b|--json)", content):
             return True
 
     for line in logical_lines:
