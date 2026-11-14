@@ -158,6 +158,46 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Canonical structure map resolves src/elo as the executable ELO owner"]
 
+    # Scoped owner reconciliation for the existing elo-authz implementation.
+    # A mixed diff, unknown migration, missing owner, or missing contract fails closed.
+    authz_root = "supabase/functions/elo-authz/"
+    authz_migration = "supabase/migrations/20260919220335_elo_operator_github_binding_runtime.sql"
+    atomic_migration_suffix = "_elo_atomic_grant_audit_rpc.sql"
+    authz_contract = "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    authz_owner = root / "supabase/functions/elo-authz/index.ts"
+    authz_related = any(p.startswith(authz_root) or p.startswith("supabase/migrations/") for p in changed_normalised)
+    if authz_related:
+        allowed = all(
+            p.startswith(authz_root)
+            or p == authz_migration
+            or (p.startswith("supabase/migrations/") and p.endswith(atomic_migration_suffix))
+            or p.startswith("tests/security/")
+            or p.startswith("tests/test_elo_")
+            or p == ".github/workflows/elo-authz-atomic-db-test.yml"
+            for p in changed_normalised
+        )
+        map_text = structure_map.read_text(encoding="utf-8") if structure_map.is_file() else ""
+        contract_path = root / authz_contract
+        contract_text = contract_path.read_text(encoding="utf-8") if contract_path.is_file() else ""
+        owner_proven = (
+            allowed
+            and authz_owner.is_file()
+            and (root / authz_migration).is_file()
+            and "`supabase/functions/elo-authz/`" in map_text
+            and "elo-authz" in contract_text
+            and "supabase/functions/elo-authz/index.ts" in contract_text
+        )
+        if owner_proven:
+            source_of_truth = CANONICAL_STRUCTURE_MAP
+            canonical_identity = "elo-authz"
+            duplicate = False
+            reasons = ["Existing elo-authz owner, contract and persistence verified for scoped changes"]
+        else:
+            source_of_truth = None
+            canonical_identity = None
+            duplicate = None
+            reasons = ["elo-authz owner reconciliation requires exact scoped paths, map, contract, implementation and migration"]
+
     maintenance_changed = all(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
     if maintenance_changed and structure_map.is_file():
         source_of_truth = CANONICAL_STRUCTURE_MAP
