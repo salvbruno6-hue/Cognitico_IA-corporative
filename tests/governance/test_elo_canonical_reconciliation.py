@@ -696,7 +696,7 @@ def test_authz_scope_rejects_nested_shell_curl_writer(tmp_path: Path) -> None:
     workflow = tmp_path / ".github/workflows/nested-writer.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     workflow.write_text(
-        'steps:\\n  - run: echo "$(curl -X POST "$URL/rest/v1/elo_authorization_grants")"\\n',
+        'steps:\n  - run: echo "$(curl -X POST "$URL/rest/v1/elo_authorization_grants")"\n',
         encoding="utf-8",
     )
     evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
@@ -709,7 +709,7 @@ def test_authz_scope_rejects_multiline_python_http_writer(tmp_path: Path) -> Non
     writer = tmp_path / "automation/tasks/hidden_writer.py"
     writer.parent.mkdir(parents=True, exist_ok=True)
     writer.write_text(
-        'import requests\\nrequests.post(\\n  "/rest/v1/elo_authorization_grants",\\n  json={}\\n)\\n',
+        'import requests\nrequests.post(\n  "/rest/v1/elo_authorization_grants",\n  json={}\n)\n',
         encoding="utf-8",
     )
     evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
