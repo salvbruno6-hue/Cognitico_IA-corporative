@@ -1,4 +1,13 @@
 import { executeHermesInVercelSandbox } from "@/lib/elo-hermes-sandbox";
+import {
+  createEloMcpToolInvoker,
+  isPcpPlanningDomain,
+  processGovernedPcpMission,
+  unverifiedDomainResult,
+  type EloMcpToolInvoker,
+  type GovernedSource,
+  type GovernedSuggestion,
+} from "@/lib/elo-pcp-governed-response";
 
 export type LocalCognitiveRequest = {
   requestId: string;
@@ -9,6 +18,8 @@ export type LocalCognitiveRequest = {
   domain: string;
   sessionId: string;
   context?: Record<string, unknown>;
+  accessToken?: string;
+  governedReader?: EloMcpToolInvoker;
 };
 
 export type LocalCognitiveResult = {
@@ -16,6 +27,8 @@ export type LocalCognitiveResult = {
   confidence: number;
   domain: string;
   hermes?: Record<string, unknown>;
+  sources?: GovernedSource[];
+  suggestions?: GovernedSuggestion[];
   provenance: {
     request_id: string;
     correlation_id: string;
@@ -167,10 +180,27 @@ export async function processLocalCognitiveMission(input: LocalCognitiveRequest)
     };
   }
 
+  const baseUrl = (process.env.ELO_FORGE_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+  const governedReader = input.governedReader ?? (
+    input.accessToken?.trim() && baseUrl
+      ? createEloMcpToolInvoker({
+          baseUrl,
+          accessToken: input.accessToken,
+          requestId: input.requestId,
+        })
+      : undefined
+  );
+
+  const governed = isPcpPlanningDomain(input.domain) && governedReader
+    ? await processGovernedPcpMission({ message: input.message, invokeTool: governedReader })
+    : unverifiedDomainResult(input.domain);
+
   return {
-    response: { type: "analysis", content: input.message },
-    confidence: 1,
+    response: governed.response,
+    confidence: governed.confidence,
     domain: input.domain,
+    sources: governed.sources,
+    suggestions: governed.suggestions,
     provenance: {
       request_id: input.requestId,
       correlation_id: input.correlationId,
@@ -178,10 +208,11 @@ export async function processLocalCognitiveMission(input: LocalCognitiveRequest)
       domain: input.domain,
       principal_id: input.principalId,
       session_id: input.sessionId,
-      provider: "elo-web-local-cognitive-core",
-      evidence_refs: [],
-      policy_decision: "ALLOW",
-      validation_status: "validated",
+      provider: isPcpPlanningDomain(input.domain) ? "elo-mcp-governed-pcp" : "elo-web-local-cognitive-core",
+      evidence_refs: governed.evidenceRefs,
+      policy_decision: governed.policyDecision,
+      validation_status: governed.validationStatus,
+      metadata: governed.metadata,
     },
   };
 }

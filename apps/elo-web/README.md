@@ -58,3 +58,11 @@ The Web layer must never call Hermes directly. The supported path is:
 `GPT → ELO Cognitive → Simbionte Contract → Hermes → Evidence → Governed Learning → Evolution Gate`
 
 The canonical Hermes contract explicitly keeps Hermes as an execution/orchestration provider and prevents it from becoming ELO Core, Memory, Router, authority, or Evolution Gate.
+
+
+## Governed cognitive response convergence
+
+The production `/api/cognitive` boundary must not represent an unevidenced echo as a validated answer.
+PCP/Planejamento requests use the existing authenticated, read-only ELO-MCP tools before a factual response is produced. Blocking PCP gaps are surfaced as bounded administrator questions; no missing value is inferred. Domains without a governed Web evidence adapter remain explicitly unverified until their existing owner is integrated.
+
+This does not restore the legacy `elo_elo` service and does not grant the browser direct database or service-role access.
