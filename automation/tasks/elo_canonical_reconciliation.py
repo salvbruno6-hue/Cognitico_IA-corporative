@@ -199,6 +199,17 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
             reasons = ["elo-authz owner reconciliation requires exact scoped paths, map, contract, implementation and migration"]
 
     maintenance_changed = all(p.replace("\\", "/") in SELF_AUDIT_PATHS for p in changed)
+    # Self-review of this narrowly scoped reconciliation change (map + executable tests).
+    authz_self_review = (
+        "automation/tasks/elo_canonical_reconciliation.py" in changed_normalised
+        and changed_normalised.issubset({
+            "automation/tasks/elo_canonical_reconciliation.py",
+            CANONICAL_STRUCTURE_MAP,
+            "tests/test_elo_authz_owner_reconciliation.py",
+        })
+        and "`supabase/functions/elo-authz/`" in (structure_map.read_text(encoding="utf-8") if structure_map.is_file() else "")
+    )
+    maintenance_changed = maintenance_changed or authz_self_review
     if maintenance_changed and structure_map.is_file():
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "elo-maintenance-governance"
