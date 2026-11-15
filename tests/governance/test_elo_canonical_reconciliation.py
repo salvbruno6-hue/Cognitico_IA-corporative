@@ -213,3 +213,43 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+def _mapped_elo_web(tmp_path: Path) -> Path:
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "# Canonical ownership\n| `apps/elo-web/` | ELO Web Application | governed UI | application |\n",
+        encoding="utf-8",
+    )
+    dashboard = tmp_path / "apps/elo-web/src/components/elo-dashboard.tsx"
+    dashboard.parent.mkdir(parents=True, exist_ok=True)
+    dashboard.write_text("export const EloDashboard = () => null;\n", encoding="utf-8")
+    return dashboard
+
+
+def test_existing_mapped_elo_web_dashboard_reuses_application_owner(tmp_path: Path):
+    _mapped_elo_web(tmp_path)
+    evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/elo-dashboard.tsx"])
+    assert evidence.canonical_identity == "apps/elo-web"
+    assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+
+
+def test_elo_web_new_file_does_not_inherit_dashboard_exception(tmp_path: Path):
+    _mapped_elo_web(tmp_path)
+    evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/other-authority.ts"])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_elo_web_dashboard_parallel_candidate_remains_unresolved(tmp_path: Path):
+    _mapped_elo_web(tmp_path)
+    parallel = tmp_path / "legacy/elo-dashboard.tsx"
+    parallel.parent.mkdir(parents=True, exist_ok=True)
+    parallel.write_text("export const EloDashboard = () => null;\n", encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/elo-dashboard.tsx"])
+    assert "legacy/elo-dashboard.tsx" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
