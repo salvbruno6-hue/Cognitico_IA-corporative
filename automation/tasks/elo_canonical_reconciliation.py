@@ -172,6 +172,22 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
+    # A narrowly scoped existing ELO Web presentation may reuse its mapped owner.
+    # Do not infer ownership for new files, multiple paths, or executable parallels.
+    elo_web_dashboard = "apps/elo-web/src/components/elo-dashboard.tsx"
+    if (
+        changed_normalised == {elo_web_dashboard}
+        and (root / elo_web_dashboard).is_file()
+        and structure_map.is_file()
+        and "`apps/elo-web/`" in structure_map.read_text(encoding="utf-8")
+        and not candidates
+        and not owner_evidence
+    ):
+        source_of_truth = CANONICAL_STRUCTURE_MAP
+        canonical_identity = "apps/elo-web"
+        duplicate = False
+        reasons = ["Existing ELO Web dashboard reuses mapped application owner; no executable parallel candidate found"]
+
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
     decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
     if not complete:
