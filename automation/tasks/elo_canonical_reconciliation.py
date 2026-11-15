@@ -189,7 +189,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         reasons = ["Existing ELO Web dashboard reuses mapped application owner; no executable parallel candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = "REUSE" if complete and (duplicate or canonical_identity == "apps/elo-web") else "CREATE" if complete else None
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
