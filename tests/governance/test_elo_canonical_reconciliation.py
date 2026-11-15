@@ -232,6 +232,7 @@ def test_existing_mapped_elo_web_dashboard_reuses_application_owner(tmp_path: Pa
     _mapped_elo_web(tmp_path)
     evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/elo-dashboard.tsx"])
     assert evidence.canonical_identity == "apps/elo-web"
+    assert evidence.decision == "REUSE"
     assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
     assert evidence.duplicate_or_parallel is False
     assert evidence.reuse_analysis_complete is True
@@ -265,6 +266,7 @@ def test_elo_web_dashboard_with_governance_evidence_files(tmp_path: Path):
     ]
     evidence = reconcile_repository(tmp_path, changed)
     assert evidence.canonical_identity == "apps/elo-web"
+    assert evidence.decision == "REUSE"
     assert evidence.duplicate_or_parallel is False
     assert evidence.reuse_analysis_complete is True
 
