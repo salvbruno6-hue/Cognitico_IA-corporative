@@ -45,6 +45,7 @@ The physical directory is not itself authority. Authority is determined by:
 | `15-ativos/` | Assets | historical Portuguese assets | migration source; review before removal |
 | `Docs/` | Documentation | evolution/supporting docs | supporting only unless explicitly canonical |
 | `src/elo/` | Executable ELO | current implementation core | canonical executable root |
+| `apps/elo-web/` | ELO Web Application | governed user interface and Next.js authorization adapter; cognitive decisions remain in ELO Cognitivo and grants in canonical `elo-authz` | application surface; not an independent Core or authorization authority |
 | `tests/` | Verification | automated tests and behavioral evidence | canonical test root |
 
 ## Consolidation policy
