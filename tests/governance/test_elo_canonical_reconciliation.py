@@ -253,3 +253,27 @@ def test_elo_web_dashboard_parallel_candidate_remains_unresolved(tmp_path: Path)
     assert "legacy/elo-dashboard.tsx" in evidence.candidates
     assert evidence.waiting_for_evidence
     assert evidence.decision is None
+
+
+def test_elo_web_dashboard_with_governance_evidence_files(tmp_path: Path):
+    _mapped_elo_web(tmp_path)
+    changed = [
+        CANONICAL_STRUCTURE_MAP,
+        "apps/elo-web/src/components/elo-dashboard.tsx",
+        "automation/tasks/elo_canonical_reconciliation.py",
+        "tests/governance/test_elo_canonical_reconciliation.py",
+    ]
+    evidence = reconcile_repository(tmp_path, changed)
+    assert evidence.canonical_identity == "apps/elo-web"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+
+
+def test_elo_web_unrelated_change_does_not_inherit_owner(tmp_path: Path):
+    _mapped_elo_web(tmp_path)
+    evidence = reconcile_repository(
+        tmp_path,
+        ["apps/elo-web/src/components/elo-dashboard.tsx", "apps/elo-web/src/auth/new-grant.ts"],
+    )
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
