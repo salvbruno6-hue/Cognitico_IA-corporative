@@ -176,7 +176,7 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     # Do not infer ownership for new files, multiple paths, or executable parallels.
     elo_web_dashboard = "apps/elo-web/src/components/elo-dashboard.tsx"
     if (
-        changed_normalised == {elo_web_dashboard}
+        changed_normalised - {CANONICAL_STRUCTURE_MAP, "automation/tasks/elo_canonical_reconciliation.py", "tests/governance/test_elo_canonical_reconciliation.py"} == {elo_web_dashboard}
         and (root / elo_web_dashboard).is_file()
         and structure_map.is_file()
         and "`apps/elo-web/`" in structure_map.read_text(encoding="utf-8")
