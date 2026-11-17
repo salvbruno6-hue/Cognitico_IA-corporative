@@ -666,7 +666,7 @@ def test_authz_owner_reconciles_real_pr1171_paths_in_repository() -> None:
         "supabase/functions/elo-authz/index.ts",
         "tests/security/test_operator_github_binding_runtime.py",
     ])
-    assert evidence.reuse_analysis_complete, evidence.reasons
+    assert evidence.reuse_analysis_complete, (evidence.reasons, evidence.candidates)
     assert evidence.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
     assert evidence.canonical_identity == "elo-authz"
     assert evidence.duplicate_or_parallel is False
@@ -684,7 +684,7 @@ def test_authz_owner_reconciles_real_pr1173_paths_in_repository() -> None:
         "tests/security/test_elo_atomic_grant_issuance_contract.py",
         "tests/security/test_operator_github_binding_runtime.py",
     ])
-    assert evidence.reuse_analysis_complete, evidence.reasons
+    assert evidence.reuse_analysis_complete, (evidence.reasons, evidence.candidates)
     assert evidence.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
     assert evidence.canonical_identity == "elo-authz"
     assert evidence.duplicate_or_parallel is False
