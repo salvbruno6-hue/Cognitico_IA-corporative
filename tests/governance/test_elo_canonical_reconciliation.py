@@ -788,3 +788,48 @@ def test_authz_scope_shell_get_remains_read_only(tmp_path: Path) -> None:
     evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
     assert evidence.decision == "STRENGTHEN", evidence.reasons
     assert "automation/tasks/grants_read.sh" not in evidence.candidates
+
+
+@pytest.mark.parametrize("method,blocked", [
+    ("", False),
+    ("-X GET", False),
+    ("--data '{}'", True),
+])
+def test_authz_scope_nested_date_in_grant_query_keeps_method_semantics(
+    tmp_path: Path, method: str, blocked: bool,
+) -> None:
+    """Integrated P2 regression: preserve the real main Agent Loop GET query."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/elo-agent-loop.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: |\n'
+        '      grants="$(curl -fsS ' + method + ' '
+        '"$SUPABASE_URL/rest/v1/elo_authorization_grants?expires_at=gt.'
+        '$(date -u +%Y-%m-%dT%H:%M:%SZ)&select=grant_id" '
+        '-H "apikey: $SERVICE_ROLE_KEY")"\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    if blocked:
+        assert ".github/workflows/elo-agent-loop.yml" in evidence.candidates
+        assert evidence.waiting_for_evidence
+    else:
+        assert ".github/workflows/elo-agent-loop.yml" not in evidence.candidates
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
+
+
+def test_authz_scope_shell_substitution_with_quoted_parenthesis_read_only(
+    tmp_path: Path,
+) -> None:
+    """A parenthesis inside a quoted GET URL is not command termination."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/nested-quoted.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: result=$(curl -X GET '
+        '"$URL/rest/v1/elo_authorization_grants?filter=eq.a)b" --data \'{}\')\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
