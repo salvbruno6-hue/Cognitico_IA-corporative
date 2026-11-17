@@ -25,8 +25,8 @@ export function ELOAdminGrantPanel({ accessToken }: { accessToken: string }) {
         repository: REPOSITORY,
         binding_id: bindingId.trim(),
         authorization_state: "elo-merge-authorized",
-        operation: `merge_pr:${pr}:${sha.toLowerCase()}`,
-        resource_id: sha.toLowerCase(),
+        operation: "merge",
+        resource_id: `pr:${pr}@${sha.toLowerCase()}`,
         expires_in_seconds: duration,
       });
       const issuedGrant = response.grant as { grant_id?: string; expires_at?: string } | undefined;
