@@ -97,15 +97,23 @@ async function authenticate(req: Request) {
 }
 
 async function resolveActiveSession(identityId: string) {
+  // Restrict to currently eligible sessions before LIMIT, so expired or
+  // future-issued rows cannot hide an active authenticated ELO session.
+  const now=Date.now();
+  const nowISO=new Date(now).toISOString();
   const { data, error } = await supabase.from("elo_identity_sessions")
     .select("session_id,issued_at,expires_at,revoked_at,last_seen_at")
-    .eq("identity_id", identityId).is("revoked_at", null)
+    .eq("identity_id", identityId)
+    .is("revoked_at", null)
+    .lte("issued_at", nowISO)
+    .gt("expires_at", nowISO)
     .order("issued_at",{ascending:false}).limit(10);
   if (error) return { ok:false as const, reason:"session_lookup_failed" };
-  const now=Date.now();
+  // Re-evaluate after the awaited query: expiry may occur during IO.
+  const verifiedAt=Date.now();
   const session=(data ?? []).find((s:any)=>{
     const i=Date.parse(String(s.issued_at)), e=Date.parse(String(s.expires_at));
-    return Number.isFinite(i)&&Number.isFinite(e)&&i<=now&&e>now;
+    return Number.isFinite(i)&&Number.isFinite(e)&&i<=verifiedAt&&e>verifiedAt;
   });
   return session ? {ok:true as const,session} : {ok:false as const,reason:"active_elo_session_required"};
 }
@@ -161,27 +169,38 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   ]);
   if(!allowed.has(state)) return {ok:false as const,reason:"authorization_state_not_supported"};
 
+  const continuation=isObjectiveContinuation(operation);
+  const now=Date.now();
+  // Scope at the database before LIMIT: otherwise newer unrelated or expired
+  // grants can hide a valid exact resource/session grant (fail-closed starvation).
+  const metadataScope=continuation
+    ? {resource_id:resourceId,tenant_id:tenantId}
+    : {resource_id:resourceId};
+  const nowISO=new Date(now).toISOString();
   const {data,error}=await supabase.from("elo_authorization_grants")
     .select("grant_id,binding_id,session_id,authorization_state,operation,repository_full_name,issued_at,expires_at,revoked_at,metadata")
     .eq("identity_id",identityId)
+    .eq("session_id",sessionId)
     .eq("authorization_state",state)
     .eq("operation",operation)
     .eq("repository_full_name",repository)
+    .contains("metadata",metadataScope)
+    .lte("issued_at",nowISO)
+    .gt("expires_at",nowISO)
     .is("revoked_at",null)
     .order("issued_at",{ascending:false})
     .limit(10);
 
   if(error) return {ok:false as const,reason:"authorization_grant_lookup_failed"};
-
-  const continuation=isObjectiveContinuation(operation);
-  const now=Date.now();
+  // The SQL cutoff is a prefilter, not a perpetual grant of validity.
+  const verifiedAt=Date.now();
   const grant=(data??[]).find((g:any)=>{
     const issued=Date.parse(String(g.issued_at));
     const expires=Date.parse(String(g.expires_at));
     const metadata=(g.metadata && typeof g.metadata==="object") ? g.metadata as Record<string,unknown> : {};
     const metadataResourceId=String(metadata.resource_id??"").trim();
     const metadataTenantId=String(metadata.tenant_id??"").trim();
-    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=now&&expires>now
+    return Number.isFinite(issued)&&Number.isFinite(expires)&&issued<=verifiedAt&&expires>verifiedAt
       && metadataResourceId===resourceId
       && (!continuation || (Boolean(tenantId) && metadataTenantId===tenantId));
   });
@@ -195,6 +214,11 @@ async function resolveAuthorizationGrant(identityId:string, sessionId:string, st
   if(bindingError) return {ok:false as const,reason:"operator_binding_lookup_failed"};
   if(!binding) return {ok:false as const,reason:"operator_binding_inactive"};
 
+  // The binding lookup is also asynchronous; fail closed if the grant expired
+  // between the first verification and the final authorization response.
+  const finalAt=Date.now();
+  if(Date.parse(String(grant.issued_at))>finalAt || Date.parse(String(grant.expires_at))<=finalAt)
+    return {ok:false as const,reason:"authorization_state_not_granted"};
   return {ok:true as const,grant,binding};
 }
 
@@ -410,19 +434,48 @@ Deno.serve(async(req:Request)=>{
         return json({authorized:false,reason:"enterprise_tenant_scope_not_granted",request_id:requestId},403);
     }
 
-    const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
-    const grantMetadata:Record<string,unknown>={issuer_role:"CANONICAL_ADMIN",resource_id:resourceId};
-    if(continuation)grantMetadata.tenant_id=tenantId;
-    const {data:grant,error}=await supabase.from("elo_authorization_grants").insert({
-      binding_id:binding.binding_id,identity_id:binding.identity_id,session_id:session.session.session_id,
-      authorization_state:state,operation,repository_full_name:repository,
-      issued_by_identity_id:auth.identity.identity_id,request_id:requestId,
-      issued_at:new Date().toISOString(),expires_at:expiresAt,revoked_at:null,metadata:grantMetadata
-    }).select("grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at,metadata").single();
-    if(error||!grant)return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
+    // Grants belong to the recipient's active ELO session, even when
+    // a different CANONICAL_ADMIN identity performs the issuance.
+    const targetSession=await resolveActiveSession(binding.identity_id);
+    if(!targetSession.ok) {
+      try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"DENY","target_elo_session_unavailable",requestId);}
+      catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+      return json({authorized:false,reason:"target_elo_session_unavailable",request_id:requestId},targetSession.reason==="session_lookup_failed"?503:403);
+    }
 
-    try{await audit(auth.identity.identity_id,session.session.session_id,action,repository,"ALLOW","canonical_admin_issued_authorization_state",requestId);}
-    catch{return json({authorized:false,reason:"authorization_audit_write_failed",request_id:requestId},503);}
+    const expiresAt=new Date(Date.now()+expiresIn*1000).toISOString();
+    const grantMetadata:Record<string,unknown>={
+      issuer_role:"CANONICAL_ADMIN",resource_id:resourceId,expires_in_seconds:expiresIn
+    };
+    if(continuation)grantMetadata.tenant_id=tenantId;
+
+    // A single database RPC persists the grant AND its ALLOW audit atomically.
+    // If the migration is absent, the RPC fails closed without creating a grant.
+    const {data:grantData,error:grantError}=await supabase.rpc("elo_atomic_issue_authorization_grant",{
+      p_binding_id:binding.binding_id,
+      p_identity_id:binding.identity_id,
+      p_session_id:targetSession.session.session_id,
+      p_authorization_state:state,
+      p_operation:operation,
+      p_repository_full_name:repository,
+      p_issued_by_identity_id:auth.identity.identity_id,
+      p_issuer_session_id:session.session.session_id,
+      p_request_id:requestId,
+      p_expires_at:expiresAt,
+      p_metadata:grantMetadata
+    });
+    const grant=Array.isArray(grantData)?grantData[0]:grantData;
+    if(grantError||!grant
+      || String(grant.identity_id)!==String(binding.identity_id)
+      || String(grant.session_id)!==String(targetSession.session.session_id)
+      || String(grant.issued_by_identity_id)!==String(auth.identity.identity_id)
+      || String(grant.request_id)!==requestId
+      || String(grant.repository_full_name)!==repository
+      || String(grant.authorization_state)!==state
+      || String(grant.operation)!==operation
+      || String(grant.metadata?.resource_id)!==resourceId
+    )return json({authorized:false,reason:"authorization_grant_create_failed",request_id:requestId},503);
+
     return json({authorized:true,action,request_id:requestId,authorization_authority:"elo-authz",grant,binding,resource_id:resourceId,tenant_id:tenantId||null,evidence_ref:`elo-authz:${requestId}`});
   }
 

@@ -1,0 +1,50 @@
+name: ELO Atomic Grant DB Regression
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/elo-authz/**"
+      - "supabase/migrations/*elo_atomic_grant_audit_rpc.sql"
+      - "tests/security/sql/elo_atomic_grant_integration.sql"
+      - ".github/workflows/elo-authz-atomic-db-test.yml"
+  workflow_dispatch:
+
+# Evidence only: no deployment, privilege mutation outside isolated postgres,
+# merge approval, decision authority or production credentials.
+permissions:
+  contents: read
+
+jobs:
+  atomic-grant-postgres:
+    name: ELO atomic grant transaction (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: elo_authz_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: elo_ci_ephemeral_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d elo_authz_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Assert actual transaction rollback, replay and service-only execute
+        env:
+          PGPASSWORD: elo_ci_ephemeral_only
+        run: >-
+          psql -h 127.0.0.1 -p 5432 -U postgres -d elo_authz_ci
+          -v ON_ERROR_STOP=1
+          -f tests/security/sql/elo_atomic_grant_integration.sql
