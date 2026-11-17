@@ -92,6 +92,38 @@ def _curl_grant_write(args: list[str]) -> bool:
     )
 
 
+def _shell_substitution_bodies(line: str) -> Iterable[str]:
+    """Extract full $(...) commands, including nested substitutions and quotes."""
+    for match in re.finditer(r"\$\(", line):
+        # A nested $(date ...) in a quoted curl URL must not terminate the
+        # outer $(curl ...). Keep independent quote state at each depth.
+        quotes: list[str | None] = [None]
+        index = match.end()
+        while index < len(line) and quotes:
+            quote = quotes[-1]
+            char = line[index]
+            if char == "\\" and quote != "'" and index + 1 < len(line):
+                index += 2
+                continue
+            if char in ("'", '"'):
+                if quote == char:
+                    quotes[-1] = None
+                elif quote is None:
+                    quotes[-1] = char
+            elif line.startswith("$(", index) and quote != "'":
+                quotes.append(None)
+                index += 2
+                continue
+            elif char == ")" and quote is None:
+                quotes.pop()
+                if not quotes:
+                    yield line[match.end():index]
+                    break
+            index += 1
+        if quotes:
+            raise ValueError("Unterminated shell command substitution")
+
+
 def _workflow_has_curl_grant_write(content: str) -> bool:
     """Classify grant HTTP calls independently across shell control operators."""
     import shlex
@@ -114,11 +146,12 @@ def _workflow_has_curl_grant_write(content: str) -> bool:
     for line in logical_lines:
         if AUTHZ_GRANT_REST_ENDPOINT not in line.lower():
             continue
-        nested_calls = (
-            match.group(1)
-            for match in re.finditer(r"\$\(([^)]{0,3000})\)", line)
-        )
-        for segment in (line, *nested_calls):
+        try:
+            segments = (line, *_shell_substitution_bodies(line))
+        except ValueError:
+            # Unable to classify a grant-related substitution: fail closed.
+            return True
+        for segment in segments:
             try:
                 lexer = shlex.shlex(segment, posix=True, punctuation_chars=";&|")
                 lexer.whitespace_split = True
