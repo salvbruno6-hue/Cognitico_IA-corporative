@@ -34,3 +34,27 @@ def test_form_does_not_merge_or_persist_sensitive_credentials():
     assert 'service_role' not in PANEL
     assert 'create_operator_binding' not in PANEL
     assert 'callELOAuthorization(accessToken, "issue_authorization_grant"' in PANEL
+
+
+def test_admin_confirmation_cannot_be_reused_for_a_different_target():
+    # Regression: P2 Codex finding on exact-head PR confirmation reuse.
+    assert "const [confirmedTarget, setConfirmedTarget] = useState<string | null>(null);" in PANEL
+    assert "const target = `${bindingId.trim()}|${pr}|${sha.toLowerCase()}|${duration}`;" in PANEL
+    assert "const confirmed = confirmedTarget !== null && confirmedTarget === target;" in PANEL
+    assert "checked={confirmed}" in PANEL
+    assert "setConfirmedTarget(e.target.checked ? target : null)" in PANEL
+    assert "setConfirmedTarget(null);" in PANEL
+    assert "if (!valid || busy) return;" in PANEL
+    assert "duration >= 60 && duration <= 3600 && confirmed" in PANEL
+
+
+def test_all_grant_target_changes_explicitly_clear_review_confirmation():
+    for value_change in (
+        "setBindingId(e.target.value); setConfirmedTarget(null);",
+        "setPr(e.target.value); setConfirmedTarget(null);",
+        "setSha(e.target.value.trim()); setConfirmedTarget(null);",
+        "setDuration(Number(e.target.value)); setConfirmedTarget(null);",
+    ):
+        assert value_change in PANEL
+    assert "setConfirmedTarget(null);" in PANEL
+    assert "setConfirmed(" not in PANEL
