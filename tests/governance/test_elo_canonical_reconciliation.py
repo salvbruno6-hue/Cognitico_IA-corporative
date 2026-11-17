@@ -859,7 +859,7 @@ def test_authz_scope_curl_next_keeps_grant_transfer_write_blocked(
 
 @pytest.mark.parametrize("script", [
     """result=$(curl -X GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}')""",
-    """echo "$(curl --request=GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}')""",
+    '''echo "$(curl --request=GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}')"''',
     """curl -X POST https://telemetry.example --next -X GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}'""",
     """curl -G '$URL/rest/v1/elo_authorization_grants' --data 'select=grant_id' -: -X POST https://telemetry.example""",
 ])
