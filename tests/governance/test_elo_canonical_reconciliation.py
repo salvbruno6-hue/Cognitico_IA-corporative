@@ -1005,3 +1005,45 @@ def test_governance_lifecycle_preserves_unresolved_executable_candidate(tmp_path
     assert evidence.decision is None
     assert evidence.waiting_for_evidence
     assert any("unresolved" in reason for reason in evidence.reasons)
+
+
+def test_authz_and_lifecycle_owner_reconciliation_coexist_in_integrated_tree(
+    tmp_path: Path,
+) -> None:
+    """Integrated regression: lifecycle owner must not replace the authz owner."""
+    _make_existing_authz_owner(tmp_path)
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    authz_row = structure.read_text(encoding="utf-8")
+    _write_governance_lifecycle_owners(tmp_path)
+    structure.write_text(
+        structure.read_text(encoding="utf-8") + authz_row,
+        encoding="utf-8",
+    )
+
+    authz = reconcile_repository(
+        tmp_path,
+        ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    lifecycle = reconcile_repository(
+        tmp_path,
+        [
+            ".github/workflows/elo-agent-loop.yml",
+            ".github/workflows/elo-maintenance-coordinator.yml",
+            ".github/workflows/elo-merge-coordinator.yml",
+            "docs/governance/ELO_MERGE_COORDINATOR.md",
+            "10-adr/ADR-0020-end-to-end-cycle.md",
+            "tests/governance/test_merge_coordinator_contract.py",
+            "automation/tasks/elo_canonical_reconciliation.py",
+            CANONICAL_STRUCTURE_MAP,
+            "tests/governance/test_elo_canonical_reconciliation.py",
+        ],
+    )
+
+    assert (authz.canonical_identity, authz.decision) == ("elo-authz", "STRENGTHEN")
+    assert authz.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    assert (lifecycle.canonical_identity, lifecycle.decision) == (
+        "elo-governed-pr-lifecycle", "STRENGTHEN",
+    )
+    assert lifecycle.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert authz.reuse_analysis_complete and lifecycle.reuse_analysis_complete
