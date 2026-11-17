@@ -112,15 +112,33 @@ As listas documentais de MLTC13, MLTC20 e MLTC21 foram transcritas para o workbo
 - status de validação;
 - pendência de vínculo com a Lista Mãe.
 
-**Não houve carga em `estrutura_modular_itens`**, porque os itens ainda precisam ser mapeados com segurança para `public.lista_mae`.
+**Não houve carga em `estrutura_modular_itens`**. O vínculo documental foi organizado em `kits`/`kit_itens`; somente vínculos inequívocos sem GAP impeditivo foram levados a uma BOM `RASCUNHO_DOCUMENTAL`.
+
+## Kits e BOM documental
+
+A estrutura existente foi reutilizada, sem criação de novas tabelas físicas:
+- `public.kits` e `public.kit_itens` preservam a lista documental completa por modelo;
+- `public.mt_versoes_bom` e `public.mt_bom_itens` representam a BOM em estado não liberado;
+- `public.vw_elo_modelo_kit_bom_consolidado` une modelo, kit, vínculo Lista Mãe e BOM sem criar nova autoridade.
+
+Versão documental: `DOC-2026-11-13`.
+
+Foram criados seis kits documentais, todos `ativo=false` e portanto não operacionais. C13, C20 e C21 possuem respectivamente 28, 44 e 50 linhas documentais. C06, C10 e C25 permanecem sem lista de materiais específica e seus kits explicitam essa incompletude.
+
+Das 122 linhas documentais, 47 possuem vínculo seguro com a Lista Mãe. 27 linhas-fonte estão sem GAP impeditivo e resultam em 26 itens agregados de BOM. As demais permanecem no kit como GAP, divergência, unidade incompatível ou ausência de correspondência.
+
+Status das versões de BOM:
+- MLT.C13, MLT.C20 e MLT.C21: `RASCUNHO_DOCUMENTAL`;
+- MLT.C06, MLT.C10 e MLT.C25: `INCOMPLETA_DOCUMENTAL`.
+
+Nenhuma versão possui `aprovado_em`, `aprovado_por` ou validade produtiva.
 
 ## Objetos deliberadamente não alterados
 
 Nesta evolução não foram alterados:
 - `public.dimensoes`
 - `public.estrutura_modular_itens`
-- `public.mt_versoes_bom`
-- `public.mt_bom_itens`
+- versões de BOM aprovadas/liberadas
 - BOMs, kits, custos ou parâmetros da família MLT.M.
 
 ## Gate de promoção
