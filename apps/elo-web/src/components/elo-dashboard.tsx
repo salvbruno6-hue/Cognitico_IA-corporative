@@ -70,10 +70,19 @@ export function EloDashboard({ onSignOut, accessToken }: Props) {
       <section className="flex min-w-0 flex-1 flex-col"><header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-[var(--elo-panel)]/90 px-5 py-4 backdrop-blur lg:px-8"><div><div className="text-xs text-slate-400">ELO / {activeNav}</div><h1 className="text-2xl font-semibold tracking-tight">{sector.label}</h1></div><div className="flex items-center gap-2"><span className="hidden rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 md:inline-flex">Cognitivo ativo</span><button type="button" onClick={() => setSettingsOpen(true)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600" aria-label="Configurações">⚙</button><button type="button" onClick={onSignOut} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Sair</button><div className="hidden text-sm text-slate-500 sm:block">Bruno</div><div className="grid size-9 place-items-center rounded-full bg-slate-200 text-sm font-semibold text-slate-700">B</div></div></header>
         <div className="flex-1 space-y-6 p-5 lg:p-8">{notice && <div className="rounded-xl border border-slate-200 bg-[var(--elo-panel)] px-4 py-3 text-sm text-slate-600" role="status">{notice}</div>}
           {activeNav === "Governança" ? (
-            <section aria-label="Governança ELO" className="space-y-4">
-              <div role="status" className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-5">
-                <h2 className="text-2xl font-semibold">Governança</h2>
-                <p className="mt-2 text-sm text-slate-600">Painel de Governança. Não há consulta de pendências nem comprovação de gates nesta tela. A solicitação de grant exige revisão independente e todos os gates verificados fora do formulário; o elo-authz valida identidade, sessão, vínculo e escopo. A solicitação não executa merge.</p>
+            <section aria-labelledby="elo-governance-title" className="space-y-4">
+              <header className="rounded-3xl border border-slate-200 bg-[var(--elo-panel)] p-6 shadow-sm lg:p-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">ELO | Governança</p>
+                <h2 id="elo-governance-title" className="mt-2 text-2xl font-semibold">Central de Autorizações</h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">O merge exige sessão CANONICAL_ADMIN, vínculo GitHub, PR-ready V2 autêntico e gates válidos para o SHA atual. O login no Workspace não autoriza merge.</p>
+              </header>
+              <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+                <h3 className="font-semibold">Solicitações indisponíveis nesta interface</h3>
+                <p className="mt-2 leading-6">Não existe consulta administrativa de pendências validada neste painel. Nenhuma contagem ou estado de solicitação é presumido. A emissão de grants ocorre exclusivamente pelo elo-authz.</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-5 text-sm text-slate-600">
+                <h3 className="font-semibold text-slate-900">Autorização individual — não é merge</h3>
+                <p className="mt-2 leading-6">O formulário abaixo não verifica automaticamente as revisões e os gates da PR. Antes da confirmação, essas evidências devem ser verificadas no GitHub para o SHA exato. A autoridade elo-authz valida identidade, sessão, vínculo e escopo; o Merge Coordinator aplica os gates antes de qualquer merge.</p>
               </div>
               <ELOAdminGrantPanel accessToken={accessToken} />
             </section>
