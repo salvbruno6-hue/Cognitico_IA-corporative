@@ -427,3 +427,33 @@ imutável. PR-ready e Maintenance vinculam comentário, artifact e JSON ao par
 `<run_id, run_attempt>`. Os artifacts usam nomes
 `elo-pr-ready-<run_id>-<attempt>` e
 `elo-maintenance-audit-<run_id>-<attempt>`, evitando colisões entre reruns.
+
+## 18. Compatibilidade cumulativa do reconciliador canônico
+
+PRs de segurança, CI, ciclo governado e apresentação podem modificar o mesmo
+reconciliador do repositório. Seu resultado isolado em CI não comprova
+compatibilidade com owners incorporados posteriormente à `main`. A
+promoção exige reconciliação e regressão **sobre a árvore integrada efetiva**.
+
+- Manter `elo-authz` como emissor único de grants; scripts de automação,
+  workflows e substituições de comandos que gravem grants continuam candidatos
+  bloqueantes, enquanto consultas GET legítimas não podem virar writers fictícios.
+- Manter o `ELO Agent Loop` como o único produtor governado de `PR-ready` e
+  o `Merge Coordinator` como consumidor operacional; um PR não pode
+  autoatestar alteração do próprio workflow de autorização ou de PR-ready.
+- Mudanças em validação de CI reutilizam os workflows existentes, preservam
+  as verificações completas obrigatórias e não tornam evidências parciais
+  equivalentes ao Evolution Gate.
+- A interface administrativa do ELO Web é uma camada de aplicação: nunca
+  substitui `elo-authz`, os bindings de sessão, a auditoria ou a conferência
+  exata de PR e HEAD SHA.
+- Qualquer owner concorrente, path não revisado, alteração de contrato ou
+  regressão de segurança implica `WAITING_FOR_EVIDENCE` ou `BLOCKED`, e
+  não uma decisão `STRENGTHEN` inferida por ausência de provas.
+- Quando duas PRs alterarem o mesmo arquivo canônico, a segunda deve ser
+  testada contra a versão já integrada da primeira. Revalidar SHA efetivo,
+  testes adversariais, CI, Evolution Gate, revisão independente, grant e
+  proteção da branch antes de qualquer merge.
+
+Nenhuma regra acima é uma autoridade nova. Este controle apenas impede que
+um incremento isolado invalide decisões de segurança já canônicas.
