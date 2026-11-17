@@ -715,3 +715,76 @@ def test_authz_scope_rejects_multiline_python_http_writer(tmp_path: Path) -> Non
     evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
     assert "automation/tasks/hidden_writer.py" in evidence.candidates
     assert evidence.waiting_for_evidence
+
+
+@pytest.mark.parametrize("filename", ["shadow.sh", "shadow.bash", "shadow"])
+def test_authz_scope_discovers_shell_writer_with_any_executable_name(
+    tmp_path: Path, filename: str,
+) -> None:
+    """P2 regression: shell scripts and extensionless automation issue grants."""
+    _make_existing_authz_owner(tmp_path)
+    writer = tmp_path / "automation/tasks" / filename
+    writer.parent.mkdir(parents=True, exist_ok=True)
+    writer.write_text(
+        '#!/bin/sh\n'
+        'curl "$URL/rest/v1/elo_authorization_grants" --data \'{}\'\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    assert f"automation/tasks/{filename}" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+    assert event_facts(evidence)["contract_conflict"] is None
+
+
+def test_authz_scope_detects_continued_nested_curl_post(tmp_path: Path) -> None:
+    """P2 regression: normalize line continuations inside $(curl ...) first."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/nested-continued.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        'steps:\n  - run: |\n'
+        '      result=$(curl "$URL/rest/v1/elo_authorization_grants" \\\n'
+        '        --data \'{}\')\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert ".github/workflows/nested-continued.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+@pytest.mark.parametrize("script", [
+    'result=$(curl -X GET "$URL/rest/v1/elo_authorization_grants" --data \'{}\')',
+    'result=$(curl -X GET "$URL/rest/v1/elo_authorization_grants" \\\n  --data \'{}\')',
+    'echo "$(curl --request=GET "$URL/rest/v1/elo_authorization_grants" --data \'{}\')"',
+])
+def test_authz_scope_nested_get_remains_read_only(
+    tmp_path: Path, script: str,
+) -> None:
+    """P2 regression: GET method precedence applies to nested curl commands."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/nested-read-only.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text('steps:\n  - run: |\n      ' + script + '\n', encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+    assert ".github/workflows/nested-read-only.yml" not in evidence.candidates
+
+
+def test_authz_scope_shell_get_remains_read_only(tmp_path: Path) -> None:
+    """Executable shell readers should not be promoted into issuer candidates."""
+    _make_existing_authz_owner(tmp_path)
+    script = tmp_path / "automation/tasks/grants_read.sh"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text(
+        '#!/bin/sh\ncurl -X GET "$URL/rest/v1/elo_authorization_grants" --data \'{}\'\n',
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert "automation/tasks/grants_read.sh" not in evidence.candidates
