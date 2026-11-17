@@ -58,3 +58,14 @@ def test_all_grant_target_changes_explicitly_clear_review_confirmation():
         assert value_change in PANEL
     assert "setConfirmedTarget(null);" in PANEL
     assert "setConfirmed(" not in PANEL
+
+
+def test_governance_consolidates_authorization_centre_without_fake_inbox():
+    assert 'id="elo-governance-title"' in DASHBOARD
+    assert 'Central de Autorizações' in DASHBOARD
+    assert 'Solicitações indisponíveis nesta interface' in DASHBOARD
+    assert 'Nenhuma contagem ou estado de solicitação é presumido.' in DASHBOARD
+    assert 'O formulário abaixo não verifica automaticamente as revisões' in DASHBOARD
+    assert 'O login no Workspace não autoriza merge.' in DASHBOARD
+    assert 'ELOAdminGrantPanel accessToken={accessToken}' in DASHBOARD
+    assert "Aprovar merge — indisponível" not in DASHBOARD
