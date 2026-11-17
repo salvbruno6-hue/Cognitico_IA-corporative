@@ -73,7 +73,7 @@ export function EloDashboard({ onSignOut, accessToken }: Props) {
             <section aria-label="Governança ELO" className="space-y-4">
               <div role="status" className="rounded-2xl border border-slate-200 bg-[var(--elo-panel)] p-5">
                 <h2 className="text-2xl font-semibold">Governança</h2>
-                <p className="mt-2 text-sm text-slate-600">Painel administrativo aberto. A emissão de autorização exige validação canônica de identidade, sessão, vínculo e permissões pelo elo-authz.</p>
+                <p className="mt-2 text-sm text-slate-600">Painel de Governança. Não há consulta de pendências nem comprovação de gates nesta tela. A solicitação de grant exige revisão independente e todos os gates verificados fora do formulário; o elo-authz valida identidade, sessão, vínculo e escopo. A solicitação não executa merge.</p>
               </div>
               <ELOAdminGrantPanel accessToken={accessToken} />
             </section>
