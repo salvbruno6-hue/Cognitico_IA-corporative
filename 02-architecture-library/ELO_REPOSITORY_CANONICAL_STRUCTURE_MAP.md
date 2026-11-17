@@ -48,6 +48,8 @@ The physical directory is not itself authority. Authority is determined by:
 | `docs/governance/` | ELO Governance | governance contracts, boundaries and operational references | canonical governance documentation |
 | `src/elo/` | Executable ELO | current implementation core | canonical executable root |
 | `tests/` | Verification | automated tests and behavioral evidence | canonical test root |
+| supabase/functions/elo-authz/ | ELO Governance / canonical authorization issuer | Session and resource authorization using `docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md` | existing governed issuer, not second Core |
+| supabase/migrations/20261110185000_elo_atomic_grant_audit_rpc.sql | ELO Governance / authz persistence | transactional grant+audit adapter belonging to elo-authz | governed candidate, not deployed until approved |
 
 ## Consolidation policy
 
