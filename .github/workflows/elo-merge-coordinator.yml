@@ -36,25 +36,121 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}")"
-          event_pr="$(jq -r '.pull_requests[0].number // empty' <<<"$run_json")"
-          if [[ -n "$event_pr" ]]; then
-            echo "number=$event_pr" >> "$GITHUB_OUTPUT"
-            echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          run_name="$(jq -r '.name' <<<"$run_json")"
+          run_attempt="$(jq -r '.run_attempt // 0' <<<"$run_json")"
+          [[ "$run_attempt" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid workflow run attempt."; exit 1; }
+
+          if [[ "$run_name" == "ELO Agent Loop" ]]; then
+            run_event="$(jq -r '.event' <<<"$run_json")"
+            run_branch="$(jq -r '.head_branch // ""' <<<"$run_json")"
+            run_path="$(jq -r '.path // ""' <<<"$run_json")"
+            [[ "$run_path" == ".github/workflows/elo-agent-loop.yml" ]] || { echo "Unexpected Agent Loop workflow path."; exit 1; }
+            if [[ "$run_event" == "workflow_dispatch" ]]; then
+              [[ "$run_branch" == "main" ]] || { echo "Agent Loop dispatch must execute from trusted main."; exit 1; }
+            elif [[ "$run_event" != "issues" && "$run_event" != "pull_request_target" ]]; then
+              echo "Untrusted Agent Loop event: $run_event"
+              exit 1
+            fi
+
+            artifact_name="elo-pr-ready-${WORKFLOW_RUN_ID}-${run_attempt}"
+            artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}/artifacts")"
+            artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
+            [[ "$artifact_count" == "1" ]] || { echo "Exactly one non-expired PR-ready artifact is required."; exit 1; }
+            rm -rf /tmp/elo-pr-ready
+            mkdir -p /tmp/elo-pr-ready
+            gh run download "$WORKFLOW_RUN_ID" --repo "$REPOSITORY" -n "$artifact_name" -D /tmp/elo-pr-ready
+            evidence="/tmp/elo-pr-ready/pr-ready.json"
+            test -f "$evidence"
+            jq -e --arg repo "$REPOSITORY" --argjson run "$WORKFLOW_RUN_ID" --argjson attempt "$run_attempt" '
+              .schema == "elo.pr-ready.v2"
+              and .producer == "ELO Agent Loop"
+              and .repository == $repo
+              and .run_id == $run
+              and .run_attempt == $attempt
+              and .decision == "PR_READY"
+              and (.mode == "CREATE_FROM_ISSUE" or .mode == "ATTEST_EXISTING_PR")
+              and (.pr_number | type == "number")
+              and (.head_sha | test("^[0-9a-f]{40}$"))
+              and .resource_id == ("pr:" + (.pr_number|tostring) + "@" + .head_sha)
+            ' "$evidence" >/dev/null
+            number="$(jq -r '.pr_number' "$evidence")"
+            sha="$(jq -r '.head_sha' "$evidence")"
+            echo "number=$number" >> "$GITHUB_OUTPUT"
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          prs="$(gh api --paginate "repos/${REPOSITORY}/commits/${HEAD_SHA}/pulls" -H 'Accept: application/vnd.github+json')"
+          if [[ "$run_name" == "ELO Maintenance Coordinator" ]]; then
+            # pull_request_target runs against main, not the attested PR head.
+            # Resolve exclusively from a trusted, run-bound Maintenance artifact.
+            jq -e --arg repo "$REPOSITORY" --argjson attempt "$run_attempt" '
+              .name == "ELO Maintenance Coordinator"
+              and .path == ".github/workflows/elo-maintenance-coordinator.yml"
+              and .event == "pull_request_target"
+              and .head_branch == "main"
+              and .head_repository.full_name == $repo
+              and .repository.full_name == $repo
+              and .status == "completed"
+              and .conclusion == "success"
+              and .run_attempt == $attempt
+            ' <<<"$run_json" >/dev/null || {
+              echo "Untrusted Maintenance workflow completion cannot resolve a PR."
+              exit 1
+            }
+
+            artifact_name="elo-maintenance-audit-${WORKFLOW_RUN_ID}-${run_attempt}"
+            artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${WORKFLOW_RUN_ID}/artifacts")"
+            artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
+            [[ "$artifact_count" == "1" ]] || {
+              echo "Exactly one non-expired Maintenance artifact is required."
+              exit 1
+            }
+            rm -rf /tmp/elo-maintenance-resolve
+            mkdir -p /tmp/elo-maintenance-resolve
+            gh run download "$WORKFLOW_RUN_ID" --repo "$REPOSITORY" -n "$artifact_name" -D /tmp/elo-maintenance-resolve
+            evidence="/tmp/elo-maintenance-resolve/decision.json"
+            test -f "$evidence"
+            jq -e --argjson run "$WORKFLOW_RUN_ID" --argjson attempt "$run_attempt" '
+              .schema == "elo.maintenance-decision.v2"
+              and .run_id == $run
+              and .run_attempt == $attempt
+              and .decision == "APPROVED_FOR_MERGE"
+              and (.pr | type == "number" and . > 0)
+              and (.head_sha | type == "string" and test("^[0-9a-f]{40}$"))
+              and .resource_id == ("pr:" + (.pr|tostring) + "@" + .head_sha)
+              and .canonical_reconciliation.reuse_analysis_complete == true
+              and .canonical_reconciliation.duplicate_or_parallel == false
+              and .canonical_reconciliation.source_of_truth != null
+            ' "$evidence" >/dev/null || {
+              echo "Maintenance artifact is not an approved, scoped decision."
+              exit 1
+            }
+            number="$(jq -r '.pr' "$evidence")"
+            sha="$(jq -r '.head_sha' "$evidence")"
+            echo "number=$number" >> "$GITHUB_OUTPUT"
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          event_pr="$(jq -r '.pull_requests[0].number // empty' <<<"$run_json")"
+          if [[ -n "$event_pr" ]]; then
+            echo "number=$event_pr" >> "$GITHUB_OUTPUT"
+            echo "sha=$EVENT_HEAD_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          prs="$(gh api --paginate "repos/${REPOSITORY}/commits/${EVENT_HEAD_SHA}/pulls" -H 'Accept: application/vnd.github+json')"
           number="$(jq -r '[.[] | select(.base.ref == "main" and .state == "open")][0].number // empty' <<<"$prs")"
           if [[ -z "$number" ]]; then
-            echo "No open PR targeting main found for workflow head SHA ${HEAD_SHA}."
+            echo "No open PR targeting main found for workflow head SHA ${EVENT_HEAD_SHA}."
             exit 0
           fi
           echo "number=$number" >> "$GITHUB_OUTPUT"
-          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "sha=$EVENT_HEAD_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Inspect current PR state
         if: steps.pr.outputs.number != ''
@@ -91,10 +187,71 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
+          RESOURCE_ID="pr:${PR_NUMBER}@${HEAD_SHA}"
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
-          jq -e '[.comments[]? | select(.body | contains("ELO execution cycle reached PR-ready state."))] | length > 0' <<<"$comments" >/dev/null
+          run_refs="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
+            .comments[]?
+            | select(.author.login == "github-actions")
+            | select(.body | contains("ELO_PR_READY_V2=1"))
+            | select(.body | contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr))
+            | select(.body | contains("ELO_HEAD_SHA=" + $sha))
+            | select(.body | contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha))
+            | (.body | capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+).*ELO_AGENT_LOOP_RUN_ATTEMPT=(?<attempt>[0-9]+)")? | "\(.id):\(.attempt)")
+          ' <<<"$comments")"
+          proved=false
+          while IFS=: read -r run_id run_attempt; do
+            [[ "$run_id" =~ ^[0-9]+$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || continue
+            run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}" || true)"
+            [[ -n "$run_json" ]] || continue
+            run_event="$(jq -r '.event // ""' <<<"$run_json")"
+            run_branch="$(jq -r '.head_branch // ""' <<<"$run_json")"
+            if ! jq -e --arg repo "$REPOSITORY" --argjson attempt "$run_attempt" '
+              .name == "ELO Agent Loop"
+              and .path == ".github/workflows/elo-agent-loop.yml"
+              and .status == "completed"
+              and .conclusion == "success"
+              and .repository.full_name == $repo
+              and .run_attempt == $attempt
+            ' <<<"$run_json" >/dev/null; then
+              continue
+            fi
+            if [[ "$run_event" != "issues" && "$run_event" != "pull_request_target" && ! ( "$run_event" == "workflow_dispatch" && "$run_branch" == "main" ) ]]; then
+              continue
+            fi
+
+            artifact_name="elo-pr-ready-${run_id}-${run_attempt}"
+            artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/artifacts" || true)"
+            artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
+            [[ "$artifact_count" == "1" ]] || continue
+            evidence_dir="/tmp/elo-pr-ready-${run_id}-${run_attempt}"
+            rm -rf "$evidence_dir"
+            mkdir -p "$evidence_dir"
+            gh run download "$run_id" --repo "$REPOSITORY" -n "$artifact_name" -D "$evidence_dir" >/dev/null
+            evidence="$evidence_dir/pr-ready.json"
+            [[ -f "$evidence" ]] || continue
+            if jq -e               --arg repo "$REPOSITORY"               --arg pr "$PR_NUMBER"               --arg sha "$HEAD_SHA"               --arg resource "$RESOURCE_ID"               --argjson run "$run_id"               --argjson attempt "$run_attempt" '
+                .schema == "elo.pr-ready.v2"
+                and .producer == "ELO Agent Loop"
+                and .repository == $repo
+                and (.pr_number|tostring) == $pr
+                and .head_sha == $sha
+                and .resource_id == $resource
+                and .run_id == $run
+                and .run_attempt == $attempt
+                and .decision == "PR_READY"
+                and (.mode == "CREATE_FROM_ISSUE" or .mode == "ATTEST_EXISTING_PR")
+              ' "$evidence" >/dev/null; then
+              proved=true
+              break
+            fi
+          done <<<"$run_refs"
+          [[ "$proved" == "true" ]] || {
+            echo "No genuine Agent Loop PR-ready artifact bound to this PR, head SHA and run attempt."
+            exit 1
+          }
 
       - name: Verify required GitHub checks
         if: steps.pr.outputs.number != ''
@@ -115,19 +272,74 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
+          RESOURCE_ID="pr:${PR_NUMBER}@${HEAD_SHA}"
           comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments)"
-          if ! jq -e '[.comments[]? | select(.body | contains("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**"))] | length > 0' <<<"$comments" >/dev/null; then
-            echo "Maintenance Coordinator approval evidence not found."
+          run_refs="$(jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" '
+            .comments[]?
+            | select(.author.login == "github-actions")
+            | select(.body | startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**."))
+            | select(.body | contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr))
+            | select(.body | contains("ELO_HEAD_SHA=" + $sha))
+            | select(.body | contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha))
+            | (.body | capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+).*ELO_MAINTENANCE_RUN_ATTEMPT=(?<attempt>[0-9]+)")? | "\(.id):\(.attempt)")
+          ' <<<"$comments")"
+          proved=false
+          while IFS=: read -r run_id run_attempt; do
+            [[ "$run_id" =~ ^[0-9]+$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || continue
+            run_json="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}" || true)"
+            if [[ -z "$run_json" ]] || ! jq -e --arg repo "$REPOSITORY" --argjson attempt "$run_attempt" '
+              .name == "ELO Maintenance Coordinator"
+              and .path == ".github/workflows/elo-maintenance-coordinator.yml"
+              # A successful PR-branch workflow can forge decision.json.
+              # Only an attestation produced by the trusted base definition is valid.
+              and .event == "pull_request_target"
+              and .head_branch == "main"
+              and .head_repository.full_name == $repo
+              and .status == "completed"
+              and .conclusion == "success"
+              and .repository.full_name == $repo
+              and .run_attempt == $attempt
+            ' <<<"$run_json" >/dev/null; then
+              continue
+            fi
+
+            artifact_name="elo-maintenance-audit-${run_id}-${run_attempt}"
+            artifacts="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/artifacts" || true)"
+            artifact_count="$(jq --arg name "$artifact_name" '[.artifacts[]? | select(.name == $name and .expired == false)] | length' <<<"$artifacts")"
+            [[ "$artifact_count" == "1" ]] || continue
+            evidence_dir="/tmp/elo-maintenance-${run_id}-${run_attempt}"
+            rm -rf "$evidence_dir"
+            mkdir -p "$evidence_dir"
+            gh run download "$run_id" --repo "$REPOSITORY" -n "$artifact_name" -D "$evidence_dir" >/dev/null
+            evidence="$evidence_dir/decision.json"
+            [[ -f "$evidence" ]] || continue
+            if jq -e               --arg pr "$PR_NUMBER"               --arg sha "$HEAD_SHA"               --arg resource "$RESOURCE_ID"               --argjson run "$run_id"               --argjson attempt "$run_attempt" '
+                .schema == "elo.maintenance-decision.v2"
+                and (.pr|tostring) == $pr
+                and .head_sha == $sha
+                and .resource_id == $resource
+                and .run_id == $run
+                and .run_attempt == $attempt
+                and .decision == "APPROVED_FOR_MERGE"
+              ' "$evidence" >/dev/null; then
+              proved=true
+              break
+            fi
+          done <<<"$run_refs"
+          [[ "$proved" == "true" ]] || {
+            echo "No authenticated Maintenance artifact bound to this PR, head SHA and run attempt."
             exit 1
-          fi
+          }
 
       - name: Verify elo-merge-authorized in Supabase
         if: steps.pr.outputs.number != ''
         shell: bash
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           : "${SUPABASE_URL:?SUPABASE_URL secret is required}"
@@ -137,7 +349,9 @@ jobs:
           headers=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
           repo_encoded="$(python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["REPOSITORY"], safe=""))')"
 
-          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,authorization_state,operation,repository_full_name,issued_by_identity_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&limit=20")"
+          required_resource="pr:${PR_NUMBER}@${HEAD_SHA}"
+          resource_encoded="$(RESOURCE_ID="$required_resource" python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["RESOURCE_ID"], safe=""))')"
+          grants="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${authz_url}?select=grant_id,binding_id,identity_id,session_id,authorization_state,operation,repository_full_name,issued_by_identity_id,request_id,issued_at,expires_at,revoked_at,metadata&authorization_state=eq.elo-merge-authorized&operation=eq.merge&repository_full_name=eq.${repo_encoded}&revoked_at=is.null&metadata->>resource_id=eq.${resource_encoded}&order=issued_at.desc&limit=20")"
 
           valid_grant=""
           while IFS= read -r row; do
@@ -152,7 +366,7 @@ jobs:
                 break
               fi
             fi
-          done < <(jq -c '.[] | select(.revoked_at == null and .metadata.issuer_role == "CANONICAL_ADMIN")' <<<"$grants")
+          done < <(jq -c --arg resource "$required_resource" '.[] | select(.revoked_at == null and .operation == "merge" and .metadata.issuer_role == "CANONICAL_ADMIN" and .metadata.resource_id == $resource and .session_id != null)' <<<"$grants")
 
           if [[ -z "$valid_grant" ]]; then
             echo "No valid elo-merge-authorized grant found."
@@ -165,7 +379,54 @@ jobs:
           binding_id="$(jq -r '.binding_id' /tmp/grant.json)"
           binding_url="${SUPABASE_URL%/}/rest/v1/elo_operator_github_bindings"
           binding="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${binding_url}?select=binding_id,identity_id,github_user_id,github_login,repository_full_name,active&binding_id=eq.${binding_id}&repository_full_name=eq.${repo_encoded}&active=eq.true&limit=1")"
-          jq -e 'length == 1' <<<"$binding" >/dev/null
+          target_identity="$(jq -r '.identity_id' /tmp/grant.json)"
+          jq -e --arg identity "$target_identity" 'length == 1 and .[0].identity_id == $identity and .[0].active == true' <<<"$binding" >/dev/null
+
+          # Grant.session_id belongs to the RECIPIENT (elo-authz #1171).
+          # The issuance audit carries the separate CANONICAL_ADMIN issuer session
+          # (#1173 atomic RPC). Both must be valid for a governed merge.
+          recipient_session_id="$(jq -r '.session_id' /tmp/grant.json)"
+          session_url="${SUPABASE_URL%/}/rest/v1/elo_identity_sessions"
+          recipient_session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${recipient_session_id}&identity_id=eq.${target_identity}&revoked_at=is.null&limit=2")"
+          jq -e --arg target "$target_identity" --arg sid "$recipient_session_id" '
+            length == 1 and .[0].identity_id == $target and .[0].session_id == $sid
+          ' <<<"$recipient_session" >/dev/null
+          recipient_issued_epoch="$(date -u -d "$(jq -r '.[0].issued_at' <<<"$recipient_session")" +%s 2>/dev/null || true)"
+          recipient_expires_epoch="$(date -u -d "$(jq -r '.[0].expires_at' <<<"$recipient_session")" +%s 2>/dev/null || true)"
+          recipient_now_epoch="$(date -u +%s)"
+          [[ -n "$recipient_issued_epoch" && -n "$recipient_expires_epoch" ]] && (( recipient_issued_epoch <= recipient_now_epoch && recipient_now_epoch < recipient_expires_epoch ))
+
+          # Verify the issuer's own authenticated session against the canonical
+          # ALLOW audit for THIS issuance request, not the recipient's session.
+          grant_request_id="$(jq -r '.request_id // ""' /tmp/grant.json)"
+          [[ -n "$grant_request_id" ]] || { echo "Missing grant issuance request ID."; exit 1; }
+          request_encoded="$(REQUEST_ID="$grant_request_id" python -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["REQUEST_ID"], safe=""))')"
+          audit_url="${SUPABASE_URL%/}/rest/v1/elo_authorization_audit"
+          issuer_audit="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${audit_url}?select=session_id,identity_id,request_id,action,resource,decision,reason,created_at&request_id=eq.${request_encoded}&identity_id=eq.${issuer}&action=eq.issue_authorization_grant&resource=eq.${repo_encoded}&decision=eq.ALLOW&reason=eq.canonical_admin_issued_authorization_state&limit=2")"
+          jq -e --arg issuer "$issuer" --arg req "$grant_request_id" --arg repo "$REPOSITORY" '
+            length == 1 and .[0].session_id != null
+            and .[0].identity_id == $issuer
+            and .[0].request_id == $req
+            and .[0].action == "issue_authorization_grant"
+            and .[0].resource == $repo
+            and .[0].decision == "ALLOW"
+            and .[0].reason == "canonical_admin_issued_authorization_state"
+          ' <<<"$issuer_audit" >/dev/null
+          issuer_session_id="$(jq -r '.[0].session_id' <<<"$issuer_audit")"
+          issuer_audit_epoch="$(date -u -d "$(jq -r '.[0].created_at' <<<"$issuer_audit")" +%s 2>/dev/null || true)"
+          grant_issued_epoch="$(date -u -d "$(jq -r '.issued_at' /tmp/grant.json)" +%s 2>/dev/null || true)"
+          [[ -n "$issuer_audit_epoch" && -n "$grant_issued_epoch" ]] && (( issuer_audit_epoch >= grant_issued_epoch ))
+
+          issuer_session="$(curl --fail-with-body --silent --show-error "${headers[@]}" "${session_url}?select=session_id,identity_id,issued_at,expires_at,revoked_at&session_id=eq.${issuer_session_id}&identity_id=eq.${issuer}&revoked_at=is.null&limit=2")"
+          jq -e --arg issuer "$issuer" --arg sid "$issuer_session_id" '
+            length == 1 and .[0].identity_id == $issuer and .[0].session_id == $sid
+          ' <<<"$issuer_session" >/dev/null
+          session_issued="$(jq -r '.[0].issued_at' <<<"$issuer_session")"
+          session_expires="$(jq -r '.[0].expires_at' <<<"$issuer_session")"
+          session_issued_epoch="$(date -u -d "$session_issued" +%s 2>/dev/null || true)"
+          session_expires_epoch="$(date -u -d "$session_expires" +%s 2>/dev/null || true)"
+          session_now_epoch="$(date -u +%s)"
+          [[ -n "$session_issued_epoch" && -n "$session_expires_epoch" ]] && (( session_issued_epoch <= session_now_epoch && session_now_epoch < session_expires_epoch ))
 
           role_url="${SUPABASE_URL%/}/rest/v1/elo_identity_roles"
           roles="$(curl --fail-with-body --silent --show-error "${headers[@]}"             "${role_url}?select=identity_id,elo_roles!inner(code,active)&identity_id=eq.${issuer}&elo_roles.code=eq.CANONICAL_ADMIN&elo_roles.active=eq.true")"
@@ -177,11 +438,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           set -euo pipefail
           pr_json="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json state,mergeable,mergeStateStatus,headRefOid,baseRefName)"
-          jq -e '.state == "OPEN" and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
-          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --delete-branch=false
+          jq -e --arg sha "$HEAD_SHA" '.state == "OPEN" and .headRefOid == $sha and .mergeable == "MERGEABLE" and (.mergeStateStatus == "CLEAN" or .mergeStateStatus == "HAS_HOOKS") and .baseRefName == "main"' <<<"$pr_json" >/dev/null
+          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --match-head-commit "$HEAD_SHA" --delete-branch=false
 
       - name: Verify merge result
         if: steps.pr.outputs.number != ''

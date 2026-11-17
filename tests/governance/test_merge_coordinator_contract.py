@@ -61,3 +61,707 @@ def test_contract_declares_no_authority_creation():
     # O contrato usa: "Ele NÃO: - Cria autorização - Fabrica decisão"
     assert "Cria autorização" in text or "cria autorização" in text
     assert "Fabrica decisão" in text or "fabrica decisão" in text
+
+
+
+AGENT_WORKFLOW = Path(".github/workflows/elo-agent-loop.yml")
+MAINTENANCE_WORKFLOW = Path(".github/workflows/elo-maintenance-coordinator.yml")
+
+
+def _shell_step(workflow: Path, name: str) -> str:
+    data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    scripts = [
+        item["run"] for job in data["jobs"].values()
+        for item in job.get("steps", [])
+        if item.get("name") == name and "run" in item
+    ]
+    assert len(scripts) == 1, (workflow, name)
+    return scripts[0]
+
+
+def test_pr_ready_requires_bot_run_current_pr_and_sha():
+    producer = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    consumer = _shell_step(WORKFLOW, "Verify PR-ready evidence")
+    assert "ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID}" in producer
+    assert "ELO_AGENT_LOOP_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" in producer
+    assert "ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}" in producer
+    for token in (
+        '.author.login == "github-actions"',
+        'contains("ELO_PR_READY_V2=1")',
+        'contains("ELO_AGENT_LOOP_PR_NUMBER=" + $pr)',
+        'contains("ELO_HEAD_SHA=" + $sha)',
+        'contains("ELO_RESOURCE_ID=pr:" + $pr + "@" + $sha)',
+        'capture("ELO_AGENT_LOOP_RUN_ID=(?<id>[0-9]+).*ELO_AGENT_LOOP_RUN_ATTEMPT=(?<attempt>[0-9]+)")',
+        '.name == "ELO Agent Loop"',
+        '.conclusion == "success"',
+        '.repository.full_name == $repo',
+    ):
+        assert token in consumer
+
+
+def test_maintenance_requires_bot_run_current_pr_and_sha():
+    producer = MAINTENANCE_WORKFLOW.read_text(encoding="utf-8")
+    consumer = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for token in (
+        "ELO_MAINTENANCE_RUN_ID=${GITHUB_RUN_ID}",
+        "ELO_MAINTENANCE_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}",
+        "ELO_MAINTENANCE_PR_NUMBER=${PR_NUMBER}",
+        "ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA}",
+        "PR head changed before Maintenance attestation publication.",
+    ):
+        assert token in producer
+    for token in (
+        '.author.login == "github-actions"',
+        'startswith("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**.")',
+        'contains("ELO_MAINTENANCE_PR_NUMBER=" + $pr)',
+        'contains("ELO_HEAD_SHA=" + $sha)',
+        'capture("ELO_MAINTENANCE_RUN_ID=(?<id>[0-9]+).*ELO_MAINTENANCE_RUN_ATTEMPT=(?<attempt>[0-9]+)")',
+        '.name == "ELO Maintenance Coordinator"',
+        '.conclusion == "success"',
+    ):
+        assert token in consumer
+
+
+def test_merge_grant_requires_exact_operation_resource_and_live_session():
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    for token in (
+        "required_resource=\"pr:${PR_NUMBER}@${HEAD_SHA}\"",
+        "&operation=eq.merge&",
+        "metadata->>resource_id=eq.${resource_encoded}",
+        ".metadata.resource_id == $resource",
+        '.metadata.issuer_role == "CANONICAL_ADMIN"',
+        ".session_id != null",
+        "identity_id == $identity",
+        "identity_id=eq.${issuer}",
+        "session_now_epoch < session_expires_epoch",
+        "elo_operator_github_bindings",
+        "elo_identity_roles",
+        "elo_identity_sessions",
+    ):
+        assert token in script
+
+
+def test_merge_rechecks_same_sha_immediately_before_merge():
+    script = _shell_step(WORKFLOW, "Execute governed squash merge")
+    assert ".headRefOid == $sha" in script
+    assert "gh pr merge" in script
+    assert "--admin" not in script
+
+
+def test_provenance_workflow_steps_are_valid_bash():
+    import subprocess
+
+    for workflow, name in (
+        (WORKFLOW, "Verify PR-ready evidence"),
+        (WORKFLOW, "Verify applicable ELO gate evidence"),
+        (WORKFLOW, "Verify elo-merge-authorized in Supabase"),
+        (WORKFLOW, "Execute governed squash merge"),
+        (AGENT_WORKFLOW, "Register PR awaiting authorized merge"),
+        (MAINTENANCE_WORKFLOW, "Publish governed audit decision"),
+    ):
+        script = _shell_step(workflow, name)
+        result = subprocess.run(
+            ["bash", "-n"], input=script, text=True, capture_output=True
+        )
+        assert result.returncode == 0, (str(workflow), name, result.stderr)
+
+
+
+def _jq_filter_for_comment_step(step_name: str) -> str:
+    script = _shell_step(WORKFLOW, step_name)
+    # The workflow's jq program is an actual inlined multiline string.
+    opening = '''jq -r --arg sha "$HEAD_SHA" --arg pr "$PR_NUMBER" ' '''
+    opening = opening.rstrip()
+    assert opening in script, step_name
+    start = script.index(opening) + len(opening)
+    end = script.index('\' <<<"$comments")"', start)
+    return script[start:end]
+
+
+def _jq_run(filter_source: str, payload: object, *args: str) -> list[str]:
+    import json
+    import shutil
+    import subprocess
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq required for workflow provenance behavior tests")
+    command = ["jq", "-cr", *args, filter_source]
+    result = subprocess.run(
+        command, input=json.dumps(payload), text=True,
+        capture_output=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip().splitlines() if result.stdout.strip() else []
+
+
+def test_pr_ready_provenance_rejects_human_and_wrong_sha():
+    query = _jq_filter_for_comment_step("Verify PR-ready evidence")
+    good = (
+        "ELO execution cycle reached PR-ready state. "
+        "ELO_PR_READY_V2=1 ELO_AGENT_LOOP_RUN_ID=1234 ELO_AGENT_LOOP_RUN_ATTEMPT=2 "
+        "ELO_AGENT_LOOP_PR_NUMBER=1177 ELO_HEAD_SHA=aabbcc "
+        "ELO_RESOURCE_ID=pr:1177@aabbcc"
+    )
+    rows = [
+        {"author": {"login": "salvbruno6-hue"}, "body": good},
+        {"author": {"login": "github-actions"}, "body": good.replace("aabbcc", "other")},
+        {"author": {"login": "github-actions"}, "body": good.replace("1177", "9999")},
+    ]
+    args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
+    assert _jq_run(query, {"comments": rows}, *args) == []
+    rows.append({"author": {"login": "github-actions"}, "body": good})
+    assert _jq_run(query, {"comments": rows}, *args) == ["1234:2"]
+
+
+def test_maintenance_provenance_rejects_human_and_stale_sha():
+    query = _jq_filter_for_comment_step("Verify applicable ELO gate evidence")
+    good = ("ELO Maintenance Coordinator: **APPROVED_FOR_MERGE**. "
+            "ELO_MAINTENANCE_RUN_ID=890 ELO_MAINTENANCE_RUN_ATTEMPT=3 ELO_MAINTENANCE_PR_NUMBER=1177 "
+            "ELO_HEAD_SHA=aabbcc ELO_RESOURCE_ID=pr:1177@aabbcc")
+    rows = [
+        {"author": {"login": "salvbruno6-hue"}, "body": good},
+        {"author": {"login": "github-actions"}, "body": good.replace("aabbcc", "other")},
+    ]
+    args = ("--arg", "sha", "aabbcc", "--arg", "pr", "1177")
+    assert _jq_run(query, {"comments": rows}, *args) == []
+    rows.append({"author": {"login": "github-actions"}, "body": good})
+    assert _jq_run(query, {"comments": rows}, *args) == ["890:3"]
+
+
+def test_merge_grant_filter_rejects_other_operation_resource_or_session():
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    opening = '''jq -c --arg resource "$required_resource" ' '''
+    opening = opening.rstrip()
+    assert opening in script
+    start = script.index(opening) + len(opening)
+    end = script.index('\' <<<"$grants")', start)
+    filter_source = script[start:end]
+    valid = {
+        "grant_id": "good", "operation": "merge", "revoked_at": None,
+        "session_id": "session1",
+        "metadata": {"issuer_role": "CANONICAL_ADMIN", "resource_id": "pr:1177@aabbcc"}
+    }
+    others = [
+        {**valid, "grant_id": "wrong-operation", "operation": "execute"},
+        {**valid, "grant_id": "wrong-pr", "metadata": {
+            "issuer_role": "CANONICAL_ADMIN", "resource_id": "pr:999@aabbcc"
+        }},
+        {**valid, "grant_id": "no-session", "session_id": None},
+        {**valid, "grant_id": "wrong-issuer", "metadata": {
+            "issuer_role": "USER", "resource_id": "pr:1177@aabbcc"
+        }},
+        {**valid, "grant_id": "revoked", "revoked_at": "2026-11-10T00:00:00Z"},
+    ]
+    output = _jq_run(
+        filter_source, others + [valid],
+        "--arg", "resource", "pr:1177@aabbcc",
+    )
+    import json
+    assert [json.loads(row)["grant_id"] for row in output] == ["good"]
+
+
+
+def test_agent_loop_supports_existing_pr_attestation_without_parallel_workflow():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = data.get("on") or data.get(True)
+    assert "pull_request_target" in triggers
+    assert "labeled" in triggers["pull_request_target"]["types"]
+    dispatch = triggers["workflow_dispatch"]["inputs"]
+    assert dispatch["issue_number"]["required"] is False
+    assert dispatch["pr_number"]["required"] is False
+    assert dispatch["expected_head_sha"]["required"] is False
+    assert "attest-existing-pr" in data["jobs"]
+
+
+def test_existing_pr_attestation_is_read_only_and_secret_minimal():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    job = data["jobs"]["attest-existing-pr"]
+    text = str(job)
+    assert "openai/codex-action" not in text
+    assert "SUPABASE_SERVICE_ROLE_KEY" not in text
+    assert "git commit" not in text
+    assert "git push" not in text
+    assert "gh pr create" not in text
+    assert job["permissions"]["contents"] == "read"
+    assert job["permissions"]["pull-requests"] == "write"
+    assert job["permissions"]["actions"] == "read"
+
+
+def test_existing_pr_attestation_freezes_sha_and_reuses_canonical_reconciliation():
+    text = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    for token in (
+        "ATTEST_EXISTING_PR",
+        "expected_head_sha",
+        "pr:$PR_NUMBER@$head_sha",
+        "Verify required GitHub checks",
+        "Verify Evolution Gate for immutable head",
+        "elo_canonical_reconciliation",
+        "reuse_analysis_complete == true",
+        "duplicate_or_parallel == false",
+        "Revalidate immutable head and reviews",
+        "PR head changed before PR-ready publication",
+        "ELO_PR_READY_V2=1",
+        "ELO_RESOURCE_ID=",
+    ):
+        assert token in text
+
+
+def test_create_and_attest_lanes_emit_same_pr_ready_contract():
+    text = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    assert "ELO_AGENT_LOOP_MODE=CREATE_FROM_ISSUE" in text
+    assert "ELO_AGENT_LOOP_MODE=ATTEST_EXISTING_PR" in text
+    assert text.count("ELO_PR_READY_V2=1") >= 2
+    assert text.count("ELO_AGENT_LOOP_RUN_ID=${GITHUB_RUN_ID}") >= 2
+    assert text.count("ELO_AGENT_LOOP_PR_NUMBER=${PR_NUMBER}") >= 2
+
+
+def test_attestation_shell_steps_are_valid_bash():
+    import subprocess
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    steps = [step for step in data["jobs"]["attest-existing-pr"]["steps"] if "run" in step]
+    assert steps
+    for step in steps:
+        result = subprocess.run(
+            ["bash", "-n"], input=step["run"], text=True, capture_output=True
+        )
+        assert result.returncode == 0, (step["name"], result.stderr)
+
+
+
+def test_existing_pr_attestation_forbids_self_attestation_of_agent_loop_authority():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    job = data["jobs"]["attest-existing-pr"]
+    text = str(job)
+    assert '.github/workflows/elo-agent-loop.yml' in text
+    assert "bootstrap_blocked=true" in text
+    assert "BOOTSTRAP_REQUIRED" in text
+    assert "self-attestation is forbidden" in text.lower()
+    publish = [step for step in job["steps"] if step.get("name") == "Publish authenticated PR-ready V2"]
+    assert len(publish) == 1
+    assert "bootstrap_blocked != 'true'" in publish[0]["if"]
+
+
+
+def test_attestation_runs_from_trusted_base_workflow_definition():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = data.get("on") or data.get(True)
+    assert "pull_request_target" in triggers
+    assert "pull_request" not in triggers
+    job = data["jobs"]["attest-existing-pr"]
+    assert "pull_request_target" in job["if"]
+    assert "github.event_name == 'pull_request'" not in job["if"]
+
+
+def test_pr_ready_v2_is_uploaded_as_structured_artifact_in_both_lanes():
+    data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
+    text = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    assert text.count("elo-pr-ready-${{ github.run_id }}-${{ github.run_attempt }}") >= 2
+    assert text.count("elo.pr-ready.v2") >= 2
+    assert "mutation_performed:true" in text
+    assert "mutation_performed:false" in text
+    upload_steps = [
+        step for job in data["jobs"].values() for step in job.get("steps", [])
+        if step.get("uses") == "actions/upload-artifact@v4"
+        and str(step.get("with", {}).get("name", "")).startswith("elo-pr-ready-")
+    ]
+    assert len(upload_steps) == 2
+
+
+def test_merge_coordinator_resolves_agent_loop_target_from_pr_ready_artifact():
+    script = _shell_step(WORKFLOW, "Resolve PR from completed workflow")
+    for token in (
+        'run_name" == "ELO Agent Loop"',
+        'run_path" == ".github/workflows/elo-agent-loop.yml"',
+        'workflow_dispatch',
+        'pull_request_target',
+        'elo-pr-ready-',
+        'gh run download',
+        '.schema == "elo.pr-ready.v2"',
+        '.resource_id == ("pr:" + (.pr_number|tostring) + "@" + .head_sha)',
+        'number=$number',
+        'sha=$sha',
+    ):
+        assert token in script
+
+
+def test_maintenance_binds_attestation_to_evaluated_head_without_toctou():
+    reconciliation = _shell_step(MAINTENANCE_WORKFLOW, "Canonical repository reconciliation")
+    audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
+    publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert 'ELO_EVALUATED_HEAD_SHA=' in reconciliation
+    assert 'headRefOid' in audit_step
+    assert 'OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in audit_step
+    assert 'CURRENT_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in publish
+    assert 'ELO_HEAD_SHA=${ELO_EVALUATED_HEAD_SHA}' in publish
+
+
+
+def test_graphql_comment_filters_use_actions_bot_login_without_rest_suffix():
+    pr_ready = _shell_step(WORKFLOW, "Verify PR-ready evidence")
+    maintenance = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for script in (pr_ready, maintenance):
+        assert '.author.login == "github-actions"' in script
+        assert '.author.login == "github-actions[bot]"' not in script
+
+
+
+def test_merge_grant_filters_exact_resource_before_limit():
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    resource_filter = "metadata->>resource_id=eq.${resource_encoded}"
+    assert resource_filter in script
+    query_line = next(line for line in script.splitlines() if "authz_url" in line and "authorization_state=eq.elo-merge-authorized" in line)
+    assert query_line.index(resource_filter) < query_line.index("limit=20")
+    assert "order=issued_at.desc" in query_line
+
+
+def test_merge_grant_checks_recipient_session_and_canonical_issuer_audit():
+    """Grant recipient and CANONICAL_ADMIN issuer are different authorities."""
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    for required in (
+        "issuer=\"$(jq -r '.issued_by_identity_id' /tmp/grant.json)\"",
+        "target_identity=\"$(jq -r '.identity_id' /tmp/grant.json)\"",
+        "identity_id == $identity",
+        "recipient_session_id=\"$(jq -r '.session_id' /tmp/grant.json)\"",
+        "session_id=eq.${recipient_session_id}&identity_id=eq.${target_identity}",
+        "recipient_now_epoch < recipient_expires_epoch",
+        "request_id,issued_at,expires_at",
+        "grant_request_id=\"$(jq -r '.request_id // \"\"' /tmp/grant.json)\"",
+        "elo_authorization_audit",
+        "request_id=eq.${request_encoded}&identity_id=eq.${issuer}",
+        "and .[0].action == \"issue_authorization_grant\"",
+        "and .[0].reason == \"canonical_admin_issued_authorization_state\"",
+        "issuer_session_id=\"$(jq -r '.[0].session_id' <<<\"$issuer_audit\")\"",
+        "session_id=eq.${issuer_session_id}&identity_id=eq.${issuer}",
+        "issuer_audit_epoch >= grant_issued_epoch",
+        "session_now_epoch < session_expires_epoch",
+    ):
+        assert required in script
+    assert "session_id=eq.${recipient_session_id}&identity_id=eq.${issuer}" not in script
+
+
+def test_canonical_issuer_audit_filter_rejects_missing_or_ambiguous_attestation():
+    """Exercise the actual jq audit predicate for cross-identity grant issuance."""
+    import json
+    import shutil
+    import subprocess
+
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq executable required")
+    script = _shell_step(WORKFLOW, "Verify elo-merge-authorized in Supabase")
+    start = '''jq -e --arg issuer "$issuer" --arg req "$grant_request_id" --arg repo "$REPOSITORY" '\n'''
+    begin = script.index(start) + len(start)
+    end = script.index("""' <<<"$issuer_audit" >/dev/null""", begin)
+    expr = script[begin:end].strip()
+    audit = {
+        "session_id": "issuer-session",
+        "identity_id": "admin-A",
+        "request_id": "request-123",
+        "action": "issue_authorization_grant",
+        "resource": "org/repo",
+        "decision": "ALLOW",
+        "reason": "canonical_admin_issued_authorization_state",
+    }
+    def accepted(rows):
+        result = subprocess.run(
+            ["jq", "-e", "--arg", "issuer", "admin-A",
+             "--arg", "req", "request-123", "--arg", "repo", "org/repo", expr],
+            input=json.dumps(rows), capture_output=True, text=True, check=False,
+        )
+        return result.returncode == 0
+
+    assert accepted([audit])
+    assert not accepted([])
+    assert not accepted([audit, audit])
+    for field, value in (
+        ("session_id", None), ("identity_id", "different-admin"),
+        ("request_id", "different-request"), ("action", "other"),
+        ("resource", "wrong/repository"), ("decision", "DENY"),
+        ("reason", "unrelated"),
+    ):
+        assert not accepted([{**audit, field: value}]), field
+
+
+
+def test_pr_ready_verifier_binds_referenced_run_artifact_to_current_target():
+    script = _shell_step(WORKFLOW, "Verify PR-ready evidence")
+    for token in (
+        'artifact_name="elo-pr-ready-${run_id}-${run_attempt}"',
+        'gh run download "$run_id"',
+        '.schema == "elo.pr-ready.v2"',
+        '(.pr_number|tostring) == $pr',
+        '.head_sha == $sha',
+        '.resource_id == $resource',
+        '.run_id == $run',
+        '.decision == "PR_READY"',
+    ):
+        assert token in script
+
+
+def test_maintenance_artifact_is_bound_to_run_pr_sha_and_resource():
+    producer = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    consumer = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for token in (
+        "'schema': 'elo.maintenance-decision.v2'",
+        "'run_id': int(os.environ['GITHUB_RUN_ID'])",
+        "'head_sha': evaluated_head",
+        "'resource_id': f\"pr:{pr['number']}@{evaluated_head}\"",
+    ):
+        assert token in producer
+    for token in (
+        'artifact_name="elo-maintenance-audit-${run_id}-${run_attempt}"',
+        'gh run download "$run_id"',
+        '.schema == "elo.maintenance-decision.v2"',
+        '(.pr|tostring) == $pr',
+        '.head_sha == $sha',
+        '.resource_id == $resource',
+        '.run_id == $run',
+        '.decision == "APPROVED_FOR_MERGE"',
+    ):
+        assert token in consumer
+
+
+
+def test_pr_ready_and_maintenance_evidence_are_scoped_to_run_attempt():
+    agent = AGENT_WORKFLOW.read_text(encoding="utf-8")
+    maintenance = MAINTENANCE_WORKFLOW.read_text(encoding="utf-8")
+    merge = WORKFLOW.read_text(encoding="utf-8")
+    assert "ELO_AGENT_LOOP_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" in agent
+    assert "elo-pr-ready-${{ github.run_id }}-${{ github.run_attempt }}" in agent
+    assert "'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])" in maintenance
+    assert "ELO_MAINTENANCE_RUN_ATTEMPT=${GITHUB_RUN_ATTEMPT}" in maintenance
+    assert "elo-maintenance-audit-${{ github.run_id }}-${{ github.run_attempt }}" in maintenance
+    for token in (
+        "ELO_AGENT_LOOP_RUN_ATTEMPT",
+        "ELO_MAINTENANCE_RUN_ATTEMPT",
+        'artifact_name="elo-pr-ready-${run_id}-${run_attempt}"',
+        'artifact_name="elo-maintenance-audit-${run_id}-${run_attempt}"',
+        ".run_attempt == $attempt",
+    ):
+        assert token in merge
+
+
+
+def test_maintenance_does_not_self_block_on_merge_state_status():
+    audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
+    publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert "mergeable" in audit_step
+    assert "mergeable = pr.get('mergeable')" in publish
+    assert "and mergeable == 'MERGEABLE'" in publish
+    assert "merge_state not in ('BLOCKED', 'DIRTY', 'UNKNOWN')" not in publish
+    assert "mergeable={mergeable}" in publish
+
+
+
+def test_maintenance_requires_other_required_checks_to_pass_but_excludes_own_run():
+    audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
+    publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert "--required --json name,state,bucket,link,workflow" in audit_step
+    assert "required-checks.json" in audit_step
+    assert "current_run_marker" in publish
+    assert "/actions/runs/{os.environ['GITHUB_RUN_ID']}" in publish
+    assert "external_required_checks" in publish
+    assert "check.get('bucket') == 'pass'" in publish
+    assert "bool(external_required_checks)" in publish
+
+
+def test_maintenance_attestation_uses_trusted_base_branch_workflow_only():
+    """A candidate pull_request workflow may not fabricate an approval artifact."""
+    data = yaml.safe_load(MAINTENANCE_WORKFLOW.read_text(encoding="utf-8"))
+    triggers = data.get("on") or data.get(True)
+    assert "pull_request_target" in triggers
+    assert "pull_request" not in triggers
+    # Reviews use the PR merge workflow definition; rely on a subsequent
+    # governed PR label/synchronize event rather than executing untrusted code.
+    assert "pull_request_review" not in triggers
+    checkout = [
+        step for step in data["jobs"]["audit"]["steps"]
+        if step.get("name") == "Checkout canonical repository"
+    ]
+    assert len(checkout) == 1
+    assert checkout[0]["uses"] == "actions/checkout@v4"
+    assert checkout[0].get("with", {}).get("persist-credentials") is False
+    assert "ref" not in checkout[0].get("with", {})
+    assert "gh pr checkout" not in MAINTENANCE_WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_maintenance_consumer_rejects_successful_untrusted_pr_artifacts():
+    verifier = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    for token in (
+        '.event == "pull_request_target"',
+        '.head_branch == "main"',
+        '.head_repository.full_name == $repo',
+        '.path == ".github/workflows/elo-maintenance-coordinator.yml"',
+        '.status == "completed"',
+        '.conclusion == "success"',
+        '.run_attempt == $attempt',
+        '.schema == "elo.maintenance-decision.v2"',
+        '.resource_id == $resource',
+    ):
+        assert token in verifier
+    # Never accept successful pull_request runs merely because their run and
+    # artifact names match the trusted Maintenance contract.
+    assert '.event == "pull_request"' not in verifier
+
+
+def test_governed_merge_is_atomic_to_the_evidenced_head_sha():
+    merge = _shell_step(WORKFLOW, "Execute governed squash merge")
+    assert 'jq -e --arg sha "$HEAD_SHA"' in merge
+    assert 'gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash --match-head-commit "$HEAD_SHA"' in merge
+    assert "--admin" not in merge
+    assert "--auto" not in merge
+
+
+
+def test_maintenance_run_provenance_filter_rejects_untrusted_successful_run():
+    """Exercise the jq trust filter, not only string-match its existence."""
+    import json
+    import shutil
+    import subprocess
+
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq executable required for integration contract test")
+
+    script = _shell_step(WORKFLOW, "Verify applicable ELO gate evidence")
+    start_marker = (
+        'if [[ -z "$run_json" ]] || ! jq -e --arg repo "$REPOSITORY" '
+        '--argjson attempt "$run_attempt" \''
+    )
+    start = script.index(start_marker) + len(start_marker)
+    end = script.index("' <<<\"$run_json\" >/dev/null; then", start)
+    expression = script[start:end].strip()
+
+    repo = "salvbruno6-hue/Cognitico_IA-corporative"
+    trusted = {
+        "name": "ELO Maintenance Coordinator",
+        "path": ".github/workflows/elo-maintenance-coordinator.yml",
+        "event": "pull_request_target",
+        "head_branch": "main",
+        "head_repository": {"full_name": repo},
+        "repository": {"full_name": repo},
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 3,
+    }
+
+    def verified(run):
+        result = subprocess.run(
+            ["jq", "-e", "--arg", "repo", repo, "--argjson", "attempt", "3", expression],
+            input=json.dumps(run), text=True, capture_output=True, check=False,
+        )
+        return result.returncode == 0
+
+    assert verified(trusted)
+    for field, value in (
+        ("event", "pull_request"),
+        ("event", "pull_request_review"),
+        ("event", "workflow_dispatch"),
+        ("head_branch", "feature/modified-workflow"),
+        ("conclusion", "failure"),
+        ("status", "in_progress"),
+        ("run_attempt", 2),
+        ("path", ".github/workflows/fake-maintenance.yml"),
+    ):
+        candidate = dict(trusted)
+        candidate[field] = value
+        assert not verified(candidate), (field, value)
+    wrong_origin = dict(trusted, head_repository={"full_name": "attacker/fork"})
+    assert not verified(wrong_origin)
+
+
+def test_maintenance_completion_resolves_trusted_target_from_bound_artifact():
+    """A trusted base-branch Maintenance run must not be mistaken for the PR SHA."""
+    script = _shell_step(WORKFLOW, "Resolve PR from completed workflow")
+    start = script.index('if [[ "$run_name" == "ELO Maintenance Coordinator" ]]')
+    end = script.index('event_pr="$(jq -r', start)
+    resolver = script[start:end]
+    for part in (
+        '.event == "pull_request_target"',
+        '.head_branch == "main"',
+        '.head_repository.full_name == $repo',
+        '.repository.full_name == $repo',
+        '.status == "completed"',
+        '.conclusion == "success"',
+        '.run_attempt == $attempt',
+        'elo-maintenance-audit-${WORKFLOW_RUN_ID}-${run_attempt}',
+        'gh run download "$WORKFLOW_RUN_ID"',
+        '.schema == "elo.maintenance-decision.v2"',
+        '.decision == "APPROVED_FOR_MERGE"',
+        '.run_id == $run',
+        '.run_attempt == $attempt',
+        '.resource_id == ("pr:" + (.pr|tostring) + "@" + .head_sha)',
+        '.canonical_reconciliation.reuse_analysis_complete == true',
+        '.canonical_reconciliation.duplicate_or_parallel == false',
+        'number="$(jq -r \'.pr\' "$evidence")"',
+        'sha="$(jq -r \'.head_sha\' "$evidence")"',
+    ):
+        assert part in resolver
+    assert script.index('if [[ "$run_name" == "ELO Maintenance Coordinator" ]]') < script.index('event_pr="$(jq -r')
+    assert 'sha=$EVENT_HEAD_SHA' not in resolver
+
+
+def test_maintenance_completion_artifact_filter_rejects_bad_scope_and_decisions():
+    """Execute the exact verifier jq expression, including its binding checks."""
+    import json
+    import shutil
+    import subprocess
+
+    import pytest
+
+    if shutil.which("jq") is None:
+        pytest.skip("jq is required for jq behavior testing")
+
+    script = _shell_step(WORKFLOW, "Resolve PR from completed workflow")
+    start = script.index('if [[ "$run_name" == "ELO Maintenance Coordinator" ]]')
+    fragment = script[start:script.index('event_pr="$(jq -r', start)]
+    marker = '''jq -e --argjson run "$WORKFLOW_RUN_ID" --argjson attempt "$run_attempt" '\n'''
+    begin = fragment.index(marker) + len(marker)
+    end = fragment.index("' \"$evidence\" >/dev/null", begin)
+    expression = fragment[begin:end].strip()
+
+    sha = "a" * 40
+    good = {
+        "schema": "elo.maintenance-decision.v2",
+        "run_id": 12345,
+        "run_attempt": 2,
+        "decision": "APPROVED_FOR_MERGE",
+        "pr": 1177,
+        "head_sha": sha,
+        "resource_id": "pr:1177@" + sha,
+        "canonical_reconciliation": {
+            "reuse_analysis_complete": True,
+            "duplicate_or_parallel": False,
+            "source_of_truth": "10-adr/ADR-0020-end-to-end-cycle.md",
+        },
+    }
+    def accepted(payload):
+        proc = subprocess.run(
+            ["jq", "-e", "--argjson", "run", "12345",
+             "--argjson", "attempt", "2", expression],
+            input=json.dumps(payload), capture_output=True, text=True, check=False,
+        )
+        return proc.returncode == 0
+
+    assert accepted(good)
+    for key, value in (
+        ("schema", "elo.fake"),
+        ("run_id", 999),
+        ("run_attempt", 1),
+        ("decision", "READY_FOR_ELO_DECISION"),
+        ("pr", 0),
+        ("head_sha", "a" * 39),
+        ("resource_id", "pr:1177@" + "b"*40),
+    ):
+        bad = dict(good, **{key: value})
+        assert not accepted(bad), (key, value)
+    for key, value in (
+        ("reuse_analysis_complete", False),
+        ("duplicate_or_parallel", True),
+        ("source_of_truth", None),
+    ):
+        bad = dict(good, canonical_reconciliation={**good["canonical_reconciliation"], key: value})
+        assert not accepted(bad), (key, value)
