@@ -63,6 +63,16 @@ AUTHZ_CURL_BODY_OPTIONS = (
 
 def _curl_grant_write(args: list[str]) -> bool:
     """Resolve the method on a *single* curl call, without losing -g/-G case."""
+    # curl --next/-: resets per-transfer local options; -G on telemetry
+    # cannot suppress the implicit POST of a later grant transfer.
+    if "--next" in args or "-:" in args:
+        transfers: list[list[str]] = [[]]
+        for item in args:
+            if item in ("--next", "-:"):
+                transfers.append([])
+            else:
+                transfers[-1].append(item)
+        return any(_curl_grant_write(transfer) for transfer in transfers)
     if not any(AUTHZ_GRANT_REST_ENDPOINT in item.lower() for item in args):
         return False
 
@@ -92,11 +102,11 @@ def _curl_grant_write(args: list[str]) -> bool:
     )
 
 
-def _shell_substitution_bodies(line: str) -> Iterable[str]:
-    """Extract full $(...) commands, including nested substitutions and quotes."""
+def _shell_substitution_spans(line: str) -> Iterable[tuple[int, int, str]]:
+    """Extract $(...) spans and bodies, including nested command substitutions."""
     for match in re.finditer(r"\$\(", line):
-        # A nested $(date ...) in a quoted curl URL must not terminate the
-        # outer $(curl ...). Keep independent quote state at each depth.
+        # Keep independent quote state at each depth: $(date ...) in a quoted
+        # curl URL does not terminate the outer $(curl ...) substitution.
         quotes: list[str | None] = [None]
         index = match.end()
         while index < len(line) and quotes:
@@ -117,12 +127,11 @@ def _shell_substitution_bodies(line: str) -> Iterable[str]:
             elif char == ")" and quote is None:
                 quotes.pop()
                 if not quotes:
-                    yield line[match.end():index]
+                    yield match.start(), index + 1, line[match.end():index]
                     break
             index += 1
         if quotes:
             raise ValueError("Unterminated shell command substitution")
-
 
 def _workflow_has_curl_grant_write(content: str) -> bool:
     """Classify grant HTTP calls independently across shell control operators."""
@@ -147,7 +156,14 @@ def _workflow_has_curl_grant_write(content: str) -> bool:
         if AUTHZ_GRANT_REST_ENDPOINT not in line.lower():
             continue
         try:
-            segments = (line, *_shell_substitution_bodies(line))
+            substitutions = tuple(_shell_substitution_spans(line))
+            # Analyze each nested curl once. Otherwise body text such as
+            # {"method":"POST"} inside $(curl -X GET ...) is falsely treated
+            # as an independent write by the outer non-curl fallback.
+            outer = list(line)
+            for start, end, _ in substitutions:
+                outer[start:end] = [" "] * (end - start)
+            segments = ("".join(outer), *(body for _, _, body in substitutions))
         except ValueError:
             # Unable to classify a grant-related substitution: fail closed.
             return True
