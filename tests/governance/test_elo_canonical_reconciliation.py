@@ -833,3 +833,48 @@ def test_authz_scope_shell_substitution_with_quoted_parenthesis_read_only(
     )
     evidence = reconcile_repository(tmp_path, ["supabase/functions/elo-authz/index.ts"])
     assert evidence.decision == "STRENGTHEN", evidence.reasons
+
+@pytest.mark.parametrize("script", [
+    """curl -G https://telemetry.example --next '$URL/rest/v1/elo_authorization_grants' --data '{}'""",
+    """curl -G https://telemetry.example -: '$URL/rest/v1/elo_authorization_grants' --data '{}'""",
+    """result=$(curl -G https://telemetry.example --next '$URL/rest/v1/elo_authorization_grants' --data '{}')""",
+    """result=$(curl -X GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}' --next '$URL/rest/v1/elo_authorization_grants' --data '{}')""",
+])
+def test_authz_scope_curl_next_keeps_grant_transfer_write_blocked(
+    tmp_path: Path, script: str,
+) -> None:
+    """P2 regression: prior transfer GET options cannot mask a grant POST."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/next-writer.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(f"steps:\n  - run: |\n      {script}\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert ".github/workflows/next-writer.yml" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+@pytest.mark.parametrize("script", [
+    """result=$(curl -X GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}')""",
+    """echo "$(curl --request=GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}')""",
+    """curl -X POST https://telemetry.example --next -X GET '$URL/rest/v1/elo_authorization_grants' --data '{"method":"POST"}'""",
+    """curl -G '$URL/rest/v1/elo_authorization_grants' --data 'select=grant_id' -: -X POST https://telemetry.example""",
+])
+def test_authz_scope_nested_payload_and_next_do_not_invent_grant_writer(
+    tmp_path: Path, script: str,
+) -> None:
+    """P2 regression: nested GET payload strings are data, not HTTP verbs."""
+    _make_existing_authz_owner(tmp_path)
+    workflow = tmp_path / ".github/workflows/next-read-only.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(f"steps:\n  - run: |\n      {script}\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert evidence.decision == "STRENGTHEN", (evidence.reasons, evidence.candidates)
+    assert evidence.duplicate_or_parallel is False
+    assert ".github/workflows/next-read-only.yml" not in evidence.candidates
