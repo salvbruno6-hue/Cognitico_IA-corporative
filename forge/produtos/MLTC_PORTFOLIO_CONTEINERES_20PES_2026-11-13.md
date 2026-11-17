@@ -167,3 +167,11 @@ A autorização de materialização foi aplicada reutilizando as tabelas existen
 - todas as estruturas e itens permanecem `ativo=false`, portanto não entram no fluxo produtivo;
 - C06, C10 e C25 possuem estrutura documental sem itens, explicitando ausência de composição suficiente;
 - Google Sheets permanece réplica de consulta: divergência com `public.lista_mae` é GAP e o Supabase prevalece.
+
+## Consolidação Lista Mãe — onda 2
+
+A segunda onda usa exclusivamente `public.lista_mae` como autoridade. Foram ampliadas as aplicações de itens elétricos existentes quando a especificação documental de C20/C21 coincide com o item já cadastrado. Não foram criados itens duplicados.
+
+Também foram incorporadas as portas principais 800×2100 de C20 e C21 por vínculo direto com `ESQ001`. Cabos 2,5 mm² preto/verde foram identificados, porém continuam fora da BOM porque as listas C20/C21 usam unidade `UN` enquanto a Lista Mãe usa `MT`. O quadro C21 permanece bloqueado pelo GAP de faseamento.
+
+A view `vw_elo_mltc_gaps_composicao` concentra o saldo ainda não promovido.
