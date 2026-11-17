@@ -213,3 +213,67 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+def _mapped_existing_elo_web(tmp_path: Path, with_grant_panel: bool = True) -> None:
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure.parent.mkdir(parents=True, exist_ok=True)
+    structure.write_text("| `apps/elo-web/` | ELO Web Application | existing UI | application |\n", encoding="utf-8")
+    dashboard = tmp_path / "apps/elo-web/src/components/elo-dashboard.tsx"
+    dashboard.parent.mkdir(parents=True, exist_ok=True)
+    dashboard.write_text("export const EloDashboard = () => null;\n", encoding="utf-8")
+    if with_grant_panel:
+        panel = tmp_path / "apps/elo-web/src/components/elo-admin-grant-panel.tsx"
+        panel.write_text("export const ELOAdminGrantPanel = () => null;\n", encoding="utf-8")
+
+
+def test_existing_elo_web_dashboard_owner_reused_without_new_authority(tmp_path: Path):
+    _mapped_existing_elo_web(tmp_path)
+    evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/elo-dashboard.tsx"])
+    assert evidence.reuse_analysis_complete
+    assert evidence.canonical_identity == "apps/elo-web"
+    assert evidence.source_of_truth == CANONICAL_STRUCTURE_MAP
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.decision == "REUSE"
+
+
+def test_existing_elo_web_grant_panel_and_dashboard_reuse_owner(tmp_path: Path):
+    _mapped_existing_elo_web(tmp_path)
+    changed = ["apps/elo-web/src/components/elo-dashboard.tsx",
+        "apps/elo-web/src/components/elo-admin-grant-panel.tsx",
+        "tests/security/test_elo_merge_exact_head_admin_ui.py"]
+    evidence = reconcile_repository(tmp_path, changed)
+    assert evidence.reuse_analysis_complete, evidence.reasons
+    assert evidence.canonical_identity == "apps/elo-web"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.decision == "REUSE"
+
+
+def test_existing_elo_web_unknown_authz_writer_fails_closed(tmp_path: Path):
+    _mapped_existing_elo_web(tmp_path)
+    changed = ["apps/elo-web/src/components/elo-dashboard.tsx",
+        "apps/elo-web/src/components/elo-admin-grant-panel.tsx",
+        "apps/elo-web/src/auth/parallel-grant-writer.ts"]
+    evidence = reconcile_repository(tmp_path, changed)
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_existing_elo_web_parallel_candidate_fails_closed(tmp_path: Path):
+    _mapped_existing_elo_web(tmp_path)
+    parallel = tmp_path / "legacy/elo-dashboard.tsx"
+    parallel.parent.mkdir(parents=True, exist_ok=True)
+    parallel.write_text("export const EloDashboard = () => null;\n", encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/elo-dashboard.tsx"])
+    assert "legacy/elo-dashboard.tsx" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_existing_elo_web_requires_explicit_owner_map(tmp_path: Path):
+    _mapped_existing_elo_web(tmp_path)
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure.write_text("# no ELO Web owner\n", encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, ["apps/elo-web/src/components/elo-dashboard.tsx"])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
