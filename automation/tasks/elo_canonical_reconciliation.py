@@ -55,7 +55,6 @@ AUTHZ_WORKFLOW_REST_WRITE = re.compile(
 AUTHZ_PYTHON_REST_WRITE = re.compile(
     r"""(?is)\b(?:requests|httpx)\s*\.\s*(?:post|put|patch|delete)\s*\([\s\S]{0,600}?/rest/v1/elo_authorization_grants"""
 )
-AUTHZ_SHELL_SUBSTITUTION = re.compile(r"\$\(\s*(?:[^\n)]*?\b)?curl\b", re.IGNORECASE)
 AUTHZ_GRANT_REST_ENDPOINT = "/rest/v1/elo_authorization_grants"
 AUTHZ_CURL_BODY_OPTIONS = (
     "--data", "--form", "--json", "--upload-file",
@@ -109,48 +108,49 @@ def _workflow_has_curl_grant_write(content: str) -> bool:
     if pending:
         logical_lines.append(pending)
 
-    # A nested command substitution may not tokenize as a bare `curl`.
-    # Fail closed when a grant endpoint occurs in a nested curl invocation
-    # with a non-GET method or body, even if the outer command is read-only.
-    if AUTHZ_SHELL_SUBSTITUTION.search(content) and AUTHZ_GRANT_REST_ENDPOINT in content.lower():
-        if re.search(r"(?is)\$\([^\n]{0,600}?\bcurl\b[^\n]{0,600}?(?:-X\s*(?:POST|PUT|PATCH|DELETE)|--request(?:=|\s+)(?:POST|PUT|PATCH|DELETE)|--data|\s-d\b|--json)", content):
-            return True
-
+    # Process backslash-continued lines before inspecting command substitutions.
+    # Both direct and nested curl calls must share identical HTTP method rules;
+    # a body flag never overrides an explicit GET, including in $(curl ...).
     for line in logical_lines:
         if AUTHZ_GRANT_REST_ENDPOINT not in line.lower():
             continue
-        try:
-            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|")
-            lexer.whitespace_split = True
-            lexer.commenters = "#"
-            tokens = list(lexer)
-        except ValueError:
-            # A malformed grant command cannot prove absence of a writer.
-            return True
-
-        commands: list[list[str]] = []
-        current: list[str] = []
-        for item in tokens:
-            if item and set(item) <= {";", "&", "|"}:
-                commands.append(current)
-                current = []
-            else:
-                current.append(item)
-        commands.append(current)
-
-        for command in commands:
-            curl_positions = [
-                index for index, item in enumerate(command)
-                if item == "curl" or item.endswith("/curl")
-            ]
-            if curl_positions:
-                for index in curl_positions:
-                    if _curl_grant_write(command[index + 1:]):
-                        return True
-            elif AUTHZ_WORKFLOW_REST_WRITE.search(" ".join(command)):
-                # Keep detection for non-curl clients (fetch, HTTPie, etc.)
-                # but never associate verbs from another shell command.
+        nested_calls = (
+            match.group(1)
+            for match in re.finditer(r"\$\(([^)]{0,3000})\)", line)
+        )
+        for segment in (line, *nested_calls):
+            try:
+                lexer = shlex.shlex(segment, posix=True, punctuation_chars=";&|")
+                lexer.whitespace_split = True
+                lexer.commenters = "#"
+                tokens = list(lexer)
+            except ValueError:
+                # A malformed grant command cannot prove absence of a writer.
                 return True
+
+            commands: list[list[str]] = []
+            current: list[str] = []
+            for item in tokens:
+                if item and set(item) <= {";", "&", "|"}:
+                    commands.append(current)
+                    current = []
+                else:
+                    current.append(item)
+            commands.append(current)
+
+            for command in commands:
+                curl_positions = [
+                    index for index, item in enumerate(command)
+                    if item == "curl" or item.endswith("/curl")
+                ]
+                if curl_positions:
+                    for index in curl_positions:
+                        if _curl_grant_write(command[index + 1:]):
+                            return True
+                elif AUTHZ_WORKFLOW_REST_WRITE.search(" ".join(command)):
+                    # Preserve detection of non-curl writers without borrowing
+                    # verbs from an unrelated command in the same shell line.
+                    return True
     return False
 
 
@@ -165,15 +165,22 @@ def _unreviewed_authz_writers(root: Path, source_files: Iterable[Path]) -> set[s
         # executable automation and workflow paths MUST still be inspected.
         if relative.startswith(("tests/", "docs/")):
             continue
-        if path.suffix.lower() not in {
-            ".py", ".ts", ".tsx", ".js", ".jsx", ".sql", ".yml", ".yaml",
-        }:
+        suffix = path.suffix.lower()
+        # Shell scripts are executable grant issuers even when renamed, stored
+        # outside .github/workflows, or lacking a filename extension.
+        is_shell = suffix in {".sh", ".bash", ".zsh"} or (
+            not suffix and (
+                relative.startswith(("automation/", ".github/workflows/"))
+                or bool(path.stat().st_mode & 0o111)
+            )
+        )
+        if suffix not in SOURCE_SUFFIXES and not is_shell:
             continue
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if path.suffix.lower() in {".yml", ".yaml"}:
+        if suffix in {".yml", ".yaml"} or is_shell:
             # The two known Agent/Merge workflows are read-only consumers, but
             # they are still inspected; grant-writing edits must fail closed.
             direct_write = (
