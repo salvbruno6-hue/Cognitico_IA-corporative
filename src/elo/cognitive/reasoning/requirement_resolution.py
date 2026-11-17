@@ -212,6 +212,10 @@ class RequirementResolutionFlow:
     def resolve(self, *, node: RequirementNode, parameter: str) -> RequirementResolutionResult:
         if not parameter or not parameter.strip():
             raise ValueError("parameter is required")
+        if node.requirement_dependencies:
+            raise ValueError(
+                "requirements with typed requirement dependencies must use the governed dependency gate"
+            )
 
         current_claims = list(node.claims)
         attempts: list[ResolutionAttempt] = []
