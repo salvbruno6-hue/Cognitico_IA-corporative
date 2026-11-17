@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-writing-for-agents"
+  short_description: "Manual ELO-governed source for writing-for-agents."
+policy:
+  allow_implicit_invocation: false

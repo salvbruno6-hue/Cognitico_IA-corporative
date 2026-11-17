@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-wait-what"
+  short_description: "Manual ELO-governed source for wait-what."
+policy:
+  allow_implicit_invocation: false

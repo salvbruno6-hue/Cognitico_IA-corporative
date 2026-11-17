@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-writing-beats"
+  short_description: "Manual ELO-governed source for writing-beats."
+policy:
+  allow_implicit_invocation: false

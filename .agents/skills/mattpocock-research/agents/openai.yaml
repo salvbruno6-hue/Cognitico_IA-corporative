@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-research"
+  short_description: "Manual ELO-governed source for research."
+policy:
+  allow_implicit_invocation: false

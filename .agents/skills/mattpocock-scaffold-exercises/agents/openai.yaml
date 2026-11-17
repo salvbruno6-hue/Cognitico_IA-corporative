@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-scaffold-exercises"
+  short_description: "Manual ELO-governed source for scaffold-exercises."
+policy:
+  allow_implicit_invocation: false

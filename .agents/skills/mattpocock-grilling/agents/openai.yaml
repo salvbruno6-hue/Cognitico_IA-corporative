@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-grilling"
+  short_description: "Manual ELO-governed source for grilling."
+policy:
+  allow_implicit_invocation: false

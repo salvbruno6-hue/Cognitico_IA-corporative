@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-triage"
+  short_description: "Manual ELO-governed source for triage."
+policy:
+  allow_implicit_invocation: false

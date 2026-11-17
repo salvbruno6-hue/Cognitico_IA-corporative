@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-domain-modeling"
+  short_description: "Manual ELO-governed source for domain-modeling."
+policy:
+  allow_implicit_invocation: false

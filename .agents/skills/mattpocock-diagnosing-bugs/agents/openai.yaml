@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-diagnosing-bugs"
+  short_description: "Manual ELO-governed source for diagnosing-bugs."
+policy:
+  allow_implicit_invocation: false

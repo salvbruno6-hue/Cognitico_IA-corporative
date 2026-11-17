@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-writing-shape"
+  short_description: "Manual ELO-governed source for writing-shape."
+policy:
+  allow_implicit_invocation: false

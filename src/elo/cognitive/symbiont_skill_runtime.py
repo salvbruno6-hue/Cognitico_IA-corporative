@@ -91,4 +91,42 @@ class SymbiontSkillRuntime:
         return self.absorption.propose(observation)
 
 
+    @staticmethod
+    def observe_external_skill_invocation(
+        reference,
+        outcome,
+        *,
+        tenant_id: str,
+        domain: str,
+    ):
+        """Classify a measured external invocation via the existing Evolution Gate.
+
+        This is observation, not permission to promote, install or register a skill.
+        Failures are not relabelled as successful capability evidence.
+        """
+        from elo.cognitive.symbiont_pattern_intake import ExternalPatternInput, SymbiontPatternIntake
+        if not outcome.executed or not outcome.provenance.get("runtime_evidence_ref"):
+            return None
+        evidence = tuple(dict.fromkeys((
+            *outcome.evidence_ids,
+            str(outcome.provenance["runtime_evidence_ref"]),
+            reference.evidence_ref,
+        )))
+        return SymbiontPatternIntake().classify(ExternalPatternInput(
+            pattern_id=f"external-skill:{outcome.request_id}:{reference.name}",
+            tenant_id=tenant_id,
+            domain=domain,
+            source_ref="mattpocock/skills",
+            source_commit=reference.source_commit,
+            problem="externally sourced instruction used by governed ELO execution",
+            mechanism=f"existing ELO external reference boundary for {reference.skill_id}",
+            evidence_ids=evidence,
+            existing_owner="ELO Knowledge & Skills / Forge",
+            scope="forge-external-reference",
+            tenant_scope=tenant_id,
+            source_kind="repository",
+            risk="MEDIUM",
+        ))
+
+
 __all__ = ["SymbiontSkillRuntime"]

@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-grill-with-docs"
+  short_description: "Manual ELO-governed source for grill-with-docs."
+policy:
+  allow_implicit_invocation: false

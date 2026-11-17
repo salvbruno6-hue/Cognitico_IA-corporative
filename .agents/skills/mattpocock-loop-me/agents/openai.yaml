@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-loop-me"
+  short_description: "Manual ELO-governed source for loop-me."
+policy:
+  allow_implicit_invocation: false
