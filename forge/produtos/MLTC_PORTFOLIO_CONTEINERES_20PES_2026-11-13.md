@@ -156,3 +156,14 @@ A operação foi registrada em `public.tb_elo_eventos_governanca` como:
 `ENRIQUECIMENTO_PORTFOLIO_MLTC_20261113`
 
 Os conflitos permanecem como evidência documental divergente. A estrutura atual deve ser **reutilizada e fortalecida**, evitando criação de autoridades ou tabelas paralelas.
+
+## Estrutura modular documental
+
+A autorização de materialização foi aplicada reutilizando as tabelas existentes, sem criar nova tabela física.
+
+- `public.estrutura_modular`: seis estruturas documentais, uma por modelo MLT.C06/C10/C13/C20/C21/C25;
+- `public.estrutura_modular_itens`: 26 itens provenientes exclusivamente da BOM `DOC-2026-11-13` e vinculados à `public.lista_mae` canônica;
+- `public.vw_elo_modelo_composicao_documental`: projeção relacional de consulta, com `security_invoker=true`;
+- todas as estruturas e itens permanecem `ativo=false`, portanto não entram no fluxo produtivo;
+- C06, C10 e C25 possuem estrutura documental sem itens, explicitando ausência de composição suficiente;
+- Google Sheets permanece réplica de consulta: divergência com `public.lista_mae` é GAP e o Supabase prevalece.
