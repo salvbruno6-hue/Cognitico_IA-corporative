@@ -1,185 +1,196 @@
-# Família MLT.C — Portfólio técnico de contêineres 20 pés
+# Família MLT.C — Estado técnico consolidado
 
-Data de registro: 2026-11-13  
-Enriquecimento estrutural: 2026-11-17
+**Estado vigente em:** 2026-11-18  
+**Versão documental:** `DOC-2026-11-13`  
+**Família:** MLT.C — contêiner marítimo Dry adaptado  
+**Situação:** documental, não liberada para produção
 
-## Escopo e fronteira
+## 1. Autoridades e fronteiras
 
-Este registro preserva conhecimento documental da família **MLT.C**, baseada em contêiner marítimo Dry adaptado.
+- **GitHub** é a autoridade operacional/canônica.
+- **Supabase** é a autoridade cognitiva/persistente.
+- A Lista Mãe válida é `public.lista_mae`.
+- Planilhas não são autoridade e não devem ser criadas, editadas ou sincronizadas sem solicitação explícita do usuário.
+- Informações MLT.C não devem ser transferidas automaticamente para MLT.M.
+- Requisitos de um modelo MLT.C não são automaticamente transferíveis a outro modelo MLT.C.
 
-**Regra de governança:** informações de MLT.C não devem ser transferidas automaticamente para MLT.M. Requisitos de um modelo MLT.C também não são automaticamente transferíveis a outro modelo MLT.C.
+Estados de evidência preservados: **DOCUMENTADO**, **VISUAL** e **PENDENTE**.
 
-A fonte distingue três estados de informação: **DOCUMENTADO**, **VISUAL** e **PENDENTE**. Fotografia comprova apenas o que é visível e não substitui desenho, memorial, lista ou revisão aprovada.
+## 2. Modelos
 
-Esta evolução **não promove** dados documentais para BOM e **não altera** a família MLT.M.
+| Modelo | Produto | Maturidade | Kit | BOM |
+|---|---|---|---|---|
+| MLT.C06 | Depósito | FICHA_PRELIMINAR | documental vazio | INCOMPLETA_DOCUMENTAL |
+| MLT.C10 | Escritório forrado | CADERNO_PRELIMINAR | documental vazio | INCOMPLETA_DOCUMENTAL |
+| MLT.C13 | Escritório simples | CADERNO_TECNICO | documental | RASCUNHO_DOCUMENTAL |
+| MLT.C20 | Sanitário · 7 chuveiros | CADERNO_TECNICO | documental | RASCUNHO_DOCUMENTAL |
+| MLT.C21 | Sanitário coletivo cabinado · 7 vasos | PORTFOLIO_TECNICO | documental | RASCUNHO_DOCUMENTAL |
+| MLT.C25 | Suíte forrada | CADERNO_PRELIMINAR | documental vazio | INCOMPLETA_DOCUMENTAL |
 
-## Modelos registrados
+## 3. Estado consolidado da composição
 
-| Código fonte | Código canônico | Produto | Maturidade documental |
-|---|---|---|---|
-| MLTC06 | MLT.C06 | Depósito | FICHA_PRELIMINAR |
-| MLTC10 | MLT.C10 | Escritório forrado | CADERNO_PRELIMINAR |
-| MLTC13 | MLT.C13 | Escritório simples | CADERNO_TECNICO |
-| MLTC20 | MLT.C20 | Sanitário · 7 chuveiros | CADERNO_TECNICO |
-| MLTC21 | MLT.C21 | Sanitário coletivo cabinado · 7 vasos | PORTFOLIO_TECNICO |
-| MLTC25 | MLT.C25 | Suíte forrada | CADERNO_PRELIMINAR |
+| Modelo | Linhas kit | Mapeadas Lista Mãe | Elegíveis BOM | Itens BOM | GAPs | Valor parcial |
+|---|---:|---:|---:|---:|---:|---:|
+| MLT.C06 | 0 | 0 | 0 | 0 | 0 | — |
+| MLT.C10 | 0 | 0 | 0 | 0 | 0 | — |
+| MLT.C13 | 28 | 22 | 12 | 12 | 16 | R$ 491,24 |
+| MLT.C20 | 45 | 23 | 20 | 20 | 25 | R$ 1.174,99 |
+| MLT.C21 | 51 | 28 | 24 | 23 | 27 | R$ 1.313,77 |
+| MLT.C25 | 0 | 0 | 0 | 0 | 0 | — |
+| **Total** | **124** | **73** | **56** | **55** | **68** | **R$ 2.980,00** |
 
-## Estruturas Supabase alimentadas
+Os valores são **parciais** e representam somente os itens atualmente alinhados à Lista Mãe. Não constituem orçamento completo do produto.
 
-### Identidade de produto
+Estrutura documental:
+- 6 registros em `estrutura_modular`;
+- 55 itens em `estrutura_modular_itens`;
+- 0 estruturas ativas;
+- 0 itens ativos;
+- 0 kits operacionais;
+- 0 BOMs aprovadas.
 
-Os seis modelos foram registrados em:
-- `public.taxonomia`
-- `public.modelos`
+## 4. Regras técnicas vigentes validadas
 
-A dimensão canônica **não foi preenchida** quando a documentação contém conflito ou ausência de cota validada.
+### MLT.C20 — esgoto
+- Coletor/saída principal: **Ø100 mm**.
+- A alternativa Ø75 foi encerrada como conflito histórico e **não é vigente** para o coletor principal.
+- Ramais Ø40 e Ø50 permanecem conforme documentação.
+- Tê principal, Tê 100×50, luva e anel do coletor foram vinculados aos correspondentes Ø100 da Lista Mãe.
+- O joelho permanece pendente somente quanto ao ângulo 45°/90°.
+- O tubo principal está identificado como Ø100 × 6 m, porém a conversão documental de 6 m para 1 barra/PÇ de 6 m ainda exige validação antes de promoção.
 
-### Documento de engenharia
+### Cabos 2,5 mm²
+Unidade vigente: **metro (MT)**.
 
-O portfólio foi registrado por modelo em:
-- `public.mt_documentos_engenharia`
+- MLT.C20: preto **18 m**; verde **2 m**.
+- MLT.C21: preto **19 m**; verde **2 m**.
 
-Status usado: `REFERENCIA_NAO_LIBERADA`.
+### Porta principal C20/C21
+A porta principal 800 × 2100 mm está vinculada a `ESQ001 — KIT PORTA SOCIAL FRONTAL 800X2100MM`.
 
-O registro do documento não equivale a revisão aprovada de engenharia.
+## 5. Situação por modelo
 
-### Conhecimento cognitivo
+### MLT.C06 — Depósito
+Documentado como contêiner Dry 20 pés adaptado para depósito. Visualmente apresenta portas duplas em uma extremidade e volume interno sem divisórias aparentes.
 
-Os registros do núcleo `CONHECIMENTO_PRODUTOS` foram enriquecidos em `public.elo_conhecimento_itens`:
-- `FAMILIA_MLTC_DRY_ADAPTADO`
-- `PORTFOLIO_MLTC06_20261113`
-- `PORTFOLIO_MLTC10_20261113`
-- `PORTFOLIO_MLTC13_20261113`
-- `PORTFOLIO_MLTC20_20261113`
-- `PORTFOLIO_MLTC21_20261113`
-- `PORTFOLIO_MLTC25_20261113`
+Pendências principais:
+- dimensões externas/úteis;
+- massa e carga admissível;
+- vãos e ferragens;
+- piso e pintura específicos;
+- elétrica e ventilação;
+- lista de materiais específica.
 
-Os conteúdos agora preservam maturidade documental, dados documentados/visuais, pendências, GAPs e a regra de não promoção automática para BOM.
+### MLT.C10 — Escritório forrado
+Informações documentadas incluem:
+- piso em compensado naval pintado, referência interna de 20 mm;
+- porta 850 × 2100 mm;
+- 2 janelas maxim-ar, dimensões pendentes;
+- vão de ar-condicionado 410 × 690 mm;
+- 2 pontos de iluminação;
+- 3 tomadas 127 V;
+- 1 ponto AC 220 V;
+- alimentação bifásica com aterramento.
 
-## Workbook técnico de trabalho
+Permanece sem lista de materiais específica suficiente para BOM.
 
-Foi criado um Google Sheet de apoio operacional:
+### MLT.C13 — Escritório simples
+Documentado:
+- externo 6058 × 2440 × 2590 mm;
+- interno 5908 × 2340 × 2380 mm;
+- carga instalada 2,80 kW;
+- alimentação 2φ 220 V;
+- disjuntor geral 25 A 2P;
+- forro PVC 14 m²;
+- 5 cartolas de teto;
+- vão AC 410 × 690 mm.
 
-https://docs.google.com/spreadsheets/d/1ClMoYo6RKYUoXQbQXRW3vUpiUKyE0rYpXw1gQC6W-Vg/edit
+GAPs ativos:
+- porta 800×2100 × 850×2100;
+- comprimento 6058 × 6050;
+- janela 800×1000 × 800×1200;
+- quantidade de bocais;
+- tomada AC/telefonia;
+- comando/QDF;
+- disjuntores;
+- documento C28 presente no pacote não deve ser usado como custo do C13.
 
-Abas:
-1. `01_MODELOS`
-2. `02_ESPEC_EVIDENCIAS`
-3. `03_COMPOSICAO_TECNICA`
-4. `04_GAPS_VALIDACOES`
-5. `05_DOCUMENTOS_REVISOES`
-6. `06_MATURIDADE`
+### MLT.C20 — Sanitário · 7 chuveiros
+Documentado:
+- externo 6058 × 2440 × 2590 mm;
+- interno 5908 × 2340 × 2380 mm;
+- 7 chuveiros de água fria;
+- 3 lavatórios;
+- 1 mictório coletivo;
+- 7 portas de box 600 × 1600 mm;
+- entrada de água Ø25 mm;
+- porta principal 800 × 2100 mm;
+- iluminação: 2 bocais E27, 300 W, 220 V.
 
-O workbook contém **122 linhas de composição documental** e **39 GAPs/pendências estruturadas**. Ele é interface de trabalho e validação; **não é nova autoridade canônica**.
+Regra vigente:
+- coletor/saída principal de esgoto **Ø100 mm**.
 
-## GAPs preservados
+GAPs ativos prioritários:
+- quantidade de basculantes 3 × 2;
+- comprimento 6058 × 6050;
+- disjuntor 4 A × 10 A 2P;
+- identificação de arquivo C20 × M09;
+- revisão ARQ 0 para aprovação;
+- ângulo do joelho Ø100;
+- conversão do tubo Ø100 de 6 m para barra/PÇ.
 
-### MLTC13
-- Porta: 800 × 2.100 mm × 850 × 2.100 mm.
-- Comprimento: 6.058 mm × 6.050 mm.
-- Janela: 800 × 1.000 mm × 800 × 1.200 mm.
-- Projeto/custo: 2 bocais; lista PDF: 4.
-- Projeto e lista divergem em tomadas de AC/telefonia.
-- Projeto/aba e lista divergem em comando e QDF.
-- Disjuntores divergem entre tabela, referência impressa e lista.
-- PDF GERAL C28 presente no pacote não deve ser usado como custo do C13.
+### MLT.C21 — Sanitário coletivo cabinado · 7 vasos
+Documentado:
+- externo 6058 × 2440 × 2590 mm;
+- interno 5908 × 2340 × 2380 mm;
+- 7 vasos;
+- 3 lavatórios;
+- 1 mictório coletivo;
+- entrada de água Ø25 mm;
+- saída de esgoto Ø100 mm nas notas;
+- porta principal 800 × 2100 mm;
+- profundidade de cabine 1200 mm;
+- divisórias em chapa de aço zincado;
+- piso em compensado naval pintado.
 
-### MLTC20
-- Esgoto: Ø100 mm × Ø75 mm.
-- Basculantes: 3 × 2.
-- Comprimento: 6.058 mm × 6.050 mm.
-- Disjuntor: 4 A × 10 A 2P.
-- Carimbo/pacote C20 × nomes de arquivo M09.
-- ARQ Rev. 0 consta para aprovação.
+GAPs ativos:
+- portas internas 600×1600 × 600×1900;
+- basculantes 2 × 3;
+- alimentação bifásica × monofásica;
+- descrição de disjuntor mono/bi;
+- carimbo ARQ “7 chuveiros” × conteúdo de 7 vasos;
+- arquivo ESG sem detalhamento do coletor.
 
-### MLTC21
-- Portas internas: 600 × 1.600 mm × 600 × 1.900 mm.
-- Basculantes: 2 × 3.
-- Alimentação elétrica: bifásica × monofásica.
-- Descrição do disjuntor apresenta divergência mono/bi.
-- Carimbo ARQ traz “7 chuveiros”; planta, descrição e materiais são de 7 vasos.
-- Saída Ø100 está nas notas, mas o arquivo ESG não detalha o coletor.
+### MLT.C25 — Suíte forrada
+A evidência atual é majoritariamente visual e preliminar. Não há pacote técnico suficiente para composição completa.
 
-## Composição documental
+Pendências:
+- dimensões, peso e capacidade;
+- forração e isolamento;
+- água e esgoto;
+- circuitos e proteções;
+- aquecimento do banho;
+- ar-condicionado;
+- materiais e quantitativos ocultos.
 
-As listas documentais de MLTC13, MLTC20 e MLTC21 foram transcritas para o workbook, preservando:
-- item de origem;
-- sistema;
-- descrição da fonte;
-- quantidade;
-- unidade original;
-- evidência;
-- status de validação;
-- pendência de vínculo com a Lista Mãe.
+C25 e C28 não são intercambiáveis.
 
-**Não houve carga em `estrutura_modular_itens`**. O vínculo documental foi organizado em `kits`/`kit_itens`; somente vínculos inequívocos sem GAP impeditivo foram levados a uma BOM `RASCUNHO_DOCUMENTAL`.
+## 6. Fluxo de governança vigente
 
-## Kits e BOM documental
+`documento → evidência → kit documental → vínculo Lista Mãe → GAP/validação → BOM rascunho → estrutura documental → Evolution Gate → aprovação`
 
-A estrutura existente foi reutilizada, sem criação de novas tabelas físicas:
-- `public.kits` e `public.kit_itens` preservam a lista documental completa por modelo;
-- `public.mt_versoes_bom` e `public.mt_bom_itens` representam a BOM em estado não liberado;
-- `public.vw_elo_modelo_kit_bom_consolidado` une modelo, kit, vínculo Lista Mãe e BOM sem criar nova autoridade.
+Somente itens com vínculo inequívoco à `public.lista_mae` e sem GAP impeditivo entram na BOM rascunho.
 
-Versão documental: `DOC-2026-11-13`.
+Nenhuma BOM, kit ou estrutura documental desta família está liberada para PCP ou produção.
 
-Foram criados seis kits documentais, todos `ativo=false` e portanto não operacionais. C13, C20 e C21 possuem respectivamente 28, 44 e 50 linhas documentais. C06, C10 e C25 permanecem sem lista de materiais específica e seus kits explicitam essa incompletude.
+## 7. Próximos gates
 
-Das 122 linhas documentais, 47 possuem vínculo seguro com a Lista Mãe. 27 linhas-fonte estão sem GAP impeditivo e resultam em 26 itens agregados de BOM. As demais permanecem no kit como GAP, divergência, unidade incompatível ou ausência de correspondência.
+1. MLT.C20: definir ângulo do joelho Ø100 e validar conversão da barra de tubo Ø100.
+2. MLT.C21: resolver faseamento elétrico e conflitos arquitetônicos.
+3. MLT.C13: compatibilizar porta, janela, comprimento e elétrica.
+4. MLT.C06, C10 e C25: receber listas de materiais e pacotes técnicos específicos.
+5. Somente após compatibilização, submeter nova versão ao Evolution Gate.
 
-Status das versões de BOM:
-- MLT.C13, MLT.C20 e MLT.C21: `RASCUNHO_DOCUMENTAL`;
-- MLT.C06, MLT.C10 e MLT.C25: `INCOMPLETA_DOCUMENTAL`.
+## 8. Rastreabilidade
 
-Nenhuma versão possui `aprovado_em`, `aprovado_por` ou validade produtiva.
-
-## Objetos deliberadamente não alterados
-
-Nesta evolução não foram alterados:
-- `public.dimensoes`
-- `public.estrutura_modular_itens`
-- versões de BOM aprovadas/liberadas
-- BOMs, kits, custos ou parâmetros da família MLT.M.
-
-## Gate de promoção
-
-Fluxo obrigatório para evolução da composição:
-
-`documento → evidência → compatibilização de GAP → vínculo Lista Mãe → validação → versão de BOM → aprovação`
-
-Nenhuma composição documental deve ser tratada como BOM liberada antes desse gate.
-
-## Governança
-
-A operação foi registrada em `public.tb_elo_eventos_governanca` como:
-
-`ENRIQUECIMENTO_PORTFOLIO_MLTC_20261113`
-
-Os conflitos permanecem como evidência documental divergente. A estrutura atual deve ser **reutilizada e fortalecida**, evitando criação de autoridades ou tabelas paralelas.
-
-## Estrutura modular documental
-
-A autorização de materialização foi aplicada reutilizando as tabelas existentes, sem criar nova tabela física.
-
-- `public.estrutura_modular`: seis estruturas documentais, uma por modelo MLT.C06/C10/C13/C20/C21/C25;
-- `public.estrutura_modular_itens`: 26 itens provenientes exclusivamente da BOM `DOC-2026-11-13` e vinculados à `public.lista_mae` canônica;
-- `public.vw_elo_modelo_composicao_documental`: projeção relacional de consulta, com `security_invoker=true`;
-- todas as estruturas e itens permanecem `ativo=false`, portanto não entram no fluxo produtivo;
-- C06, C10 e C25 possuem estrutura documental sem itens, explicitando ausência de composição suficiente;
-- Google Sheets permanece réplica de consulta: divergência com `public.lista_mae` é GAP e o Supabase prevalece.
-
-## Consolidação Lista Mãe — onda 2
-
-A segunda onda usa exclusivamente `public.lista_mae` como autoridade. Foram ampliadas as aplicações de itens elétricos existentes quando a especificação documental de C20/C21 coincide com o item já cadastrado. Não foram criados itens duplicados.
-
-Também foram incorporadas as portas principais 800×2100 de C20 e C21 por vínculo direto com `ESQ001`. Cabos 2,5 mm² preto/verde foram identificados, porém continuam fora da BOM porque as listas C20/C21 usam unidade `UN` enquanto a Lista Mãe usa `MT`. O quadro C21 permanece bloqueado pelo GAP de faseamento.
-
-A view `vw_elo_mltc_gaps_composicao` concentra o saldo ainda não promovido.
-
-## Validação técnica do usuário — 2026-11-18
-
-Foram resolvidas duas regras técnicas:
-- **MLT.C20 — coletor/saída principal de esgoto:** Ø100 mm. A alternativa Ø75 deixa de ser vigente para esse coletor. Ramais Ø40/Ø50 permanecem conforme documentação. Os componentes do coletor antes vinculados a Ø75 foram reclassificados para equivalentes Ø100; o joelho continua pendente apenas quanto ao ângulo e o tubo Ø100 permanece com GAP de conversão de 6 m para barra/PÇ de 6 m.
-- **Cabos 2,5 mm²:** unidade validada em metros. MLT.C20: preto 18 m e verde 2 m. MLT.C21: preto 19 m e verde 2 m. Esses quatro itens tornam-se elegíveis à BOM documental.
-
-A evidência documental original é preservada; a decisão do usuário é registrada separadamente como validação vigente. Nenhuma BOM é liberada para produção por esta validação.
+O histórico de evolução permanece preservado nas migrations e em `tb_elo_eventos_governanca`. Este documento representa **o estado vigente consolidado**, substituindo interpretações intermediárias que ficaram obsoletas após validações posteriores.
