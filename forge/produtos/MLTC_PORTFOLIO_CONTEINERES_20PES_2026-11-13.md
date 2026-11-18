@@ -175,3 +175,11 @@ A segunda onda usa exclusivamente `public.lista_mae` como autoridade. Foram ampl
 Também foram incorporadas as portas principais 800×2100 de C20 e C21 por vínculo direto com `ESQ001`. Cabos 2,5 mm² preto/verde foram identificados, porém continuam fora da BOM porque as listas C20/C21 usam unidade `UN` enquanto a Lista Mãe usa `MT`. O quadro C21 permanece bloqueado pelo GAP de faseamento.
 
 A view `vw_elo_mltc_gaps_composicao` concentra o saldo ainda não promovido.
+
+## Validação técnica do usuário — 2026-11-18
+
+Foram resolvidas duas regras técnicas:
+- **MLT.C20 — coletor/saída principal de esgoto:** Ø100 mm. A alternativa Ø75 deixa de ser vigente para esse coletor. Ramais Ø40/Ø50 permanecem conforme documentação. Os componentes do coletor antes vinculados a Ø75 foram reclassificados para equivalentes Ø100; o joelho continua pendente apenas quanto ao ângulo e o tubo Ø100 permanece com GAP de conversão de 6 m para barra/PÇ de 6 m.
+- **Cabos 2,5 mm²:** unidade validada em metros. MLT.C20: preto 18 m e verde 2 m. MLT.C21: preto 19 m e verde 2 m. Esses quatro itens tornam-se elegíveis à BOM documental.
+
+A evidência documental original é preservada; a decisão do usuário é registrada separadamente como validação vigente. Nenhuma BOM é liberada para produção por esta validação.
