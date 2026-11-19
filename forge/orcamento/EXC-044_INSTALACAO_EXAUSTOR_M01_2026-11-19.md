@@ -1,77 +1,66 @@
 # EXC-044 — Instalação de exaustor em cozinha M01
 
-**Data de consolidação:** 2026-11-19  
-**Estado:** referencial, inativo, custo total em aberto  
-**Contexto:** M01 / MLT.M01 Habitacional Amplo — interface em painel PIR 40 mm
+**Estado vigente:** ATIVO / VALIDADO  
+**Data da validação:** 2026-11-19  
+**Contexto:** M01 / MLT.M01 Habitacional Amplo — instalação em painel PIR 40 mm
 
-## Fonte histórica
+## Equipamento canônico
 
-Orçamento interno de 24/10/2022:
+O equipamento foi cadastrado na Lista Mãe como:
 
-- cliente: PRODUÇÃO INTERNA;
-- escopo: colocação de um exaustor de cozinha, ponto 2P+T 220 V / 20 A, módulo com painel PIR 40;
-- exaustor histórico: 50 cm, alta rotação, vazão informada de 21.000 m³/h;
-- materiais históricos: R$ 469,30;
-- mão de obra listada: 1 profissional/dia R$ 275,82 + 1 ajudante/dia R$ 235,92 = R$ 511,74/dia;
-- linha “serviços executados no dia”: 5, equivalente matematicamente a R$ 102,348 por serviço;
-- o total exibido no documento repete R$ 469,30 e não fecha materiais + mão de obra.
+- **cod_item:** `ELE171`
+- **descrição:** EXAUSTOR INDUSTRIAL ITC 350 MOTOR BLINDADO BIVOLT 92W 990M3/H ALUMINIO
+- **unidade:** PÇ
+- **valor unitário canônico:** **R$ 425,00**
+- **cod_produt:** pendente de código ERP; não inventado
+- **ativo:** sim
 
-O orçamento é preservado como precedente, não como preço atual.
+Validação de preço em 19/11/2026:
+- Mercado Livre / Safanelli: **R$ 425,00** — referência de aquisição adotada;
+- loja oficial ITC: **R$ 500,18** — referência de fabricante.
 
-## Equipamento candidato atual
+Fontes:
+- https://www.mercadolivre.com.br/exaustor-industrial-itc-350-motor-blindado-vazao-990-mh-aluminio/p/MLB52633874
+- https://www.loja.itcexaustores.com.br/exaustores
+- https://www.itcexaustores.com.br/_files/ugd/0b129f_bf4e5f41d22b4ea6af3e8532c6785aa9.pdf
 
-O usuário indicou o **ITC 350 Industrial**, versão 220 V.
+Referência técnica usada: 92 W, 990 m³/h, bivolt, saída Ø350 mm e furo de instalação Ø360 mm.
 
-Referência técnica do fabricante:
-- potência: 92 W;
-- vazão: 990 m³/h;
-- rotação: 1550 rpm;
-- hélice: Ø300 mm;
-- saída: Ø350 mm;
-- furo de instalação: Ø360 mm;
-- aplicação declarada pelo fabricante: ambientes de até 80 m².
+## Composição validada do EXC-044
 
-O ITC 350 **não é equivalente** ao equipamento histórico de 50 cm / 21.000 m³/h. A diferença de vazão impede substituição automática.
+A composição histórica foi reconciliada com o padrão vigente do ELO. A rota de 3 m informada no orçamento de 2022 foi preservada e aplicada aos três condutores do ponto.
 
-## Composição atual estruturada
+| Item | Quantidade | Referência |
+|---|---:|---|
+| ELE171 — Exaustor ITC 350 | 1 PÇ | R$ 425,00 |
+| ELE052 — Cabo 2,5 mm² preto | 3 MT | Lista Mãe |
+| ELE051 — Cabo 2,5 mm² azul | 3 MT | Lista Mãe |
+| ELE053 — Cabo 2,5 mm² verde | 3 MT | Lista Mãe |
+| ELE132 — Tomada 2P+T 20A/250V | 1 PÇ | Lista Mãe |
+| ELE002 — Caixa D300 Dutopop | 1 PÇ | Lista Mãe |
+| ELE125 — Espelho D300-K | 1 PÇ | Lista Mãe |
+| ELE005 — Dutopop 16×16×2000 mm | 1 PÇ | Lista Mãe |
 
-Itens vinculados à Lista Mãe:
+**Materiais:** R$ 481,67.
 
-| Cod. item | Componente | Quantidade | Valor unitário | Parcial |
-|---|---|---:|---:|---:|
-| ELE052 | Cabo 2,5 mm² preto | 3 m | R$ 2,43 | R$ 7,29 |
-| ELE005 | Dutopop PVC 16×16×2000 mm | 1 pç | R$ 19,11 | R$ 19,11 |
-| ELE132 | Tomada 2P+T 20A/250 V | 1 pç | R$ 6,15 | R$ 6,15 |
+Mão de obra:
+- profissional: 0,2 dia × R$ 275,82 = R$ 55,16;
+- ajudante: 0,2 dia × R$ 235,92 = R$ 47,18.
 
-Material canônico conhecido: **R$ 32,55**.
+**Mão de obra:** R$ 102,34.
 
-Itens ainda não fechados:
-- exaustor ITC 350: sem cadastro/preço homologado na Lista Mãe;
-- tampa/espelho: descrição histórica insuficiente para vínculo inequívoco;
-- cabo verde: existe no histórico sem quantidade; permanece com quantidade zero no EXC até definição de projeto.
+## Valor ativo
 
-## Mão de obra candidata
+**EXC-044 = R$ 584,01 / UN**
 
-Usando apenas como referência a produtividade histórica de 5 serviços/dia:
-
-- profissional: 0,2 dia × R$ 275,82 = R$ 55,164;
-- ajudante: 0,2 dia × R$ 235,92 = R$ 47,184;
-- total candidato: **R$ 102,348**.
-
-A produtividade precisa ser revalidada antes da ativação.
-
-## Parcial conhecido
-
-Materiais canônicos R$ 32,55 + mão de obra candidata R$ 102,348 = **R$ 134,898**.
-
-Esse valor **não é o custo do EXC**. O campo de custo total permanece nulo porque faltam o exaustor homologado e a tampa/espelho, além da validação da produtividade.
+O valor é derivado da composição vigente e não do total histórico de 2022.
 
 ## Governança
 
-- código: `EXC-044`;
-- `ativo=false`;
-- não altera a BOM base M01;
-- não cria item na Lista Mãe;
-- não altera planilhas;
-- permanece em Forge como precedente/composição referencial;
-- ativação exige fechamento do equipamento, acabamento da tomada e produtividade de instalação.
+- `EXC-044.ativo = true`;
+- aprendizado promovido pelo fluxo canônico `elo_commit_aprendizado_merged`;
+- classificação: `VALIDATED_LEARNING`;
+- não altera a BOM base do M01;
+- permanece como excedente/opcional;
+- nenhuma planilha é alterada;
+- o código ERP do exaustor continua pendente e não foi inventado.
