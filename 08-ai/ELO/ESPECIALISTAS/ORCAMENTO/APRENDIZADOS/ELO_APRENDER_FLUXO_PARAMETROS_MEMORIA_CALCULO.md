@@ -426,3 +426,39 @@ O objetivo é permitir que outro analista responda simultaneamente:
 **O que aprendemos? De onde veio? Qual cálculo foi feito? Como foi feito? Qual resultado produziu? Em qual composição entrou? Qual custo produziu? Como foi validado? Essa memória é da SO atual ou é referência consultiva?**
 
 **NUNCA INVENTAR.**
+
+---
+
+## 20. APRENDIZADO CANDIDATO — TELHA SUBSTITUTA × TRELIÇA PADRÃO (SO 238.26)
+
+**Status:** `LEARNING_CANDIDATE`, sujeito a validação e Evolution Gate. **Origem:** decisão do Analista na SO 238.26, Item 01, em 19/11/2026. Esta seção exemplifica a regra geral já existente de reconciliar composição comercial, padrão e excedente; não substitui as composições/memórias canônicas de treliças existentes no Supabase.
+
+### Ordem de decisão obrigatória ao identificar telha diferente da padrão no edital/TR
+
+**Gate 1 — Solicitar a substituição:** Antes de compor custo de telha especial, confrontar a exigência com a telha galvanizada padrão Multi Teiner e **solicitar formalmente ao cliente autorização para utilizar a telha padrão**, apresentando equivalência técnica quando demonstrável. O pedido não equivale a aceite. Verificar desempenho, norma, projeto e resposta formal.
+
+- **Cliente aprova a telha padrão:** usar a composição comercial padrão efetivamente aplicável, **sem excedente de troca de telha**; investigar eventuais outras adequações comprovadas.
+- **Cliente não aprova a substituição / exige a telha do TR:** seguir obrigatoriamente ao Gate 2. Na ausência de resposta em prazo hábil, manter a telha exigida como base de atendimento e registrar consulta pendente; nunca orçar telha padrão como se aprovada.
+
+**Gate 2 — Verificar a treliça e toda a estrutura de sustentação:**
+
+- **Treliça padrão confirmada e compatível com a telha do TR:** manter o produto comercial base somente se ele efetivamente contiver treliça padrão e telha galvanizada substituível. Calcular apenas o **diferencial da telha**: `delta_material_m2 = preco_telha_TR_m2 - preco_telha_galvanizada_padrao_m2`; `excedente_telha = delta_material_m2 * area_efetivamente_comparavel_m2`. O Comercial forma o preço a partir da base + excedente validado. Evitar cobrança integral da segunda telha e duplicidade com a primeira.
+- **Treliça diferente da padrão ou incompatível com o novo sistema:** **não usar o cálculo isolado de diferença de telha**. Compor **do zero** a solução completa — treliça especial (aço, peças e fabricação), telha especificada, fixações, vedações, acessórios e mão de obra de fabricação, montagem e instalação — conforme projeto e memórias de quantitativos. Conferir o produto comercial original para **retirar/créditar** parcelas que deixem de ser utilizadas, evitando somar a cobertura inteira duas vezes. Não presumir que o preço da treliça padrão ainda se aplica.
+- **Compatibilidade da treliça não demonstrada:** registrar `GAP_TRELICA_EQUIVALENCIA`, solicitar projeto/fichas e não fechar o excedente.
+
+**Conferências obrigatórias:** modelo de telha, espessura, material, vãos, treliça, geometria e apoios, dimensões úteis, transpasse, perdas, fixadores e montagem; consultar precedentes existentes de treliça/EXC antes de nova composição. Os preços do material padrão e especial devem ser vigentes, documentados e referidos à mesma unidade/condição comercial. Preço diferencial zero ou negativo exige decisão comercial, sem concessão automática de desconto.
+
+**Alerta quantitativo da SO de origem:** MLT.E03 foi informado com **68 m²**, enquanto o excedente TP100 considerou **72 m²** (10 × 8,00 × 0,90 m). A área da telha galvanizada efetivamente substituída precisa ser conciliada; não presumir crédito de 72 m² se a base abrange apenas 68 m².
+
+### Exemplo reconstruível — válido somente com treliça padrão
+
+| Entrada | Valor | Origem/classificação |
+|---|---:|---|
+| Telha TP100 0,65 mm | R$ 85,00/m² | Preço informado pelo Analista na SO 238.26 |
+| Telha galvanizada padrão | R$ 35,00/m² | Referência informada pelo Analista; verificar composição vigente |
+| Telhas especiais | 10 × 8,00 × 0,90 m | Quantidade/dimensão informada pelo Analista |
+| Área de referência | 72 m² | Cálculo bruto; validar área comparável |
+| Diferença unitária | R$ 50,00/m² | 85 − 35 |
+| Excedente ilustrativo | R$ 3.600,00 | 72 × 50; sujeito a reconciliação 68/72 m² |
+
+**Rastreabilidade e governança:** `DOCUMENTO/TR → PEDIR SUBSTITUIÇÃO POR TELHA PADRÃO → RESPOSTA DO CLIENTE → CONFERÊNCIA TRELIÇA PADRÃO? → (SEM EXCEDENTE, DELTA DE TELHA OU COMPOSIÇÃO INTEGRAL) → QUANTITATIVOS → MEMÓRIA SUPABASE → COMERCIAL → PTS PÓS → EVOLUTION GATE`. Não promover preços, áreas ou desenho de treliça da SO 238.26 a padrão universal; nenhuma experiência individual gera regra de Core sem generalização e validação.
