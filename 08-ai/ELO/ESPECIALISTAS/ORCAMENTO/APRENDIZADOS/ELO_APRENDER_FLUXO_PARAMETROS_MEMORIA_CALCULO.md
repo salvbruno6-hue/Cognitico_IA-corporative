@@ -433,16 +433,22 @@ O objetivo é permitir que outro analista responda simultaneamente:
 
 **Status:** `LEARNING_CANDIDATE`, sujeito a validação e Evolution Gate. **Origem:** decisão do Analista na SO 238.26, Item 01, em 19/11/2026. Esta seção exemplifica a regra geral já existente de reconciliar composição comercial, padrão e excedente; não substitui as composições/memórias canônicas de treliças existentes no Supabase.
 
-### Condição de escolha obrigatória (antes do cálculo)
+### Ordem de decisão obrigatória ao identificar telha diferente da padrão no edital/TR
 
-1. **A treliça padrão Multi Teiner será utilizada e atende à especificação/projeto?**
-   - **SIM:** manter o produto comercial padrão, desde que sua composição contenha a telha galvanizada que será substituída. Calcular **apenas o diferencial de preço da telha** sobre a base de área efetivamente comparável: `delta_material_m2 = preco_telha_especial_m2 - preco_telha_galvanizada_padrao_m2`; `excedente_telha = delta_material_m2 * area_validada_m2`. O Comercial compõe o produto-base + excedente para o preço de locação. Não cobrar telha completa duas vezes.
-   - **NÃO — treliça diversa da padrão:** **não aplicar automaticamente o desconto da telha isolada** nem reutilizar o preço da treliça padrão como se atendesse ao projeto. **Compor o sistema de cobertura do zero:** treliça especial (materiais e fabricação), telha especificada, componentes de fixação/vedação e **mão de obra de fabricação/montagem/instalação** pertinente, conforme projeto e memória de quantitativos. Confrontar com o que o produto comercial já incorpora antes de decidir créditos/exclusões, evitando dupla contagem. O Comercial forma o preço final com o custo integral validado dessa solução, sem somar novamente uma cobertura-base incompatível.
-   - **INDEFINIDO:** manter `GAP_TRELICA_EQUIVALENCIA`; sem cálculo definitivo de excedente e sem presumir aprovação técnica de substituição.
+**Gate 1 — Solicitar a substituição:** Antes de compor custo de telha especial, confrontar a exigência com a telha galvanizada padrão Multi Teiner e **solicitar formalmente ao cliente autorização para utilizar a telha padrão**, apresentando equivalência técnica quando demonstrável. O pedido não equivale a aceite. Verificar desempenho, norma, projeto e resposta formal.
 
-2. **Antes da composição**, verificar tipo/perfil de treliça, vãos, geometria, apoios, estrutura existente, aço/espessuras, comprimento e largura úteis de telhas, transpasse, perdas, acessórios, produtividade e origem atual dos preços; consultar as memórias canônicas de treliça/EXC já persistidas e comparar a equivalência real.
-3. Se a diferença `delta_material_m2` for zero ou negativa, submeter o tratamento comercial à validação; não transformar automaticamente em desconto para o cliente.
-4. Quantidades distintas do produto-base e da telha especial precisam de reconciliação da área creditada: **68 m² (MLT.E03) × 72 m² (10 × 8,00 × 0,90 m)** no caso de origem. Não presumir que 72 m² de galvanizada estavam incluídos na base de 68 m².
+- **Cliente aprova a telha padrão:** usar a composição comercial padrão efetivamente aplicável, **sem excedente de troca de telha**; investigar eventuais outras adequações comprovadas.
+- **Cliente não aprova a substituição / exige a telha do TR:** seguir obrigatoriamente ao Gate 2. Na ausência de resposta em prazo hábil, manter a telha exigida como base de atendimento e registrar consulta pendente; nunca orçar telha padrão como se aprovada.
+
+**Gate 2 — Verificar a treliça e toda a estrutura de sustentação:**
+
+- **Treliça padrão confirmada e compatível com a telha do TR:** manter o produto comercial base somente se ele efetivamente contiver treliça padrão e telha galvanizada substituível. Calcular apenas o **diferencial da telha**: `delta_material_m2 = preco_telha_TR_m2 - preco_telha_galvanizada_padrao_m2`; `excedente_telha = delta_material_m2 * area_efetivamente_comparavel_m2`. O Comercial forma o preço a partir da base + excedente validado. Evitar cobrança integral da segunda telha e duplicidade com a primeira.
+- **Treliça diferente da padrão ou incompatível com o novo sistema:** **não usar o cálculo isolado de diferença de telha**. Compor **do zero** a solução completa — treliça especial (aço, peças e fabricação), telha especificada, fixações, vedações, acessórios e mão de obra de fabricação, montagem e instalação — conforme projeto e memórias de quantitativos. Conferir o produto comercial original para **retirar/créditar** parcelas que deixem de ser utilizadas, evitando somar a cobertura inteira duas vezes. Não presumir que o preço da treliça padrão ainda se aplica.
+- **Compatibilidade da treliça não demonstrada:** registrar `GAP_TRELICA_EQUIVALENCIA`, solicitar projeto/fichas e não fechar o excedente.
+
+**Conferências obrigatórias:** modelo de telha, espessura, material, vãos, treliça, geometria e apoios, dimensões úteis, transpasse, perdas, fixadores e montagem; consultar precedentes existentes de treliça/EXC antes de nova composição. Os preços do material padrão e especial devem ser vigentes, documentados e referidos à mesma unidade/condição comercial. Preço diferencial zero ou negativo exige decisão comercial, sem concessão automática de desconto.
+
+**Alerta quantitativo da SO de origem:** MLT.E03 foi informado com **68 m²**, enquanto o excedente TP100 considerou **72 m²** (10 × 8,00 × 0,90 m). A área da telha galvanizada efetivamente substituída precisa ser conciliada; não presumir crédito de 72 m² se a base abrange apenas 68 m².
 
 ### Exemplo reconstruível — válido somente com treliça padrão
 
@@ -455,4 +461,4 @@ O objetivo é permitir que outro analista responda simultaneamente:
 | Diferença unitária | R$ 50,00/m² | 85 − 35 |
 | Excedente ilustrativo | R$ 3.600,00 | 72 × 50; sujeito a reconciliação 68/72 m² |
 
-**Rastreabilidade e governança:** `DOCUMENTO/TR → SOLUÇÃO DE COBERTURA → CONFERÊNCIA TRELIÇA PADRÃO? → (DELTA DE TELHA OU COMPOSIÇÃO INTEGRAL) → QUANTITATIVOS → MEMÓRIA SUPABASE → COMERCIAL → PTS PÓS → EVOLUTION GATE`. Não promover preços, áreas ou desenho de treliça da SO 238.26 a padrão universal; nenhuma experiência individual gera regra de Core sem generalização e validação.
+**Rastreabilidade e governança:** `DOCUMENTO/TR → PEDIR SUBSTITUIÇÃO POR TELHA PADRÃO → RESPOSTA DO CLIENTE → CONFERÊNCIA TRELIÇA PADRÃO? → (SEM EXCEDENTE, DELTA DE TELHA OU COMPOSIÇÃO INTEGRAL) → QUANTITATIVOS → MEMÓRIA SUPABASE → COMERCIAL → PTS PÓS → EVOLUTION GATE`. Não promover preços, áreas ou desenho de treliça da SO 238.26 a padrão universal; nenhuma experiência individual gera regra de Core sem generalização e validação.
