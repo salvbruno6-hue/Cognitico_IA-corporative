@@ -61,10 +61,18 @@ AUTHZ_CURL_BODY_OPTIONS = (
 )
 
 
+# Flags which consume a following or attached value. When they occur in a
+# compact short-option group, the remaining characters are DATA, not flags.
+# In particular a header value must never accidentally grant -G semantics.
+AUTHZ_CURL_SHORT_VALUE_OPTIONS = frozenset({
+    "A", "b", "c", "C", "D", "e", "E", "H", "K", "m", "o",
+    "r", "u", "U", "w", "x", "Y", "y", "z",
+})
+
+
 def _curl_grant_write(args: list[str]) -> bool:
-    """Resolve the method on a *single* curl call, without losing -g/-G case."""
-    # curl --next/-: resets per-transfer local options; -G on telemetry
-    # cannot suppress the implicit POST of a later grant transfer.
+    """Classify one curl transfer, including grouped short flags (e.g. -fsSd)."""
+    # curl --next/-: starts a new transfer with independent local options.
     if "--next" in args or "-:" in args:
         transfers: list[list[str]] = [[]]
         for item in args:
@@ -77,29 +85,46 @@ def _curl_grant_write(args: list[str]) -> bool:
         return False
 
     method: str | None = None
+    has_get = False
+    has_body = False
     for index, item in enumerate(args):
-        if item in ("-X", "--request") and index + 1 < len(args):
-            method = args[index + 1].upper()
-        elif item.startswith("--request="):
-            method = item.partition("=")[2].upper()
-        elif item.startswith("-X") and len(item) > 2:
-            method = item[2:].upper()
+        if item.startswith("--"):
+            if item == "--request" and index + 1 < len(args):
+                method = args[index + 1].upper()
+            elif item.startswith("--request="):
+                method = item.partition("=")[2].upper()
+            elif item == "--get":
+                has_get = True
+            elif item.startswith(AUTHZ_CURL_BODY_OPTIONS):
+                has_body = True
+            continue
+        if not item.startswith("-") or item in ("-", "-:"):
+            continue
 
-    # An explicit -X/--request method takes precedence over body flags.
-    # An unknown or unsupported explicit verb must not be certified read-only.
+        # curl supports compact short flags: -fsSd DATA means -f -s -S -d.
+        # Unlike a regex against the full token, stop at any option with an
+        # argument; its remaining characters are not independent switches.
+        flags = item[1:]
+        for position, flag in enumerate(flags):
+            if flag == "G":
+                has_get = True
+            elif flag == "X":
+                attached = flags[position + 1:]
+                method = (attached or (args[index + 1] if index + 1 < len(args) else "")).upper()
+                break
+            elif flag in ("d", "F", "T"):
+                has_body = True
+                break
+            elif flag in AUTHZ_CURL_SHORT_VALUE_OPTIONS:
+                break
+
+    # Explicit method overrides curl's implicit method choice from body/-G.
+    # An unrecognized explicit method is NOT evidence of a read-only grant.
     if method is not None:
         return method != "GET"
-    if "-G" in args or "--get" in args:
+    if has_get:
         return False
-
-    # Without an explicit method, curl body flags trigger implicit POST/PUT.
-    return any(
-        item == "-d" or item.startswith("-d")
-        or item == "-F" or item.startswith("-F")
-        or item == "-T" or item.startswith("-T")
-        or item.startswith(AUTHZ_CURL_BODY_OPTIONS)
-        for item in args
-    )
+    return has_body
 
 
 def _shell_substitution_spans(line: str) -> Iterable[tuple[int, int, str]]:
