@@ -254,13 +254,16 @@ def test_attestation_snapshot_guard_rejects_external_symlinks(
     workflow: str, job: str, step_name: str,
 ) -> None:
     """P1: a candidate symlink cannot borrow a canonical owner from trusted main."""
-    import yaml
-
-    data = yaml.safe_load(Path(workflow).read_text(encoding="utf-8"))
-    steps = data["jobs"][job]["steps"]
-    script = next(item["run"] for item in steps if item.get("name") == step_name)
-    assert "python - <<'PY'\n" in script
-    source = script.split("python - <<'PY'\n", 1)[1].split("\nPY", 1)[0]
+    # Context Assembly installs no PyYAML. Extract this fixed, literal
+    # heredoc from the trusted workflow source using the standard library.
+    workflow_text = Path(workflow).read_text(encoding="utf-8")
+    step_marker = f"      - name: {step_name}\n"
+    step = workflow_text.split(step_marker, 1)[1].split("\n      - name:", 1)[0]
+    source = step.split("          python - <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
+    source = "\n".join(
+        line[10:] if line.startswith("          ") else line
+        for line in source.splitlines()
+    )
     compile(source, "<immutable-pr-symlink-guard>", "exec")
 
     root = tmp_path / "pr-candidate-snapshot"
