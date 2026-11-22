@@ -613,6 +613,42 @@ def test_authz_curl_option_values_are_not_executable_flags(
         assert evidence.duplicate_or_parallel is False
 
 
+@pytest.mark.parametrize(("script", "suffix", "should_block"), [
+    ("curl -G --form-escape -XPOST --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X POST -A '--next' -G --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -G --next '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", True),
+    ("curl --url '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", True),
+    ("curl -X POST --data '--next' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -G --next --url '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", True),
+    ("curl -X GET --form-escape --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+    ("curl -X GET -A '--next' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+    ("curl -G --url '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", False),
+    ("curl --form-escape '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+])
+def test_authz_curl_transfer_respects_boolean_flags_and_option_values(
+    tmp_path: Path, script: str, suffix: str, should_block: bool,
+) -> None:
+    """Reject POST when --form-escape or an option value resembles --next."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / ("automation/tasks/transfer_semantics" + suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = f"steps:\n  - run: |\n      {script}\n" if suffix == ".yml" else f"#!/bin/sh\n{script}\n"
+    path.write_text(body, encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    relative = str(path.relative_to(tmp_path)).replace("\\", "/")
+    assert (relative in evidence.candidates) is should_block
+    if should_block:
+        assert evidence.waiting_for_evidence
+        assert evidence.decision != "STRENGTHEN"
+        assert event_facts(evidence)["contract_conflict"] is None
+    else:
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
+        assert evidence.duplicate_or_parallel is False
+
+
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
     """Actual Maintenance terms are filenames; they must not hide another issuer."""
     _make_existing_authz_owner(tmp_path)
