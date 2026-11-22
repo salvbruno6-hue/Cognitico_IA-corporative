@@ -58,7 +58,8 @@ jobs:
           fi
           python automation/tasks/elo_maintenance_coordinator.py
 
-      - name: Canonical repository reconciliation
+      - name: Resolve immutable maintenance PR head
+        id: candidate_target
         if: github.event.pull_request.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -68,7 +69,42 @@ jobs:
           set -euo pipefail
           ELO_EVALUATED_HEAD_SHA="$(gh pr view "${PR_NUMBER}" --repo "${REPOSITORY}" --json headRefOid --jq .headRefOid)"
           [[ "$ELO_EVALUATED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid evaluated PR head SHA."; exit 1; }
+          head_repository="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.repo.full_name // ""')"
+          [[ "$head_repository" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]] || { echo "Invalid evaluated PR head repository."; exit 1; }
           echo "ELO_EVALUATED_HEAD_SHA=$ELO_EVALUATED_HEAD_SHA" >> "$GITHUB_ENV"
+          echo "head_sha=$ELO_EVALUATED_HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "head_repository=$head_repository" >> "$GITHUB_OUTPUT"
+
+      # The immutable target tree is inert evidence. Never run/import from it.
+      # All workflow logic, Python modules, and gate contracts stay on the
+      # trusted base checkout above.
+      - name: Checkout immutable maintenance PR candidate as data
+        if: github.event.pull_request.number != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.candidate_target.outputs.head_repository }}
+          ref: ${{ steps.candidate_target.outputs.head_sha }}
+          path: pr-candidate-snapshot
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable maintenance PR snapshot
+        if: github.event.pull_request.number != ''
+        env:
+          TARGET_HEAD_SHA: ${{ steps.candidate_target.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          actual_sha="$(git -C pr-candidate-snapshot rev-parse HEAD)"
+          [[ "$actual_sha" == "$TARGET_HEAD_SHA" ]] || { echo "Maintenance candidate checkout SHA mismatch."; exit 1; }
+
+      - name: Canonical repository reconciliation
+        if: github.event.pull_request.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
           gh pr diff "${PR_NUMBER}" --repo "${REPOSITORY}" --name-only > automation/audit-output/changed-paths.txt
           python - <<'PY'
           import json
@@ -82,7 +118,7 @@ jobs:
               stem = Path(path).stem.replace('-', '_').lower()
               if len(stem) >= 3:
                   terms.append(stem)
-          evidence = reconcile_repository('.', changed, terms)
+          evidence = reconcile_repository('pr-candidate-snapshot', changed, terms)
           payload = {
               'changed_paths': list(evidence.changed_paths),
               'candidates': list(evidence.candidates),
