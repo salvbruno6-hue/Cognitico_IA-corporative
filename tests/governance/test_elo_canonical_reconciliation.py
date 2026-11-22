@@ -577,6 +577,42 @@ def test_authz_bundled_curl_short_flags_preserve_explicit_get(
     assert "automation/tasks/read_grants.sh" not in evidence.candidates
 
 
+@pytest.mark.parametrize(("script", "suffix", "should_block"), [
+    ("curl -X POST -A '-fsSXGET' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X POST --user-agent '-fsSXGET' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -X POST -H '-fsSXGET' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X POST -A '-G' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -X POST --header '-XGET' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X GET -A '-fsSXPOST' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+    ("curl -X GET -d '-fsSXPOST' '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+    ("curl --header '-fsSXPOST' -G --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+    ("curl -H'-fsSXPOST' -X GET --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+    ("curl -G -A '-XPOST' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+])
+def test_authz_curl_option_values_are_not_executable_flags(
+    tmp_path: Path, script: str, suffix: str, should_block: bool,
+) -> None:
+    """A user-agent/header/body value beginning with '-' cannot overwrite the HTTP method."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / ("automation/tasks/value_based_method" + suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = f"steps:\n  - run: |\n      {script}\n" if suffix == ".yml" else f"#!/bin/sh\n{script}\n"
+    path.write_text(text, encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    relative = str(path.relative_to(tmp_path)).replace("\\", "/")
+    assert (relative in evidence.candidates) is should_block
+    if should_block:
+        assert evidence.waiting_for_evidence
+        assert evidence.decision != "STRENGTHEN"
+        assert event_facts(evidence)["contract_conflict"] is None
+    else:
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
+        assert evidence.duplicate_or_parallel is False
+
+
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
     """Actual Maintenance terms are filenames; they must not hide another issuer."""
     _make_existing_authz_owner(tmp_path)
