@@ -243,6 +243,45 @@ def _make_existing_authz_owner(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize(("workflow", "job", "step_name"), [
+    (".github/workflows/elo-agent-loop.yml", "attest-existing-pr",
+     "Verify immutable PR candidate snapshot"),
+    (".github/workflows/elo-maintenance-coordinator.yml", "audit",
+     "Verify immutable maintenance PR snapshot"),
+])
+def test_attestation_snapshot_guard_rejects_external_symlinks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    workflow: str, job: str, step_name: str,
+) -> None:
+    """P1: a candidate symlink cannot borrow a canonical owner from trusted main."""
+    import yaml
+
+    data = yaml.safe_load(Path(workflow).read_text(encoding="utf-8"))
+    steps = data["jobs"][job]["steps"]
+    script = next(item["run"] for item in steps if item.get("name") == step_name)
+    assert "python - <<'PY'\n" in script
+    source = script.split("python - <<'PY'\n", 1)[1].split("\nPY", 1)[0]
+    compile(source, "<immutable-pr-symlink-guard>", "exec")
+
+    root = tmp_path / "pr-candidate-snapshot"
+    (root / "docs/governance").mkdir(parents=True)
+    outside = tmp_path / "trusted-docs/ELO_MERGE_COORDINATOR.md"
+    outside.parent.mkdir()
+    outside.write_text("owner: ELO Governance\n", encoding="utf-8")
+    linked = root / "docs/governance/ELO_MERGE_COORDINATOR.md"
+    linked.symlink_to(outside)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit, match="Candidate symlink escapes immutable snapshot"):
+        exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
+
+    # Legitimate aliases contained entirely inside the snapshot are allowed.
+    linked.unlink()
+    inside = root / "docs/governance/owner.md"
+    inside.write_text("owner: ELO Governance\n", encoding="utf-8")
+    linked.symlink_to("owner.md")
+    exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
+
+
 def test_immutable_candidate_tree_exposes_owner_drift_hidden_on_trusted_main(tmp_path: Path) -> None:
     """P1: the same changed paths can pass on main but fail on the PR's tree."""
     import shutil
