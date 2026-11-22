@@ -520,6 +520,63 @@ def test_authz_curl_shell_method_semantics_preserve_read_only(
     assert ".github/workflows/read-grants.yml" not in evidence.candidates
 
 
+@pytest.mark.parametrize(("script", "suffix"), [
+    ("curl -fsSd '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh"),
+    ("curl -fsSg '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".yml"),
+    ("result=$(curl -fsSd '{}' '$URL/rest/v1/elo_authorization_grants')", ".sh"),
+    ("curl -fsSF 'file=@payload' '$URL/rest/v1/elo_authorization_grants'", ".sh"),
+    ("curl -fsST payload '$URL/rest/v1/elo_authorization_grants'", ".sh"),
+    ("curl -fsSXPOST '$URL/rest/v1/elo_authorization_grants'", ".yml"),
+    ("curl -fsSG https://telemetry.example --next -fsSd '{}' "
+     "'$URL/rest/v1/elo_authorization_grants'", ".sh"),
+])
+def test_authz_bundled_curl_short_flags_block_shadow_grant_writes(
+    tmp_path: Path, script: str, suffix: str,
+) -> None:
+    """A compact -d/-F/-T/-X (including -fsSd) still writes grant data."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / ("automation/tasks/shadow" + suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"steps:\n  - run: |\n      {script}\n" if suffix == ".yml"
+        else f"#!/bin/sh\n{script}\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert str(path.relative_to(tmp_path)).replace("\\", "/") in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+    assert event_facts(evidence)["contract_conflict"] is None
+
+
+@pytest.mark.parametrize("script", [
+    "curl -fsSG --data '{}' '$URL/rest/v1/elo_authorization_grants'",
+    "curl -fsSXGET --data '{\"method\":\"POST\"}' '$URL/rest/v1/elo_authorization_grants'",
+    "result=$(curl -fsSXGET '$URL/rest/v1/elo_authorization_grants' --data '{}')",
+    "curl -H'X-Trace: Gd POST' -fsSXGET '$URL/rest/v1/elo_authorization_grants' -d '{}'",
+    "curl -fsSG https://telemetry.example --next -fsSG --data '{}' "
+    "'$URL/rest/v1/elo_authorization_grants'",
+])
+def test_authz_bundled_curl_short_flags_preserve_explicit_get(
+    tmp_path: Path, script: str,
+) -> None:
+    """A true GET must not be mistaken for a parallel grant writer."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / "automation/tasks/read_grants.sh"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"#!/bin/sh\n{script}\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+    assert "automation/tasks/read_grants.sh" not in evidence.candidates
+
+
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
     """Actual Maintenance terms are filenames; they must not hide another issuer."""
     _make_existing_authz_owner(tmp_path)
