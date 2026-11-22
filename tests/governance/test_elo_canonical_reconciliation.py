@@ -254,7 +254,7 @@ def test_immutable_candidate_tree_exposes_owner_drift_hidden_on_trusted_main(tmp
     candidate = tmp_path / "pr-candidate-snapshot"
     shutil.copytree(trusted, candidate)
     (candidate / AUTHZ_OWNER_CONTRACT).write_text(
-        "# Candidate removed its issue_authorization_grant owner declaration\n",
+        "# Candidate removed its canonical issuer contract\n",
         encoding="utf-8",
     )
     changed = [
