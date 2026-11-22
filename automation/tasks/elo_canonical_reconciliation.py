@@ -64,15 +64,23 @@ AUTHZ_CURL_BODY_OPTIONS = (
 # Flags which consume a following or attached value. When they occur in a
 # compact short-option group, the remaining characters are DATA, not flags.
 # In particular a header value must never accidentally grant -G semantics.
+# Short options that consume a value. A following argument beginning with
+# "-" is still DATA, not a new option (curl -A '-fsSXGET').
 AUTHZ_CURL_SHORT_VALUE_OPTIONS = frozenset({
     "A", "b", "c", "C", "D", "e", "E", "H", "K", "m", "o",
     "r", "u", "U", "w", "x", "Y", "y", "z",
 })
+AUTHZ_CURL_LONG_VALUE_OPTIONS = frozenset({
+    "--user-agent", "--header", "--referer", "--cookie",
+    "--output", "--url", "--user", "--proxy",
+    "--connect-timeout", "--max-time", "--retry",
+    "--config", "--cert", "--key", "--cacert",
+    "--write-out", "--request-target", "--range",
+})
 
 
 def _curl_grant_write(args: list[str]) -> bool:
-    """Classify one curl transfer, including grouped short flags (e.g. -fsSd)."""
-    # curl --next/-: starts a new transfer with independent local options.
+    """Classify each curl transfer, including grouped flags and option values."""
     if "--next" in args or "-:" in args:
         transfers: list[list[str]] = [[]]
         for item in args:
@@ -87,23 +95,33 @@ def _curl_grant_write(args: list[str]) -> bool:
     method: str | None = None
     has_get = False
     has_body = False
-    for index, item in enumerate(args):
+    index = 0
+    while index < len(args):
+        item = args[index]
         if item.startswith("--"):
-            if item == "--request" and index + 1 < len(args):
-                method = args[index + 1].upper()
-            elif item.startswith("--request="):
+            if item == "--request":
+                method = (args[index + 1] if index + 1 < len(args) else "").upper()
+                index += 2
+                continue
+            if item.startswith("--request="):
                 method = item.partition("=")[2].upper()
             elif item == "--get":
                 has_get = True
             elif item.startswith(AUTHZ_CURL_BODY_OPTIONS):
                 has_body = True
+                # A separated body argument (even "-XGET") is not an option.
+                if "=" not in item:
+                    index += 2
+                    continue
+            elif item in AUTHZ_CURL_LONG_VALUE_OPTIONS:
+                index += 2
+                continue
+            index += 1
             continue
         if not item.startswith("-") or item in ("-", "-:"):
+            index += 1
             continue
 
-        # curl supports compact short flags: -fsSd DATA means -f -s -S -d.
-        # Unlike a regex against the full token, stop at any option with an
-        # argument; its remaining characters are not independent switches.
         flags = item[1:]
         for position, flag in enumerate(flags):
             if flag == "G":
@@ -111,15 +129,22 @@ def _curl_grant_write(args: list[str]) -> bool:
             elif flag == "X":
                 attached = flags[position + 1:]
                 method = (attached or (args[index + 1] if index + 1 < len(args) else "")).upper()
+                if not attached:
+                    index += 1  # the next token is the HTTP method argument
                 break
             elif flag in ("d", "F", "T"):
                 has_body = True
+                if position + 1 == len(flags):
+                    index += 1  # the next token is request data, not another flag
                 break
             elif flag in AUTHZ_CURL_SHORT_VALUE_OPTIONS:
+                if position + 1 == len(flags):
+                    index += 1  # e.g. -A '-fsSXGET'
                 break
+        index += 1
 
-    # Explicit method overrides curl's implicit method choice from body/-G.
-    # An unrecognized explicit method is NOT evidence of a read-only grant.
+    # Explicit method always takes precedence over body options or -G.
+    # Unknown methods fail closed rather than masquerading as read-only GET.
     if method is not None:
         return method != "GET"
     if has_get:
