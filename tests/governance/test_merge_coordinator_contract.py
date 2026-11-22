@@ -353,6 +353,60 @@ def test_attestation_runs_from_trusted_base_workflow_definition():
     assert "github.event_name == 'pull_request'" not in job["if"]
 
 
+def test_immutable_candidate_snapshots_are_nonexecuting_and_pinned():
+    """P1: reconcile immutable PR data, executing only trusted base scanner."""
+    cases = (
+        (AGENT_WORKFLOW, "attest-existing-pr",
+         "Checkout immutable PR candidate as data",
+         "Verify immutable PR candidate snapshot",
+         "${{ steps.target.outputs.head_sha }}",
+         "${{ steps.target.outputs.head_repository }}"),
+        (MAINTENANCE_WORKFLOW, "audit",
+         "Checkout immutable maintenance PR candidate as data",
+         "Verify immutable maintenance PR snapshot",
+         "${{ steps.candidate_target.outputs.head_sha }}",
+         "${{ steps.candidate_target.outputs.head_repository }}"),
+    )
+    for workflow, job_name, checkout_name, verification_name, sha_ref, repo_ref in cases:
+        data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+        steps = data["jobs"][job_name]["steps"]
+        matches = [step for step in steps if step.get("name") == checkout_name]
+        assert len(matches) == 1
+        checkout = matches[0]
+        assert checkout["uses"] == "actions/checkout@v4"
+        assert checkout["with"]["ref"] == sha_ref
+        assert checkout["with"]["repository"] == repo_ref
+        assert checkout["with"]["persist-credentials"] is False
+        assert checkout["with"]["path"] == "pr-candidate-snapshot"
+        assert "pr-candidate-snapshot rev-parse HEAD" in _shell_step(workflow, verification_name)
+        reconciliation = _shell_step(workflow, "Canonical repository reconciliation")
+        assert "pr-candidate-snapshot" in reconciliation
+        assert "reconcile_repository(" in reconciliation
+        assert "reconcile_repository('.', " not in reconciliation
+        assert 'reconcile_repository(".", ' not in reconciliation
+        assert not any(
+            str(step.get("working-directory", "")).startswith("pr-candidate-snapshot")
+            for step in steps if "run" in step
+        )
+
+
+def test_candidate_checkout_sha_and_repository_are_resolved_from_github():
+    agent = _shell_step(AGENT_WORKFLOW, "Resolve immutable PR target")
+    maintenance = _shell_step(MAINTENANCE_WORKFLOW, "Resolve immutable maintenance PR head")
+    for script in (agent, maintenance):
+        assert ".head.repo.full_name" in script
+        assert "head_repository=" in script
+        assert "head_sha=" in script
+    for workflow, job, checkout_name in (
+        (AGENT_WORKFLOW, "attest-existing-pr", "Checkout canonical repository only"),
+        (MAINTENANCE_WORKFLOW, "audit", "Checkout canonical repository"),
+    ):
+        data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+        matches = [step for step in data["jobs"][job]["steps"] if step.get("name") == checkout_name]
+        assert len(matches) == 1
+        assert matches[0]["with"]["persist-credentials"] is False
+
+
 def test_pr_ready_v2_is_uploaded_as_structured_artifact_in_both_lanes():
     data = yaml.safe_load(AGENT_WORKFLOW.read_text(encoding="utf-8"))
     text = AGENT_WORKFLOW.read_text(encoding="utf-8")
@@ -386,10 +440,10 @@ def test_merge_coordinator_resolves_agent_loop_target_from_pr_ready_artifact():
 
 
 def test_maintenance_binds_attestation_to_evaluated_head_without_toctou():
-    reconciliation = _shell_step(MAINTENANCE_WORKFLOW, "Canonical repository reconciliation")
+    resolution = _shell_step(MAINTENANCE_WORKFLOW, "Resolve immutable maintenance PR head")
     audit_step = _shell_step(MAINTENANCE_WORKFLOW, "Audit open pull request candidates")
     publish = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
-    assert 'ELO_EVALUATED_HEAD_SHA=' in reconciliation
+    assert 'ELO_EVALUATED_HEAD_SHA=' in resolution
     assert 'headRefOid' in audit_step
     assert 'OBSERVED_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in audit_step
     assert 'CURRENT_HEAD_SHA" == "$ELO_EVALUATED_HEAD_SHA' in publish
