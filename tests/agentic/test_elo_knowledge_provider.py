@@ -235,3 +235,156 @@ def test_memory_provider_runtime_evidence_requires_real_retrieval_and_repeats() 
     assert outcome.candidate_id == "EXT-MEMPROVIDER-HERMES"
     assert outcome.production_proven is False
     assert outcome.repeatable is True
+
+
+
+class _SignalAdapter:
+    kind = "ELO_MEMORY"
+    capability = "source.elo_memory.read"
+
+    def __init__(self, retrieved):
+        self.retrieved = retrieved
+
+    def available(self) -> bool:
+        return True
+
+    def retrieve(self, candidate, request: SourceResolutionRequest):
+        return (self.retrieved,)
+
+
+def _signal_provider(retrieved):
+    context = ELORequestContext(
+        tenant_id="tenant",
+        principal_id="principal",
+        session_id="session",
+        request_id="request-signals",
+        correlation_id="correlation-signals",
+        conversation_id="conversation",
+        authorization_scope="scope.read",
+    )
+    return ELOKnowledgeProvider(
+        request_context=context,
+        source_resolver=SourceResolver(
+            adapters=(_SignalAdapter(retrieved),),
+            temporal_memory=TemporalConversationMemory(),
+        ),
+    )
+
+
+def test_provider_preserves_explicit_quality_signals_without_inference() -> None:
+    retrieved = _Retrieved(
+        metadata={
+            "knowledge_status": "GOVERNED",
+            "relevance": "0.85",
+            "confidence": "0.72",
+            "context_match": "0.90",
+        },
+        provenance={"origin": "test", "authority": "external_source_evidence"},
+    )
+    provider = _signal_provider(retrieved)
+    intent, req = _inputs()
+
+    item = provider.retrieve(intent, req)[0]
+
+    assert item.status == "REFERENCE"
+    assert item.relevance == 0.85
+    assert item.confidence == 0.72
+    assert item.context_match == 0.90
+    assert item.authority == "external_source_evidence"
+    assert item.provenance["origin"] == "test"
+
+
+def test_provider_keeps_neutral_scores_when_signals_are_absent() -> None:
+    provider = _signal_provider(_Retrieved(provenance={"origin": "test"}))
+    intent, req = _inputs()
+
+    item = provider.retrieve(intent, req)[0]
+
+    assert item.status == "REFERENCE"
+    assert item.relevance == 0.0
+    assert item.confidence == 0.0
+    assert item.context_match == 0.0
+    assert item.authority is None
+
+
+def test_provider_does_not_promote_domain_status_or_invalid_scores() -> None:
+    retrieved = _Retrieved(
+        metadata={
+            "status": "VALIDADO",
+            "relevance": "1.2",
+            "confidence": "not-a-number",
+            "context_match": "-0.1",
+            "authority": "",
+        },
+        provenance={
+            "knowledge_status": "CANONICAL",
+            "relevance": "0.99",
+            "confidence": "0.99",
+            "context_match": "0.99",
+            "authority": "fallback-authority",
+        },
+    )
+    provider = _signal_provider(retrieved)
+    intent, req = _inputs()
+
+    item = provider.retrieve(intent, req)[0]
+
+    # Explicit metadata wins; invalid/foreign signals do not fall through to
+    # stronger provenance values and are never promoted implicitly.
+    assert item.status == "REFERENCE"
+    assert item.relevance == 0.0
+    assert item.confidence == 0.0
+    assert item.context_match == 0.0
+    assert item.authority is None
+
+
+def test_provider_uses_provenance_signals_when_metadata_does_not_supply_them() -> None:
+    retrieved = _Retrieved(
+        metadata={"cod_produt": "3300900009"},
+        provenance={
+            "origin": "test",
+            "knowledge_status": "CURRENT",
+            "relevance": "0.7",
+            "confidence": "0.6",
+            "context_match": "0.5",
+            "authority": "governed-source",
+        },
+    )
+    provider = _signal_provider(retrieved)
+    intent, req = _inputs()
+
+    item = provider.retrieve(intent, req)[0]
+
+    assert item.status == "REFERENCE"
+    assert item.relevance == 0.7
+    assert item.confidence == 0.6
+    assert item.context_match == 0.5
+    assert item.authority == "governed-source"
+    assert item.product_code == "3300900009"
+    assert item.metadata["agentic_requirement"] == "materials"
+
+
+
+def test_generic_provider_never_accepts_source_claimed_canonical_status() -> None:
+    retrieved = _Retrieved(
+        metadata={
+            "knowledge_status": "CANONICAL",
+            "relevance": "1.0",
+            "confidence": "1.0",
+            "context_match": "1.0",
+        },
+        provenance={
+            "origin": "untrusted-source",
+            "authority": "external_source_evidence",
+        },
+    )
+    provider = _signal_provider(retrieved)
+    intent, req = _inputs()
+
+    item = provider.retrieve(intent, req)[0]
+
+    assert item.status == "REFERENCE"
+    assert item.relevance == 1.0
+    assert item.confidence == 1.0
+    assert item.context_match == 1.0
+    assert item.authority == "external_source_evidence"

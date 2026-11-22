@@ -21,11 +21,17 @@ class ContextAssemblyPolicy:
 
     max_candidates: int = 50
     max_requirements: int = 20
+    common_response_p95_target_ms: int = 3000
+    quality_speed_policy: str = "BY_CRITICALITY"
+    retrieval_stop_policy: str = "BY_CRITICALITY"
 
     def orchestration_limits(self) -> OrchestrationLimits:
         return OrchestrationLimits(
             max_requirements=self.max_requirements,
             max_candidates=self.max_candidates,
+            common_response_p95_target_ms=self.common_response_p95_target_ms,
+            quality_speed_policy=self.quality_speed_policy,
+            retrieval_stop_policy=self.retrieval_stop_policy,
         )
 
 

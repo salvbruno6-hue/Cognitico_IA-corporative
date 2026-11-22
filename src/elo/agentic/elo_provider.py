@@ -10,7 +10,7 @@ in with ``allow_temporal_trace=True``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Mapping
 
 from elo.agent_intake.hermes_context_plugin_adapter import ContextPluginAdapter
 from elo.agent_intake.hermes_context_plugin_boundary import ContextEnginePluginSignal
@@ -52,6 +52,64 @@ class _NullTemporalMemory:
 
     def append(self, **_: object) -> None:
         return None
+
+
+_KNOWLEDGE_STATUSES = frozenset({
+    "APPLICABLE", "CANONICAL", "GOVERNED", "CURRENT", "REFERENCE",
+    "HISTORICAL", "CONFLICTING", "OUTDATED", "UNVERIFIED", "INSUFFICIENT",
+})
+
+
+def _explicit_value(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+    *keys: str,
+) -> str | None:
+    """Return the first explicitly supplied signal without synthesizing one."""
+    for mapping in (metadata, provenance):
+        for key in keys:
+            if key not in mapping:
+                continue
+            value = str(mapping[key]).strip()
+            return value or None
+    return None
+
+
+def _bounded_signal(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+    key: str,
+) -> float:
+    """Preserve a declared 0..1 score; malformed/out-of-range stays neutral."""
+    value = _explicit_value(metadata, provenance, key)
+    if value is None:
+        return 0.0
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return parsed if 0.0 <= parsed <= 1.0 else 0.0
+
+
+def _knowledge_status(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+) -> str:
+    """Generic RetrievedSource is consultative and cannot self-promote status.
+
+    SourceResolver authorizes access to the source; it does not certify that
+    source-supplied metadata is CANONICAL/GOVERNED. Higher statuses must come
+    from an owner-specific adapter that constructs a governed KnowledgeCandidate
+    under its own contract.
+    """
+    return "REFERENCE"
+
+
+def _authority(
+    metadata: Mapping[str, str],
+    provenance: Mapping[str, str],
+) -> str | None:
+    return _explicit_value(metadata, provenance, "authority")
 
 
 class ELOKnowledgeProvider(KnowledgeProvider):
@@ -180,6 +238,7 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                             repeatability=RepeatabilityEvidence(1, 1, 1.0),
                         ))
                 metadata = dict(item.metadata)
+                provenance = dict(item.provenance)
                 metadata.setdefault("agentic_requirement", requirement.key)
                 product_code = (
                     metadata.get("cod_produt")
@@ -191,12 +250,13 @@ class ELOKnowledgeProvider(KnowledgeProvider):
                         source_id=item.source_id,
                         content=item.content,
                         source_type=item.source_type,
-                        status="REFERENCE",
-                        relevance=0.0,
-                        confidence=0.0,
-                        context_match=0.0,
+                        status=_knowledge_status(metadata, provenance),
+                        relevance=_bounded_signal(metadata, provenance, "relevance"),
+                        confidence=_bounded_signal(metadata, provenance, "confidence"),
+                        context_match=_bounded_signal(metadata, provenance, "context_match"),
+                        authority=_authority(metadata, provenance),
                         product_code=product_code,
-                        provenance=item.provenance,
+                        provenance=provenance,
                         metadata=metadata,
                     )
                 )

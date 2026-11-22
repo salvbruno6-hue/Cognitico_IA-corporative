@@ -7,6 +7,7 @@ from elo.cognitive.reasoning.critical_gap_reasoning import (
     ObservationUse,
     prioritize_evidence_gaps,
     qualify_observation,
+    build_admin_decision_questionnaire,
 )
 
 
@@ -122,3 +123,101 @@ def test_no_gaps_never_authorizes_a_business_action():
     assert plan.state is GapPlanState.NO_GAPS
     assert plan.next_gap is None
     assert plan.canonical_mutation is False
+
+
+
+def test_admin_questionnaire_uses_existing_gap_priority_and_never_invents_answer():
+    plan = prioritize_evidence_gaps(
+        [
+            _gap(
+                "GAP-LOW",
+                "espera_material",
+                criticality=GapCriticality.MEDIUM,
+                sensitivity=2,
+                effort=3,
+            ),
+            _gap(
+                "GAP-HIGH",
+                "quantidade_colaboradores",
+                criticality=GapCriticality.CRITICAL,
+                sensitivity=5,
+                effort=1,
+            ),
+        ]
+    )
+
+    questions = build_admin_decision_questionnaire(plan)
+
+    assert [item.gap_id for item in questions] == ["GAP-HIGH", "GAP-LOW"]
+    assert questions[0].parameter == "quantidade_colaboradores"
+    assert "evidência ausente: quantidade_colaboradores" in questions[0].prompt
+    assert questions[0].response_guidance == "coletar quantidade_colaboradores por período e setor"
+    assert questions[0].answer_contract == "HUMAN_EVIDENCE_CANDIDATE"
+    assert questions[0].blocks_decision is True
+    assert questions[0].to_payload()["decision"] == "CONTRATACAO_MONTAGEM"
+
+
+def test_admin_questionnaire_excludes_non_blocking_gaps_by_default():
+    plan = prioritize_evidence_gaps(
+        [
+            _gap(
+                "GAP-INFO",
+                "referencia_auxiliar",
+                criticality=GapCriticality.LOW,
+                sensitivity=1,
+                effort=1,
+                blocks=False,
+            )
+        ]
+    )
+
+    assert build_admin_decision_questionnaire(plan) == ()
+    assert len(build_admin_decision_questionnaire(plan, include_non_blocking=True)) == 1
+
+
+def test_admin_questionnaire_has_bounded_question_count():
+    plan = prioritize_evidence_gaps(
+        [
+            _gap(
+                f"GAP-{index}",
+                f"parametro_{index}",
+                criticality=GapCriticality.HIGH,
+                sensitivity=3,
+                effort=2,
+            )
+            for index in range(8)
+        ]
+    )
+
+    questions = build_admin_decision_questionnaire(plan, max_questions=3)
+    assert len(questions) == 3
+    with pytest.raises(ValueError, match="between 1 and 20"):
+        build_admin_decision_questionnaire(plan, max_questions=0)
+
+
+def test_no_gap_produces_no_admin_question():
+    assert build_admin_decision_questionnaire(prioritize_evidence_gaps([])) == ()
+
+
+
+def test_approved_admin_policy_is_bounded_and_context_scoped():
+    plan = prioritize_evidence_gaps(
+        [
+            _gap(
+                f"GAP-ADM-{index}",
+                f"param_{index}",
+                criticality=GapCriticality.HIGH,
+                sensitivity=4,
+                effort=2,
+            )
+            for index in range(7)
+        ]
+    )
+
+    questions = build_admin_decision_questionnaire(plan)
+
+    assert len(questions) == 5
+    assert all(item.answer_contract == "HUMAN_EVIDENCE_CANDIDATE" for item in questions)
+    assert all(item.answer_scope == "CURRENT_DECISION_CONTEXT_ONLY" for item in questions)
+    assert all(item.canonical_mutation is False for item in questions)
+    assert all(item.to_payload()["canonical_mutation"] is False for item in questions)
