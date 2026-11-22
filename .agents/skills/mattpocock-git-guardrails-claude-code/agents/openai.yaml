@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-git-guardrails-claude-code"
+  short_description: "Manual ELO-governed source for git-guardrails-claude-code."
+policy:
+  allow_implicit_invocation: false

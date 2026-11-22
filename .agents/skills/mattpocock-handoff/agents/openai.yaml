@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-handoff"
+  short_description: "Manual ELO-governed source for handoff."
+policy:
+  allow_implicit_invocation: false

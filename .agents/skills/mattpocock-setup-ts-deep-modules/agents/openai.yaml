@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-setup-ts-deep-modules"
+  short_description: "Manual ELO-governed source for setup-ts-deep-modules."
+policy:
+  allow_implicit_invocation: false

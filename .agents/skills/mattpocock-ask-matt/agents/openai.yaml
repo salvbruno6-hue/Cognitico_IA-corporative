@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-ask-matt"
+  short_description: "Manual ELO-governed source for ask-matt."
+policy:
+  allow_implicit_invocation: false

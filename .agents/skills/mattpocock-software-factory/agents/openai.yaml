@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-software-factory"
+  short_description: "Manual ELO-governed source for software-factory."
+policy:
+  allow_implicit_invocation: false

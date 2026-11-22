@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-codebase-design"
+  short_description: "Manual ELO-governed source for codebase-design."
+policy:
+  allow_implicit_invocation: false

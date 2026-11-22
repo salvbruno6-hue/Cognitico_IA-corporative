@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-grill-me"
+  short_description: "Manual ELO-governed source for grill-me."
+policy:
+  allow_implicit_invocation: false

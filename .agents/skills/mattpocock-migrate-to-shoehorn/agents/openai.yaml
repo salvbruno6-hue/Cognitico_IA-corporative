@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-migrate-to-shoehorn"
+  short_description: "Manual ELO-governed source for migrate-to-shoehorn."
+policy:
+  allow_implicit_invocation: false

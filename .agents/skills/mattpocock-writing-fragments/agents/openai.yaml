@@ -1,0 +1,5 @@
+interface:
+  display_name: "mattpocock-writing-fragments"
+  short_description: "Manual ELO-governed source for writing-fragments."
+policy:
+  allow_implicit_invocation: false
