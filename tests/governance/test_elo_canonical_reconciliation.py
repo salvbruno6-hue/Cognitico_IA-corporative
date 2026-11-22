@@ -243,6 +243,33 @@ def _make_existing_authz_owner(tmp_path: Path) -> None:
     )
 
 
+def test_immutable_candidate_tree_exposes_owner_drift_hidden_on_trusted_main(tmp_path: Path) -> None:
+    """P1: the same changed paths can pass on main but fail on the PR's tree."""
+    import shutil
+    from automation.tasks.elo_canonical_reconciliation import AUTHZ_OWNER_CONTRACT
+
+    trusted = tmp_path / "trusted"
+    trusted.mkdir()
+    _make_existing_authz_owner(trusted)
+    candidate = tmp_path / "pr-candidate-snapshot"
+    shutil.copytree(trusted, candidate)
+    (candidate / AUTHZ_OWNER_CONTRACT).write_text(
+        "# Candidate removed its issue_authorization_grant owner declaration\n",
+        encoding="utf-8",
+    )
+    changed = [
+        "supabase/functions/elo-authz/index.ts",
+        "tests/security/test_operator_github_binding_runtime.py",
+    ]
+    main_evidence = reconcile_repository(trusted, changed, ["elo_authz"])
+    candidate_evidence = reconcile_repository(candidate, changed, ["elo_authz"])
+    assert main_evidence.decision == "STRENGTHEN"
+    assert main_evidence.reuse_analysis_complete
+    assert candidate_evidence.waiting_for_evidence
+    assert candidate_evidence.decision != "STRENGTHEN"
+    assert event_facts(candidate_evidence)["reuse_analysis_complete"] is False
+
+
 def test_authz_session_fix_reconciles_existing_owner(tmp_path: Path) -> None:
     _make_existing_authz_owner(tmp_path)
     evidence = reconcile_repository(tmp_path, [
