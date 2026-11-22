@@ -64,8 +64,9 @@ AUTHZ_CURL_BODY_OPTIONS = (
 # Flags which consume a following or attached value. When they occur in a
 # compact short-option group, the remaining characters are DATA, not flags.
 # In particular a header value must never accidentally grant -G semantics.
-# Short options that consume a value. A following argument beginning with
-# "-" is still DATA, not a new option (curl -A '-fsSXGET').
+# Curl values (including tokens beginning with "-") are not options. Parse
+# them before evaluating --next/-:, or the scanner can borrow GET semantics
+# across transfers. This is a fail-closed evidence gate, never an authz issuer.
 AUTHZ_CURL_SHORT_VALUE_OPTIONS = frozenset({
     "A", "b", "c", "C", "D", "e", "E", "H", "K", "m", "o",
     "r", "u", "U", "w", "x", "Y", "y", "z",
@@ -77,79 +78,98 @@ AUTHZ_CURL_LONG_VALUE_OPTIONS = frozenset({
     "--config", "--cert", "--key", "--cacert",
     "--write-out", "--request-target", "--range",
 })
+# Exact option names only: --form-escape is a BOOLEAN and must not consume
+# -XPOST, unlike --form / --form-string.
+AUTHZ_CURL_LONG_BODY_OPTIONS = frozenset({
+    "--data", "--data-raw", "--data-binary", "--data-urlencode",
+    "--form", "--form-string", "--json", "--upload-file",
+})
 
 
 def _curl_grant_write(args: list[str]) -> bool:
-    """Classify each curl transfer, including grouped flags and option values."""
-    if "--next" in args or "-:" in args:
-        transfers: list[list[str]] = [[]]
-        for item in args:
-            if item in ("--next", "-:"):
-                transfers.append([])
-            else:
-                transfers[-1].append(item)
-        return any(_curl_grant_write(transfer) for transfer in transfers)
-    if not any(AUTHZ_GRANT_REST_ENDPOINT in item.lower() for item in args):
-        return False
-
+    """Classify complete curl transfers with value-aware flag parsing."""
+    target = False
     method: str | None = None
     has_get = False
     has_body = False
+
+    def is_writer() -> bool:
+        if not target:
+            return False
+        if method is not None:
+            return method != "GET"
+        return has_body and not has_get
+
     index = 0
     while index < len(args):
         item = args[index]
+
+        # Only an actual option (not a value of -A, --data etc.) resets curl
+        # transfer-local options.
+        if item in ("--next", "-:"):
+            if is_writer():
+                return True
+            target = False
+            method = None
+            has_get = False
+            has_body = False
+            index += 1
+            continue
+
+        if AUTHZ_GRANT_REST_ENDPOINT in item.lower():
+            target = True
+
         if item.startswith("--"):
-            if item == "--request":
-                method = (args[index + 1] if index + 1 < len(args) else "").upper()
-                index += 2
-                continue
-            if item.startswith("--request="):
-                method = item.partition("=")[2].upper()
-            elif item == "--get":
-                has_get = True
-            elif item.startswith(AUTHZ_CURL_BODY_OPTIONS):
-                has_body = True
-                # A separated body argument (even "-XGET") is not an option.
-                if "=" not in item:
+            option, sep, _ = item.partition("=")
+            if option == "--request":
+                if sep:
+                    method = item.partition("=")[2].upper()
+                    index += 1
+                else:
+                    method = (args[index + 1] if index + 1 < len(args) else "").upper()
                     index += 2
+                continue
+            if option == "--get":
+                has_get = True
+            elif option in AUTHZ_CURL_LONG_BODY_OPTIONS:
+                has_body = True
+                if not sep:
+                    index += 2  # consume separate body, even if it is "--next"
                     continue
-            elif item in AUTHZ_CURL_LONG_VALUE_OPTIONS:
+            elif option in AUTHZ_CURL_LONG_VALUE_OPTIONS and not sep:
                 index += 2
                 continue
             index += 1
             continue
+
         if not item.startswith("-") or item in ("-", "-:"):
             index += 1
             continue
 
+        # Compact -fsSd means -f -s -S -d, but -A '-XGET' means a
+        # user-agent VALUE, not a GET method. Attached values end the group.
         flags = item[1:]
         for position, flag in enumerate(flags):
             if flag == "G":
                 has_get = True
             elif flag == "X":
-                attached = flags[position + 1:]
-                method = (attached or (args[index + 1] if index + 1 < len(args) else "")).upper()
-                if not attached:
-                    index += 1  # the next token is the HTTP method argument
+                value = flags[position + 1:]
+                method = (value or (args[index + 1] if index + 1 < len(args) else "")).upper()
+                if not value:
+                    index += 1
                 break
             elif flag in ("d", "F", "T"):
                 has_body = True
                 if position + 1 == len(flags):
-                    index += 1  # the next token is request data, not another flag
+                    index += 1
                 break
             elif flag in AUTHZ_CURL_SHORT_VALUE_OPTIONS:
                 if position + 1 == len(flags):
-                    index += 1  # e.g. -A '-fsSXGET'
+                    index += 1
                 break
         index += 1
 
-    # Explicit method always takes precedence over body options or -G.
-    # Unknown methods fail closed rather than masquerading as read-only GET.
-    if method is not None:
-        return method != "GET"
-    if has_get:
-        return False
-    return has_body
+    return is_writer()
 
 
 def _shell_substitution_spans(line: str) -> Iterable[tuple[int, int, str]]:
