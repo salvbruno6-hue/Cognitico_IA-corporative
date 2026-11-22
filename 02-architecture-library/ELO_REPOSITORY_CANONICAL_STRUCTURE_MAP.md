@@ -44,6 +44,7 @@ The physical directory is not itself authority. Authority is determined by:
 | `15-assets/` | Assets | reusable assets | canonical |
 | `15-ativos/` | Assets | historical Portuguese assets | migration source; review before removal |
 | `Docs/` | Documentation | evolution/supporting docs | supporting only unless explicitly canonical |
+| `.github/workflows/elo-pr1-validation.yml`, `.github/workflows/elo-behavioral-validation.yml`, `.github/workflows/elo-evolution-gate.yml` | ELO Governance / CI Validation | existing independently named checks; PR1 and Evolution own full-suite verification, Behavioral owns focused behavior/OAuth evidence | canonical CI workflows; evidence is not merge or learning authority |
 | `src/elo/` | Executable ELO | current implementation core | canonical executable root |
 | `tests/` | Verification | automated tests and behavioral evidence | canonical test root |
 
