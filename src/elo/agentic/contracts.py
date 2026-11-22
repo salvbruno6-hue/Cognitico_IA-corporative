@@ -83,3 +83,15 @@ class KnowledgeContext:
         return bool(self.conflicts) or any(
             gap.blocks_decision for gap in self.gaps
         )
+
+
+    @property
+    def response_state(self) -> str:
+        """Q4-B: return supported facts while keeping only unresolved scope blocked."""
+        if self.candidates and self.requires_human_decision:
+            return "PARTIAL_SUPPORTED"
+        if self.candidates:
+            return "SUPPORTED"
+        if self.requires_human_decision:
+            return "BLOCKED"
+        return "NO_EVIDENCE"
