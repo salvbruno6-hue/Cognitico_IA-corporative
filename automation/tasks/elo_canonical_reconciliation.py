@@ -116,7 +116,12 @@ def _curl_grant_write(args: list[str]) -> bool:
             index += 1
             continue
 
-        if AUTHZ_GRANT_REST_ENDPOINT in item.lower():
+        # Options such as --url consume the following URL. Preserve target
+        # detection even when that value is skipped by option parsing.
+        if AUTHZ_GRANT_REST_ENDPOINT in item.lower() or (
+            index + 1 < len(args)
+            and AUTHZ_GRANT_REST_ENDPOINT in args[index + 1].lower()
+        ):
             target = True
 
         if item.startswith("--"):
