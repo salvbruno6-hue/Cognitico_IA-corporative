@@ -322,6 +322,9 @@ jobs:
           fi
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          head_repository="$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.head.repo.full_name // ""')"
+          [[ "$head_repository" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]] || { echo "Invalid PR head repository."; exit 1; }
+          echo "head_repository=$head_repository" >> "$GITHUB_OUTPUT"
           echo "resource_id=pr:$PR_NUMBER@$head_sha" >> "$GITHUB_OUTPUT"
           changed_paths="$(gh pr diff "$PR_NUMBER" --repo "$REPO" --name-only)"
           if grep -Fxq ".github/workflows/elo-agent-loop.yml" <<<"$changed_paths"; then
@@ -347,6 +350,29 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
+          persist-credentials: false
+
+      # Candidate is DATA only. Trusted workflow/scanner executes from main.
+      # Never execute actions, scripts, tests, hooks, or imports from this tree.
+      - name: Checkout immutable PR candidate as data
+        if: steps.target.outputs.bootstrap_blocked != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.target.outputs.head_repository }}
+          ref: ${{ steps.target.outputs.head_sha }}
+          path: pr-candidate-snapshot
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify immutable PR candidate snapshot
+        if: steps.target.outputs.bootstrap_blocked != 'true'
+        shell: bash
+        env:
+          TARGET_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          actual_sha="$(git -C pr-candidate-snapshot rev-parse HEAD)"
+          [[ "$actual_sha" == "$TARGET_HEAD_SHA" ]] || { echo "Candidate checkout SHA differs from immutable PR head."; exit 1; }
 
       - name: Prepare attestation evidence
         if: steps.target.outputs.bootstrap_blocked != 'true'
@@ -392,7 +418,7 @@ jobs:
               stem = Path(path).stem.replace("-", "_").lower()
               if len(stem) >= 3:
                   terms.append(stem)
-          evidence = reconcile_repository(".", changed, terms)
+          evidence = reconcile_repository("pr-candidate-snapshot", changed, terms)
           payload = {
               "changed_paths": list(evidence.changed_paths),
               "candidates": list(evidence.candidates),
