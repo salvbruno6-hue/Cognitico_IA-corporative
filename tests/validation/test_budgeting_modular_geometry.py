@@ -89,7 +89,7 @@ def test_skill_pack_metadata_reuses_existing_budget_specialist():
     pack = PACK.read_text(encoding="utf-8")
     skill = SKILL.read_text(encoding="utf-8")
     contract = CONTRACT.read_text(encoding="utf-8")
-    assert pack.count("skill_id: FORGE-BUDGETING-001") == 1
+    assert pack.splitlines().count("  - skill_id: FORGE-BUDGETING-001") == 1
     assert "modular_geometry_capability:" in pack
     assert "capability_key: budgeting.modular_geometry" in pack
     assert "public.modelos" in pack and "public.dimensoes" in pack
