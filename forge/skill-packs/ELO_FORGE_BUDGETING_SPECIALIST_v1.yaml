@@ -189,6 +189,7 @@ skills:
           - orientacao
           - dimensoes_resultantes_mm
           - diferencas_mm
+          - sobra_area_mm2
           - gaps
           - total_modulos_condicional
           - gates_pendentes
