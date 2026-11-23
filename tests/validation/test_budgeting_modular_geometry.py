@@ -97,3 +97,21 @@ def test_skill_pack_metadata_reuses_existing_budget_specialist():
     assert "## 22. Subcapacidade: inferência geométrica" in skill
     assert "id: modular_geometry_analysis" in contract
     assert contract.index("id: model_match") < contract.index("id: modular_geometry_analysis") < contract.index("id: delta_detection")
+
+
+def test_source_provenance_is_required_to_claim_fit():
+    source_missing = dict(env("sala", 7200, 6000), fonte=None)
+    result = geometry.analisar_dimensionamento([source_missing], [mod()])
+    candidate = result["ambientes"][0]["alternativa_preliminar"]
+    assert candidate["status"] == "DADOS_INSUFICIENTES"
+    assert "FONTE_DOCUMENTAL_AUSENTE" in candidate["gaps"]
+    assert result["total_modulos_condicional"] is None
+
+
+def test_model_identity_and_source_class_are_required():
+    unknown = dict(mod(), codigo=None)
+    result = geometry.analisar_dimensionamento([env("sala", 7200, 6000)], [unknown])
+    assert "IDENTIDADE_OU_FONTE_MODELO_AUSENTE" in result["ambientes"][0]["alternativa_preliminar"]["gaps"]
+    unclassified = dict(mod(), classe_fonte="NAO_CONFIRMADA")
+    result = geometry.analisar_dimensionamento([env("sala", 7200, 6000)], [unclassified])
+    assert "CLASSE_FONTE_MODELO_NAO_CONFIRMADA" in result["ambientes"][0]["alternativa_preliminar"]["gaps"]
