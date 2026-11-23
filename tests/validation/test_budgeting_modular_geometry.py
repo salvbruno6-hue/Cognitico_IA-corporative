@@ -115,3 +115,17 @@ def test_model_identity_and_source_class_are_required():
     unclassified = dict(mod(), classe_fonte="NAO_CONFIRMADA")
     result = geometry.analisar_dimensionamento([env("sala", 7200, 6000)], [unclassified])
     assert "CLASSE_FONTE_MODELO_NAO_CONFIRMADA" in result["ambientes"][0]["alternativa_preliminar"]["gaps"]
+
+
+def test_equal_count_models_choose_lower_surplus_area_not_alphabetical_code():
+    bigger = {"codigo": "A", "comprimento_mm": 6000, "largura_mm": 3000,
+              "altura_mm": 2800, "classe_fonte": "CATALOGO",
+              "fonte": "catalogo-A", "ativo": True}
+    closer = {"codigo": "B", "comprimento_mm": 6000, "largura_mm": 2440,
+              "altura_mm": 2800, "classe_fonte": "CATALOGO",
+              "fonte": "catalogo-B", "ativo": True}
+    result = geometry.analisar_dimensionamento([env("sala", 7200, 6000)], [bigger, closer])
+    chosen = result["ambientes"][0]["alternativa_preliminar"]
+    assert chosen["modelo_codigo"] == "B"
+    assert chosen["modulos_por_ambiente"] == 3
+    assert chosen["sobra_area_mm2"] == "720000"
