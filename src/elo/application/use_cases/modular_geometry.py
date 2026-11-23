@@ -50,6 +50,7 @@ def _candidate(ambiente: Mapping[str, Any], modelo: Mapping[str, Any], max_modul
         "linhas": None,
         "dimensoes_resultantes_mm": None,
         "diferencas_mm": None,
+        "sobra_area_mm2": None,
         "gaps": [],
     }
     if modelo.get("ativo") is False:
@@ -122,6 +123,7 @@ def _candidate(ambiente: Mapping[str, Any], modelo: Mapping[str, Any], max_modul
             "largura_mm": str(result_l - largura),
             "altura_mm": str(mod_alt - altura) if mod_alt is not None and altura is not None else None,
         },
+        sobra_area_mm2=str(_surplus),
         gaps=gaps,
     )
     return base
@@ -157,6 +159,7 @@ def analisar_dimensionamento(
         candidates.sort(key=lambda c: (
             rank[c["status"]],
             c["modulos_por_ambiente"] if c["modulos_por_ambiente"] is not None else 10**9,
+            Decimal(c["sobra_area_mm2"]) if c["sobra_area_mm2"] is not None else Decimal("Infinity"),
             str(c["modelo_codigo"]),
         ))
         selected = candidates[0]
