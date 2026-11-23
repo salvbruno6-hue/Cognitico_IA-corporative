@@ -55,6 +55,26 @@ class ResponseBuilder:
                 suggestions.append(SuggestedAction.model_validate(item))
             else:
                 suggestions.append(SuggestedAction(label=str(item)))
+
+        for item in result.get("admin_decision_questions", []) or []:
+            if isinstance(item, dict):
+                payload = dict(item)
+            else:
+                serializer = getattr(item, "to_payload", None)
+                payload = dict(serializer()) if callable(serializer) else {}
+            prompt = str(payload.get("prompt") or "").strip()
+            if not prompt:
+                continue
+            question_id = str(payload.get("question_id") or "").strip()
+            kwargs: dict[str, Any] = {
+                "label": prompt,
+                "action_type": "admin_decision_question",
+                "payload": payload,
+                "requires_approval": bool(payload.get("blocks_decision", True)),
+            }
+            if question_id:
+                kwargs["action_id"] = question_id
+            suggestions.append(SuggestedAction(**kwargs))
         return suggestions
 
     def build(self, request: CognitiveRequest, session_id: str, result: dict[str, Any], *, started_at: float | None = None) -> CognitiveResponse:
