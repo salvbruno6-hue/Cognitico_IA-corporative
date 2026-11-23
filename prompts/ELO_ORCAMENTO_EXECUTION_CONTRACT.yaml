@@ -29,6 +29,16 @@ pipeline:
     action: classify_mlt_family
   - id: model_match
     action: match_canonical_model
+  - id: modular_geometry_analysis
+    action: estimate_physical_modules_with_provenance
+    condition: "SO/TR fornece dimensoes de ambientes"
+    owner: FORGE-BUDGETING-001
+    capability_key: budgeting.modular_geometry
+    implementation: src/elo/application/use_cases/modular_geometry.py
+    mandatory_when_applicable: true
+    before_budget_quantities: true
+    engineering_validation_required: true
+    conditional_quantities_only: true
   - id: delta_detection
     action: detect_excess_items
   - id: relation_audit
