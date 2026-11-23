@@ -55,6 +55,15 @@ def _candidate(ambiente: Mapping[str, Any], modelo: Mapping[str, Any], max_modul
     if modelo.get("ativo") is False:
         base["gaps"] = ["MODELO_INATIVO"]
         return base
+    if not ambiente.get("fonte"):
+        base["gaps"] = ["FONTE_DOCUMENTAL_AUSENTE"]
+        return base
+    if not modelo.get("codigo") or not modelo.get("fonte"):
+        base["gaps"] = ["IDENTIDADE_OU_FONTE_MODELO_AUSENTE"]
+        return base
+    if modelo.get("classe_fonte") not in ("CATALOGO", "HIPOTESE"):
+        base["gaps"] = ["CLASSE_FONTE_MODELO_NAO_CONFIRMADA"]
+        return base
     if any(value is None for value in required[:2] + actual[:2]):
         base["gaps"] = ["DIMENSOES_PLANAS_AUSENTES"]
         return base
