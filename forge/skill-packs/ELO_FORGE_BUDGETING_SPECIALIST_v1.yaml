@@ -145,6 +145,73 @@ skills:
       - "2026-10-30: ativação interna silenciosa; resposta inicial orientada à SO sem expor implementação"
       - "2026-10-30: despacho automático pós-revisão para learning_governance; aprovação/promoção permanecem humanas e governadas"
     contextual_parameters:
+      modular_geometry_capability:
+        capability_key: budgeting.modular_geometry
+        version: "1.0.0"
+        owner_skill_id: FORGE-BUDGETING-001
+        execution_layer: Forge/Application
+        code_path: src/elo/application/use_cases/modular_geometry.py
+        contract_path: prompts/ELO_ORCAMENTO_EXECUTION_CONTRACT.yaml
+        methodology_ref: 08-ai/ELO/ESPECIALISTAS/ORCAMENTO/PROMPT.md#22
+        trigger: SO_TR_COM_DIMENSOES_DE_AMBIENTES
+        phase: TRIAGEM_PRE_ORCAMENTO
+        canonical_catalog:
+          model: public.modelos
+          dimension: public.dimensoes
+          join: modelos.dimensao_id = dimensoes.id
+          authority: SUPABASE_PERSISTENTE
+          model_properties: [codigo, nome, ativo, versao]
+          dimension_properties: [comprimento_mm, largura_mm, altura_mm]
+        required_inputs:
+          ambiente: [id, quantidade, comprimento_mm, largura_mm, altura_mm, fonte]
+          modelo: [codigo, comprimento_mm, largura_mm, altura_mm, fonte, classe_fonte, revisao, ativo]
+        calculation:
+          unit: mm_externo
+          number_type: decimal
+          orientations: [LONGITUDINAL, ROTACIONADO_90]
+          grid: teto(comprimento_exigido / dimensao_lateral) vezes teto(largura_exigida / dimensao_profundidade)
+          selection: encaixe_exato_antes_quantidade_minima_antes_menor_sobra
+          declared_module_qty: MODULOS_FISICOS_CONDICIONAIS
+          prevents_area_only_inference: true
+        output_metadata:
+          - capability_key
+          - version
+          - responsavel
+          - fonte_documental
+          - modelo_codigo
+          - modelo_fonte
+          - classe_fonte
+          - revisao_modelo
+          - quantidade_ambientes
+          - modulos_por_ambiente
+          - colunas
+          - linhas
+          - orientacao
+          - dimensoes_resultantes_mm
+          - diferencas_mm
+          - gaps
+          - total_modulos_condicional
+          - gates_pendentes
+        statuses:
+          - ENCAIXE_GEOMETRICO_EXATO
+          - ADEQUACAO_DIMENSIONAL_PENDENTE
+          - NAO_ENCAIXA
+          - DADOS_INSUFICIENTES
+        guards:
+          engineering_validation_required: true
+          cannot_approve_fabrication: true
+          cannot_approve_budget: true
+          cannot_promote_single_example_to_core: true
+          cannot_use_authz_capability_table_as_skill_registry: true
+        regression_case:
+          source: SO_249_2026_SENAI_MG_TR_7_1_1
+          environments: 3
+          salas: 2
+          laboratorio: 1
+          hypothetical_module_mm: [6000, 2400, 2800]
+          conditional_modules: 10
+          live_catalog_example_mm: [6000, 2440, 3010]
+          catalog_status: ADEQUACAO_DIMENSIONAL_PENDENTE
       sector: Planejamento
       auto_activate_on: ELO ANALISAR
       activation_visibility: INTERNAL_SILENT
