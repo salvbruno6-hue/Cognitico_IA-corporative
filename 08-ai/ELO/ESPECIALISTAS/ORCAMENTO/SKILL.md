@@ -444,3 +444,17 @@ A Skill deve **orquestrar** o quadro de etapas `CAD-01..CAD-13` definido no `PRO
 A cada retomada: consultar fontes + estado persistente `public.elo_orcamentos.contexto.cadencia_orcar`; exibir na tela `ETAPA | ENTRADA | GATE | ESTADO | EVIDÊNCIA/GAP | PRÓXIMA AÇÃO`; acionar apenas etapa cujo pré-requisito foi comprovado, registrar resultado real, retornar para correção se necessário e manter `VALIDADA` apenas com gate satisfeito. Valores preliminares, modelos apenas citados, e-mails ausentes e fontes contraditórias não passam nos respectivos gates. Jira `Em andamento` não é orçamento fechado.
 
 A apresentação **sempre ocorre primeiro na tela**. Exportar Excel somente sob pedido explícito do usuário. Estados da SO podem ser registrados em JSONB já existente, não em nova estrutura de domínio nem no Core. A governança/aprendizado permanece com o ELO e o Evolution Gate.
+
+## 22. Subcapacidade: inferência geométrica de módulos físicos
+
+**Owner:** `FORGE-BUDGETING-001` (Especialista de Orçamento / Forge). **Chave:** `budgeting.modular_geometry`. **Implementação:** `src/elo/application/use_cases/modular_geometry.py`. **Metadados de ativação, origem, entrada, saída e veto:** `forge/skill-packs/ELO_FORGE_BUDGETING_SPECIALIST_v1.yaml`, em `contextual_parameters.modular_geometry_capability`.
+
+Quando a SO/TR informar dimensões de **ambientes**, executar a estimativa física de módulos **antes de declarar quantidades orçamentárias**. Reconhecer a diferença entre ambiente solicitado e módulo transportável, consultar `public.modelos` + `public.dimensoes` no Supabase, comparar orientação longitudinal e rotação 90º, calcular grids inteiros e preservar fórmula, unidade, modelo, revisão, fonte, número de ambientes e resultado de cada orientação.
+
+A resposta obrigatória por ambiente é: `AMBiente → DIMENSÕES DO TR → CANDIDATO DO CATÁLOGO → ORIENTAÇÃO → N° DE MÓDULOS → DIMENSÕES RESULTANTES → DESVIOS/GAPS → STATUS → VALIDAÇÃO`. A contagem agregada será rotulada **condicional** enquanto o acoplamento e a compatibilidade técnica não forem aprovados.
+
+Status: `ENCAIXE_GEOMETRICO_EXATO` apenas para coincidência nominal das três dimensões; `ADEQUACAO_DIMENSIONAL_PENDENTE` se houver excedente/diferença; `NAO_ENCAIXA` quando o limite de análise for excedido; `DADOS_INSUFICIENTES` se faltarem dados. Um encaixe geométrico não autoriza projeto, fabricação, preço, transporte ou atendimento contratual. A orientação e a dimensão física não substituem análise de carga, vãos/acoplamento, norma, disponibilidade, implantação e revisão da Engenharia.
+
+**Teste de regressão contextual (não regra universal):** SO 249/2026 — duas salas de 7,20×6,00 m e laboratório de 9,60×6,00 m. Com módulo *hipotético* de 6,00×2,40×2,80 m, grid de 3/3/4 módulos = **10 módulos condicionais**. Catálogo MLT.M 20 pés consultado em 23/11/2026: 6,00×2,44×3,01 m, resultando em 7,32 m e 9,76 m de largura nominal, além da divergência de altura; **GAP de compatibilidade** a validar com Planejamento/Engenharia.
+
+Esta habilidade reutiliza a Skill de orçamento existente e as dimensões persistentes existentes. Não cadastrar `budgeting.modular_geometry` em `public.elo_capabilities` (registro de autorizações), não criar tabela paralela e não promover exemplo de SO a regra canônica de modelo. Persistência contextual de execução, quando autorizada, segue os registros canônicos da SO; o cálculo metodológico pertence à aplicação/Forge.
