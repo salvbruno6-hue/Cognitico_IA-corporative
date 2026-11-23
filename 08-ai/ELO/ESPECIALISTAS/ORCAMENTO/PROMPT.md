@@ -345,3 +345,31 @@ Fluxo: consultar fontes → compor e calcular → apresentar na tela → receber
 **Prova de regressão: fonte M05 e caso item03 distintos:** M05 no Markdown entregue: ESQ006 2×R$227,09, material R$1.111,72, M.O. R$418,65, subtotal R$1.530,37, cálculo preliminar R$3.152,56; a Lista-Mãe da composição item03 usa ESQ006 R$162,50. **Registrar GAP**, não igualar os dois preços sem revisão/aceite. No local, a fonte M05 traz Mossoró/RN enquanto RNF anterior registra MOSSORÓ/RS: preservar conflito. Item03 depósito 4m permanece em análise, referência R$978,74 materiais, R$1.452,47 M.O., parcial R$2.431,21, preço Dry, altura e quantitativos ainda pendentes. Os itens 01 e 03 são equipamentos distintos, embora ambos usem Dry MLT.C06.
 
 **Arquivo de revisão:** `ELO_ORCAR_SO23326_PADRAO_CANONICO_ATUALIZADO_20261112.xlsx` gerado com seis abas (M05 Base Mestre, I03 Depósito 4m, Controle Modelos, Cadência ELO, RNF 14 Campos e Fontes/GAPs). Exportar XLSX apenas quando solicitado, exigir fórmulas sem erros e deixar status preliminar; não alterar o Core nem promover item `EM_ANALISE` a `APLICADO` pela exportação.
+
+
+## 22. RNF — inferência geométrica de ambientes em módulos físicos (23/11/2026; SO 249/2026)
+
+**Demanda do Analista:** ao ler dimensões de um ambiente no TR ou na SO, o ELO deve estimar proativamente quantos **módulos físicos acoplados** podem compô-lo, em vez de equiparar quantidade de ambientes a quantidade de módulos. Esta é uma regra do especialista/Forge para análise de cenário, sem alterar o Core, criar outra autoridade de modelos ou aprovar fabricação/orçamento.
+
+**Entrada e fonte:** extrair `comprimento × largura × altura` do documento do cliente; consultar `public.modelos` relacionado a `public.dimensoes` (Supabase) para identificar comprimento, largura, altura, área e status do modelo efetivamente cadastrado. Não supor que uma medida usada em exemplo seja a dimensão padrão vigente. Distinguir dimensão externa, área útil e espaço requerido; respeitar unidade, orientações possíveis e interferências do acoplamento.
+
+**Algoritmo de triagem geométrica:**
+1. Para cada ambiente, preservar sua identidade e as três dimensões, indicando a fonte documental.
+2. Relacionar cada candidato de módulo a `FAMÍLIA → MODELO → DIMENSÕES → CONFIGURAÇÃO`. Calcular as alternativas de orientação (módulo longitudinal ou girado) e de justaposição em linhas/colunas, mantendo circulação e uso do ambiente como requisitos separados.
+3. Calcular a largura/comprimento resultantes por multiplicação do número de módulos, sem arredondar a medida padrão nem supor folga dimensional. **Dividir apenas áreas e arredondar para cima não demonstra encaixe físico.**
+4. Classificar cada cenário: `ENCAIXE_GEOMETRICO_EXATO`, `ADEQUACAO_DIMENSIONAL_PENDENTE`, `NAO_ENCAIXA` ou `DADOS_INSUFICIENTES`. A classificação geométrica não equivale a aprovação de engenharia, acoplamento, transporte, estrutura, norma ou disponibilidade.
+5. Separar **ambientes pedidos**, **módulos físicos por ambiente**, **total preliminar**, **modelo do catálogo**, **adaptações**, **pendências** e **evidência**. Mostrar o cálculo e apresentar opções quando houver mais de uma solução plausível.
+6. Não promover hipótese a item fechado, não fabricar modelo de 2,40 m a partir de um modelo cadastrado de 2,44 m, não atribuir preço nem declarar conformidade. Validar altura externa, capacidade estrutural, paredes removidas, acoplagem, acabamentos, logística e projeto antes do aceite.
+
+**Regressão documental — SO 249/2026 SENAI-MG:** o TR solicita duas salas de aula `7,20 × 6,00 × 2,80 m` e um laboratório `9,60 × 6,00 × 2,80 m`. A solução **hipotética** com módulos de `6,00 × 2,40 m` forma `3 × 6,00 × 2,40 = 43,20 m²` por sala, ou `3 módulos/sala × 2 salas = 6 módulos`; para o laboratório, `4 × 6,00 × 2,40 = 57,60 m²` ou 4 módulos. **Total condicional = 10 módulos físicos para 3 ambientes**; depende da aprovação de largura 2,40 m, altura e layout.
+
+**Conflito de catálogo a exibir obrigatoriamente:** em consulta à instância Supabase `Elo-forge` de 23/11/2026, os registros de modelos MLT.M de 20 pés com dimensão vinculada consultados indicaram `6.000 × 2.440 × 3.010 mm`. Com 3 módulos, a largura nominal seria `7,32 m`, maior que os `7,20 m` exigidos, e com 4 seria `9,76 m`, maior que `9,60 m`. A altura nominal `3,01 m` também excede `2,80 m`. Não aprovar por equivalência automática: registrar `ADEQUACAO_DIMENSIONAL_PENDENTE` e encaminhar ao Planejamento/Engenharia, inclusive sobre dimensões externas e interfaces de acoplamento.
+
+**Testes mínimos de regressão (lógica, sem gerar orçamento):**
+- Duas salas de `7,20 × 6,00 m`, cenário declarado `6,00 × 2,40 m`: 3 módulos/sala, 6 ao todo; status hipótese, não homologação.
+- Laboratório `9,60 × 6,00 m`, mesmo cenário: 4 módulos; total de 10 para a SO, mas 3 ambientes distintos.
+- Candidato real `6,00 × 2,44 × 3,01 m`: 3 × 2,44 = 7,32; 4 × 2,44 = 9,76; divergência dimensional/altura deve bloquear o status de encaixe exato.
+- Ausência de largura/altura confiável: `DADOS_INSUFICIENTES`; proibição de inventar solução padronizada ou quantidade definitiva.
+- O processo `ELO ANALISAR` permanece diagnóstico; precificação, PTS pós-orçamento e fechamento continuam sob o gatilho `ORÇAR` e seus gates.
+
+**Rastreabilidade:** `SO/TR → ambiente → dimensões → catálogo/modelo e sua revisão → orientação → cálculo → cenário → incompatibilidades → revisão de Engenharia → orçamento`. Preservar decisão da Engenharia; a hipótese operacional não é promovida ao Core ou ao catálogo canônico pelo exemplo isolado.
