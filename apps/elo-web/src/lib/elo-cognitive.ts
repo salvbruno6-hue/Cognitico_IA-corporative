@@ -65,6 +65,7 @@ export async function executeCognitiveMission(input: {
   domain: string;
   sessionId: string;
   context?: Record<string, unknown>;
+  accessToken?: string;
 }): Promise<CognitiveResponse> {
   const startedAt = performance.now();
 
@@ -78,6 +79,7 @@ export async function executeCognitiveMission(input: {
       domain: input.domain,
       sessionId: input.sessionId,
       context: input.context ?? {},
+      accessToken: input.accessToken,
     });
 
     return {
@@ -88,11 +90,11 @@ export async function executeCognitiveMission(input: {
       tenant_id: input.tenantId,
       domain: input.domain,
       response: result.response,
-      sources: [],
+      sources: result.sources ?? [],
       agents_used: [],
       confidence: result.confidence,
       provenance: result.provenance,
-      suggestions: [],
+      suggestions: result.suggestions ?? [],
       processing_time_ms: Math.max(0, performance.now() - startedAt),
       timestamp: new Date().toISOString(),
     };

@@ -68,6 +68,8 @@ export async function POST(request: Request) {
       domain,
       sessionId,
       context: body.context && typeof body.context === "object" && !Array.isArray(body.context) ? body.context as Record<string, unknown> : {},
+      // Keep the verified bearer inside the server boundary for governed read calls only.
+      accessToken,
     });
 
     const response = NextResponse.json(result, { status: 200 });
