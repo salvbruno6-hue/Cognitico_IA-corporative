@@ -45,6 +45,28 @@ def test_critical_matrix_preserves_evidence_vocabulary_and_non_promotion_rule():
     assert "BASELINE v1.0 = NOT DECLARED" in matrix
 
 
+def test_run01_pass_is_tied_to_reproducible_github_evidence():
+    matrix = _read("docs/testing/ELO_CRITICAL_ARCHITECTURAL_MATRIX_2026-08-18.md")
+    result = _read("docs/testing/ELO_CORE_MATURITY_RUN01_RESULT.md")
+    rows = {
+        line.split("|")[1].strip(): line
+        for line in matrix.splitlines()
+        if line.startswith("|")
+    }
+
+    assert "RUN-01" in rows
+    assert "| PASS |" in rows["RUN-01"]
+    for evidence in (
+        "e11f0959b3fa7d4469ba6e20a60c4c31c5d8d8a1",
+        "34916707206",
+        "104215791138",
+    ):
+        assert evidence in rows["RUN-01"]
+        assert evidence in result
+    assert "PASS — reproducible GitHub Actions evidence recorded" in result
+    assert "does **not** declare Baseline v1.0" in result
+
+
 def test_baseline_evidence_record_preserves_reproducibility_contract():
     record = _read("docs/governance/ELO_BASELINE_EVIDENCE_RECORD_2026-08-18.md")
     required = (
@@ -137,7 +159,6 @@ def test_matrix_does_not_mark_known_operational_gaps_as_pass():
     matrix = _read("docs/testing/ELO_CRITICAL_ARCHITECTURAL_MATRIX_2026-08-18.md")
     expected_non_pass = {
         "BND-04": "DEFINED",
-        "RUN-01": "DEFINED",
         "RUN-06": "DEFINED",
         "SPC-01": "DEFINED",
         "SPC-03": "DEFINED",
@@ -146,7 +167,11 @@ def test_matrix_does_not_mark_known_operational_gaps_as_pass():
         "OPS-02": "DEFINED",
         "OPS-03": "BLOCKED",
     }
-    rows = {line.split("|")[1].strip(): line for line in matrix.splitlines() if line.startswith("|")}
+    rows = {
+        line.split("|")[1].strip(): line
+        for line in matrix.splitlines()
+        if line.startswith("|")
+    }
     for criterion, status in expected_non_pass.items():
         assert criterion in rows
         assert f"| {status} |" in rows[criterion]
