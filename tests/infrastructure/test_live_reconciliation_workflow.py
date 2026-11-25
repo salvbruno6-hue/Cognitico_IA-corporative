@@ -47,10 +47,13 @@ def test_workflow_does_not_execute_ddl():
         assert forbidden not in text
 
 
-def test_script_requires_env_vars():
-    text = SCRIPT.read_text(encoding="utf-8")
-    assert "SUPABASE_URL" in text
-    assert "SUPABASE_SERVICE_ROLE_KEY" in text
+def test_runtime_requires_env_vars_and_thin_script_delegates():
+    script = SCRIPT.read_text(encoding="utf-8")
+    runtime = Path("src/elo/infrastructure/live_state_reconciliation.py").read_text(encoding="utf-8")
+    assert "run_reconciliation_cli as main" in script
+    assert "sys.exit(main())" in script
+    assert "SUPABASE_URL" in runtime
+    assert "SUPABASE_SERVICE_ROLE_KEY" in runtime
 
 
 def test_workflow_propagates_reconciliation_failure():
@@ -95,3 +98,28 @@ def test_reconciliation_cli_only_succeeds_on_pass(
     assert run() == expected_exit
     data = json.loads(capsys.readouterr().out)
     assert data["overall"] == status
+
+
+def test_reconciliation_cli_missing_credentials_fails_closed(monkeypatch, capsys):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    run = runpy.run_path(str(SCRIPT))["main"]
+    assert run() == 1
+    assert "ERRO" in capsys.readouterr().err
+
+
+def test_reconciliation_cli_runtime_error_fails_closed(monkeypatch, capsys):
+    from elo.infrastructure.supabase_rls_reader import SupabaseRLSStateReader
+    from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation
+
+    monkeypatch.setenv("SUPABASE_URL", "https://example.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "dummy")
+    monkeypatch.setattr(SupabaseRLSStateReader, "__init__", lambda self, url, key: None)
+
+    def failing_reconcile(self, reader):
+        raise RuntimeError("controlled failure")
+
+    monkeypatch.setattr(LiveStateReconciliation, "reconcile", failing_reconcile)
+    run = runpy.run_path(str(SCRIPT))["main"]
+    assert run() == 2
+    assert "controlled failure" in capsys.readouterr().err
