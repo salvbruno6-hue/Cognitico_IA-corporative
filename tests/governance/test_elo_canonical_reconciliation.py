@@ -520,3 +520,59 @@ def test_early_return_pass_before_reconcile_is_rejected(tmp_path: Path):
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert evidence.waiting_for_evidence
     assert evidence.decision is None
+
+
+def test_entrypoint_cannot_exit_success_before_main(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "    sys.exit(main())\n",
+        "    print('{\"overall\": \"PASS\"}')\n    sys.exit(0)\n"
+        "    sys.exit(main())\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_duplicate_entrypoint_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8") +
+        "\nif __name__ == '__main__':\n    sys.exit(0)\n", encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_disabled_reconciliation_job_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "  reconcile:\n",
+        "  reconcile:\n    if: ${{ false }}\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_disabled_run_step_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "      - name: Run reconciliation\n",
+        "      - name: Run reconciliation\n        if: false\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
