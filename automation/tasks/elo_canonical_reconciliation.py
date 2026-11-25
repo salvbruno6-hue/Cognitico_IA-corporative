@@ -17,6 +17,7 @@ LIVE_RECONCILIATION_CONTRACT = "docs/governance/ELO_LIVE_STATE_RECONCILIATION_CO
 LIVE_RECONCILIATION_RUNTIME = "src/elo/infrastructure/live_state_reconciliation.py"
 LIVE_RECONCILIATION_CLI = "scripts/run_live_reconciliation.py"
 LIVE_RECONCILIATION_WORKFLOW = ".github/workflows/elo-live-reconciliation.yml"
+LIVE_RECONCILIATION_EXPECTED_STATE = "09-governance/contracts/expected_state/supabase_rls.yaml"
 LIVE_RECONCILIATION_SCOPE = frozenset({
     LIVE_RECONCILIATION_RUNTIME,
     LIVE_RECONCILIATION_CLI,
@@ -342,8 +343,15 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
 
+    # The declared RLS expected-state YAML is configuration, not a
+    # competing executable. Keep it visible in evidence, while allowing only
+    # this exact known config to coexist with the canonical runtime.
+    config_only = (
+        set(candidates) == {LIVE_RECONCILIATION_EXPECTED_STATE}
+        and (root / LIVE_RECONCILIATION_EXPECTED_STATE).is_file()
+    )
     scoped_live_reconciliation = (
-        not candidates
+        (not candidates or config_only)
         and not owner_evidence
         and _verified_live_reconciliation_owner(root, changed_normalised)
     )
