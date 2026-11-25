@@ -122,9 +122,11 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
     if main is None or exit_code is None:
         return False
 
+    # Only live statements in main's direct execution path count as proof.
+    # ast.walk() would also accept dead code under "if False".
     imports = {
         (node.module, name.name)
-        for node in ast.walk(main) if isinstance(node, ast.ImportFrom)
+        for node in main.body if isinstance(node, ast.ImportFrom)
         for name in node.names
     }
     if not {
@@ -135,39 +137,52 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
 
     assignments = {
         node.targets[0].id: ast.unparse(node.value)
-        for node in ast.walk(main)
+        for node in main.body
         if isinstance(node, ast.Assign)
         and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
     }
     if any(assignments.get(name) != expr for name, expr in {
         "reader": "SupabaseRLSStateReader(url, key)",
         "harness": "LiveStateReconciliation()",
-        "report": "harness.reconcile(reader)",
         "output": "report.to_dict()",
     }.items()):
         return False
 
-    main_returns = {
-        ast.unparse(node.value) for node in ast.walk(main)
-        if isinstance(node, ast.Return) and node.value is not None
-    }
-    exit_returns = {
-        ast.unparse(node.value) for node in ast.walk(exit_code)
-        if isinstance(node, ast.Return) and node.value is not None
-    }
+    try_blocks = [node for node in main.body if isinstance(node, ast.Try)]
+    if len(try_blocks) != 1 or not any(
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "report"
+        and ast.unparse(node.value) == "harness.reconcile(reader)"
+        for node in try_blocks[0].body
+    ):
+        return False
+
+    # Only the known missing-credentials guard is allowed before execution.
+    guards = [node for node in main.body if isinstance(node, ast.If)]
+    if any(ast.unparse(guard.test) != "not url or not key" for guard in guards):
+        return False
+    returns = [node for node in main.body if isinstance(node, ast.Return)]
+    if len(returns) != 1 or main.body[-1] is not returns[0]:
+        return False
+
+    exit_returns = [
+        node for node in exit_code.body if isinstance(node, ast.Return)
+    ]
     entrypoints = [
         node for node in tree.body if isinstance(node, ast.If)
         and ast.unparse(node.test) == "__name__ == '__main__'"
     ]
     return (
-        "result_exit_code(output.get('overall'))" in main_returns
-        and "0 if overall == 'PASS' else 3" in exit_returns
+        ast.unparse(returns[0].value) == "result_exit_code(output.get('overall'))"
+        and len(exit_returns) == 1
+        and ast.unparse(exit_returns[0].value) == "0 if overall == 'PASS' else 3"
         and any(
             ast.unparse(statement) == "sys.exit(main())"
             for entry in entrypoints for statement in entry.body
         )
     )
-
 
 def _workflow_executes_reconciler(text: str) -> bool:
     """Require the actual fail-closed run step, not a comment or echo."""
