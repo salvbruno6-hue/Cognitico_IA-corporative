@@ -122,6 +122,21 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
     if main is None or exit_code is None:
         return False
 
+    # A recognized path must have the same top-level execution sequence.
+    # This rejects early PASS, dead imports and disconnected extra commands.
+    expected_steps = (
+        ast.Assign, ast.Assign, ast.If, ast.ImportFrom, ast.ImportFrom,
+        ast.Assign, ast.Assign, ast.Try, ast.Assign, ast.Expr, ast.Return,
+    )
+    if tuple(type(statement) for statement in main.body) != expected_steps:
+        return False
+    if (
+        ast.unparse(main.body[0]) != "url = os.environ.get('SUPABASE_URL', '').strip()"
+        or ast.unparse(main.body[1]) != "key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '').strip()"
+        or ast.unparse(main.body[-2]) != "print(json.dumps(output, indent=2, ensure_ascii=False))"
+    ):
+        return False
+
     # Only live statements in main's direct execution path count as proof.
     # ast.walk() would also accept dead code under "if False".
     imports = {
@@ -161,7 +176,23 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
 
     # Only the known missing-credentials guard is allowed before execution.
     guards = [node for node in main.body if isinstance(node, ast.If)]
-    if any(ast.unparse(guard.test) != "not url or not key" for guard in guards):
+    if len(guards) != 1 or ast.unparse(guards[0].test) != "not url or not key":
+        return False
+    if not guards[0].body or not isinstance(guards[0].body[-1], ast.Return):
+        return False
+    if ast.unparse(guards[0].body[-1].value) != "1":
+        return False
+    guarded_try = try_blocks[0]
+    if (
+        len(guarded_try.body) != 1
+        or guarded_try.orelse or guarded_try.finalbody
+        or len(guarded_try.handlers) != 1
+    ):
+        return False
+    if not any(
+        isinstance(stmt, ast.Return) and ast.unparse(stmt.value) == "2"
+        for stmt in guarded_try.handlers[0].body
+    ):
         return False
     returns = [node for node in main.body if isinstance(node, ast.Return)]
     if len(returns) != 1 or main.body[-1] is not returns[0]:
@@ -170,6 +201,14 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
     exit_returns = [
         node for node in exit_code.body if isinstance(node, ast.Return)
     ]
+    if len(exit_code.body) not in (1, 2) or not isinstance(exit_code.body[-1], ast.Return):
+        return False
+    if len(exit_code.body) == 2 and not (
+        isinstance(exit_code.body[0], ast.Expr)
+        and isinstance(exit_code.body[0].value, ast.Constant)
+        and isinstance(exit_code.body[0].value.value, str)
+    ):
+        return False
     entrypoints = [
         node for node in tree.body if isinstance(node, ast.If)
         and ast.unparse(node.test) == "__name__ == '__main__'"
