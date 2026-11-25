@@ -209,18 +209,23 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
         and isinstance(exit_code.body[0].value.value, str)
     ):
         return False
+    # A single entrypoint may only invoke main(); prior exits or branches
+    # can forge a PASS even when main() is perfectly implemented.
     entrypoints = [
         node for node in tree.body if isinstance(node, ast.If)
         and ast.unparse(node.test) == "__name__ == '__main__'"
     ]
+    if len(entrypoints) != 1 or entrypoints[0].orelse:
+        return False
+    if len(entrypoints[0].body) != 1:
+        return False
+    entry = entrypoints[0].body[0]
     return (
         ast.unparse(returns[0].value) == "result_exit_code(output.get('overall'))"
         and len(exit_returns) == 1
         and ast.unparse(exit_returns[0].value) == "0 if overall == 'PASS' else 3"
-        and any(
-            ast.unparse(statement) == "sys.exit(main())"
-            for entry in entrypoints for statement in entry.body
-        )
+        and isinstance(entry, ast.Expr)
+        and ast.unparse(entry) == "sys.exit(main())"
     )
 
 def _workflow_executes_reconciler(text: str) -> bool:
@@ -249,6 +254,23 @@ def _workflow_executes_reconciler(text: str) -> bool:
     job = section(jobs, "reconcile:", 2)
     steps = section(job, "steps:", 4)
     run_step = section(steps, "- name: Run reconciliation", 6)
+
+    # Fail closed for conditional or disabled jobs/steps. This narrowly
+    # certifies only the canonical unconditional scheduled reconciliation.
+    # Requiring explicit evidence is safer than interpreting arbitrary YAML
+    # expressions as true.
+    if not jobs or not job or not steps or not run_step:
+        return False
+    if any(
+        re.match(r"^ {4}if\s*:", line)
+        for line in job
+    ):
+        return False
+    if any(
+        re.match(r"^ {8}if\s*:", line)
+        for line in run_step
+    ):
+        return False
     return [line.strip() for line in run_step if line.strip()] == [
         "id: reconcile",
         "run: |",
