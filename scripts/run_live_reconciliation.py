@@ -23,6 +23,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 
+def result_exit_code(overall: object) -> int:
+    """Only a verified PASS may be reported as successful execution."""
+    return 0 if overall == "PASS" else 3
+
+
 def main() -> int:
     url = os.environ.get("SUPABASE_URL", "").strip()
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -55,7 +60,7 @@ def main() -> int:
 
     output = report.to_dict()
     print(json.dumps(output, indent=2, ensure_ascii=False))
-    return 0
+    return result_exit_code(output.get("overall"))
 
 
 if __name__ == "__main__":
