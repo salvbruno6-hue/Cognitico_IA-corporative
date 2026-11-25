@@ -242,7 +242,12 @@ def _live_reconciliation_fixture(tmp_path: Path) -> None:
             "        return reader\n"
         ),
         LIVE_RECONCILIATION_CLI: (
+            "\"\"\"Canonical runner fixture.\"\"\"\n"
+            "from __future__ import annotations\n"
             "import json\nimport os\nimport sys\n"
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parent.parent\n"
+            "sys.path.insert(0, str(ROOT / 'src'))\n"
             "def result_exit_code(overall):\n"
             "    return 0 if overall == 'PASS' else 3\n"
             "def main():\n"
@@ -576,3 +581,61 @@ def test_disabled_run_step_cannot_certify_owner(tmp_path: Path):
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert evidence.waiting_for_evidence
     assert evidence.decision is None
+
+
+def test_module_level_early_exit_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "if __name__ == '__main__':\n",
+        "print('{\"overall\": \"PASS\"}')\nsys.exit(0)\n"
+        "if __name__ == '__main__':\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_credentials_guard_else_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "        return 1\n",
+        "        return 1\n"
+        "    else:\n"
+        "        print('{\"overall\": \"PASS\"}')\n"
+        "        return 0\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_exception_handler_early_success_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "    except Exception:\n"
+        "        return 2\n",
+        "    except Exception:\n"
+        "        return 0\n"
+        "        return 2\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_unreviewed_python_decorator_cannot_certify_owner(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "def main():\n",
+        "@some_noncanonical_wrapper\n"
+        "def main():\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
