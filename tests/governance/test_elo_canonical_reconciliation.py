@@ -261,6 +261,9 @@ def _live_reconciliation_fixture(tmp_path: Path) -> None:
         ),
         LIVE_RECONCILIATION_WORKFLOW: (
             "name: ELO Live Reconciliation\n"
+            "jobs:\n"
+            "  reconcile:\n"
+            "    steps:\n"
             "      - name: Run reconciliation\n"
             "        id: reconcile\n"
             "        run: |\n"
@@ -464,6 +467,50 @@ def test_unreachable_import_and_fake_pass_do_not_prove_owner(tmp_path: Path):
         "    sys.exit(main())\n",
         encoding="utf-8",
     )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_inert_yaml_example_cannot_claim_active_reconciliation(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    # The expected step exists only as text in env.EXAMPLE, not a job.
+    path.write_text(
+        "name: ELO Live Reconciliation\n"
+        "env:\n"
+        "  EXAMPLE: |\n"
+        "      - name: Run reconciliation\n"
+        "        id: reconcile\n"
+        "        run: |\n"
+        "          set -o pipefail\n"
+        "          python scripts/run_live_reconciliation.py \\\n"
+        "            | tee reconciliation_report.json\n"
+        "      - name: Show report\n"
+        "jobs:\n"
+        "  reconcile:\n"
+        "    steps:\n"
+        "      - name: Real step\n"
+        "        run: echo PASS\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_early_return_pass_before_reconcile_is_rejected(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text().replace(
+        "def main():\n",
+        "def main():\n    print('{\"overall\": \"PASS\"}')\n    return 0\n",
+    ), encoding="utf-8")
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert evidence.waiting_for_evidence
     assert evidence.decision is None
