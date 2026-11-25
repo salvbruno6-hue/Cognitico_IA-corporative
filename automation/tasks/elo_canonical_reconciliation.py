@@ -8,6 +8,22 @@ from typing import Iterable
 
 DECISIONS = ("REUSE", "STRENGTHEN", "REFACTOR", "DEPRECATE", "CREATE")
 CANONICAL_STRUCTURE_MAP = "02-architecture-library/ELO_REPOSITORY_CANONICAL_STRUCTURE_MAP.md"
+
+# Bounded ownership of the EXISTING read-only live reconciliation facility.
+# This is a verified owner resolution, not permission to merge or introduce a
+# new authority. Anything outside these exact paths remains unclassified.
+LIVE_RECONCILIATION_CONTRACT = "docs/governance/ELO_LIVE_STATE_RECONCILIATION_CONTRACT.md"
+LIVE_RECONCILIATION_RUNTIME = "src/elo/infrastructure/live_state_reconciliation.py"
+LIVE_RECONCILIATION_CLI = "scripts/run_live_reconciliation.py"
+LIVE_RECONCILIATION_WORKFLOW = ".github/workflows/elo-live-reconciliation.yml"
+LIVE_RECONCILIATION_SCOPE = frozenset({
+    LIVE_RECONCILIATION_CLI,
+    LIVE_RECONCILIATION_WORKFLOW,
+    "tests/infrastructure/test_live_reconciliation_workflow.py",
+    # Self-audit changes require the same proof and normal CI/review gates.
+    "automation/tasks/elo_canonical_reconciliation.py",
+    "tests/governance/test_elo_canonical_reconciliation.py",
+})
 SELF_AUDIT_PATHS = {
     "automation/tasks/elo_canonical_reconciliation.py",
     "automation/ELO_MAINTENANCE_COORDINATOR.md",
@@ -68,6 +84,41 @@ def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
         if declared_stem in candidate_stems:
             targets.add(declared_stem)
     return targets
+
+
+def _verified_live_reconciliation_owner(root: Path, changed: set[str]) -> bool:
+    """Require the existing contract and implementation chain, not a label.
+
+    Restrict this to known files. A new module, unrelated workflow or parallel
+    reconciler may not gain canonical status from filename similarities.
+    """
+    if LIVE_RECONCILIATION_CLI not in changed:
+        return False
+    if not changed.issubset(LIVE_RECONCILIATION_SCOPE):
+        return False
+
+    contract = root / LIVE_RECONCILIATION_CONTRACT
+    runtime = root / LIVE_RECONCILIATION_RUNTIME
+    cli = root / LIVE_RECONCILIATION_CLI
+    workflow = root / LIVE_RECONCILIATION_WORKFLOW
+    structure_map = root / CANONICAL_STRUCTURE_MAP
+    if not all(p.is_file() for p in (contract, runtime, cli, workflow, structure_map)):
+        return False
+
+    contract_text = contract.read_text(encoding="utf-8", errors="ignore")
+    runtime_text = runtime.read_text(encoding="utf-8", errors="ignore")
+    cli_text = cli.read_text(encoding="utf-8", errors="ignore")
+    workflow_text = workflow.read_text(encoding="utf-8", errors="ignore")
+    map_text = structure_map.read_text(encoding="utf-8", errors="ignore")
+    return all((
+        "owner: ELO Governance" in contract_text,
+        "ELO_LIVE_STATE_RECONCILIATION_CONTRACT" in runtime_text,
+        "from elo.infrastructure.live_state_reconciliation import" in cli_text,
+        "LiveStateReconciliation" in cli_text,
+        "scripts/run_live_reconciliation.py" in workflow_text,
+        "src/elo/" in map_text,
+        "canonical executable root" in map_text,
+    ))
 
 
 def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept_terms: Iterable[str] | None = None) -> ReconciliationEvidence:
@@ -165,6 +216,18 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Maintenance/governance infrastructure is audited against the repository canonical map"]
 
+    scoped_live_reconciliation = (
+        not candidates
+        and not owner_evidence
+        and _verified_live_reconciliation_owner(root, changed_normalised)
+    )
+    if scoped_live_reconciliation:
+        source_of_truth = LIVE_RECONCILIATION_RUNTIME
+        canonical_identity = "elo-live-state-reconciliation"
+        duplicate = False
+        owners.append(LIVE_RECONCILIATION_CONTRACT)
+        reasons = ["Existing read-only reconciler, governance owner and workflow chain verified"]
+
     frontend_changed = any(p.startswith("frontend/") for p in changed_normalised)
     if frontend_changed and owners and not candidates and not maintenance_changed:
         source_of_truth = owners[0]
@@ -173,7 +236,12 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = (
+        "STRENGTHEN" if scoped_live_reconciliation and complete
+        else "REUSE" if complete and duplicate
+        else "CREATE" if complete
+        else None
+    )
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
