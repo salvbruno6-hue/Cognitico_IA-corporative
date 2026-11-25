@@ -407,3 +407,44 @@ def test_runtime_map_never_clears_unproven_parallel_executable(tmp_path: Path):
     assert proof.candidates == ("legacy/hermes_runtime.py",)
     assert proof.waiting_for_evidence
     assert proof.decision is None
+
+
+def test_failed_specific_live_proof_cannot_fall_back_to_src_elo_map(tmp_path: Path):
+    """A modified runtime must not bypass the more specific governance gate."""
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    changed = [
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+        "automation/tasks/elo_canonical_reconciliation.py",
+        "tests/governance/test_elo_canonical_reconciliation.py",
+        "tests/infrastructure/test_live_reconciliation_workflow.py",
+    ]
+    assert _live_evidence(tmp_path, changed).decision == "STRENGTHEN"
+    cli = tmp_path / LIVE_RECONCILIATION_CLI
+    cli.write_text("print('PASS')\n", encoding="utf-8")
+    proof = _live_evidence(tmp_path, changed)
+    assert proof.waiting_for_evidence
+    assert proof.reuse_analysis_complete is False
+    assert proof.canonical_identity is None
+    assert proof.decision is None
+
+
+def test_disabled_live_workflow_cannot_fall_back_when_runtime_changes(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "  reconcile:\n", "  reconcile:\n    if: ${{ false }}\n",
+    ), encoding="utf-8")
+    proof = _live_evidence(tmp_path, [LIVE_RECONCILIATION_RUNTIME, LIVE_RECONCILIATION_CLI,
+                                     LIVE_RECONCILIATION_WORKFLOW])
+    assert proof.waiting_for_evidence
+    assert proof.decision is None
