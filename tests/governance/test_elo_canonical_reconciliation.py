@@ -355,3 +355,36 @@ def test_workflow_must_execute_canonical_step_not_only_mention_it(tmp_path: Path
         assert _live_evidence(tmp_path).waiting_for_evidence
     path.write_text(original, encoding="utf-8")
     assert _live_evidence(tmp_path).decision == "STRENGTHEN"
+
+
+def test_known_rls_expected_state_is_not_a_parallel_executable(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_EXPECTED_STATE, LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    config = tmp_path / LIVE_RECONCILIATION_EXPECTED_STATE
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(
+        Path(LIVE_RECONCILIATION_EXPECTED_STATE).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    changed = [LIVE_RECONCILIATION_RUNTIME, LIVE_RECONCILIATION_CLI,
+               LIVE_RECONCILIATION_WORKFLOW,
+               "automation/tasks/elo_canonical_reconciliation.py",
+               "tests/governance/test_elo_canonical_reconciliation.py",
+               "tests/infrastructure/test_live_reconciliation_workflow.py"]
+    terms = [Path(path).stem.replace("-", "_").lower() for path in changed]
+    proof = reconcile_repository(tmp_path, changed, terms)
+    assert proof.candidates == (LIVE_RECONCILIATION_EXPECTED_STATE,)
+    assert proof.canonical_identity == "elo-live-state-reconciliation"
+    assert proof.decision == "STRENGTHEN"
+    assert not proof.waiting_for_evidence
+
+    # A second executable candidate is never hidden by the config exception.
+    competing = tmp_path / "legacy" / "run_live_reconciliation.py"
+    competing.parent.mkdir()
+    competing.write_text("def run_live_reconciliation(): pass\n", encoding="utf-8")
+    blocked = reconcile_repository(tmp_path, changed, terms)
+    assert blocked.waiting_for_evidence
+    assert blocked.decision is None
