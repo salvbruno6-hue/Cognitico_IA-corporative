@@ -433,3 +433,34 @@ def test_false_pass_exit_code_is_not_certified(tmp_path: Path):
     ), encoding="utf-8")
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert evidence.waiting_for_evidence
+
+
+def test_unreachable_import_and_fake_pass_do_not_prove_owner(tmp_path: Path):
+    """Imports and calls hidden under if False cannot certify execution."""
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / LIVE_RECONCILIATION_CLI).write_text(
+        "import sys\n"
+        "def result_exit_code(overall):\n"
+        "    return 0 if overall == 'PASS' else 3\n"
+        "def main():\n"
+        "    if False:\n"
+        "        from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation\n"
+        "        from elo.infrastructure.supabase_rls_reader import SupabaseRLSStateReader\n"
+        "        reader = SupabaseRLSStateReader(url, key)\n"
+        "        harness = LiveStateReconciliation()\n"
+        "        try:\n"
+        "            report = harness.reconcile(reader)\n"
+        "        except Exception:\n"
+        "            return 2\n"
+        "        output = report.to_dict()\n"
+        "        return result_exit_code(output.get('overall'))\n"
+        "    print('PASS')\n"
+        "    return 0\n"
+        "if __name__ == '__main__':\n"
+        "    sys.exit(main())\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
