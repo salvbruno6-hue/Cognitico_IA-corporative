@@ -639,3 +639,43 @@ def test_unreviewed_python_decorator_cannot_certify_owner(tmp_path: Path):
     ), encoding="utf-8")
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert evidence.waiting_for_evidence
+
+
+def test_evaluated_default_argument_cannot_fake_pass(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "def main():\n",
+        "def main(unused=(print('{\"overall\": \"PASS\"}'), sys.exit(0))):\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_credentials_guard_cannot_exit_zero_before_return_one(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "    if not url or not key:\n",
+        "    if not url or not key:\n"
+        "        print('{\"overall\": \"PASS\"}')\n"
+        "        sys.exit(0)\n",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_error_print_cannot_call_exit_zero(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "print('missing credentials', file=sys.stderr)",
+        "print(sys.exit(0), file=sys.stderr)",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
