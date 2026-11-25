@@ -225,11 +225,47 @@ def _live_reconciliation_fixture(tmp_path: Path) -> None:
     )
 
     samples = {
-        CANONICAL_STRUCTURE_MAP: "`src/elo/` | Executable ELO | canonical executable root\\n",
-        LIVE_RECONCILIATION_CONTRACT: "owner: ELO Governance\\n",
-        LIVE_RECONCILIATION_RUNTIME: "# ELO_LIVE_STATE_RECONCILIATION_CONTRACT\\n",
-        LIVE_RECONCILIATION_CLI: "from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation\\n",
-        LIVE_RECONCILIATION_WORKFLOW: "python scripts/run_live_reconciliation.py\\n",
+        CANONICAL_STRUCTURE_MAP: (
+            "| `src/elo/` | Executable ELO | current implementation core"
+            " | canonical executable root |\n"
+        ),
+        LIVE_RECONCILIATION_CONTRACT: (
+            "---\n"
+            "artifact_id: ELO-LIVE-STATE-RECONCILIATION-CONTRACT\n"
+            "family: docs/governance\nlayer: governance\n"
+            "type: contract\nowner: ELO Governance\n"
+            "authority: reference\nstatus: defined\n---\n"
+        ),
+        LIVE_RECONCILIATION_RUNTIME: (
+            "class LiveStateReconciliation:\n"
+            "    def reconcile(self, reader):\n"
+            "        return reader\n"
+        ),
+        LIVE_RECONCILIATION_CLI: (
+            "import sys\n"
+            "def result_exit_code(overall):\n"
+            "    return 0 if overall == 'PASS' else 3\n"
+            "def main():\n"
+            "    from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation\n"
+            "    from elo.infrastructure.supabase_rls_reader import SupabaseRLSStateReader\n"
+            "    reader = SupabaseRLSStateReader(url, key)\n"
+            "    harness = LiveStateReconciliation()\n"
+            "    report = harness.reconcile(reader)\n"
+            "    output = report.to_dict()\n"
+            "    return result_exit_code(output.get('overall'))\n"
+            "if __name__ == '__main__':\n"
+            "    sys.exit(main())\n"
+        ),
+        LIVE_RECONCILIATION_WORKFLOW: (
+            "name: ELO Live Reconciliation\n"
+            "      - name: Run reconciliation\n"
+            "        id: reconcile\n"
+            "        run: |\n"
+            "          set -o pipefail\n"
+            "          python scripts/run_live_reconciliation.py \\\n"
+            "            | tee reconciliation_report.json\n"
+            "      - name: Show report\n"
+        ),
     }
     for name, content in samples.items():
         path = tmp_path / name
@@ -305,4 +341,95 @@ def test_live_reconciliation_parallel_candidate_is_not_auto_cleared(tmp_path: Pa
     candidate.write_text("def run_live_reconciliation(): pass\\n", encoding="utf-8")
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert "legacy/run_live_reconciliation.py" in evidence.candidates
+    assert evidence.waiting_for_evidence
+
+
+def test_live_reconciliation_real_files_are_wired():
+    """Use the actual repo contract, CLI, runtime and workflow together."""
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        _verified_live_reconciliation_owner,
+    )
+    assert _verified_live_reconciliation_owner(
+        Path("."), {LIVE_RECONCILIATION_CLI}
+    )
+
+
+def test_commented_import_does_not_prove_live_reconciliation(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / LIVE_RECONCILIATION_CLI).write_text(
+        "# from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation\n"
+        "def main():\n    print('PASS')\n    return 0\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_real_import_but_disconnected_execution_fails(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / LIVE_RECONCILIATION_CLI).write_text(
+        "from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation\n"
+        "def main():\n    print('PASS')\n    return 0\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_impostor_owner_metadata_fails(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_CONTRACT,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CONTRACT
+    path.write_text(path.read_text().replace(
+        "owner: ELO Governance",
+        "# owner: ELO Governance Impostor",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_workflow_echo_is_not_executable_wiring(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    path.write_text(path.read_text().replace(
+        "python scripts/run_live_reconciliation.py",
+        "echo python scripts/run_live_reconciliation.py",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_missing_canonical_runtime_method_stays_unknown(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_RUNTIME,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / LIVE_RECONCILIATION_RUNTIME).write_text(
+        "class LiveStateReconciliation:\n    pass\n", encoding="utf-8"
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_false_pass_exit_code_is_not_certified(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    path.write_text(path.read_text().replace(
+        "return 0 if overall == 'PASS' else 3",
+        "return 0",
+    ), encoding="utf-8")
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
     assert evidence.waiting_for_evidence
