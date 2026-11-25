@@ -110,11 +110,49 @@ def _valid_live_owner_contract(text: str) -> bool:
     }.items())
 
 
+def _cli_has_only_canonical_bootstrap(tree: ast.Module) -> bool:
+    """Require the known module entry sequence, with no early side effects.
+
+    A source file may mention a valid entrypoint yet exit before reaching it.
+    Restricting the whole module prevents that false-positive attribution.
+    """
+    expected_types = (
+        ast.Expr, ast.ImportFrom, ast.Import, ast.Import, ast.Import,
+        ast.ImportFrom, ast.Assign, ast.Expr, ast.FunctionDef,
+        ast.FunctionDef, ast.If,
+    )
+    if tuple(type(node) for node in tree.body) != expected_types:
+        return False
+    if not (
+        isinstance(tree.body[0].value, ast.Constant)
+        and isinstance(tree.body[0].value.value, str)
+    ):
+        return False
+    expected_lines = {
+        1: "from __future__ import annotations",
+        2: "import json",
+        3: "import os",
+        4: "import sys",
+        5: "from pathlib import Path",
+        6: "ROOT = Path(__file__).resolve().parent.parent",
+        7: "sys.path.insert(0, str(ROOT / 'src'))",
+    }
+    if any(ast.unparse(tree.body[i]) != expected for i, expected in expected_lines.items()):
+        return False
+    funcs = (tree.body[8], tree.body[9])
+    return (
+        [fn.name for fn in funcs] == ["result_exit_code", "main"]
+        and all(not fn.decorator_list for fn in funcs)
+    )
+
+
 def _cli_uses_canonical_reconciler(text: str) -> bool:
     """Inspect executable Python syntax rather than accepting comments."""
     try:
         tree = ast.parse(text)
     except SyntaxError:
+        return False
+    if not _cli_has_only_canonical_bootstrap(tree):
         return False
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
     main = functions.get("main")
@@ -178,6 +216,8 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
     guards = [node for node in main.body if isinstance(node, ast.If)]
     if len(guards) != 1 or ast.unparse(guards[0].test) != "not url or not key":
         return False
+    if guards[0].orelse:
+        return False
     if not guards[0].body or not isinstance(guards[0].body[-1], ast.Return):
         return False
     if ast.unparse(guards[0].body[-1].value) != "1":
@@ -189,9 +229,20 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
         or len(guarded_try.handlers) != 1
     ):
         return False
-    if not any(
-        isinstance(stmt, ast.Return) and ast.unparse(stmt.value) == "2"
-        for stmt in guarded_try.handlers[0].body
+    # The exception handler must not return a forged PASS before its
+    # documented failure return. An optional print is the only prior action.
+    handler_body = guarded_try.handlers[0].body
+    if not handler_body or not isinstance(handler_body[-1], ast.Return):
+        return False
+    if ast.unparse(handler_body[-1].value) != "2":
+        return False
+    if len(handler_body) > 2:
+        return False
+    if len(handler_body) == 2 and not (
+        isinstance(handler_body[0], ast.Expr)
+        and isinstance(handler_body[0].value, ast.Call)
+        and isinstance(handler_body[0].value.func, ast.Name)
+        and handler_body[0].value.func.id == "print"
     ):
         return False
     returns = [node for node in main.body if isinstance(node, ast.Return)]
