@@ -332,7 +332,17 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
 
     # The canonical map proves which tree owns runtime code, but it does
     # not prove that an independent candidate is NOT a parallel executor.
-    if changed_in_runtime and structure_map.is_file() and not owner_evidence and not candidates:
+    # No generic src/elo classification may replace a failed or incomplete
+    # live-reconciler-specific proof. The changed CLI fixes the identity of
+    # this request even if the runtime is changed in the same PR.
+    live_reconciliation_requested = LIVE_RECONCILIATION_CLI in changed_normalised
+    if (
+        changed_in_runtime
+        and structure_map.is_file()
+        and not owner_evidence
+        and not candidates
+        and not live_reconciliation_requested
+    ):
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "src/elo"
         duplicate = False
