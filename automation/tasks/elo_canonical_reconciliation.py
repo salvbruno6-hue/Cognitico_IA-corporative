@@ -146,6 +146,35 @@ def _cli_has_only_canonical_bootstrap(tree: ast.Module) -> bool:
     )
 
 
+def _safe_failure_print(stmt: ast.stmt) -> bool:
+    """Only inert text may be printed by an error handler (no calls/exit)."""
+    if not isinstance(stmt, ast.Expr) or not isinstance(stmt.value, ast.Call):
+        return False
+    call = stmt.value
+    if not (isinstance(call.func, ast.Name) and call.func.id == "print"):
+        return False
+    if len(call.args) != 1 or len(call.keywords) != 1:
+        return False
+    keyword = call.keywords[0]
+    if keyword.arg != "file" or ast.unparse(keyword.value) != "sys.stderr":
+        return False
+    arg = call.args[0]
+    if isinstance(arg, ast.Constant):
+        return isinstance(arg.value, str)
+    if not isinstance(arg, ast.JoinedStr):
+        return False
+    return all(
+        (isinstance(value, ast.Constant) and isinstance(value.value, str))
+        or (
+            isinstance(value, ast.FormattedValue)
+            and isinstance(value.value, ast.Name)
+            and value.value.id == "exc"
+            and value.format_spec is None
+        )
+        for value in arg.values
+    )
+
+
 def _cli_uses_canonical_reconciler(text: str) -> bool:
     """Inspect executable Python syntax rather than accepting comments."""
     try:
@@ -158,6 +187,20 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
     main = functions.get("main")
     exit_code = functions.get("result_exit_code")
     if main is None or exit_code is None:
+        return False
+    # Python evaluates default-argument expressions when a function is
+    # declared. A default sys.exit(0) would bypass the actual entrypoint.
+    for fn in (main, exit_code):
+        args = fn.args
+        if (
+            args.defaults or args.kw_defaults or args.posonlyargs
+            or args.kwonlyargs or args.vararg or args.kwarg
+            or getattr(fn, "type_params", ())
+        ):
+            return False
+    if main.args.args or len(exit_code.args.args) != 1:
+        return False
+    if exit_code.args.args[0].arg != "overall":
         return False
 
     # A recognized path must have the same top-level execution sequence.
@@ -218,9 +261,12 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
         return False
     if guards[0].orelse:
         return False
-    if not guards[0].body or not isinstance(guards[0].body[-1], ast.Return):
-        return False
-    if ast.unparse(guards[0].body[-1].value) != "1":
+    if (
+        len(guards[0].body) != 2
+        or not _safe_failure_print(guards[0].body[0])
+        or not isinstance(guards[0].body[1], ast.Return)
+        or ast.unparse(guards[0].body[1].value) != "1"
+    ):
         return False
     guarded_try = try_blocks[0]
     if (
@@ -238,12 +284,7 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
         return False
     if len(handler_body) > 2:
         return False
-    if len(handler_body) == 2 and not (
-        isinstance(handler_body[0], ast.Expr)
-        and isinstance(handler_body[0].value, ast.Call)
-        and isinstance(handler_body[0].value.func, ast.Name)
-        and handler_body[0].value.func.id == "print"
-    ):
+    if len(handler_body) == 2 and not _safe_failure_print(handler_body[0]):
         return False
     returns = [node for node in main.body if isinstance(node, ast.Return)]
     if len(returns) != 1 or main.body[-1] is not returns[0]:
