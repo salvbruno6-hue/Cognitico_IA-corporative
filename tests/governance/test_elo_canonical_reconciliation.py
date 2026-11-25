@@ -213,3 +213,96 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+
+def _live_reconciliation_fixture(tmp_path: Path) -> None:
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_CONTRACT,
+        LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+
+    samples = {
+        CANONICAL_STRUCTURE_MAP: "`src/elo/` | Executable ELO | canonical executable root\\n",
+        LIVE_RECONCILIATION_CONTRACT: "owner: ELO Governance\\n",
+        LIVE_RECONCILIATION_RUNTIME: "# ELO_LIVE_STATE_RECONCILIATION_CONTRACT\\n",
+        LIVE_RECONCILIATION_CLI: "from elo.infrastructure.live_state_reconciliation import LiveStateReconciliation\\n",
+        LIVE_RECONCILIATION_WORKFLOW: "python scripts/run_live_reconciliation.py\\n",
+    }
+    for name, content in samples.items():
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+
+def test_live_reconciliation_existing_owner_is_proven(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_WORKFLOW,
+        LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_CONTRACT,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_WORKFLOW,
+        "tests/infrastructure/test_live_reconciliation_workflow.py",
+        "automation/tasks/elo_canonical_reconciliation.py",
+        "tests/governance/test_elo_canonical_reconciliation.py",
+    ])
+    assert evidence.source_of_truth == LIVE_RECONCILIATION_RUNTIME
+    assert LIVE_RECONCILIATION_CONTRACT in evidence.owners
+    assert evidence.canonical_identity == "elo-live-state-reconciliation"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "STRENGTHEN"
+
+
+def test_live_reconciliation_missing_contract_stays_unknown(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_CONTRACT,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / LIVE_RECONCILIATION_CONTRACT).unlink()
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_live_reconciliation_unrelated_file_is_not_approved(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    evidence = reconcile_repository(tmp_path, [
+        LIVE_RECONCILIATION_CLI,
+        "src/other/shadow_reconciler.py",
+    ])
+    # Generic src/elo fallback is unavailable; unrelated additions are not approved.
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+
+
+def test_live_reconciliation_owner_claim_is_not_enough(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_CONTRACT,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / LIVE_RECONCILIATION_CONTRACT).write_text(
+        "owner: newly-invented-authority\\n", encoding="utf-8"
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert evidence.waiting_for_evidence
+
+
+def test_live_reconciliation_parallel_candidate_is_not_auto_cleared(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    (tmp_path / "parallel_run_live_reconciliation.py").write_text(
+        "def run_live_reconciliation(): pass\\n", encoding="utf-8"
+    )
+    evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
+    assert "parallel_run_live_reconciliation.py" in evidence.candidates
+    assert evidence.waiting_for_evidence
