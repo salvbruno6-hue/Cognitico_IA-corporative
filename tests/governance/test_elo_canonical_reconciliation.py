@@ -213,3 +213,238 @@ def test_generic_package_stem_does_not_create_false_parallel_owner(tmp_path: Pat
     assert evidence.reuse_analysis_complete is False
     assert evidence.decision is None
     assert "legacy_runtime.py" not in evidence.candidates
+
+
+
+def _live_reconciliation_fixture(root: Path) -> None:
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_CONTRACT,
+        LIVE_RECONCILIATION_RUNTIME, LIVE_RECONCILIATION_WORKFLOW,
+    )
+    samples = {
+        CANONICAL_STRUCTURE_MAP: (
+            "| `src/elo/` | Executable ELO | current implementation core"
+            " | canonical executable root |\n"
+        ),
+        LIVE_RECONCILIATION_CONTRACT: (
+            "---\nartifact_id: ELO-LIVE-STATE-RECONCILIATION-CONTRACT\n"
+            "family: docs/governance\nlayer: governance\n"
+            "type: contract\nowner: ELO Governance\n"
+            "authority: reference\nstatus: defined\n---\n"
+        ),
+        LIVE_RECONCILIATION_RUNTIME: (
+            "class LiveStateReconciliation:\n"
+            "    def reconcile(self, reader):\n        return reader\n"
+            "def run_reconciliation_cli():\n    return 0\n"
+        ),
+        LIVE_RECONCILIATION_CLI: Path(LIVE_RECONCILIATION_CLI).read_text(encoding="utf-8"),
+        LIVE_RECONCILIATION_WORKFLOW: Path(LIVE_RECONCILIATION_WORKFLOW).read_text(encoding="utf-8"),
+    }
+    for name, value in samples.items():
+        p = root / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(value, encoding="utf-8")
+
+
+def _live_evidence(root: Path, changed: list[str] | None = None):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    return reconcile_repository(root, changed or [LIVE_RECONCILIATION_CLI])
+
+
+def test_canonical_live_owner_reuses_existing_contract_and_runtime(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW, LIVE_RECONCILIATION_CONTRACT,
+        _verified_live_reconciliation_owner,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    assert _verified_live_reconciliation_owner(Path("."), {LIVE_RECONCILIATION_CLI})
+    changed = [LIVE_RECONCILIATION_RUNTIME, LIVE_RECONCILIATION_CLI,
+               LIVE_RECONCILIATION_WORKFLOW,
+               "automation/tasks/elo_canonical_reconciliation.py",
+               "tests/governance/test_elo_canonical_reconciliation.py",
+               "tests/infrastructure/test_live_reconciliation_workflow.py"]
+    proof = _live_evidence(tmp_path, changed)
+    assert proof.source_of_truth == LIVE_RECONCILIATION_RUNTIME
+    assert LIVE_RECONCILIATION_CONTRACT in proof.owners
+    assert proof.canonical_identity == "elo-live-state-reconciliation"
+    assert proof.decision == "STRENGTHEN"
+    assert proof.duplicate_or_parallel is False
+
+
+def test_live_owner_fails_closed_for_missing_or_impostor_contract(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CONTRACT
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CONTRACT
+    original = path.read_text(encoding="utf-8")
+    path.write_text(original.replace("owner: ELO Governance", "owner: impostor"), encoding="utf-8")
+    assert _live_evidence(tmp_path).waiting_for_evidence
+    path.unlink()
+    assert _live_evidence(tmp_path).waiting_for_evidence
+
+
+def test_live_owner_rejects_parallel_candidate_and_missing_runtime(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_RUNTIME
+    _live_reconciliation_fixture(tmp_path)
+    candidate = tmp_path / "legacy/run_live_reconciliation.py"
+    candidate.parent.mkdir()
+    candidate.write_text("def run_live_reconciliation(): pass\n", encoding="utf-8")
+    evidence = _live_evidence(tmp_path)
+    assert "legacy/run_live_reconciliation.py" in evidence.candidates
+    assert evidence.waiting_for_evidence
+    candidate.unlink()
+    runtime = tmp_path / LIVE_RECONCILIATION_RUNTIME
+    runtime.write_text("class LiveStateReconciliation:\n    pass\n", encoding="utf-8")
+    assert _live_evidence(tmp_path).waiting_for_evidence
+
+
+def test_live_owner_rejects_unknown_file_outside_canonical_scope(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    assert _live_evidence(tmp_path, [LIVE_RECONCILIATION_CLI, "shadow/executor.py"]).waiting_for_evidence
+
+
+def test_entire_cli_bootstrap_is_guarded_not_just_main_function(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_CLI
+    original = path.read_text(encoding="utf-8")
+    cases = [
+        original.replace("sys.exit(main())", "sys.exit(0)\n    sys.exit(main())"),
+        original.replace("if __name__ == \"__main__\":", "sys.exit(0)\nif __name__ == \"__main__\":"),
+        original.replace("run_reconciliation_cli as main", "run_reconciliation_cli as other"),
+        original.replace("from pathlib import Path", "from pathlib import Path\nimport os"),
+        original.replace("sys.path.insert(0, str(ROOT / \"src\"))",
+                         "sys.path.insert(0, str(ROOT / \"src\"))\nsys.exit(0)"),
+        original.replace("if __name__ == \"__main__\":",
+                         "def main(unused=(print('PASS'), sys.exit(0))):\n    return 0\n"
+                         "if __name__ == \"__main__\":"),
+        original.replace("sys.exit(main())", "print('PASS')"),
+        original + "\nif __name__ == '__main__':\n    sys.exit(0)\n",
+    ]
+    for case in cases:
+        assert case != original
+        path.write_text(case, encoding="utf-8")
+        evidence = _live_evidence(tmp_path)
+        assert evidence.waiting_for_evidence
+        assert evidence.decision is None
+    path.write_text(original, encoding="utf-8")
+    assert _live_evidence(tmp_path).decision == "STRENGTHEN"
+
+
+def test_workflow_must_execute_canonical_step_not_only_mention_it(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_WORKFLOW
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    original = path.read_text(encoding="utf-8")
+    cases = [
+        original.replace("  reconcile:\n", "  reconcile:\n    if: ${{ false }}\n"),
+        original.replace("      - name: Run reconciliation\n",
+                         "      - name: Run reconciliation\n        if: false\n"),
+        original.replace("python scripts/run_live_reconciliation.py",
+                         "echo python scripts/run_live_reconciliation.py"),
+        original.replace("          set -o pipefail\n", ""),
+        original.replace("      - name: Run reconciliation\n",
+                         "      - name: Unrelated action\n"),
+        original.replace("      - name: Run reconciliation\n",
+                         "      - name: Run reconciliation\n        continue-on-error: true\n"),
+    ]
+    for case in cases:
+        assert case != original
+        path.write_text(case, encoding="utf-8")
+        assert _live_evidence(tmp_path).waiting_for_evidence
+    path.write_text(original, encoding="utf-8")
+    assert _live_evidence(tmp_path).decision == "STRENGTHEN"
+
+
+def test_known_rls_expected_state_is_not_a_parallel_executable(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_EXPECTED_STATE, LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    config = tmp_path / LIVE_RECONCILIATION_EXPECTED_STATE
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(
+        Path(LIVE_RECONCILIATION_EXPECTED_STATE).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    changed = [LIVE_RECONCILIATION_RUNTIME, LIVE_RECONCILIATION_CLI,
+               LIVE_RECONCILIATION_WORKFLOW,
+               "automation/tasks/elo_canonical_reconciliation.py",
+               "tests/governance/test_elo_canonical_reconciliation.py",
+               "tests/infrastructure/test_live_reconciliation_workflow.py"]
+    terms = [Path(path).stem.replace("-", "_").lower() for path in changed]
+    proof = reconcile_repository(tmp_path, changed, terms)
+    assert proof.candidates == (LIVE_RECONCILIATION_EXPECTED_STATE,)
+    assert proof.canonical_identity == "elo-live-state-reconciliation"
+    assert proof.decision == "STRENGTHEN"
+    assert not proof.waiting_for_evidence
+
+    # A second executable candidate is never hidden by the config exception.
+    competing = tmp_path / "legacy" / "run_live_reconciliation.py"
+    competing.parent.mkdir()
+    competing.write_text("def run_live_reconciliation(): pass\n", encoding="utf-8")
+    blocked = reconcile_repository(tmp_path, changed, terms)
+    assert blocked.waiting_for_evidence
+    assert blocked.decision is None
+
+
+def test_runtime_map_never_clears_unproven_parallel_executable(tmp_path: Path):
+    owner_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    owner_map.parent.mkdir(parents=True, exist_ok=True)
+    owner_map.write_text(
+        "| `src/elo/` | Executable ELO | current implementation core"
+        " | canonical executable root |\n", encoding="utf-8",
+    )
+    candidate = tmp_path / "legacy" / "hermes_runtime.py"
+    candidate.parent.mkdir()
+    candidate.write_text("def hermes_runtime(): pass\n", encoding="utf-8")
+    proof = reconcile_repository(
+        tmp_path, ["src/elo/cognitive/hermes_runtime.py"],
+        concept_terms=["hermes_runtime"],
+    )
+    assert proof.candidates == ("legacy/hermes_runtime.py",)
+    assert proof.waiting_for_evidence
+    assert proof.decision is None
+
+
+def test_failed_specific_live_proof_cannot_fall_back_to_src_elo_map(tmp_path: Path):
+    """A modified runtime must not bypass the more specific governance gate."""
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    changed = [
+        LIVE_RECONCILIATION_CLI,
+        LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+        "automation/tasks/elo_canonical_reconciliation.py",
+        "tests/governance/test_elo_canonical_reconciliation.py",
+        "tests/infrastructure/test_live_reconciliation_workflow.py",
+    ]
+    assert _live_evidence(tmp_path, changed).decision == "STRENGTHEN"
+    cli = tmp_path / LIVE_RECONCILIATION_CLI
+    cli.write_text("print('PASS')\n", encoding="utf-8")
+    proof = _live_evidence(tmp_path, changed)
+    assert proof.waiting_for_evidence
+    assert proof.reuse_analysis_complete is False
+    assert proof.canonical_identity is None
+    assert proof.decision is None
+
+
+def test_disabled_live_workflow_cannot_fall_back_when_runtime_changes(tmp_path: Path):
+    from automation.tasks.elo_canonical_reconciliation import (
+        LIVE_RECONCILIATION_CLI, LIVE_RECONCILIATION_RUNTIME,
+        LIVE_RECONCILIATION_WORKFLOW,
+    )
+    _live_reconciliation_fixture(tmp_path)
+    path = tmp_path / LIVE_RECONCILIATION_WORKFLOW
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "  reconcile:\n", "  reconcile:\n    if: ${{ false }}\n",
+    ), encoding="utf-8")
+    proof = _live_evidence(tmp_path, [LIVE_RECONCILIATION_RUNTIME, LIVE_RECONCILIATION_CLI,
+                                     LIVE_RECONCILIATION_WORKFLOW])
+    assert proof.waiting_for_evidence
+    assert proof.decision is None

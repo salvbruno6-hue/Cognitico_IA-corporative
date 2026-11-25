@@ -218,8 +218,44 @@ class LiveStateReconciliation:
         return ReconciliationStatus.PASS
 
 
+
+def run_reconciliation_cli() -> int:
+    """Run the existing read-only reconciler; only a real PASS exits zero.
+
+    This is the sole executable CLI policy. The scripts/ entrypoint delegates
+    here, so ownership checks no longer try to interpret arbitrary Python.
+    """
+    import json
+    import os
+    import sys
+
+    url = os.environ.get("SUPABASE_URL", "").strip()
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    if not url or not key:
+        print(
+            "ERRO: SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórias.",
+            file=sys.stderr,
+        )
+        return 1
+
+    from elo.infrastructure.supabase_rls_reader import SupabaseRLSStateReader
+
+    reader = SupabaseRLSStateReader(url, key)
+    harness = LiveStateReconciliation()
+    try:
+        report = harness.reconcile(reader)
+    except Exception as exc:
+        print(f"ERRO na reconciliação: {exc}", file=sys.stderr)
+        return 2
+
+    output = report.to_dict()
+    print(json.dumps(output, indent=2, ensure_ascii=False))
+    return 0 if output.get("overall") == ReconciliationStatus.PASS.value else 3
+
+
 __all__ = [
     "LiveStateReconciliation",
+    "run_reconciliation_cli",
     "ReconciliationReport",
     "ReconciliationStatus",
     "RLSLiveState",
