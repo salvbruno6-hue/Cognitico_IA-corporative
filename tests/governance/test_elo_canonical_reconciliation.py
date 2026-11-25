@@ -300,9 +300,9 @@ def test_live_reconciliation_owner_claim_is_not_enough(tmp_path: Path):
 def test_live_reconciliation_parallel_candidate_is_not_auto_cleared(tmp_path: Path):
     from automation.tasks.elo_canonical_reconciliation import LIVE_RECONCILIATION_CLI
     _live_reconciliation_fixture(tmp_path)
-    (tmp_path / "parallel_run_live_reconciliation.py").write_text(
-        "def run_live_reconciliation(): pass\\n", encoding="utf-8"
-    )
+    candidate = tmp_path / "legacy" / "run_live_reconciliation.py"
+    candidate.parent.mkdir(parents=True)
+    candidate.write_text("def run_live_reconciliation(): pass\\n", encoding="utf-8")
     evidence = reconcile_repository(tmp_path, [LIVE_RECONCILIATION_CLI])
-    assert "parallel_run_live_reconciliation.py" in evidence.candidates
+    assert "legacy/run_live_reconciliation.py" in evidence.candidates
     assert evidence.waiting_for_evidence
