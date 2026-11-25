@@ -388,3 +388,22 @@ def test_known_rls_expected_state_is_not_a_parallel_executable(tmp_path: Path):
     blocked = reconcile_repository(tmp_path, changed, terms)
     assert blocked.waiting_for_evidence
     assert blocked.decision is None
+
+
+def test_runtime_map_never_clears_unproven_parallel_executable(tmp_path: Path):
+    owner_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    owner_map.parent.mkdir(parents=True, exist_ok=True)
+    owner_map.write_text(
+        "| `src/elo/` | Executable ELO | current implementation core"
+        " | canonical executable root |\n", encoding="utf-8",
+    )
+    candidate = tmp_path / "legacy" / "hermes_runtime.py"
+    candidate.parent.mkdir()
+    candidate.write_text("def hermes_runtime(): pass\n", encoding="utf-8")
+    proof = reconcile_repository(
+        tmp_path, ["src/elo/cognitive/hermes_runtime.py"],
+        concept_terms=["hermes_runtime"],
+    )
+    assert proof.candidates == ("legacy/hermes_runtime.py",)
+    assert proof.waiting_for_evidence
+    assert proof.decision is None
