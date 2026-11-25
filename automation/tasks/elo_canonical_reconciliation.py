@@ -185,12 +185,32 @@ def _cli_uses_canonical_reconciler(text: str) -> bool:
     )
 
 def _workflow_executes_reconciler(text: str) -> bool:
-    """Require the actual fail-closed run step, not a comment or echo."""
-    marker = "      - name: Run reconciliation\n"
-    if text.count(marker) != 1:
-        return False
-    section = text.split(marker, 1)[1].split("\n      - name:", 1)[0]
-    return [line.strip() for line in section.splitlines() if line.strip()] == [
+    """Check the active jobs.reconcile.steps YAML path without extra packages.
+
+    Each level must be a real mapping/list entry at its expected indentation.
+    An example inside a YAML scalar or an unrelated env variable cannot pass.
+    This intentionally supports only the current simple workflow structure.
+    """
+    def section(lines: list[str], header: str, indent: int) -> list[str]:
+        marker = " " * indent + header
+        matches = [i for i, line in enumerate(lines) if line == marker]
+        if len(matches) != 1:
+            return []
+        first = matches[0]
+        for last in range(first + 1, len(lines)):
+            line = lines[last]
+            if line.strip() and not line.lstrip().startswith("#"):
+                depth = len(line) - len(line.lstrip(" "))
+                if depth <= indent:
+                    return lines[first + 1:last]
+        return lines[first + 1:]
+
+    root = text.splitlines()
+    jobs = section(root, "jobs:", 0)
+    job = section(jobs, "reconcile:", 2)
+    steps = section(job, "steps:", 4)
+    run_step = section(steps, "- name: Run reconciliation", 6)
+    return [line.strip() for line in run_step if line.strip()] == [
         "id: reconcile",
         "run: |",
         "set -o pipefail",
