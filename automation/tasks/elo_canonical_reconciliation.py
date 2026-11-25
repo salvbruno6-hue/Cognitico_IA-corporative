@@ -18,6 +18,7 @@ LIVE_RECONCILIATION_RUNTIME = "src/elo/infrastructure/live_state_reconciliation.
 LIVE_RECONCILIATION_CLI = "scripts/run_live_reconciliation.py"
 LIVE_RECONCILIATION_WORKFLOW = ".github/workflows/elo-live-reconciliation.yml"
 LIVE_RECONCILIATION_SCOPE = frozenset({
+    LIVE_RECONCILIATION_RUNTIME,
     LIVE_RECONCILIATION_CLI,
     LIVE_RECONCILIATION_WORKFLOW,
     "tests/infrastructure/test_live_reconciliation_workflow.py",
@@ -110,215 +111,41 @@ def _valid_live_owner_contract(text: str) -> bool:
     }.items())
 
 
-def _cli_has_only_canonical_bootstrap(tree: ast.Module) -> bool:
-    """Require the known module entry sequence, with no early side effects.
-
-    A source file may mention a valid entrypoint yet exit before reaching it.
-    Restricting the whole module prevents that false-positive attribution.
-    """
-    expected_types = (
-        ast.Expr, ast.ImportFrom, ast.Import, ast.Import, ast.Import,
-        ast.ImportFrom, ast.Assign, ast.Expr, ast.FunctionDef,
-        ast.FunctionDef, ast.If,
-    )
-    if tuple(type(node) for node in tree.body) != expected_types:
-        return False
-    if not (
-        isinstance(tree.body[0].value, ast.Constant)
-        and isinstance(tree.body[0].value.value, str)
-    ):
-        return False
-    expected_lines = {
-        1: "from __future__ import annotations",
-        2: "import json",
-        3: "import os",
-        4: "import sys",
-        5: "from pathlib import Path",
-        6: "ROOT = Path(__file__).resolve().parent.parent",
-        7: "sys.path.insert(0, str(ROOT / 'src'))",
-    }
-    if any(ast.unparse(tree.body[i]) != expected for i, expected in expected_lines.items()):
-        return False
-    funcs = (tree.body[8], tree.body[9])
-    return (
-        [fn.name for fn in funcs] == ["result_exit_code", "main"]
-        and all(not fn.decorator_list for fn in funcs)
-    )
-
-
-def _safe_failure_print(stmt: ast.stmt) -> bool:
-    """Only inert text may be printed by an error handler (no calls/exit)."""
-    if not isinstance(stmt, ast.Expr) or not isinstance(stmt.value, ast.Call):
-        return False
-    call = stmt.value
-    if not (isinstance(call.func, ast.Name) and call.func.id == "print"):
-        return False
-    if len(call.args) != 1 or len(call.keywords) != 1:
-        return False
-    keyword = call.keywords[0]
-    if keyword.arg != "file" or ast.unparse(keyword.value) != "sys.stderr":
-        return False
-    arg = call.args[0]
-    if isinstance(arg, ast.Constant):
-        return isinstance(arg.value, str)
-    if not isinstance(arg, ast.JoinedStr):
-        return False
-    return all(
-        (isinstance(value, ast.Constant) and isinstance(value.value, str))
-        or (
-            isinstance(value, ast.FormattedValue)
-            and isinstance(value.value, ast.Name)
-            and value.value.id == "exc"
-            and value.format_spec is None
-        )
-        for value in arg.values
-    )
+# An intentionally tiny CLI: compare the *whole* Python syntax tree.
+# This avoids hundreds of partial rules that miss an executable side path.
+# The executable status policy is owned by the existing infrastructure module.
+_CANONICAL_CLI = """
+from __future__ import annotations
+import sys
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'src'))
+from elo.infrastructure.live_state_reconciliation import run_reconciliation_cli as main
+if __name__ == '__main__':
+    sys.exit(main())
+"""
 
 
 def _cli_uses_canonical_reconciler(text: str) -> bool:
-    """Inspect executable Python syntax rather than accepting comments."""
+    """A source change not matching the reviewed wrapper fails closed."""
     try:
         tree = ast.parse(text)
+        expected = ast.parse(_CANONICAL_CLI)
     except SyntaxError:
         return False
-    if not _cli_has_only_canonical_bootstrap(tree):
-        return False
-    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
-    main = functions.get("main")
-    exit_code = functions.get("result_exit_code")
-    if main is None or exit_code is None:
-        return False
-    # Python evaluates default-argument expressions when a function is
-    # declared. A default sys.exit(0) would bypass the actual entrypoint.
-    for fn in (main, exit_code):
-        args = fn.args
-        if (
-            args.defaults or args.kw_defaults or args.posonlyargs
-            or args.kwonlyargs or args.vararg or args.kwarg
-            or getattr(fn, "type_params", ())
-        ):
-            return False
-    if main.args.args or len(exit_code.args.args) != 1:
-        return False
-    if exit_code.args.args[0].arg != "overall":
-        return False
 
-    # A recognized path must have the same top-level execution sequence.
-    # This rejects early PASS, dead imports and disconnected extra commands.
-    expected_steps = (
-        ast.Assign, ast.Assign, ast.If, ast.ImportFrom, ast.ImportFrom,
-        ast.Assign, ast.Assign, ast.Try, ast.Assign, ast.Expr, ast.Return,
+    # A module docstring is inert; any other extra statement is rejected.
+    if (
+        tree.body
+        and isinstance(tree.body[0], ast.Expr)
+        and isinstance(tree.body[0].value, ast.Constant)
+        and isinstance(tree.body[0].value.value, str)
+    ):
+        tree.body.pop(0)
+    return ast.dump(tree, include_attributes=False) == ast.dump(
+        expected, include_attributes=False
     )
-    if tuple(type(statement) for statement in main.body) != expected_steps:
-        return False
-    if (
-        ast.unparse(main.body[0]) != "url = os.environ.get('SUPABASE_URL', '').strip()"
-        or ast.unparse(main.body[1]) != "key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '').strip()"
-        or ast.unparse(main.body[-2]) != "print(json.dumps(output, indent=2, ensure_ascii=False))"
-    ):
-        return False
 
-    # Only live statements in main's direct execution path count as proof.
-    # ast.walk() would also accept dead code under "if False".
-    imports = {
-        (node.module, name.name)
-        for node in main.body if isinstance(node, ast.ImportFrom)
-        for name in node.names
-    }
-    if not {
-        ("elo.infrastructure.live_state_reconciliation", "LiveStateReconciliation"),
-        ("elo.infrastructure.supabase_rls_reader", "SupabaseRLSStateReader"),
-    }.issubset(imports):
-        return False
-
-    assignments = {
-        node.targets[0].id: ast.unparse(node.value)
-        for node in main.body
-        if isinstance(node, ast.Assign)
-        and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
-    }
-    if any(assignments.get(name) != expr for name, expr in {
-        "reader": "SupabaseRLSStateReader(url, key)",
-        "harness": "LiveStateReconciliation()",
-        "output": "report.to_dict()",
-    }.items()):
-        return False
-
-    try_blocks = [node for node in main.body if isinstance(node, ast.Try)]
-    if len(try_blocks) != 1 or not any(
-        isinstance(node, ast.Assign)
-        and len(node.targets) == 1
-        and isinstance(node.targets[0], ast.Name)
-        and node.targets[0].id == "report"
-        and ast.unparse(node.value) == "harness.reconcile(reader)"
-        for node in try_blocks[0].body
-    ):
-        return False
-
-    # Only the known missing-credentials guard is allowed before execution.
-    guards = [node for node in main.body if isinstance(node, ast.If)]
-    if len(guards) != 1 or ast.unparse(guards[0].test) != "not url or not key":
-        return False
-    if guards[0].orelse:
-        return False
-    if (
-        len(guards[0].body) != 2
-        or not _safe_failure_print(guards[0].body[0])
-        or not isinstance(guards[0].body[1], ast.Return)
-        or ast.unparse(guards[0].body[1].value) != "1"
-    ):
-        return False
-    guarded_try = try_blocks[0]
-    if (
-        len(guarded_try.body) != 1
-        or guarded_try.orelse or guarded_try.finalbody
-        or len(guarded_try.handlers) != 1
-    ):
-        return False
-    # The exception handler must not return a forged PASS before its
-    # documented failure return. An optional print is the only prior action.
-    handler_body = guarded_try.handlers[0].body
-    if not handler_body or not isinstance(handler_body[-1], ast.Return):
-        return False
-    if ast.unparse(handler_body[-1].value) != "2":
-        return False
-    if len(handler_body) > 2:
-        return False
-    if len(handler_body) == 2 and not _safe_failure_print(handler_body[0]):
-        return False
-    returns = [node for node in main.body if isinstance(node, ast.Return)]
-    if len(returns) != 1 or main.body[-1] is not returns[0]:
-        return False
-
-    exit_returns = [
-        node for node in exit_code.body if isinstance(node, ast.Return)
-    ]
-    if len(exit_code.body) not in (1, 2) or not isinstance(exit_code.body[-1], ast.Return):
-        return False
-    if len(exit_code.body) == 2 and not (
-        isinstance(exit_code.body[0], ast.Expr)
-        and isinstance(exit_code.body[0].value, ast.Constant)
-        and isinstance(exit_code.body[0].value.value, str)
-    ):
-        return False
-    # A single entrypoint may only invoke main(); prior exits or branches
-    # can forge a PASS even when main() is perfectly implemented.
-    entrypoints = [
-        node for node in tree.body if isinstance(node, ast.If)
-        and ast.unparse(node.test) == "__name__ == '__main__'"
-    ]
-    if len(entrypoints) != 1 or entrypoints[0].orelse:
-        return False
-    if len(entrypoints[0].body) != 1:
-        return False
-    entry = entrypoints[0].body[0]
-    return (
-        ast.unparse(returns[0].value) == "result_exit_code(output.get('overall'))"
-        and len(exit_returns) == 1
-        and ast.unparse(exit_returns[0].value) == "0 if overall == 'PASS' else 3"
-        and isinstance(entry, ast.Expr)
-        and ast.unparse(entry) == "sys.exit(main())"
-    )
 
 def _workflow_executes_reconciler(text: str) -> bool:
     """Check the active jobs.reconcile.steps YAML path without extra packages.
@@ -409,6 +236,11 @@ def _verified_live_reconciliation_owner(root: Path, changed: set[str]) -> bool:
             isinstance(node, ast.FunctionDef) and node.name == "reconcile"
             for node in runtime_owner[0].body
         )),
+        len([
+            node for node in runtime_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "run_reconciliation_cli"
+        ]) == 1,
         _cli_uses_canonical_reconciler(cli_text),
         _workflow_executes_reconciler(workflow_text),
         "| `src/elo/` | Executable ELO | current implementation core | canonical executable root |" in map_text,
