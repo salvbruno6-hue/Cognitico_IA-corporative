@@ -330,7 +330,9 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
     canonical_identity = next(iter(changed_stems)) if owners and len(changed_stems) == 1 else None
     structure_map = root / CANONICAL_STRUCTURE_MAP
 
-    if changed_in_runtime and structure_map.is_file() and not owner_evidence:
+    # The canonical map proves which tree owns runtime code, but it does
+    # not prove that an independent candidate is NOT a parallel executor.
+    if changed_in_runtime and structure_map.is_file() and not owner_evidence and not candidates:
         source_of_truth = CANONICAL_STRUCTURE_MAP
         canonical_identity = "src/elo"
         duplicate = False
