@@ -1,6 +1,7 @@
 """Deterministic repository reconciliation for ELO canonicality gates."""
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass, field
 from pathlib import Path
 import re
@@ -86,15 +87,110 @@ def _explicit_owner_targets(text: str, candidate_stems: set[str]) -> set[str]:
     return targets
 
 
-def _verified_live_reconciliation_owner(root: Path, changed: set[str]) -> bool:
-    """Require the existing contract and implementation chain, not a label.
-
-    Restrict this to known files. A new module, unrelated workflow or parallel
-    reconciler may not gain canonical status from filename similarities.
-    """
-    if LIVE_RECONCILIATION_CLI not in changed:
+def _valid_live_owner_contract(text: str) -> bool:
+    """Verify exact metadata in the existing contract front matter."""
+    if not text.startswith("---\n"):
         return False
-    if not changed.issubset(LIVE_RECONCILIATION_SCOPE):
+    header, delimiter, _ = text[4:].partition("\n---\n")
+    if not delimiter:
+        return False
+    fields = {}
+    for line in header.splitlines():
+        match = re.fullmatch(r"([a-z_]+):\s*(.+?)\s*", line)
+        if match:
+            fields[match.group(1)] = match.group(2)
+    return all(fields.get(key) == value for key, value in {
+        "artifact_id": "ELO-LIVE-STATE-RECONCILIATION-CONTRACT",
+        "owner": "ELO Governance",
+        "family": "docs/governance",
+        "layer": "governance",
+        "type": "contract",
+        "authority": "reference",
+        "status": "defined",
+    }.items())
+
+
+def _cli_uses_canonical_reconciler(text: str) -> bool:
+    """Inspect executable Python syntax rather than accepting comments."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    main = functions.get("main")
+    exit_code = functions.get("result_exit_code")
+    if main is None or exit_code is None:
+        return False
+
+    imports = {
+        (node.module, name.name)
+        for node in ast.walk(main) if isinstance(node, ast.ImportFrom)
+        for name in node.names
+    }
+    if not {
+        ("elo.infrastructure.live_state_reconciliation", "LiveStateReconciliation"),
+        ("elo.infrastructure.supabase_rls_reader", "SupabaseRLSStateReader"),
+    }.issubset(imports):
+        return False
+
+    assignments = {
+        node.targets[0].id: ast.unparse(node.value)
+        for node in ast.walk(main)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+    }
+    if any(assignments.get(name) != expr for name, expr in {
+        "reader": "SupabaseRLSStateReader(url, key)",
+        "harness": "LiveStateReconciliation()",
+        "report": "harness.reconcile(reader)",
+        "output": "report.to_dict()",
+    }.items()):
+        return False
+
+    main_returns = {
+        ast.unparse(node.value) for node in ast.walk(main)
+        if isinstance(node, ast.Return) and node.value is not None
+    }
+    exit_returns = {
+        ast.unparse(node.value) for node in ast.walk(exit_code)
+        if isinstance(node, ast.Return) and node.value is not None
+    }
+    entrypoints = [
+        node for node in tree.body if isinstance(node, ast.If)
+        and ast.unparse(node.test) == "__name__ == '__main__'"
+    ]
+    return (
+        "result_exit_code(output.get('overall'))" in main_returns
+        and "0 if overall == 'PASS' else 3" in exit_returns
+        and any(
+            ast.unparse(statement) == "sys.exit(main())"
+            for entry in entrypoints for statement in entry.body
+        )
+    )
+
+
+def _workflow_executes_reconciler(text: str) -> bool:
+    """Require the actual fail-closed run step, not a comment or echo."""
+    marker = "      - name: Run reconciliation\n"
+    if text.count(marker) != 1:
+        return False
+    section = text.split(marker, 1)[1].split("\n      - name:", 1)[0]
+    return [line.strip() for line in section.splitlines() if line.strip()] == [
+        "id: reconcile",
+        "run: |",
+        "set -o pipefail",
+        "python scripts/run_live_reconciliation.py \\",
+        "| tee reconciliation_report.json",
+    ]
+
+
+def _verified_live_reconciliation_owner(root: Path, changed: set[str]) -> bool:
+    """Recognize only the existing, connected read-only reconciliation path.
+
+    This is ownership evidence, never merge authorization. Unknown source,
+    executable wiring, or scope stays WAITING_FOR_EVIDENCE.
+    """
+    if LIVE_RECONCILIATION_CLI not in changed or not changed.issubset(LIVE_RECONCILIATION_SCOPE):
         return False
 
     contract = root / LIVE_RECONCILIATION_CONTRACT
@@ -102,22 +198,32 @@ def _verified_live_reconciliation_owner(root: Path, changed: set[str]) -> bool:
     cli = root / LIVE_RECONCILIATION_CLI
     workflow = root / LIVE_RECONCILIATION_WORKFLOW
     structure_map = root / CANONICAL_STRUCTURE_MAP
-    if not all(p.is_file() for p in (contract, runtime, cli, workflow, structure_map)):
+    if not all(path.is_file() for path in (contract, runtime, cli, workflow, structure_map)):
         return False
 
-    contract_text = contract.read_text(encoding="utf-8", errors="ignore")
-    runtime_text = runtime.read_text(encoding="utf-8", errors="ignore")
-    cli_text = cli.read_text(encoding="utf-8", errors="ignore")
-    workflow_text = workflow.read_text(encoding="utf-8", errors="ignore")
-    map_text = structure_map.read_text(encoding="utf-8", errors="ignore")
+    try:
+        contract_text = contract.read_text(encoding="utf-8")
+        runtime_tree = ast.parse(runtime.read_text(encoding="utf-8"))
+        cli_text = cli.read_text(encoding="utf-8")
+        workflow_text = workflow.read_text(encoding="utf-8")
+        map_text = structure_map.read_text(encoding="utf-8")
+    except (OSError, UnicodeError, SyntaxError):
+        return False
+
+    runtime_owner = [
+        node for node in runtime_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "LiveStateReconciliation"
+    ]
     return all((
-        "owner: ELO Governance" in contract_text,
-        "ELO_LIVE_STATE_RECONCILIATION_CONTRACT" in runtime_text,
-        "from elo.infrastructure.live_state_reconciliation import" in cli_text,
-        "LiveStateReconciliation" in cli_text,
-        "scripts/run_live_reconciliation.py" in workflow_text,
-        "src/elo/" in map_text,
-        "canonical executable root" in map_text,
+        _valid_live_owner_contract(contract_text),
+        len(runtime_owner) == 1,
+        bool(runtime_owner and any(
+            isinstance(node, ast.FunctionDef) and node.name == "reconcile"
+            for node in runtime_owner[0].body
+        )),
+        _cli_uses_canonical_reconciler(cli_text),
+        _workflow_executes_reconciler(workflow_text),
+        "| `src/elo/` | Executable ELO | current implementation core | canonical executable root |" in map_text,
     ))
 
 
