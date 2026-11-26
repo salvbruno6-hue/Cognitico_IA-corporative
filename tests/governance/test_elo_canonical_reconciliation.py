@@ -1021,7 +1021,7 @@ def test_authz_scope_nested_payload_and_next_do_not_invent_grant_writer(
 ])
 @pytest.mark.parametrize("suffix", [".sh", ".yml"])
 def test_authz_curl_only_proves_read_for_supported_options(
-    tmp_path: Path, script: str, blocked: bool,
+    tmp_path: Path, script: str, blocked: bool, suffix: str,
 ) -> None:
     """Unknown semantics are evidence gaps, not proof of an absent writer."""
     _make_existing_authz_owner(tmp_path)
