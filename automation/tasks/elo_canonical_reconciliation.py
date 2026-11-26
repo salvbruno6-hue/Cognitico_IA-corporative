@@ -77,45 +77,144 @@ AUTHZ_CURL_BODY_OPTIONS = (
 )
 
 
+# Flags which consume a following or attached value. When they occur in a
+# compact short-option group, the remaining characters are DATA, not flags.
+# In particular a header value must never accidentally grant -G semantics.
+# Curl values (including tokens beginning with "-") are not options. Parse
+# them before evaluating --next/-:, or the scanner can borrow GET semantics
+# across transfers. This is a fail-closed evidence gate, never an authz issuer.
+AUTHZ_CURL_SHORT_VALUE_OPTIONS = frozenset({
+    "A", "b", "c", "C", "D", "e", "E", "H", "K", "m", "o",
+    "r", "u", "U", "w", "x", "Y", "y", "z",
+})
+AUTHZ_CURL_LONG_VALUE_OPTIONS = frozenset({
+    "--user-agent", "--header", "--referer", "--cookie", "--cookie-jar",
+    "--output", "--url", "--user", "--proxy",
+    "--connect-timeout", "--max-time", "--retry",
+    "--cert", "--key", "--cacert",
+    "--write-out", "--request-target", "--range",
+})
+# Exact option names only: --form-escape is a BOOLEAN and must not consume
+# -XPOST, unlike --form / --form-string.
+# This is an evidence classifier, not a complete curl interpreter.
+# Unsupported flags or external config leave the call unresolved.
+AUTHZ_CURL_LONG_BOOLEAN_OPTIONS = frozenset({
+    "--silent", "--show-error", "--fail", "--fail-with-body",
+    "--globoff", "--form-escape", "--no-progress-meter",
+})
+AUTHZ_CURL_SHORT_BOOLEAN_OPTIONS = frozenset({"f", "s", "S", "g"})
+AUTHZ_CURL_LONG_BODY_OPTIONS = frozenset({
+    "--data", "--data-raw", "--data-binary", "--data-urlencode",
+    "--form", "--form-string", "--json", "--upload-file",
+})
+
+
 def _curl_grant_write(args: list[str]) -> bool:
-    """Resolve the method on a *single* curl call, without losing -g/-G case."""
-    # curl --next/-: resets per-transfer local options; -G on telemetry
-    # cannot suppress the implicit POST of a later grant transfer.
-    if "--next" in args or "-:" in args:
-        transfers: list[list[str]] = [[]]
-        for item in args:
-            if item in ("--next", "-:"):
-                transfers.append([])
-            else:
-                transfers[-1].append(item)
-        return any(_curl_grant_write(transfer) for transfer in transfers)
-    if not any(AUTHZ_GRANT_REST_ENDPOINT in item.lower() for item in args):
-        return False
-
+    """Classify complete curl transfers with value-aware flag parsing."""
+    target = False
+    endpoint_present = any(AUTHZ_GRANT_REST_ENDPOINT in arg.lower() for arg in args)
     method: str | None = None
-    for index, item in enumerate(args):
-        if item in ("-X", "--request") and index + 1 < len(args):
-            method = args[index + 1].upper()
-        elif item.startswith("--request="):
-            method = item.partition("=")[2].upper()
-        elif item.startswith("-X") and len(item) > 2:
-            method = item[2:].upper()
+    has_get = False
+    has_body = False
 
-    # An explicit -X/--request method takes precedence over body flags.
-    # An unknown or unsupported explicit verb must not be certified read-only.
-    if method is not None:
-        return method != "GET"
-    if "-G" in args or "--get" in args:
-        return False
+    def is_writer() -> bool:
+        if not target:
+            return False
+        if method is not None:
+            return method != "GET"
+        return has_body and not has_get
 
-    # Without an explicit method, curl body flags trigger implicit POST/PUT.
-    return any(
-        item == "-d" or item.startswith("-d")
-        or item == "-F" or item.startswith("-F")
-        or item == "-T" or item.startswith("-T")
-        or item.startswith(AUTHZ_CURL_BODY_OPTIONS)
-        for item in args
-    )
+    index = 0
+    while index < len(args):
+        item = args[index]
+
+        # Only an actual option (not a value of -A, --data etc.) resets curl
+        # transfer-local options.
+        if item in ("--next", "-:"):
+            if is_writer():
+                return True
+            target = False
+            method = None
+            has_get = False
+            has_body = False
+            index += 1
+            continue
+
+        # Options such as --url consume the following URL. Preserve target
+        # detection even when that value is skipped by option parsing.
+        if AUTHZ_GRANT_REST_ENDPOINT in item.lower() or (
+            index + 1 < len(args)
+            and AUTHZ_GRANT_REST_ENDPOINT in args[index + 1].lower()
+        ):
+            target = True
+
+        if item.startswith("--"):
+            option, sep, _ = item.partition("=")
+            if option == "--request":
+                if sep:
+                    method = item.partition("=")[2].upper()
+                    index += 1
+                else:
+                    method = (args[index + 1] if index + 1 < len(args) else "").upper()
+                    index += 2
+                continue
+            if option == "--get":
+                has_get = True
+            elif option == "--no-get":
+                has_get = False
+            elif option in AUTHZ_CURL_LONG_BODY_OPTIONS:
+                has_body = True
+                if not sep:
+                    index += 2  # consume separate body, even if it is "--next"
+                    continue
+            elif option in AUTHZ_CURL_LONG_VALUE_OPTIONS:
+                if not sep:
+                    index += 2
+                    continue
+            elif option not in AUTHZ_CURL_LONG_BOOLEAN_OPTIONS:
+                # Do not infer read-only from an option whose effects or
+                # argument consumption have not been established.
+                if endpoint_present:
+                    return True
+            index += 1
+            continue
+
+        if not item.startswith("-") or item in ("-", "-:"):
+            index += 1
+            continue
+
+        # Compact -fsSd means -f -s -S -d, but -A '-XGET' means a
+        # user-agent VALUE, not a GET method. Attached values end the group.
+        flags = item[1:]
+        for position, flag in enumerate(flags):
+            if flag == "G":
+                has_get = True
+            elif flag == "X":
+                value = flags[position + 1:]
+                method = (value or (args[index + 1] if index + 1 < len(args) else "")).upper()
+                if not value:
+                    index += 1
+                break
+            elif flag in ("d", "F", "T"):
+                has_body = True
+                if position + 1 == len(flags):
+                    index += 1
+                break
+            elif flag == "K":
+                # A configuration file may supply an entirely different method.
+                if endpoint_present:
+                    return True
+                break
+            elif flag in AUTHZ_CURL_SHORT_VALUE_OPTIONS:
+                if position + 1 == len(flags):
+                    index += 1
+                break
+            elif flag not in AUTHZ_CURL_SHORT_BOOLEAN_OPTIONS:
+                if endpoint_present:
+                    return True
+        index += 1
+
+    return is_writer()
 
 
 def _shell_substitution_spans(line: str) -> Iterable[tuple[int, int, str]]:

@@ -589,6 +589,135 @@ def test_authz_curl_shell_method_semantics_preserve_read_only(
     assert ".github/workflows/read-grants.yml" not in evidence.candidates
 
 
+@pytest.mark.parametrize(("script", "suffix"), [
+    ("curl -fsSd '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh"),
+    ("curl -fsSg '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".yml"),
+    ("result=$(curl -fsSd '{}' '$URL/rest/v1/elo_authorization_grants')", ".sh"),
+    ("curl -fsSF 'file=@payload' '$URL/rest/v1/elo_authorization_grants'", ".sh"),
+    ("curl -fsST payload '$URL/rest/v1/elo_authorization_grants'", ".sh"),
+    ("curl -fsSXPOST '$URL/rest/v1/elo_authorization_grants'", ".yml"),
+    ("curl -fsSG https://telemetry.example --next -fsSd '{}' "
+     "'$URL/rest/v1/elo_authorization_grants'", ".sh"),
+])
+def test_authz_bundled_curl_short_flags_block_shadow_grant_writes(
+    tmp_path: Path, script: str, suffix: str,
+) -> None:
+    """A compact -d/-F/-T/-X (including -fsSd) still writes grant data."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / ("automation/tasks/shadow" + suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"steps:\n  - run: |\n      {script}\n" if suffix == ".yml"
+        else f"#!/bin/sh\n{script}\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert str(path.relative_to(tmp_path)).replace("\\", "/") in evidence.candidates
+    assert evidence.waiting_for_evidence
+    assert evidence.decision is None
+    assert event_facts(evidence)["contract_conflict"] is None
+
+
+@pytest.mark.parametrize("script", [
+    "curl -fsSG --data '{}' '$URL/rest/v1/elo_authorization_grants'",
+    "curl -fsSXGET --data '{\"method\":\"POST\"}' '$URL/rest/v1/elo_authorization_grants'",
+    "result=$(curl -fsSXGET '$URL/rest/v1/elo_authorization_grants' --data '{}')",
+    "curl -H'X-Trace: Gd POST' -fsSXGET '$URL/rest/v1/elo_authorization_grants' -d '{}'",
+    "curl -fsSG https://telemetry.example --next -fsSG --data '{}' "
+    "'$URL/rest/v1/elo_authorization_grants'",
+])
+def test_authz_bundled_curl_short_flags_preserve_explicit_get(
+    tmp_path: Path, script: str,
+) -> None:
+    """A true GET must not be mistaken for a parallel grant writer."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / "automation/tasks/read_grants.sh"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"#!/bin/sh\n{script}\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    assert evidence.decision == "STRENGTHEN", evidence.reasons
+    assert evidence.duplicate_or_parallel is False
+    assert "automation/tasks/read_grants.sh" not in evidence.candidates
+
+
+@pytest.mark.parametrize(("script", "suffix", "should_block"), [
+    ("curl -X POST -A '-fsSXGET' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X POST --user-agent '-fsSXGET' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -X POST -H '-fsSXGET' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X POST -A '-G' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -X POST --header '-XGET' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X GET -A '-fsSXPOST' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+    ("curl -X GET -d '-fsSXPOST' '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+    ("curl --header '-fsSXPOST' -G --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+    ("curl -H'-fsSXPOST' -X GET --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+    ("curl -G -A '-XPOST' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+])
+def test_authz_curl_option_values_are_not_executable_flags(
+    tmp_path: Path, script: str, suffix: str, should_block: bool,
+) -> None:
+    """A user-agent/header/body value beginning with '-' cannot overwrite the HTTP method."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / ("automation/tasks/value_based_method" + suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = f"steps:\n  - run: |\n      {script}\n" if suffix == ".yml" else f"#!/bin/sh\n{script}\n"
+    path.write_text(text, encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    relative = str(path.relative_to(tmp_path)).replace("\\", "/")
+    assert (relative in evidence.candidates) is should_block
+    if should_block:
+        assert evidence.waiting_for_evidence
+        assert evidence.decision != "STRENGTHEN"
+        assert event_facts(evidence)["contract_conflict"] is None
+    else:
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
+        assert evidence.duplicate_or_parallel is False
+
+
+@pytest.mark.parametrize(("script", "suffix", "should_block"), [
+    ("curl -G --form-escape -XPOST --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", True),
+    ("curl -X POST -A '--next' -G --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -G --next '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", True),
+    ("curl --url '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", True),
+    ("curl -X POST --data '--next' '$URL/rest/v1/elo_authorization_grants'", ".yml", True),
+    ("curl -G --next --url '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", True),
+    ("curl -X GET --form-escape --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+    ("curl -X GET -A '--next' --data '{}' '$URL/rest/v1/elo_authorization_grants'", ".sh", False),
+    ("curl -G --url '$URL/rest/v1/elo_authorization_grants' --data '{}'", ".sh", False),
+    ("curl --form-escape '$URL/rest/v1/elo_authorization_grants'", ".yml", False),
+])
+def test_authz_curl_transfer_respects_boolean_flags_and_option_values(
+    tmp_path: Path, script: str, suffix: str, should_block: bool,
+) -> None:
+    """Reject POST when --form-escape or an option value resembles --next."""
+    _make_existing_authz_owner(tmp_path)
+    path = tmp_path / ("automation/tasks/transfer_semantics" + suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = f"steps:\n  - run: |\n      {script}\n" if suffix == ".yml" else f"#!/bin/sh\n{script}\n"
+    path.write_text(body, encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    relative = str(path.relative_to(tmp_path)).replace("\\", "/")
+    assert (relative in evidence.candidates) is should_block
+    if should_block:
+        assert evidence.waiting_for_evidence
+        assert evidence.decision != "STRENGTHEN"
+        assert event_facts(evidence)["contract_conflict"] is None
+    else:
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
+        assert evidence.duplicate_or_parallel is False
+
+
 def test_authz_scope_finds_direct_rest_grant_writer_without_name_match(tmp_path: Path) -> None:
     """Actual Maintenance terms are filenames; they must not hide another issuer."""
     _make_existing_authz_owner(tmp_path)
@@ -1117,3 +1246,35 @@ def test_authz_and_lifecycle_owner_reconciliation_coexist_in_integrated_tree(
     )
     assert lifecycle.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
     assert authz.reuse_analysis_complete and lifecycle.reuse_analysis_complete
+
+@pytest.mark.parametrize(("script", "blocked"), [
+    ("curl --cookie-jar '-G' --data '{}' '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -G --no-get --data '{}' '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -G --no-get --get --data '{}' '$URL/rest/v1/elo_authorization_grants'", False),
+    ("curl --cookie-jar '-XPOST' -X GET '$URL/rest/v1/elo_authorization_grants'", False),
+    ("curl -X GET --config settings '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -X GET -K settings '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -X GET --unknown-option '-G' '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -X GET -Q ignored '$URL/rest/v1/elo_authorization_grants'", True),
+])
+@pytest.mark.parametrize("suffix", [".sh", ".yml"])
+def test_authz_curl_only_proves_read_for_supported_options(
+    tmp_path: Path, script: str, blocked: bool, suffix: str,
+) -> None:
+    """Unknown semantics are evidence gaps, not proof of an absent writer."""
+    _make_existing_authz_owner(tmp_path)
+    relative = "automation/tasks/authz_probe" + suffix
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(script + "\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    if blocked:
+        assert relative in evidence.candidates
+        assert evidence.waiting_for_evidence
+        assert evidence.decision is None
+    else:
+        assert relative not in evidence.candidates
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
