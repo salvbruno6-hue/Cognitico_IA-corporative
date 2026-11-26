@@ -172,8 +172,33 @@ def reconcile_repository(root: str | Path, changed_paths: Iterable[str], concept
         duplicate = False
         reasons = ["Existing canonical frontend surface is being reused; no parallel executable candidate found"]
 
+    # Narrow application presentation reuse: never infer a new grant issuer.
+    # Unknown changed paths or competing candidates remain WAITING_FOR_EVIDENCE.
+    elo_web_dashboard = "apps/elo-web/src/components/elo-dashboard.tsx"
+    elo_web_grant_panel = "apps/elo-web/src/components/elo-admin-grant-panel.tsx"
+    elo_web_audit_paths = {
+        CANONICAL_STRUCTURE_MAP,
+        "automation/tasks/elo_canonical_reconciliation.py",
+        "tests/governance/test_elo_canonical_reconciliation.py",
+        "tests/security/test_elo_merge_exact_head_admin_ui.py",
+    }
+    elo_web_paths = changed_normalised - elo_web_audit_paths
+    mapped_elo_web = (
+        elo_web_paths in ({elo_web_dashboard}, {elo_web_dashboard, elo_web_grant_panel})
+        and all((root / component).is_file() for component in elo_web_paths)
+        and structure_map.is_file()
+        and "`apps/elo-web/`" in structure_map.read_text(encoding="utf-8")
+        and not candidates
+        and not owner_evidence
+    )
+    if mapped_elo_web:
+        source_of_truth = CANONICAL_STRUCTURE_MAP
+        canonical_identity = "apps/elo-web"
+        duplicate = False
+        reasons = ["Existing ELO Web application owner reused; no unresolved parallel candidate found"]
+
     complete = bool(canonical_identity and source_of_truth and duplicate is not None)
-    decision = "REUSE" if complete and duplicate else "CREATE" if complete else None
+    decision = "REUSE" if complete and (duplicate or mapped_elo_web) else "CREATE" if complete else None
     if not complete:
         reasons.append("Canonical owner/source of truth not explicitly proven" if source_of_truth is None else "Reconciliation remains WAITING_FOR_EVIDENCE")
         if source_of_truth is not None:
