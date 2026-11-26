@@ -1007,3 +1007,36 @@ def test_authz_scope_nested_payload_and_next_do_not_invent_grant_writer(
     assert evidence.decision == "STRENGTHEN", (evidence.reasons, evidence.candidates)
     assert evidence.duplicate_or_parallel is False
     assert ".github/workflows/next-read-only.yml" not in evidence.candidates
+
+
+@pytest.mark.parametrize(("script", "blocked"), [
+    ("curl --cookie-jar '-G' --data '{}' '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -G --no-get --data '{}' '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -G --no-get --get --data '{}' '$URL/rest/v1/elo_authorization_grants'", False),
+    ("curl --cookie-jar '-XPOST' -X GET '$URL/rest/v1/elo_authorization_grants'", False),
+    ("curl -X GET --config settings '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -X GET -K settings '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -X GET --unknown-option '-G' '$URL/rest/v1/elo_authorization_grants'", True),
+    ("curl -X GET -Q ignored '$URL/rest/v1/elo_authorization_grants'", True),
+])
+@pytest.mark.parametrize("suffix", [".sh", ".yml"])
+def test_authz_curl_only_proves_read_for_supported_options(
+    tmp_path: Path, script: str, blocked: bool,
+) -> None:
+    """Unknown semantics are evidence gaps, not proof of an absent writer."""
+    _make_existing_authz_owner(tmp_path)
+    relative = "automation/tasks/authz_probe" + suffix
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(script + "\n", encoding="utf-8")
+    evidence = reconcile_repository(
+        tmp_path, ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index", "test_operator_github_binding_runtime"],
+    )
+    if blocked:
+        assert relative in evidence.candidates
+        assert evidence.waiting_for_evidence
+        assert evidence.decision is None
+    else:
+        assert relative not in evidence.candidates
+        assert evidence.decision == "STRENGTHEN", evidence.reasons
