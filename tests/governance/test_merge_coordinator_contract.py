@@ -819,3 +819,50 @@ def test_maintenance_completion_artifact_filter_rejects_bad_scope_and_decisions(
     ):
         bad = dict(good, canonical_reconciliation={**good["canonical_reconciliation"], key: value})
         assert not accepted(bad), (key, value)
+
+
+def test_maintenance_uses_single_canonicality_rule():
+    from automation.tasks.elo_maintenance_coordinator import (
+        Event, Outcome, canonicality_admission, canonicality_gate,
+    )
+
+    facts = dict(
+        canonical_identity_valid=True,
+        canonical_target_resolved=True,
+        source_of_truth_resolved=True,
+        reuse_analysis_complete=True,
+        duplicate_or_parallel_found=False,
+        contract_conflict=False,
+    )
+    cases = [
+        ({}, None),
+        ({"canonical_identity_valid": False}, Outcome.WAITING_FOR_EVIDENCE),
+        ({"source_of_truth_resolved": False}, Outcome.WAITING_FOR_EVIDENCE),
+        ({"reuse_analysis_complete": "true"}, Outcome.WAITING_FOR_EVIDENCE),
+        ({"duplicate_or_parallel_found": None}, Outcome.WAITING_FOR_EVIDENCE),
+        ({"contract_conflict": "false"}, Outcome.WAITING_FOR_EVIDENCE),
+        ({"contract_conflict": True}, Outcome.BLOCKED),
+        ({"duplicate_or_parallel_found": True}, Outcome.BLOCKED),
+        ({"canonical_identity_valid": False, "contract_conflict": True}, Outcome.BLOCKED),
+    ]
+    for overrides, expected in cases:
+        data = {**facts, **overrides}
+        outcome, reasons = canonicality_admission(data)
+        assert outcome is expected
+        event = Event(
+            number=1177, concept_id="elo-governed-pr-lifecycle",
+            event_class="security", acceptance_pass=False, specialist_pass=None,
+            ci_pass=False, reviews_clear=False, scope_compliant=False,
+            forbidden_action=False, elo_approve_merge=False,
+            evidence_complete=False, architectural_impact=True,
+            experience_value=False, **data,
+        )
+        assert canonicality_gate(event) == (expected is None, reasons)
+
+    outcome, _ = canonicality_admission({})
+    assert outcome is Outcome.WAITING_FOR_EVIDENCE
+    script = _shell_step(MAINTENANCE_WORKFLOW, "Publish governed audit decision")
+    assert "from automation.tasks.elo_maintenance_coordinator import canonicality_admission" in script
+    assert "reconciliation['event_facts']" in script
+    assert "canonical_outcome.value" in script
+    assert "canonical_clear = canonical_outcome is None" in script

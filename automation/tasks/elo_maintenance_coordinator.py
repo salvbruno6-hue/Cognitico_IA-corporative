@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
 class Outcome(str, Enum):
@@ -76,31 +76,49 @@ def specialist_lane(event_class: str) -> str | None:
     return SPECIALIST_BY_EVENT.get(event_class.lower().strip())
 
 
-def canonicality_gate(event: Event) -> tuple[bool, list[str]]:
-    """Gate architectural admission on explicit canonical reconciliation facts.
+def canonicality_admission(
+    facts: Mapping[str, object],
+) -> tuple[Outcome | None, list[str]]:
+    """Evaluate canonicality facts once, for both Events and PR adapters.
 
-    UNKNOWN is never converted into approval. This gate is intentionally
-    deterministic and delegates repository discovery to the reconciliation
-    evidence layer.
+    None means only that canonicality is clear. It does not grant permission,
+    certify specialist review, or approve merge. Missing or malformed booleans
+    are UNKNOWN; a proven conflict always blocks.
     """
     blockers: list[str] = []
-    if not event.canonical_identity_valid:
-        blockers.append("canonical_identity_missing_or_invalid")
-    if not event.canonical_target_resolved:
-        blockers.append("canonical_target_unresolved")
-    if not event.source_of_truth_resolved:
-        blockers.append("source_of_truth_unresolved")
-    if not event.reuse_analysis_complete:
-        blockers.append("reuse_analysis_incomplete")
-    if event.duplicate_or_parallel_found is None:
-        blockers.append("duplicate_or_parallel_state_unknown")
-    elif event.duplicate_or_parallel_found:
-        blockers.append("duplicate_or_parallel_capability_found")
-    if event.contract_conflict is None:
-        blockers.append("contract_conflict_state_unknown")
-    elif event.contract_conflict:
-        blockers.append("canonical_contract_conflict")
-    return not blockers, blockers
+    for key, reason in (
+        ("canonical_identity_valid", "canonical_identity_missing_or_invalid"),
+        ("canonical_target_resolved", "canonical_target_unresolved"),
+        ("source_of_truth_resolved", "source_of_truth_unresolved"),
+        ("reuse_analysis_complete", "reuse_analysis_incomplete"),
+    ):
+        if facts.get(key) is not True:
+            blockers.append(reason)
+
+    conflict = False
+    for key, unknown, confirmed in (
+        ("duplicate_or_parallel_found", "duplicate_or_parallel_state_unknown",
+         "duplicate_or_parallel_capability_found"),
+        ("contract_conflict", "contract_conflict_state_unknown",
+         "canonical_contract_conflict"),
+    ):
+        value = facts.get(key)
+        if value is True:
+            blockers.append(confirmed)
+            conflict = True
+        elif value is not False:
+            blockers.append(unknown)
+    if conflict:
+        return Outcome.BLOCKED, blockers
+    if blockers:
+        return Outcome.WAITING_FOR_EVIDENCE, blockers
+    return None, []
+
+
+def canonicality_gate(event: Event) -> tuple[bool, list[str]]:
+    """Compatibility adapter to the single canonicality admission rule."""
+    outcome, reasons = canonicality_admission(vars(event))
+    return outcome is None, reasons
 
 
 def audit(event: Event) -> tuple[Outcome, list[str]]:
@@ -112,14 +130,9 @@ def audit(event: Event) -> tuple[Outcome, list[str]]:
     if not event.evidence_complete:
         return Outcome.WAITING_FOR_EVIDENCE, ["evidence_incomplete"]
 
-    canonical_ok, canonical_reasons = canonicality_gate(event)
-    if not canonical_ok:
-        if any(reason in canonical_reasons for reason in (
-            "duplicate_or_parallel_capability_found",
-            "canonical_contract_conflict",
-        )):
-            return Outcome.BLOCKED, canonical_reasons
-        return Outcome.WAITING_FOR_EVIDENCE, canonical_reasons
+    canonical_outcome, canonical_reasons = canonicality_admission(vars(event))
+    if canonical_outcome is not None:
+        return canonical_outcome, canonical_reasons
 
     if event.specialist_pass is None:
         lane = specialist_lane(event.event_class)

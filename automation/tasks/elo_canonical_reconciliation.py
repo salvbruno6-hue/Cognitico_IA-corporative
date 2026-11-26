@@ -19,6 +19,7 @@ GOVERNANCE_LIFECYCLE_ALLOWED_PATHS = GOVERNANCE_LIFECYCLE_WORKFLOWS | {
     GOVERNANCE_LIFECYCLE_SOURCE,
     GOVERNANCE_LIFECYCLE_CONTRACT,
     "tests/governance/test_merge_coordinator_contract.py",
+    "automation/tasks/elo_maintenance_coordinator.py",
     "automation/tasks/elo_canonical_reconciliation.py",
     CANONICAL_STRUCTURE_MAP,
     "tests/governance/test_elo_canonical_reconciliation.py",

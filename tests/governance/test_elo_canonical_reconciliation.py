@@ -980,6 +980,7 @@ def test_governance_workflow_bundle_reuses_existing_lifecycle_owner(tmp_path: Pa
         "docs/governance/ELO_MERGE_COORDINATOR.md",
         "10-adr/ADR-0020-end-to-end-cycle.md",
         "tests/governance/test_merge_coordinator_contract.py",
+        "automation/tasks/elo_maintenance_coordinator.py",
         "automation/tasks/elo_canonical_reconciliation.py",
         CANONICAL_STRUCTURE_MAP,
         "tests/governance/test_elo_canonical_reconciliation.py",

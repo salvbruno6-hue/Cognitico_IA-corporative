@@ -179,6 +179,8 @@ jobs:
           import os
           from pathlib import Path
 
+          from automation.tasks.elo_maintenance_coordinator import canonicality_admission
+
           pr = json.loads(Path('automation/audit-output/pr.json').read_text())
           reconciliation = json.loads(Path('automation/audit-output/reconciliation.json').read_text())
           labels = {x['name'] for x in pr.get('labels', [])}
@@ -195,11 +197,10 @@ jobs:
               check.get('bucket') == 'pass' for check in external_required_checks
           )
           explicit_merge = 'elo/approve-merge' in labels
-          canonical_clear = (
-              reconciliation['reuse_analysis_complete']
-              and reconciliation['duplicate_or_parallel'] is False
-              and reconciliation['source_of_truth'] is not None
+          canonical_outcome, canonical_reasons = canonicality_admission(
+              reconciliation['event_facts']
           )
+          canonical_clear = canonical_outcome is None
           approved = (
               explicit_merge
               and canonical_clear
@@ -209,16 +210,14 @@ jobs:
               and not pr.get('isDraft', False)
           )
 
-          if reconciliation['duplicate_or_parallel'] is True:
-              decision = 'BLOCKED'
-          elif not canonical_clear:
-              decision = 'WAITING_FOR_EVIDENCE'
+          if canonical_outcome is not None:
+              decision = canonical_outcome.value
           elif approved:
               decision = 'APPROVED_FOR_MERGE'
           else:
               decision = 'READY_FOR_ELO_DECISION'
 
-          reasons = list(reconciliation['reasons'])
+          reasons = [*reconciliation['reasons'], *canonical_reasons]
           if not explicit_merge:
               reasons.append('explicit label elo/approve-merge is required')
           if review_decision not in (None, '', 'APPROVED'):
