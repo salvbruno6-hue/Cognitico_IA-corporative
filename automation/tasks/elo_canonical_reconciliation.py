@@ -72,14 +72,21 @@ AUTHZ_CURL_SHORT_VALUE_OPTIONS = frozenset({
     "r", "u", "U", "w", "x", "Y", "y", "z",
 })
 AUTHZ_CURL_LONG_VALUE_OPTIONS = frozenset({
-    "--user-agent", "--header", "--referer", "--cookie",
+    "--user-agent", "--header", "--referer", "--cookie", "--cookie-jar",
     "--output", "--url", "--user", "--proxy",
     "--connect-timeout", "--max-time", "--retry",
-    "--config", "--cert", "--key", "--cacert",
+    "--cert", "--key", "--cacert",
     "--write-out", "--request-target", "--range",
 })
 # Exact option names only: --form-escape is a BOOLEAN and must not consume
 # -XPOST, unlike --form / --form-string.
+# This is an evidence classifier, not a complete curl interpreter.
+# Unsupported flags or external config leave the call unresolved.
+AUTHZ_CURL_LONG_BOOLEAN_OPTIONS = frozenset({
+    "--silent", "--show-error", "--fail", "--fail-with-body",
+    "--globoff", "--form-escape", "--no-progress-meter",
+})
+AUTHZ_CURL_SHORT_BOOLEAN_OPTIONS = frozenset({"f", "s", "S", "g"})
 AUTHZ_CURL_LONG_BODY_OPTIONS = frozenset({
     "--data", "--data-raw", "--data-binary", "--data-urlencode",
     "--form", "--form-string", "--json", "--upload-file",
@@ -89,6 +96,7 @@ AUTHZ_CURL_LONG_BODY_OPTIONS = frozenset({
 def _curl_grant_write(args: list[str]) -> bool:
     """Classify complete curl transfers with value-aware flag parsing."""
     target = False
+    endpoint_present = any(AUTHZ_GRANT_REST_ENDPOINT in arg.lower() for arg in args)
     method: str | None = None
     has_get = False
     has_body = False
@@ -136,14 +144,22 @@ def _curl_grant_write(args: list[str]) -> bool:
                 continue
             if option == "--get":
                 has_get = True
+            elif option == "--no-get":
+                has_get = False
             elif option in AUTHZ_CURL_LONG_BODY_OPTIONS:
                 has_body = True
                 if not sep:
                     index += 2  # consume separate body, even if it is "--next"
                     continue
-            elif option in AUTHZ_CURL_LONG_VALUE_OPTIONS and not sep:
-                index += 2
-                continue
+            elif option in AUTHZ_CURL_LONG_VALUE_OPTIONS:
+                if not sep:
+                    index += 2
+                    continue
+            elif option not in AUTHZ_CURL_LONG_BOOLEAN_OPTIONS:
+                # Do not infer read-only from an option whose effects or
+                # argument consumption have not been established.
+                if endpoint_present:
+                    return True
             index += 1
             continue
 
@@ -168,10 +184,18 @@ def _curl_grant_write(args: list[str]) -> bool:
                 if position + 1 == len(flags):
                     index += 1
                 break
+            elif flag == "K":
+                # A configuration file may supply an entirely different method.
+                if endpoint_present:
+                    return True
+                break
             elif flag in AUTHZ_CURL_SHORT_VALUE_OPTIONS:
                 if position + 1 == len(flags):
                     index += 1
                 break
+            elif flag not in AUTHZ_CURL_SHORT_BOOLEAN_OPTIONS:
+                if endpoint_present:
+                    return True
         index += 1
 
     return is_writer()
