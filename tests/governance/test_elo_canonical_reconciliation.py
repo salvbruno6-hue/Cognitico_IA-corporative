@@ -274,14 +274,21 @@ def test_attestation_snapshot_guard_rejects_external_symlinks(
     linked = root / "docs/governance/ELO_MERGE_COORDINATOR.md"
     linked.symlink_to(outside)
     monkeypatch.chdir(tmp_path)
-    with pytest.raises(SystemExit, match="Candidate symlink escapes immutable snapshot"):
+    with pytest.raises(ValueError, match="Candidate snapshot contains symbolic link"):
         exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
 
-    # Legitimate aliases contained entirely inside the snapshot are allowed.
+    # The shared guard now rejects internal aliases too: evidence must be
+    # a regular file at its canonical path, not borrowed from another path.
     linked.unlink()
     inside = root / "docs/governance/owner.md"
     inside.write_text("owner: ELO Governance\n", encoding="utf-8")
     linked.symlink_to("owner.md")
+    with pytest.raises(ValueError, match="Candidate snapshot contains symbolic link"):
+        exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
+
+    # A genuine regular canonical contract remains admissible.
+    linked.unlink()
+    linked.write_text("owner: ELO Governance\n", encoding="utf-8")
     exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
 
 
