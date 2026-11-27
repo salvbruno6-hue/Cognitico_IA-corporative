@@ -9,7 +9,7 @@
 | Aplicação | Escritório, alojamento, apoio operacional ou uso geral |
 | Comprimento externo | 6000 mm |
 | Largura externa | 2440 mm |
-| Altura externa específica do MLT.M01 | **2985 mm** |
+| Altura externa específica do MLT.M01 | **3010 mm** |
 | Área externa/nominal | **14,64 m²** |
 | Área útil interna de referência para 20 pés | **13,62 m²** |
 
@@ -79,7 +79,7 @@ A descrição geral **127/220 V – 2F + N + T** não deve ser atribuída automa
 |---|---|
 | Modelo | MLT.M01 |
 | Tipo | Módulo Amplo 20 pés |
-| Dimensão externa | 6000 × 2440 × 2985 mm |
+| Dimensão externa | 6000 × 2440 × 3010 mm |
 | Área nominal externa | 14,64 m² |
 | Área útil de referência | 13,62 m² |
 | Parede | PIR 40 mm |
@@ -102,3 +102,7 @@ Esta ficha é a fonte específica do MLT.M01 para atributos próprios do modelo.
 Não usar 14,64 m² como área útil. Não importar automaticamente a alimentação 127/220 V – 2F + N + T do catálogo geral. Não importar DR/DPS do padrão sanitário. Não assumir instalação de equipamento de ar-condicionado apenas pela existência da abertura.
 
 Se surgir outro documento com valor diferente para qualquer atributo acima, registrar a divergência e encaminhar ao **Setor de Planejamento** antes de atualizar esta ficha.
+
+
+### Registro de atualização dimensional — 2026-11-27
+Altura externa vigente do MLT.M01: 3010 mm, confirmada pelo Planejamento na SO 211.26 — COPPETEC e conciliada com `public.modelos` (M01) / `public.dimensoes` (20 pés) no Supabase. A referência anterior de 2985 mm fica preservada como histórico, não como dimensão vigente. Demais atributos permanecem inalterados.
