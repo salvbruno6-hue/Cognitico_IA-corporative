@@ -16,7 +16,7 @@ Se houver valores conflitantes e nenhuma fonte tiver precedência clara, não es
 ## Regras críticas
 - 14,64 m² = área nominal externa de referência para 20 pés; não chamar de área útil.
 - 13,62 m² = área útil oficial de referência para 20 pés, salvo ficha específica validada.
-- MLT.M01 = 6000 × 2440 × 2985 mm; área útil de referência 13,62 m².
+- MLT.M01 = 6000 × 2440 × 3010 mm; área útil de referência 13,62 m².
 - MLT.M01 = alimentação 220 V monofásica; não importar automaticamente o padrão geral 127/220 V – 2F + N + T.
 - MLT.M01 = DR/DPS não padrão.
 - PIR parede = 40 mm como padrão cadastrado; PIR 50 mm exige análise técnica específica.
@@ -30,3 +30,7 @@ Não afirmar sem fonte específica: peso, carga admissível, capacidade estrutur
 
 ## Encaminhamento
 Quando a informação não estiver definida na base técnica atual, responder: **Informação não definida na base técnica atual.** Em seguida, direcionar a demanda ao **Setor de Planejamento** para validação técnica.
+
+
+### Registro de atualização dimensional — 2026-11-27
+Altura externa vigente do MLT.M01: 3010 mm, confirmada pelo Planejamento na SO 211.26 — COPPETEC e conciliada com `public.modelos` (M01) / `public.dimensoes` (20 pés) no Supabase. A referência anterior de 2985 mm fica preservada como histórico, não como dimensão vigente. Demais atributos permanecem inalterados.
