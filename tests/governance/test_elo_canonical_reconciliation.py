@@ -243,6 +243,82 @@ def _make_existing_authz_owner(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize(("workflow", "job", "step_name"), [
+    (".github/workflows/elo-agent-loop.yml", "attest-existing-pr",
+     "Verify immutable PR candidate snapshot"),
+    (".github/workflows/elo-maintenance-coordinator.yml", "audit",
+     "Verify immutable maintenance PR snapshot"),
+])
+def test_attestation_snapshot_guard_rejects_external_symlinks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    workflow: str, job: str, step_name: str,
+) -> None:
+    """P1: a candidate symlink cannot borrow a canonical owner from trusted main."""
+    # Context Assembly installs no PyYAML. Extract this fixed, literal
+    # heredoc from the trusted workflow source using the standard library.
+    workflow_text = Path(workflow).read_text(encoding="utf-8")
+    step_marker = f"      - name: {step_name}\n"
+    step = workflow_text.split(step_marker, 1)[1].split("\n      - name:", 1)[0]
+    source = step.split("          python - <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
+    source = "\n".join(
+        line[10:] if line.startswith("          ") else line
+        for line in source.splitlines()
+    )
+    compile(source, "<immutable-pr-symlink-guard>", "exec")
+
+    root = tmp_path / "pr-candidate-snapshot"
+    (root / "docs/governance").mkdir(parents=True)
+    outside = tmp_path / "trusted-docs/ELO_MERGE_COORDINATOR.md"
+    outside.parent.mkdir()
+    outside.write_text("owner: ELO Governance\n", encoding="utf-8")
+    linked = root / "docs/governance/ELO_MERGE_COORDINATOR.md"
+    linked.symlink_to(outside)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ValueError, match="Candidate snapshot contains symbolic link"):
+        exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
+
+    # The shared guard now rejects internal aliases too: evidence must be
+    # a regular file at its canonical path, not borrowed from another path.
+    linked.unlink()
+    inside = root / "docs/governance/owner.md"
+    inside.write_text("owner: ELO Governance\n", encoding="utf-8")
+    linked.symlink_to("owner.md")
+    with pytest.raises(ValueError, match="Candidate snapshot contains symbolic link"):
+        exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
+
+    # A genuine regular canonical contract remains admissible.
+    linked.unlink()
+    linked.write_text("owner: ELO Governance\n", encoding="utf-8")
+    exec(compile(source, "<immutable-pr-symlink-guard>", "exec"), {})
+
+
+def test_immutable_candidate_tree_exposes_owner_drift_hidden_on_trusted_main(tmp_path: Path) -> None:
+    """P1: the same changed paths can pass on main but fail on the PR's tree."""
+    import shutil
+    from automation.tasks.elo_canonical_reconciliation import AUTHZ_OWNER_CONTRACT
+
+    trusted = tmp_path / "trusted"
+    trusted.mkdir()
+    _make_existing_authz_owner(trusted)
+    candidate = tmp_path / "pr-candidate-snapshot"
+    shutil.copytree(trusted, candidate)
+    (candidate / AUTHZ_OWNER_CONTRACT).write_text(
+        "# Candidate removed its canonical issuer contract\n",
+        encoding="utf-8",
+    )
+    changed = [
+        "supabase/functions/elo-authz/index.ts",
+        "tests/security/test_operator_github_binding_runtime.py",
+    ]
+    main_evidence = reconcile_repository(trusted, changed, ["elo_authz"])
+    candidate_evidence = reconcile_repository(candidate, changed, ["elo_authz"])
+    assert main_evidence.decision == "STRENGTHEN"
+    assert main_evidence.reuse_analysis_complete
+    assert candidate_evidence.waiting_for_evidence
+    assert candidate_evidence.decision != "STRENGTHEN"
+    assert event_facts(candidate_evidence)["reuse_analysis_complete"] is False
+
+
 def test_authz_session_fix_reconciles_existing_owner(tmp_path: Path) -> None:
     _make_existing_authz_owner(tmp_path)
     evidence = reconcile_repository(tmp_path, [
@@ -1008,6 +1084,175 @@ def test_authz_scope_nested_payload_and_next_do_not_invent_grant_writer(
     assert evidence.duplicate_or_parallel is False
     assert ".github/workflows/next-read-only.yml" not in evidence.candidates
 
+
+def _write_governance_lifecycle_owners(tmp_path: Path) -> None:
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "# ELO Repository Canonical Structure Map\n"
+        "| `.github/workflows/elo-*.yml` | ELO Governance | governed automation | canonical operational workflows |\n",
+        encoding="utf-8",
+    )
+    adr = tmp_path / "10-adr/ADR-0020-end-to-end-cycle.md"
+    adr.parent.mkdir(parents=True, exist_ok=True)
+    adr.write_text(
+        "ELO lifecycle uses elo-agent-loop.yml and elo-merge-coordinator.yml as governed workflows.\n",
+        encoding="utf-8",
+    )
+    contract = tmp_path / "docs/governance/ELO_MERGE_COORDINATOR.md"
+    contract.parent.mkdir(parents=True, exist_ok=True)
+    contract.write_text(
+        "---\nowner: ELO Governance\n---\nELO Merge Coordinator contract.\n",
+        encoding="utf-8",
+    )
+
+
+def test_governance_workflow_bundle_reuses_existing_lifecycle_owner(tmp_path: Path):
+    _write_governance_lifecycle_owners(tmp_path)
+    changed = [
+        ".github/workflows/elo-agent-loop.yml",
+        ".github/workflows/elo-maintenance-coordinator.yml",
+        ".github/workflows/elo-merge-coordinator.yml",
+        "docs/governance/ELO_MERGE_COORDINATOR.md",
+        "10-adr/ADR-0020-end-to-end-cycle.md",
+        "tests/governance/test_merge_coordinator_contract.py",
+        "automation/tasks/elo_maintenance_coordinator.py",
+        "automation/tasks/elo_canonical_reconciliation.py",
+        CANONICAL_STRUCTURE_MAP,
+        "tests/governance/test_elo_canonical_reconciliation.py",
+    ]
+    evidence = reconcile_repository(tmp_path, changed)
+    assert evidence.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert evidence.canonical_identity == "elo-governed-pr-lifecycle"
+    assert evidence.duplicate_or_parallel is False
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "STRENGTHEN"
+    assert not evidence.waiting_for_evidence
+
+
+def test_governance_workflow_bundle_rejects_unknown_workflow_path(tmp_path: Path):
+    _write_governance_lifecycle_owners(tmp_path)
+    evidence = reconcile_repository(
+        tmp_path,
+        [
+            ".github/workflows/elo-agent-loop.yml",
+            ".github/workflows/parallel-merge-authority.yml",
+        ],
+    )
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.waiting_for_evidence
+
+
+def test_governance_workflow_bundle_requires_existing_adr_and_contract(tmp_path: Path):
+    structure_map = tmp_path / CANONICAL_STRUCTURE_MAP
+    structure_map.parent.mkdir(parents=True, exist_ok=True)
+    structure_map.write_text(
+        "| `.github/workflows/elo-*.yml` | ELO Governance | governed automation | canonical operational workflows |\n",
+        encoding="utf-8",
+    )
+    evidence = reconcile_repository(
+        tmp_path,
+        [".github/workflows/elo-agent-loop.yml"],
+    )
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.waiting_for_evidence
+
+
+
+def test_governance_lifecycle_does_not_erase_proven_duplicate_blocker(tmp_path: Path):
+    _write_governance_lifecycle_owners(tmp_path)
+    legacy = tmp_path / "legacy/elo_merge_coordinator.py"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text(
+        "class LegacyMergeCoordinator: pass\n",
+        encoding="utf-8",
+    )
+    owner = tmp_path / "owner.md"
+    owner.write_text(
+        "canonical owner: elo_merge_coordinator.py\n"
+        "source of truth: elo_merge_coordinator.py\n"
+        "elo_merge_coordinator capability remains canonical here.\n",
+        encoding="utf-8",
+    )
+
+    evidence = reconcile_repository(
+        tmp_path,
+        [".github/workflows/elo-merge-coordinator.yml"],
+    )
+
+    assert "legacy/elo_merge_coordinator.py" in evidence.candidates
+    assert evidence.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert evidence.canonical_identity == "elo-governed-pr-lifecycle"
+    assert evidence.duplicate_or_parallel is True
+    assert evidence.reuse_analysis_complete is True
+    assert evidence.decision == "REUSE"
+    assert not evidence.waiting_for_evidence
+    assert any("blocker remains" in reason for reason in evidence.reasons)
+
+
+
+def test_governance_lifecycle_preserves_unresolved_executable_candidate(tmp_path: Path):
+    """A declared workflow owner cannot disprove an unclassified parallel module."""
+    _write_governance_lifecycle_owners(tmp_path)
+    legacy = tmp_path / "legacy/elo_merge_coordinator.py"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text("class CandidateWithoutOwner: pass\n", encoding="utf-8")
+
+    evidence = reconcile_repository(
+        tmp_path,
+        [".github/workflows/elo-merge-coordinator.yml"],
+    )
+
+    assert "legacy/elo_merge_coordinator.py" in evidence.candidates
+    assert evidence.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert evidence.canonical_identity == "elo-governed-pr-lifecycle"
+    assert evidence.duplicate_or_parallel is None
+    assert evidence.reuse_analysis_complete is False
+    assert evidence.decision is None
+    assert evidence.waiting_for_evidence
+    assert any("unresolved" in reason for reason in evidence.reasons)
+
+
+def test_authz_and_lifecycle_owner_reconciliation_coexist_in_integrated_tree(
+    tmp_path: Path,
+) -> None:
+    """Integrated regression: lifecycle owner must not replace the authz owner."""
+    _make_existing_authz_owner(tmp_path)
+    structure = tmp_path / CANONICAL_STRUCTURE_MAP
+    authz_row = structure.read_text(encoding="utf-8")
+    _write_governance_lifecycle_owners(tmp_path)
+    structure.write_text(
+        structure.read_text(encoding="utf-8") + authz_row,
+        encoding="utf-8",
+    )
+
+    authz = reconcile_repository(
+        tmp_path,
+        ["supabase/functions/elo-authz/index.ts"],
+        concept_terms=["index"],
+    )
+    lifecycle = reconcile_repository(
+        tmp_path,
+        [
+            ".github/workflows/elo-agent-loop.yml",
+            ".github/workflows/elo-maintenance-coordinator.yml",
+            ".github/workflows/elo-merge-coordinator.yml",
+            "docs/governance/ELO_MERGE_COORDINATOR.md",
+            "10-adr/ADR-0020-end-to-end-cycle.md",
+            "tests/governance/test_merge_coordinator_contract.py",
+            "automation/tasks/elo_canonical_reconciliation.py",
+            CANONICAL_STRUCTURE_MAP,
+            "tests/governance/test_elo_canonical_reconciliation.py",
+        ],
+    )
+
+    assert (authz.canonical_identity, authz.decision) == ("elo-authz", "STRENGTHEN")
+    assert authz.source_of_truth == "docs/governance/ELO_OPERATOR_GITHUB_BINDING_RUNTIME.md"
+    assert (lifecycle.canonical_identity, lifecycle.decision) == (
+        "elo-governed-pr-lifecycle", "STRENGTHEN",
+    )
+    assert lifecycle.source_of_truth == "10-adr/ADR-0020-end-to-end-cycle.md"
+    assert authz.reuse_analysis_complete and lifecycle.reuse_analysis_complete
 
 @pytest.mark.parametrize(("script", "blocked"), [
     ("curl --cookie-jar '-G' --data '{}' '$URL/rest/v1/elo_authorization_grants'", True),
