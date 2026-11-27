@@ -17,7 +17,7 @@ Impedir que o GPT misture padrões gerais, fichas específicas, composições e 
 - Área útil oficial de referência para módulo 20 pés: **13,62 m²**.
 - Portanto, **14,64 m² nunca deve ser descrito como área útil interna**.
 - Altura de 3010 mm é uma dimensão de referência da família.
-- MLT.M01 possui altura externa específica de **2985 mm** e esta prevalece para o M01.
+- MLT.M01 possui altura externa específica de **3010 mm** e esta prevalece para o M01.
 
 ### Isolamento
 - Paredes: **PIR 40 mm** como padrão cadastrado.
@@ -50,3 +50,7 @@ Impedir que o GPT misture padrões gerais, fichas específicas, composições e 
 Se uma pergunta envolver dois valores diferentes, o GPT deve explicar a diferença por categoria ou precedência. Não escolher um valor apenas porque parece mais provável.
 
 Se não houver fonte suficiente para decidir, responder **"Informação não definida na base técnica atual"** e direcionar ao **Setor de Planejamento**.
+
+
+### Registro de atualização dimensional — 2026-11-27
+Altura externa vigente do MLT.M01: 3010 mm, confirmada pelo Planejamento na SO 211.26 — COPPETEC e conciliada com `public.modelos` (M01) / `public.dimensoes` (20 pés) no Supabase. A referência anterior de 2985 mm fica preservada como histórico, não como dimensão vigente. Demais atributos permanecem inalterados.
