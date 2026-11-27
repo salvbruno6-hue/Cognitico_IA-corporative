@@ -297,8 +297,8 @@ def test_existing_pr_attestation_freezes_sha_and_reuses_canonical_reconciliation
         "Verify required GitHub checks",
         "Verify Evolution Gate for immutable head",
         "elo_canonical_reconciliation",
-        "reuse_analysis_complete == true",
-        "duplicate_or_parallel == false",
+        'canonicality_admission(payload["event_facts"])',
+        "outcome is not None or evidence.waiting_for_evidence",
         "Revalidate immutable head and reviews",
         "PR head changed before PR-ready publication",
         "ELO_PR_READY_V2=1",
@@ -866,3 +866,54 @@ def test_maintenance_uses_single_canonicality_rule():
     assert "reconciliation['event_facts']" in script
     assert "canonical_outcome.value" in script
     assert "canonical_clear = canonical_outcome is None" in script
+
+
+def test_snapshot_validation_rejects_aliases_and_missing_roots(tmp_path):
+    import pytest
+    from automation.tasks.elo_maintenance_coordinator import validate_candidate_snapshot
+
+    root = tmp_path / "snapshot"
+    root.mkdir()
+    (root / "docs").mkdir()
+    (root / "docs" / "contract.md").write_text("candidate contract")
+    (root / ".git").mkdir()
+    (root / ".git" / "internal").write_text("checkout metadata")
+    validate_candidate_snapshot(root)
+
+    outside = tmp_path / "trusted.md"
+    outside.write_text("trusted contract")
+    link = root / "docs" / "owner.md"
+    for target in (outside, root / "docs" / "contract.md", root / "missing"):
+        link.symlink_to(target)
+        with pytest.raises(ValueError, match="symbolic link"):
+            validate_candidate_snapshot(root)
+        link.unlink()
+
+    alias = root / "aliased-directory"
+    alias.symlink_to(root / "docs", target_is_directory=True)
+    with pytest.raises(ValueError, match="symbolic link"):
+        validate_candidate_snapshot(root)
+    alias.unlink()
+
+    root_alias = tmp_path / "alias-root"
+    root_alias.symlink_to(root, target_is_directory=True)
+    with pytest.raises(ValueError, match="Invalid immutable"):
+        validate_candidate_snapshot(root_alias)
+    with pytest.raises(ValueError, match="Invalid immutable"):
+        validate_candidate_snapshot(tmp_path / "absent")
+
+
+def test_both_attestation_producers_use_trusted_snapshot_validator():
+    for workflow, step in (
+        (AGENT_WORKFLOW, "Verify immutable PR candidate snapshot"),
+        (MAINTENANCE_WORKFLOW, "Verify immutable maintenance PR snapshot"),
+    ):
+        script = _shell_step(workflow, step)
+        assert "pr-candidate-snapshot rev-parse HEAD" in script
+        assert "from automation.tasks.elo_maintenance_coordinator import validate_candidate_snapshot" in script
+        assert 'validate_candidate_snapshot("pr-candidate-snapshot")' in script
+        assert "root.rglob" not in script
+
+    reconciliation = _shell_step(AGENT_WORKFLOW, "Canonical repository reconciliation")
+    assert 'canonicality_admission(payload["event_facts"])' in reconciliation
+    assert "outcome is not None or evidence.waiting_for_evidence" in reconciliation

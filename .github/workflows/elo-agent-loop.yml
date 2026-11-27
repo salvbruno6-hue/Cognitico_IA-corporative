@@ -373,21 +373,11 @@ jobs:
           set -euo pipefail
           actual_sha="$(git -C pr-candidate-snapshot rev-parse HEAD)"
           [[ "$actual_sha" == "$TARGET_HEAD_SHA" ]] || { echo "Candidate checkout SHA differs from immutable PR head."; exit 1; }
-          # Any tracked symlink that resolves outside the snapshot can borrow
-          # canonical-owner evidence from the trusted checkout. Fail closed.
+          # Execute the same trusted-base validator in both producers.
           python - <<'PY'
-          from pathlib import Path
+          from automation.tasks.elo_maintenance_coordinator import validate_candidate_snapshot
 
-          root = Path("pr-candidate-snapshot").resolve(strict=True)
-          for candidate in root.rglob("*"):
-              if ".git" in candidate.relative_to(root).parts or not candidate.is_symlink():
-                  continue
-              try:
-                  resolved = candidate.resolve(strict=True)
-              except (OSError, RuntimeError):
-                  raise SystemExit("Unresolvable candidate symlink; refusing attestation")
-              if not resolved.is_relative_to(root):
-                  raise SystemExit("Candidate symlink escapes immutable snapshot; refusing attestation")
+          validate_candidate_snapshot("pr-candidate-snapshot")
           PY
 
       - name: Prepare attestation evidence
@@ -427,6 +417,7 @@ jobs:
           import json
           from pathlib import Path
           from automation.tasks.elo_canonical_reconciliation import event_facts, reconcile_repository
+          from automation.tasks.elo_maintenance_coordinator import canonicality_admission
 
           changed = [line.strip() for line in Path("automation/audit-output/changed-paths.txt").read_text().splitlines() if line.strip()]
           terms = []
@@ -451,8 +442,10 @@ jobs:
           }
           Path("automation/audit-output/reconciliation.json").write_text(json.dumps(payload, indent=2) + "\n")
           print(json.dumps(payload, indent=2))
+          outcome, reasons = canonicality_admission(payload["event_facts"])
+          if outcome is not None or evidence.waiting_for_evidence:
+              raise SystemExit("Canonical admission refused: " + ", ".join(reasons or evidence.reasons))
           PY
-          jq -e '.reuse_analysis_complete == true and .waiting_for_evidence == false and .duplicate_or_parallel == false' automation/audit-output/reconciliation.json >/dev/null
 
       - name: Revalidate immutable head and reviews
         if: steps.target.outputs.bootstrap_blocked != 'true'

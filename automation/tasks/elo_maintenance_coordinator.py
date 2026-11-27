@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import os
+from pathlib import Path
 from typing import Iterable, Mapping
 
 
@@ -74,6 +76,38 @@ SPECIALIST_BY_EVENT = {
 
 def specialist_lane(event_class: str) -> str | None:
     return SPECIALIST_BY_EVENT.get(event_class.lower().strip())
+
+
+def validate_candidate_snapshot(snapshot: str | Path) -> None:
+    """Admit only an ordinary, non-executing candidate evidence tree.
+
+    Both privileged attestation producers use this trusted-base check before
+    any candidate reads. Links are not canonical file evidence: even an
+    in-tree alias could substitute another owner's contract. Reject links
+    rather than interpret their targets. Git metadata is not evidence.
+    """
+    root = Path(snapshot)
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Invalid immutable candidate snapshot")
+    root = root.resolve(strict=True)
+
+    def fail(error: OSError) -> None:
+        raise error
+
+    for directory, directories, files in os.walk(root, followlinks=False, onerror=fail):
+        parent = Path(directory)
+        if parent == root and ".git" in directories:
+            directories.remove(".git")
+        for name in (*directories, *files):
+            candidate = parent / name
+            if parent == root and name == ".git":
+                continue
+            if candidate.is_symlink():
+                raise ValueError(
+                    f"Candidate snapshot contains symbolic link: {candidate.relative_to(root)}"
+                )
+            if not candidate.is_dir() and not candidate.is_file():
+                raise ValueError("Candidate snapshot contains non-regular evidence")
 
 
 def canonicality_admission(
